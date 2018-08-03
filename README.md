@@ -1,13 +1,13 @@
 # Jupyter Graffiti
 
-![intro_movie](./images/intro_movie.gif)
-
 Create interactive screencasts inside Jupyter Notebook that anybody can play back.
+
+![intro_movie](./images/intro_movie.gif)
 
 Ever wanted to offer someone a hands-on demo in Jupyter Notebook? Now
 you can! Just add _Graffiti_, and any text inside a code cell can be
-annotated with a hoverable tip (a _Graffiti_) where you can explain
-your code in whatever detail you want (using markdown)! 
+annotated with a hoverable tip (a _Graffiti_ ) where you can explain
+your code in whatever detail you want (with markdown)! 
 
 Even better, you can attach a recording to any _Graffiti_ of selected
 activities in your notebook, including:
@@ -44,7 +44,7 @@ you in the same environment you recorded in.
 
 There are three ways to use _Jupyter Graffiti_: as a Python library, using a Docker image, or by installing a plugin into your Jupyter Notebook configuration. 
 
-### As a Python Library (Simplest Option)
+### Installation Option #1: Use the Python Library (Simplest Option)
 
 1. `git clone` this repo in the same directory where you keep the Notebook(s) you want to add _Graffiti_ to.
 1. Add and run this command in a cell in the Notebook you want to start adding _Graffiti_ to: 
@@ -65,7 +65,7 @@ If you don't see either of these things, use `Kernel... Restart and Clear Output
 
 ![kernel_restart](./images/kernel_restart.png)
 
-### As a Docker image (Slightly More Complex Option) (coming shortly)
+### Installation Option #2: Install a Docker image (Slightly More Complex Option) (coming shortly)
 
 You'll need to [install Docker](https://docs.docker.com/install) first. Then you can take the following steps in a terminal shell on your laptop:
 
@@ -95,7 +95,7 @@ Take a look at the output of the Jupyter Server running in the container. It has
 
 ![jupyter_container_key](./images/jupyter_container_key.png)
 
-### Installing the Graffiti extension in your own Jupyter Server
+### Installation Option #3: Install the Graffiti Extension in Your Own Jupyter Server (More Complex Option)
 
 This will permanently install the extension in Jupyter (although you
 can always uninstall it if you want to). This means the extension will
@@ -124,7 +124,7 @@ To disable the plugin, you can visit
 To add a _Graffiti_, simply click in any text in any code cell and click
 either *Create* or *Record*. 
 
-![create_record](./images/create_record.png)
+![click_to_create](./images/click_to_create.png)
 
 In either case you will be presented with
 a new cell you can use for editing the markdown content shown when a
@@ -137,7 +137,7 @@ process is the same.
 Enter any markdown you want to show up in the _Graffiti_ tip, and
 click Save Annotation.
 
-![enter_annotation](./images/enter_annotation.png)
+![enter_annotation](./images/enter_annotation_2.png)
 
 The editing cell will now disappear, and you will
 return to the cell where you were adding your _Graffiti_. The text
