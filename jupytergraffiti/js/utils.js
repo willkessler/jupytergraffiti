@@ -1,0 +1,406 @@
+define([
+  'components/marked/lib/marked'
+], function (marked) {
+
+  const utils = {
+    generateUniqueId: () => {
+      return 'id-' + Math.random().toString(36).substr(2, 16);
+    },
+
+    getNow: () => {
+      return new Date().getTime();
+    },
+
+    findCellByCellId: (cellId) => {
+      const inputCells = Jupyter.notebook.get_cells();
+      for (let cell of inputCells) {
+        if (cell.metadata.hasOwnProperty('cellId') && cell.metadata.cellId === cellId) {
+          return cell;
+        }
+      }
+      return undefined;
+    },
+
+    // refactor this to use hash for faster lookup
+    findCellIndexByCellId: (cellId) => {
+      const inputCells = Jupyter.notebook.get_cells();
+      for (let cellIndex of Object.keys(inputCells)) {
+        if (inputCells[cellIndex].metadata.hasOwnProperty('cellId') && inputCells[cellIndex].metadata.cellId === cellId) {
+          // console.log('Found cellIndex:', cellIndex);
+          return parseInt(cellIndex);
+        }
+      }
+      return undefined;
+    },
+
+    findCellByCodeMirror: (cm) => {
+      const inputCells = Jupyter.notebook.get_cells();
+      for (let cell of inputCells) {
+        if (cell.code_mirror === cm) {
+          return cell;
+        }
+      }
+      return undefined;
+    },
+    
+    renderMarkdown: (contents) => {
+      // Strip out special commands eg. headline commands and make all hrefs pop new tabs
+      const cleanedContents = contents.replace(/^%%(.*)$/mg, '');
+      return marked(cleanedContents).replace(/(href=".*")>/g, "$1 target=\"_blank\">");
+    },
+
+    collectViewInfo: (clientY, notebookPanelHeight, scrollTop, garnishing, garnishStyle) => {
+      let cellElement, cellRect;
+      const inputCells = Jupyter.notebook.get_cells();
+      const selectedCell = Jupyter.notebook.get_selected_cell();
+      const selectedCellId = selectedCell.metadata.cellId;
+      // handle case where pointer is above all cells or below all cells
+      let cellIndex, cellIndexStr, cell, innerCell, innerCellRect, innerCellRectRaw, cellPosition, cm;
+      for (cellIndexStr in inputCells) {
+        cellIndex = parseInt(cellIndexStr);
+        cell = inputCells[cellIndex];
+        cellElement = cell.element[0];
+        cellRect = cellElement.getBoundingClientRect();
+        if ( ((cellRect.top <= clientY) && (clientY <= cellRect.bottom)) ||
+             // These are the cases where the pointer is above the first cell or below the last cell
+             (((cellIndex === 0) && (clientY < cellRect.top)) ||
+              ((cellIndex === inputCells.length - 1) && (cellRect.bottom < clientY))) ) {
+          innerCell = $(cellElement).find('.inner_cell')[0];
+          innerCellRectRaw = innerCell.getBoundingClientRect();
+          innerCellRect = { 
+            top: innerCellRectRaw.top, 
+            left: innerCellRectRaw.left, 
+            width: innerCellRectRaw.width, 
+            height: innerCellRectRaw.height 
+          };
+          cellPosition = $(cellElement).position();
+          cm = cell.code_mirror;
+          return {
+            cellId: cell.metadata.cellId, // The id of cell that the pointer is hovering over right now
+            cellRect: cellRect,           // The bounding rect for that cell.
+            innerCellRect: innerCellRect,
+            innerScroll: cm.getScrollInfo(),
+            cellPositionTop: cellPosition.top,
+            selectedCellId: selectedCellId,
+            notebookPanelHeight: notebookPanelHeight,
+            garnishing: garnishing,
+            garnishStyle: garnishStyle,
+            scrollTop: scrollTop
+          };
+        }
+      }
+      return { cellId: undefined, cellRectTop: undefined, cellRectBottom: undefined };
+
+    },
+
+    getCellDimensions: () => {
+      const inputCells = Jupyter.notebook.get_cells();
+      let cell, cellDimensions = {}, elem;
+      for (cell of inputCells) {
+        elem = $(cell.element[0]);
+        cellDimensions[cell.metadata.cellId] = { 
+          position: elem.position(),
+          width:  elem.width(),
+          height: elem.height()
+        }
+      }
+      return cellDimensions;
+    },
+
+    getActiveCellId: () => {
+      const activeCell = Jupyter.notebook.get_selected_cell();
+      return activeCell.metadata.cellId;
+    },
+
+    getActiveCellLineNumber: () => {
+      const activeCell = Jupyter.notebook.get_selected_cell();
+      const cm = activeCell.code_mirror;
+      const selections = cm.listSelections();
+      const activeLine = selections[0].anchor.line;
+      return activeLine;
+    },
+
+    saveNotebook: () => {
+      Jupyter.notebook.save_notebook().then( () => { console.log('Notebook saved.') });
+    },
+
+    collectTokenStrings: (allTokens, tokens) => {
+      const subTokens = allTokens.slice(tokens.firstTokenOffset, tokens.firstTokenOffset + tokens.extraTokens + 1);
+      debugger;
+      return subTokens.reduce( (tokensString, token) => { tokensString + token.string } )
+    },
+
+    // Find out whether the current selection intersections with any annotation token ranges, or which tokens are in the selection if not.
+    findSelectionTokens: (recordingCell,  tokenRanges, state) => {
+      //console.log('findSelectionTokens, tokenRanges:', tokenRanges);
+      let range, startRange, endRange, recordingKey, markdown, isIntersecting = false;
+      const recordingCellId = recordingCell.metadata.cellId;
+      const cm = recordingCell.code_mirror;
+      const selections = cm.listSelections();
+      const firstSelection = selections[0];
+      const anchorPos = cm.indexFromPos(firstSelection.anchor);
+      const headPos = cm.indexFromPos(firstSelection.head);
+      const startPos = Math.min(anchorPos, headPos);
+      const endPos = Math.max(anchorPos, headPos);
+      let minStartRange = 1000000000;
+
+      if (tokenRanges[recordingCellId] !== undefined) {
+        const tokenRangesThisCell = tokenRanges[recordingCellId];
+        for (recordingKey of Object.keys(tokenRangesThisCell)) {
+          range = tokenRangesThisCell[recordingKey];
+          startRange = cm.indexFromPos(range.start);
+          endRange = cm.indexFromPos(range.end);
+          //console.log('startPos:', startPos, 'endPos:', endPos, '| startRange:', startRange, 'endRange:', endRange, 'range:', range);
+          if ((startPos <= startRange && endPos >= endRange) || // selection surrounds or equals the range
+              ((startPos >= startRange && startPos <= endRange) || (endPos >= startRange && endPos <= endRange))) { // selection is inside the range
+            if (startRange < minStartRange) {
+              minStartRange = startRange;
+              recording = state.getManifestSingleRecording(recordingCellId, recordingKey);
+              markdown = recording.markdown;
+              hasMovie = recording.hasMovie;
+              //console.log('found range:', range);
+              isIntersecting = true;
+              results = {
+                isIntersecting: true,
+                noTokensPresent: false,
+                range: range,
+                recordingCell: recordingCell,
+                recordingCellId: recordingCellId,
+                recordingKey: recordingKey, 
+                markdown: markdown,
+                hasMovie: hasMovie,
+                start: startRange,
+                end:   endRange
+              };
+            }
+          }
+        }
+      }
+      if (!isIntersecting) {
+        // we didn't find a match within existing recordings. See what tokens are selected overall in that case.
+        //console.log('not intersecting, now checking for new annots');
+        const allTokens = utils.collectCMTokens(cm);
+        let startCheck, endCheck, token, startToken, lastToken, startTokenIndex, tokenCount = 0, tokensString = '';
+        if (allTokens.length === 0) {
+          // degnerate case 1: no tokens present at all in the cell
+          results = {
+            isIntersecting: false,
+            noTokensPresent : true
+          };
+        } else {
+          token = allTokens[allTokens.length - 1];
+          endCheck = cm.indexFromPos({line: token.line, ch: token.end});
+          if (startPos > endCheck) {
+            // degenerate case 2: selection caret is past the last token present
+            results = {
+              isIntersecting: false,
+              noTokensPresent : true
+            };
+          } else {
+            for (let i = 0; i < allTokens.length; ++i) {
+              lastToken = token;
+              token = allTokens[i];
+              startCheck = cm.indexFromPos({line: token.line, ch: token.start});
+              endCheck = cm.indexFromPos({line: token.line, ch: token.end});
+              //console.log('startPos, endPos:', startPos, endPos, 'checking token:', token.string, startCheck, endCheck);
+              if (startToken === undefined) {
+                if (startPos >= startCheck && startPos <= endCheck) {
+                  startToken = token;
+                  startTokenIndex = i;
+                  tokenCount = 1;
+                  tokensString = startToken.string;
+                  //console.log('start token:', startToken);
+                  if (startPos === endPos) {
+                    endToken = token; // the selection is zero characters long so the startToken and the endToken are the same
+                  }
+                }
+              } else if (!(startCheck >= endPos)) { // scan forward for the ending token
+                endToken = token;
+                tokenCount++;
+                tokensString += token.string;
+                //console.log('end token:', endToken);
+              }
+              if (startCheck > endPos) {
+                if (startToken === undefined && lastToken !== undefined) {
+                  startToken = lastToken; // if between tokens, take last token seen
+                  endToken = lastToken;
+                }
+                break;
+              }
+            }
+            
+            // Find the occurence count of the first token in the code cell, e.g. if the token is the second "hello" in "hello there, mr. hello dude"
+            //console.log('startPos, endPos:', startPos, endPos, 'startToken,endToken:', startToken,endToken);
+            startToken.offset = 0;
+            for (let i = 0; i < allTokens.length; ++i) {
+              token = allTokens[i];
+              if (token.type === startToken.type && token.string === startToken.string) {
+                if (i < startTokenIndex) {
+              ++startToken.offset;
+                } else {
+                  break;
+                }
+              }
+            }
+
+            results = {
+              isIntersecting: false,
+              noTokensPresent: false,
+              tokens: {
+                start: {
+                  type: startToken.type,
+                  string: startToken.string,
+                  offset: startToken.offset
+                },
+                count: tokenCount,
+                allTokensString: tokensString            
+              },
+              start: cm.indexFromPos({line:startToken.line, ch: startToken.ch}),
+              end:   cm.indexFromPos({line:endToken.line, ch: endToken.ch})
+            }
+          }
+        }
+      }
+
+      //console.log('findIntersectingRange results:', results);
+      return results;
+    },
+
+    // Collect all tokens in code-mirror into an array and tag each with which line it's found on. We use this 
+    // in refreshAnnotationHighlights() as we mark up a cell with existing recorded annotations.
+    collectCMTokens: (cm) => {
+      let allTokens = [];
+      const lineCount = cm.lineCount();
+      for (let i = 0; i < lineCount; ++i) {
+        lineTokens = cm.getLineTokens(i);
+        for (let j of Object.keys(lineTokens)) {
+          lineTokens[j].line = i;
+        }
+        allTokens = allTokens.concat(lineTokens);
+      }
+      return allTokens;
+    },
+
+    // Given a start token string and a tokenOffset, and how many subsequent tokens are needed, pull the line and character ranges
+    // out of the given code mirror instance (since those ranges might have changed since the annotation was first created).
+    getCMTokenRange: (cm, tokens, allTokens) => {
+      const startToken = tokens.start;
+      const allTokensLength = allTokens.length;
+      let i, tokenCounter = 0, lineTokens, token, firstTokenPosition;
+      for (i = 0; i < allTokensLength; ++i) {
+        token = allTokens[i];
+        if ((token.string === startToken.string) && (token.type === startToken.type)) {
+          if (tokenCounter === startToken.offset) {
+            firstTokenPosition = i;
+            break;
+          } else {
+            ++tokenCounter;
+          }
+        }
+      }
+      if (firstTokenPosition === undefined) {
+        return undefined; // couldn't find first token
+      }
+      const lastTokenPosition = Math.min(allTokensLength - 1, firstTokenPosition + tokens.count - 1);
+      const firstToken = allTokens[firstTokenPosition];
+      const lastToken = allTokens[lastTokenPosition];
+
+      return {
+        start: {
+          line: firstToken.line, ch: firstToken.start
+        },
+        end: {
+          line: lastToken.line, ch: lastToken.end
+        }
+      };
+    },
+
+    cleanSelectionRecord: (rec) => {
+      return {
+        anchor: { 
+          ch: rec.anchor.ch,
+          line: rec.anchor.line
+        },
+        head: {
+          ch: rec.head.ch,
+          line: rec.head.line
+        }
+      }
+    },
+
+    cleanSelectionRecords: (recs) => {
+      let cleanedRecs = [];
+      if (recs.length === 0) {
+        return cleanedRecs;
+      }
+      for (let i = 0; i < recs.length; ++i) {
+        cleanedRecs.push(utils.cleanSelectionRecord(recs[i]));
+      }
+      return cleanedRecs;
+    },
+
+    //
+    // Time formatting functions
+    //
+    timeZeroPad: (num) => {
+      const strNum = num.toString();
+      return(strNum.length < 2 ? '0' + strNum : strNum);
+    },
+
+    formatTime: (currentTimeMilliseconds) => {
+      //const currentTimeMilliseconds = duration * proportion;
+      const currentTimeSeconds = currentTimeMilliseconds / 1000;
+      const computedHour = Math.floor(currentTimeSeconds / 3600);
+      const computedMinutes = Math.floor((currentTimeSeconds - (computedHour * 3600)) / 60);
+      const computedSeconds = Math.floor(currentTimeSeconds - (computedMinutes * 60 + computedHour * 3600));
+      const computedMilliseconds = (Math.floor(currentTimeMilliseconds - ((computedSeconds + computedMinutes * 60 + computedHour * 3600) * 1000)) / 10).toFixed(0);
+      let displayMilliseconds = utils.timeZeroPad(computedMilliseconds);
+      let displaySeconds = utils.timeZeroPad(computedSeconds);
+      let displayMinutes = utils.timeZeroPad(computedMinutes);
+      let displayHour = utils.timeZeroPad(computedHour);
+      const currentTimeFormatted = `${displayMinutes}:${displaySeconds}:${displayMilliseconds}`;
+      return(currentTimeFormatted);
+    },
+
+    loadCss: (cssPaths) => {
+      for (let i in cssPaths) {
+        let path = cssPaths[i];
+        let previousCssTag = $('#recorder-css-tag-' + i);
+        if (previousCssTag.length === 0) {
+          // https://stackoverflow.com/questions/18510347/dynamically-load-stylesheets
+          const styles = document.createElement('link');
+          styles.rel = 'stylesheet';
+          styles.id = 'recorder-css-tag-' + i;
+          styles.type = 'text/css';
+          styles.media = 'screen';
+          styles.href = path;
+          document.getElementsByTagName('head')[0].appendChild(styles);
+        }
+      }
+    },
+
+    // Thanks for this goes to : https://hackernoon.com/copying-text-to-clipboard-with-javascript-df4d4988697f
+    copyToClipboard: (str) => {
+      const el = document.createElement('textarea');  // Create a <textarea> element
+      el.value = str;                                 // Set its value to the string that you want copied
+      el.setAttribute('readonly', '');                // Make it readonly to be tamper-proof
+      el.style.position = 'absolute';                 
+      el.style.left = '-9999px';                      // Move outside the screen to make it invisible
+      document.body.appendChild(el);                  // Append the <textarea> element to the HTML document
+      const selected =            
+        document.getSelection().rangeCount > 0        // Check if there is any content selected previously
+        ? document.getSelection().getRangeAt(0)       // Store selection if found
+        : false;                                      // Mark as false to know no selection existed before
+      el.select();                                    // Select the <textarea> content
+      document.execCommand('copy');                   // Copy - only works as a result of a user action (e.g. click events)
+      document.body.removeChild(el);                  // Remove the <textarea> element
+      if (selected) {                                 // If a selection existed before copying
+        document.getSelection().removeAllRanges();    // Unselect everything on the HTML document
+        document.getSelection().addRange(selected);   // Restore the original selection
+      }
+    },
+
+  }
+
+  return(utils);
+});

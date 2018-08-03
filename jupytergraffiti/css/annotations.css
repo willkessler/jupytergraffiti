@@ -1,0 +1,256 @@
+.recorder-cell {
+  background:white;
+  padding:5px;
+  color:white;
+  border-radius:5px;
+}
+
+.recorder-cell .recorder-info {
+  display:none;
+}
+
+#recorder-controls {
+  top:110px;
+  right:10px;
+  font-size:8px;
+  padding-left:2px;
+  display:flex;
+  align-items:left;
+  border-radius: 4px;
+  width:600px;
+}
+
+#recorder-record-controls {
+  display:none;
+}
+
+#recorder-record-controls-inner {
+  display:flex;
+  align-items:left;
+  padding-left:2px;
+}
+
+#recorder-record-controls-inner .btn {
+  padding: 2px 8px;
+}
+
+#recorder-record-controls-inner .cancel, 
+#recorder-playback-inner .cancel,
+#recorder-record-controls-inner .remove 
+{
+  padding: 2px 8px;
+  color:#aaa;
+  font-size:13px;
+}
+
+#recorder-playback-inner .cancel {
+  display:inline;
+}
+
+#recorder-playback-inner .cancel span:hover {
+  cursor:pointer;
+  text-decoration:underline;
+}
+
+
+#recorder-record-controls-inner .remove {
+  color:#f00 !important;
+  display:none;
+}
+
+#recorder-record-controls-inner #btn-remove-annotation {
+  color:red;
+  display:none;
+}
+
+#recorder-record-controls-inner #btn-finish-annotation {
+  display:none;
+}
+
+
+#recorder-playback-controls {
+  display:none;
+}
+
+#recorder-playback-inner {
+  display:flex;
+}
+
+
+.recorder-playback-controls .btn-play,
+.recorder-playback-controls .btn-stop-play,
+.recorder-playback-controls .btn-sound-on,
+.recorder-playback-controls .btn-sound-off {
+  color: black;
+  min-width:30px;
+}
+
+#recorder-controls-panel .btn-play {
+  background: #fff !important;
+  color:black;
+  font-size:13px;
+}
+
+#recorder-record-controls-inner .recorder-hint,
+#recorder-record-controls-inner #recorder-api-key {
+  background-color:#fff;
+  font-size:1.2em;
+  padding-left:4px;
+  padding:4px 0 0 4px;
+  min-width:170px;
+  display:none;
+}
+
+#recorder-record-controls-inner #recorder-api-key {
+  color:#888;
+  font-size:1.1em !important;
+}
+
+#recorder-record-controls-inner #recorder-api-key span {
+  border:1px solid #aaa;
+  padding:5px;
+  margin-left:2px;
+}
+
+#recorder-record-controls-inner #recorder-api-key span input {
+  border:none;
+}
+
+#recorder-record-controls-inner .recorder-hint span {
+  cursor:pointer;
+  text-decoration:underline;
+}
+
+/* canvas for garnishes */
+
+.recorder-canvas-outer {
+  position:absolute;
+  top:0;
+  left:0;
+  pointer-events:none;
+  opacity: 0.5;
+}
+
+.recorder-range {
+  padding-left:4px;
+  padding-top:5px;
+  flex-grow:1.25;
+  width:70px; /* we never want the recorder-buttons to wrap */
+}
+
+.recorder-time-display,
+.recorder-time-display-recording {
+  padding: 4px 2px 0px 4px;
+  font-size:1.4em;
+  display:none;
+}
+
+.recorder-time-display-recording {
+  color:red;
+}
+
+.recorder-button, .recorder-stop-button {
+  color:#000;
+}
+
+.recorder-hidden {
+  display:none;
+}
+
+.recorder-cursor {
+  position: fixed;
+  z-index:1000;
+  color:#fd5;
+  text-shadow:3px 2px #000;
+  top: 10px;
+  left: 0;
+  font-size:16px;
+}
+
+.recorder-cursor img {
+  width: 24px;
+  height:24px;
+}
+
+#recorder-notifier {
+  margin-left:10px;
+  font-size:1.5em;
+  font-style:italic;
+}
+
+.annotation-tip {
+  background-color:#fff;
+  color:#222;
+  position:absolute;
+  z-index:10;
+  padding:10px;
+  border:1px solid #ddd;
+  border-radius:5px;
+  box-shadow:5px 5px 10px 0px #ccc;
+  font-family: Helvetica;
+}
+
+.annotation-tip .parts {
+  display:flex;
+  align-items:left;
+}
+
+.annotation-tip .headline {
+  display:flex;
+  align-items:center;
+  justify-content:left;
+  font-weight:bold;
+  padding-bottom:5px;
+}
+
+.annotation-tip .headline div img {
+  height:25px;
+}
+
+.annotation-tip .info {
+  flex-grow:2;
+  width:100%;
+  max-width:300px;
+  max-height:100px;
+  padding-right:8px;
+  overflow-y:scroll;
+}
+
+.annotation-tip .movie {
+  flex-grow:1;
+  padding-left:8px;
+}
+
+.annotation-highlight {
+  border-bottom:2px dashed rgb(67,127,127);
+/*
+  text-decoration:underline;
+  text-decoration-style: dotted;
+  text-decoration-color: blueviolet;
+  text-underline-position:under;
+*/
+}
+
+.annotation-selected {
+  background-color:yellow;
+}
+
+.annotation-highlight:hover {
+  font-weight:bold;
+}
+
+/* Force back scrollbar for tooltip, see: http://simurai.com/blog/2011/07/26/webkit-scrollbar */
+.annotation-tip ::-webkit-scrollbar {
+    -webkit-appearance: none;
+    width: 7px;
+}
+
+.annotation-tip ::-webkit-scrollbar-thumb {
+    border-radius: 4px;
+    background-color: rgba(0,0,0,.5);
+    -webkit-box-shadow: 0 0 1px rgba(255,255,255,.5);
+}
+
+/*
+.qtip { max-width: none !important; }
+*/
