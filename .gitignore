@@ -59,3 +59,10 @@ typings/
 
 # next.js build output
 .next
+
+# Graffiti-specific ignores
+__pycache__
+recording_data
+.local
+.ipython
+.ipynb_checkpoints
