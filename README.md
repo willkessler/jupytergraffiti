@@ -152,12 +152,12 @@ the special characters `%%`. These are:
 1. `%%caption`     : Specify a special caption that appears at the top of this tip, formatted in boldface, such as _"Will explains..."_
 1. `%%caption_pic` : Provide the markdown path to a small image you want to display to the left of the caption. 
 
-### Creating a recordings for a _Graffiti_s
+### Creating a Recording For a Graffiti
 
 To create or replace a recording for a _Graffiti_, click the *Record*
 button. You can either add a recording to an existing _Graffiti_ or
-you can start off by creating a recording, which will automatically
-create the tip as well.
+you can just jump to creating a recording (this will automatically
+create the tip as well).
 
 ![begin_recording](./images/begin_recording.png)
 
@@ -177,7 +177,7 @@ press the ESC key. You will now see a message telling you your
 recording is complete and a link you can use to play the recording
 back to make sure it's OK. 
 
-[recording_complete](./images/recording_complete.png)
+![recording_complete](./images/recording_complete.png)
 
 You can also hover over your _Graffiti_ and
 play the recording back from the tip.
@@ -188,6 +188,14 @@ If you need to, you can remove any _Graffiti_ by clicking in its text and clicki
 
 ![trash_icon](./images/trash_icon.png)
 
+### Drawing Lines and Highlights in Recordings
+
+While you are recording for a _Graffiti_, you can draw lines and mark
+yellow highlights.  Hold down Alt (Command on mac) to draw lines, hold
+down Option to draw highlights. If you hold down both Command and
+Option at once, you can erase the lines and highlights you drew.
+
+![drawing_highlights](./images/drawing_highlights.gif)
 
 ## Using the Jupyter Graffiti Python API
 
