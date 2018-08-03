@@ -1,5 +1,7 @@
 # Jupyter Graffiti
 
+![intro_movie](./images/intro_movie.gif)
+
 Create interactive screencasts inside Jupyter Notebook that anybody can play back.
 
 Ever wanted to offer someone a hands-on demo in Jupyter Notebook? Now
