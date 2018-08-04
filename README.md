@@ -98,15 +98,6 @@ jupytergraffiti` in the Notebook just to play back _Graffiti_s (but
 you will need to run it to access the Graffiti API, cf below for
 details on that).
 
-The container will serve content out of port 8888. If you already have
-something (e.g. another Jupyter server) running on this port, pass a different port to
-`build_and_run.sh` e.g. :
-
-```
-./jupytergraffiti/build_and_run.sh 8889`
-
-```
-
 Take a look at the output of the Jupyter Server running in the
 container. It has the secret key you need to be able to surf to this
 Jupyter server. The output will look something like this (but note
@@ -124,6 +115,23 @@ What this is telling you is to surf to
 to access the Jupyter Server with the _Graffiti_ extension installed and
 running.
 
+The container will serve content out of port 8888. If you already have
+something (e.g. another Jupyter server) running on this port, pass a different port to
+`build_and_run.sh` e.g. :
+
+```
+./jupytergraffiti/build_and_run.sh 8889`
+
+```
+
+Note: if you specify a different port, the Jupyter Server output
+containing the secret key will still show port 8888, because
+internally it still uses port 8888 but via Docker port mappings, we
+have remapped 8888 to the port you specify. However, you will need to
+access via the new port you specified. In the example above,
+therefore, you will need to access the server via
+`http://localhost:8889?token=<secret token>`.
+
 ### Installation Option #3: Install the Graffiti Extension in Your Own Jupyter Server (More Complex Option)
 
 This will permanently install the extension in Jupyter (although you
@@ -132,7 +140,6 @@ always be available whenever you start up your Jupyter server. To
 install the extension:
 
 ```
-cd jupytergraffiti
 jupyter nbextension install jupytergraffiti/graffiti_extension --symlink --user
 jupyter nbextension enable jupytergraffiti/graffiti_extension/main --user
 ```
@@ -141,13 +148,13 @@ You may need to restart your Jupyter server to get the extension to load, althou
 
 #### Uninstalling the Graffiti extension from your Jupyter Server
 
-To disable the plugin, you can visit
+To disable the plugin, you can edit:
 
 ```
 ~/.jupyter/nbconfig/notebook.json
 ```
 
-and set
+and set:
 
 ```
 "jupytergraffiti/graffiti_extension/main": false
