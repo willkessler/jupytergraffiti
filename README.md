@@ -24,11 +24,11 @@ All of this activity can be played back by hovering over the _Graffiti_ and clic
 
 ## Demo
 
-You can see a live demonstration of a Notebook with Graffiti here: (coming shortly)
+You can see a live demonstration of a Notebook with Graffiti here:
 
-Learning About Python Function Parameters
+[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2FIntroductionToGraffiti.ipynb)
 
-You can also find more samples in the `samples/` directory. (coming shortly)
+You can also find more samples in the `samples/` directory.
 
 ## Advantages of _Graffiti_ Over Traditional Screencasts
 
