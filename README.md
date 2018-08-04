@@ -80,35 +80,49 @@ Now, clicking anywhere in a code cell will show the _Graffiti_ content creation 
 
 ![kernel_restart](./images/kernel_restart.png)
 
-### Installation Option #2: Install a Docker image (Slightly More Complex Option) (coming shortly)
+### Installation Option #2: Install a Docker image (Slightly More Complex Option)
 
 You'll need to [install Docker](https://docs.docker.com/install) first. Then you can take the following steps in a terminal shell on your laptop:
 
 ```
-cd jupytergraffiti
-./build.sh
-cd ..
-./jupytergraffiti/run.sh
+./jupytergraffiti/build_and_run.sh
 ```
 
-This will start up a Docker container running the Jupyter Server and
+This will build and start up a Docker container running the Jupyter Server and
 the Jupyter Graffiti extension, with the container's home directory
 being mounted where your Jupyter Notebook(s) are located.
 
 The advantage of using the Docker container is that Jupyter Graffiti
 is always loaded automatically so you don't have the run `import
-jupytergraffiti` in the Notebook (unless you want access to the
-Graffiti API, cf below for details on that).
+jupytergraffiti` in the Notebook just to play back _Graffiti_s (but
+you will need to run it to access the Graffiti API, cf below for
+details on that).
 
 The container will serve content out of port 8888. If you already have
-a Jupyter server running on this port, pass a different port to
-`run.sh` e.g. :
+something (e.g. another Jupyter server) running on this port, pass a different port to
+`build_and_run.sh` e.g. :
 
-`./jupytergraffiti/run.sh 8889`
+```
+./jupytergraffiti/build_and_run.sh 8889`
 
-Take a look at the output of the Jupyter Server running in the container. It has the secret key you need to be able to surf to this Jupyter server:
+```
 
-![jupyter_container_key](./images/jupyter_container_key.png)
+Take a look at the output of the Jupyter Server running in the
+container. It has the secret key you need to be able to surf to this
+Jupyter server. The output will look something like this (but note
+that the Jupyter Server login token will change every time you restart
+this container):
+
+```
+Copy/paste this URL into your browser when you connect for the first time,
+    to login with a token:
+        http://(b13ba2b482e9 or 127.0.0.1):8888/?token=e58a08f167881500e207ff9be05ad57ffe00e3457e54017c
+```
+
+What this is telling you is to surf to
+`http://localhost:8888?token=e58a08f167881500e207ff9be05ad57ffe00e3457e54017c`
+to access the Jupyter Server with the _Graffiti_ extension installed and
+running.
 
 ### Installation Option #3: Install the Graffiti Extension in Your Own Jupyter Server (More Complex Option)
 

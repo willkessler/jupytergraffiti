@@ -251,7 +251,7 @@ define([
     },
 
     storeRecordingCellInfo: (cellInfo) => {
-      console.log('storeRecordingCellInfo');
+      // console.log('storeRecordingCellInfo');
       state.recordingCellInfo = cellInfo;
     },
 
@@ -338,7 +338,7 @@ define([
           if (cell.output_area.outputs.length > 0) {
             outputs0 = cell.output_area.outputs[0];
             output_type = outputs0.output_type;
-            console.log('checking output area output_type:', output_type);
+            // console.log('checking output area output_type:', output_type);
             if (output_type === 'display_data') {
               if (outputs0.data.hasOwnProperty('application/javascript')) {
                 if (outputs0.data['application/javascript'].match(/Graffiti\sjavascript/g) !== null) {
@@ -349,7 +349,7 @@ define([
             if (!ourJs) {
               // Note that we filter out our own javascript outputs-- we don't want to rerun these when we restore cell states or 
               // else we could rerun the whole recording.
-              console.log('recording output for outputs0:', outputs0);
+              // console.log('recording output for outputs0:', outputs0);
               output = { 
                 header: { msg_type: output_type },
                 content: outputs0
@@ -649,7 +649,7 @@ define([
               if (selections.active) {
                 cell.code_mirror.focus();
               }
-              console.log('setting selection to :', selections.selections);
+              //console.log('setting selection to :', selections.selections);
               cell.code_mirror.setSelections(selections.selections);
             }
           }
