@@ -1362,8 +1362,10 @@ define([
               if (frameOutputs !== undefined && frameOutputs.length > 0 && (!(_.isEqual(outputs, frameOutputs)))) {
                 cell.clear_output();
                 const output_type = frameOutputs[0].output_type;
-                if (output_type === 'display_data' || output_type === 'stream') {
-                  if ((output_type === 'stream') || (frameOutputs[0].hasOwnProperty('data') && !frameOutputs[0].data.hasOwnProperty('application/javascript'))) {
+                if ((output_type === 'display_data' || output_type === 'stream') || (output_type === 'error')) {
+                  if ((output_type === 'stream') ||
+                      (output_type === 'error') ||
+                      (frameOutputs[0].hasOwnProperty('data') && !frameOutputs[0].data.hasOwnProperty('application/javascript'))) {
                     cell.output_area.handle_output({header: { msg_type: frameOutputs[0].output_type }, content: frameOutputs[0]});
                   }
                 }
