@@ -1587,8 +1587,9 @@ define([
           state.assignCellIds();
           utils.saveNotebook();
           annotations.initInteractivity();
-        }
+        }          
         state.setAccessLevel(level); 
+        annotations.updateControlsDisplay();
       },
     };
 

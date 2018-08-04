@@ -261,11 +261,14 @@ Option at once, you can erase the lines and highlights you drew.
 
 The *Graffitis* are always associated with some code cell text. That
 text becomes underlined with a dashed underline. Hovering over that
-text will show the *Graffiti* tooltip.  If a recording is stored for
-that *Graffiti* and you press the *Play Movie* button, the movie will
-start to play back. The current state of the notebook will be saved
-and restored when the movie finishes, or playback is
-cancelled. Playback controls look like this:
+text will show the *Graffiti* tooltip.
+
+![basic_graffiti_tooltip](./images/basic_graffiti_tooltip.png)
+
+If a recording is stored for that *Graffiti* and you press the *Play
+Movie* button, the movie will start to play back. The current state of
+the notebook will be saved and restored when the movie finishes, or
+playback is cancelled. Playback controls look like this:
 
 ![playback_controls](./images/playback_controls.png)
 
@@ -283,10 +286,13 @@ be a single token too. Experiment to see how this functions.
 
 When you `import jupytergraffiti` you get immediate access to
 functions you can use to control _Jupyter Graffiti_ from Python. Some
-of these are utility functions and others can be used to control
-playback.
+of these are utility functions, and others can be used to control
+recordings playback.  To use them, simply run the python functions in your
+notebook's cells.
 
-You can set your access level to either *View* or *Create*. You may
+#### Switching Access Levels
+
+First off, you can set your access level to either *View* or *Create*. You may
 wish to switch to *View* mode to preview what users will see by
 default when they visit your _Graffiti'd_ notebook, and then switch
 back. To switch back and forth, execute these in a cell by itself:
@@ -299,11 +305,55 @@ jupytergraffiti.api.set_access_level('view')
 jupytergraffiti.api.set_access_level('create')
 ```
 
-__Note__: the first time you do this on your server, you will be asked
-whether you want to grant access to the microphone. You must answer
-__Yes__ if you want to record audio with your _Graffiti_ recordings.
+__Note__: the first time you switch to *Create* mode on your server, you will be asked
+whether you want to to allow access to the computer's microphone. You must answer
+__Yes__ if you want to record audio along with your _Graffiti_ recordings.
 
-To remove all *Graffitis* from a Notebook (so you can start fresh),
+#### Playing Back Graffiti Recordings
+
+You can also play any *Graffiti* recording back using Python
+code. This could be valuable, for instance, after a student has failed
+several times to make some code work; you could watch for this
+situation in your testing code, and offer to play a hint
+recording. Or, if a student's code passes all tests you can fire up a
+video prompting them to go on to the next exercise.
+
+To play back an existing *Graffiti*, first you need the "movie API
+key" of the specific recording you want to play. When you click on any
+*Graffiti* the movie API id is displayed in the menu bar (see
+illustration below). Simply click it to select its text, and then use
+your browser's copy function to copy the text to your clipboard
+(e.g. Cmd-C on Mac, Ctrl-C on PC).
+
+![recording_api_key](./images/recording_api_key_display.png)
+
+Now paste that recording API key into this command in your code:
+
+```
+jupytergraffiti.api.play_recording('id-cgxukass1bi_id-towwksveqi')
+```
+
+(Note that the key shown above is just an example).
+
+You can cancel playback on that recording with:
+
+```
+jupytergraffiti.api.stop_playback('id-cgxukass1bi_id-towwksveqi')
+```
+
+Finally, you can put up a unobtrusive (hint) prompt suggesting a user play back a specific recording:
+
+```
+jupytergraffiti.api.play_recording_with_prompt('abc-123', 'Click here to learn about the next puzzler!')
+```
+
+This may be useful if you want to queue up a recording for playback,
+but still give the viewer the option to start it themselves rather
+than have it play automatically.
+
+#### Removing All Graffitis
+
+To remove all *Graffitis* from a Notebook (for instance, when you want to start fresh),
 execute this command in a cell by itself:
 
 ```
@@ -313,49 +363,10 @@ jupytergraffiti.api.remove_all_annotations()
 You will get a prompt confirming whether this is something you really
 want to go through with.
 
-You can also play any *Graffiti* recording back using Python
-code. This could be valuable, for instance, after a student has failed
-several times to make some code work; you could watch for this
-situation in your testing code, and offer to play a hint
-recording. Or, if a student's code passes all tests you can fire up a
-video prompting them to go on to the next exercise.
-
-To play back an existing *Graffiti*, first find the id of the recording you want to
-play. When you click on any *Graffiti* the recording id is displayed
-in the menu bar. Simply click it to select its text, and then use your
-browser's copy function to copy the text to your clipboard (e.g. Cmd-C
-on Mac, Ctrl-C on PC).  
-
-![recording_api_key](./images/recording_api_key_display.png)
-
-Now paste that id into this command in your code:
-
-```
-jupytergraffiti.api.play_recording('id-cgxukass1bi_id-towwksveqi')
-```
-
-(Note that the id above is just an example).
-
-You can stop that recording playback with:
-
-```
-jupytergraffiti.api.stop_playback('id-cgxukass1bi_id-towwksveqi')
-```
-
-Finally, you can put up a unobtrusive (hint) prompt to playback a specific recording:
-
-```
-jupytergraffiti.api.play_recording_with_prompt('abc-123', 'Click here to learn about the next puzzler!')
-```
-
-This may be useful if you want to queue up a recording for playback,
-but still give the viewer the option to start it themselves rather
-than have it autoplay.
-
 ## Current Limitations of Jupyter Graffiti
 
 * Jupyter Graffiti can record most activities in Notebooks, but it currently does not record adding and deleting cells.
-* If you rearrange cells after making a recording, scrolling will try to align the cursor and the page as best it can with the cells you were mousing over and scrolling to, even if they are in a different order than when you made the original recording. However, due to complexities in cell sizes, this may not always be perfect.
+* If you rearrange cells after making a recording, scrolling will try to align the cursor and the page as best it can with the cells you were mousing over and scrolling to, even if they are in a different order than when you made the original recording. However, due to complexities involving cell sizing, this process may not always be perfect.
 * Given this is the first version of this software, there may well be bugs. Feel free to report issues on Github and/or propose PR's.
 
 ### Future Plans
