@@ -272,7 +272,12 @@ jupytergraffiti.api.set_access_level('view')
 jupytergraffiti.api.set_access_level('create')
 ```
 
-To remove all *Graffitis* from a Notebook (so you can start fresh), execute this command in a cell by itself:
+Note: the first time you do this on your server, you will be asked
+whether you want to grant access to the microphone. You must answer
+yes if you want to record audio with your _Graffiti_ recordings.
+
+To remove all *Graffitis* from a Notebook (so you can start fresh),
+execute this command in a cell by itself:
 
 ```
 jupytergraffiti.api.remove_all_annotations()
@@ -290,7 +295,11 @@ To play a *Graffiti* first find the id of the recording you want to
 play. When you click on any *Graffiti* the recording id is displayed
 in the menu bar. Simply click it to select its text, and then use your
 browser's copy function to copy the text to your clipboard (e.g. Cmd-C
-on Mac, Ctrl-C on PC).  Now paste that id into this command in your code:
+on Mac, Ctrl-C on PC).  
+
+![recording_api_key](./images/recording_api_key_display.png)
+
+Now paste that id into this command in your code:
 
 ```
 jupytergraffiti.api.play_recording('abc-123')
