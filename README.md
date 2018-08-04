@@ -9,8 +9,8 @@ you can! Just add __Graffiti__, and any text inside a code cell can be
 annotated with a hoverable tip (a *Graffiti* ) where you can explain
 the code in whatever detail you want (with markdown)!
 
-Even better, you can attach a recording to any _Graffiti_ of selected
-activities in your notebook, including:
+Even better, you can attach a screen recording to a _Graffiti_ of any
+actions you take in your notebook, including:
 
 * Recorded audio (e.g. voice narration), captured with your laptop's microphone while making your recording
 * Mouse movement and scrolling in the notebook
@@ -24,38 +24,52 @@ All of this activity can be played back by hovering over the _Graffiti_ and clic
 
 ## Demo
 
-You can see a live demonstration of a Notebook with _Graffiti_ here:
+You can see a live demonstration of a Notebook with _Graffiti_ by clicking the Binder badge below:
 
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2FIntroductionToGraffiti.ipynb)
 
 Please wait about 30 seconds for the demonstration to spin up at mybinder.org.
 
-You can also find more samples in the `samples/` directory.
+You can also find more sample Notebooks with *Graffitis* in the `samples/` directory.
 
 ## Advantages of _Graffiti_ Over Traditional Screencasts
 
-* You can save any number of _Graffiti_ in a Notebook.
-* You don't need any special software other than this library to create and save _Graffitis_.
-* Viewers can pause recorded playback any time, scrub forward and backward, and interact with the Notebook during
-playback at any point. No need to watch a whole recorded screencast first, and then switch context to a Notebook; students can explore right along with
-you in the same environment you recorded in.
-* _Jupyter Graffiti_ is easy to set up: either use the Python library or build the Docker image with the included Jupyter extension.  (At Udacity, Jupyter Notebook Workspaces use the extension. See below how to accomplish this).
-* All data, including audio, is stored in compressed plain text in a directory separate from your notebook files for easy portability and storage in any version control system.
+* You can save any number of _Graffitis_ in a Notebook.
+* You don't need any special software or hardware (other than this library and Chrome/Safari/Firefox) to create and save _Graffitis_.
+* Viewers can pause recorded playback any time, scrub forward and
+backward, and interact with the Notebook during playback at any
+point. No need to watch a whole recorded screencast first, and then
+switch context to a Notebook; students can explore right along with
+you in the same environment you recorded in. When you pause a
+recording, you're still in a live notebook, so you can play around.
+* _Jupyter Graffiti_ is easy to set up: either use the Python library
+  or build the Docker image with the included Jupyter extension.  (At
+  Udacity, Jupyter Notebook Workspaces use the extension. See below
+  how to install it).
+* All data, including audio, is stored in compressed plain text in a
+  directory separate from your notebook files, for easy portability and
+  storage in any version control system.
+* Unlike streamed video, you don't need a video server or hosted
+  YouTube videos, and you can watch the videos even without an
+  internet connection or over narrow bandwidth, because the files are
+  very small.
 
 ## Installation
 
-There are three ways to use _Jupyter Graffiti_: as a Python library, using a Docker image, or by installing a plugin into your Jupyter Notebook configuration.
+There are three ways to use _Jupyter Graffiti_: by using a Python library, by using a Docker image, or by installing a plugin into your Jupyter Notebook server.
 
 ### Installation Option #1: Use the Python Library (Simplest Option)
 
-Note: Before using this method, you may need to Trust your
-notebook. This is because _Jupyter Graffiti_ is built in javascript, and
-by default, if the notebook you're adding _Graffitis_ to was not created
-by you, Jupyter Notebook will not run javascript code for security reasons.
-To make a notebook Trusted click `File...Trust Notebook`_before_ running the import command below.
+*Note*: Before using this method, you may need to Trust your
+notebook. This is because _Jupyter Graffiti_ is built in Javascript,
+and by default, if the notebook you're adding _Graffitis_ to was not
+created by you, Jupyter Notebook will not run "Trust" it and will not
+javascript code (for security reasons).  To make a notebook Trusted,
+click `File...Trust Notebook`*before* running the import command
+below.
 
 1. `git clone` this repo in the same directory where you keep the Notebook(s) you want to add _Graffiti_ to.
-1. Add and run this command in a cell in the Notebook you want to start adding _Graffiti_ to:
+1. Add and run the following command in a cell in the Notebook you want to start adding _Graffiti_ to:
 
 ```
 import jupytergraffiti
@@ -67,7 +81,12 @@ If everything works, you should see the following message (temporarily) displaye
 
 If you don't see this message apeparing, use `Kernel... Restart and Clear Output` first, then try running ```import jupytergraffiti``` again.
 
-This will put you in *View* mode, ie you can only play existing _Graffitis_. Since you don't have any _Graffitis_ created yet, you will want to switch to *Create* mode. To do so, execute this in a cell by itself:
+![kernel_restart](./images/kernel_restart.png)
+
+By default, *Jupyter Graffiti* starts off in *View* mode, ie you can
+only play existing _Graffitis_. To create your first _Graffiti_ in a
+Notebook, you will need to switch to *Create* mode. Execute this in a
+cell by itself:
 
 ```
 jupytergraffiti.api.set_access_level('create')
@@ -77,12 +96,9 @@ Now, clicking anywhere in a code cell will show the _Graffiti_ content creation 
 
 ![basic_controls](./images/basic_controls.png)
 
-
-![kernel_restart](./images/kernel_restart.png)
-
 ### Installation Option #2: Run Jupyter Notebook with a Docker Image Containing Graffiti (Slightly More Complex Option)
 
-[Install Docker](https://docs.docker.com/install) first unless you've already installed it.
+Make sure to [install Docker](https://docs.docker.com/install) first (unless you've already installed it).
 
 Then enter this command in a terminal on your computer:
 
@@ -90,21 +106,21 @@ Then enter this command in a terminal on your computer:
 ./jupytergraffiti/build_and_run.sh
 ```
 
-This will build and start up a Docker container running the Jupyter Server and
-the _Jupyter Graffiti_ extension, with the container's home directory
-being mounted where your Jupyter Notebook(s) are located.
+This will build and start up a Docker container running the Jupyter
+Server and the _Jupyter Graffiti_ extension, with the container's home
+directory being mounted where your Jupyter Notebook(s) are located,
+and serving Notebooks over port 8888.
 
 The advantage of using the Docker container is that *Jupyter Graffiti*
-is always loaded automatically so you don't have to execute `import
-jupytergraffiti` in the Notebook just to play back *Graffitis*  (but
-you *will* need to run it to access the _Graffiti_ API, see below for
-details on that).
+is always loaded automatically, so you don't have to execute `import
+jupytergraffiti` in the Notebook just to play back *Graffitis* (but
+you *will* need to run it to access the _Graffiti_ API and switch to
+*Create* mode).
 
 Take a look at the output of the Jupyter Server running in the
 container. It has the secret key you need to be able to surf to this
 Jupyter server. The output will look something like this (but note
-that the Jupyter Server login token will change every time you restart
-this container):
+that the Jupyter Server login token will change every time you run `build_and_run.sh`):
 
 ```
 Copy/paste this URL into your browser when you connect for the first time,
@@ -117,24 +133,23 @@ What this is telling you is to surf to
 to access the Jupyter Server with the _Graffiti_ extension installed and
 running.
 
-The container will serve content out of port 8888. If you already have
+The Docker container will serve content out of port 8888. If you already have
 something (e.g. another Jupyter server) running on this port, pass a different port to
 `build_and_run.sh` e.g. :
 
 ```
-./jupytergraffiti/build_and_run.sh 8889`
+./jupytergraffiti/build_and_run.sh 8889
 
 ```
 
-Note: if you specify a different port, the Jupyter Server output
+**Note**: if you specify a different port, the Jupyter Server output
 containing the secret key will still show port 8888, because
-internally it still uses port 8888 but via Docker port mappings, we
-have remapped 8888 to the port you specify. However, you will need to
-access via the new port you specified. In the example above,
-therefore, you will need to access the server via
+internally it still uses port 8888; via Docker port mappings, we
+have remapped 8888 to the port you specify. In the example above,
+therefore, you would need to access the server at:
 `http://localhost:8889?token=<secret token>`.
 
-### Installation Option #3: Install the Graffiti Extension in Your Own Jupyter Server (More Complex Option)
+### Installation Option #3: Install the Graffiti Extension in Your Own Jupyter Server (Most Complex Option)
 
 This will permanently install the extension in Jupyter (although you
 can always uninstall it if you want to). This means the extension will
@@ -253,7 +268,10 @@ If you need to, you can remove any _Graffiti_ by clicking in its text and clicki
 While you are recording for a _Graffiti_, you can draw lines and mark
 yellow highlights.  Hold down Alt (Command on mac) to draw lines, hold
 down Option to draw highlights. If you hold down both Command and
-Option at once, you can erase the lines and highlights you drew.
+Option at once, you can erase the lines and highlights you drew. These
+drawings and highlights can cover multiple cells (for instance if you
+want to draw an arrow between two cells). They only exist while the
+recording is played back; they will not appear otherwise.
 
 ![drawing_highlights](./images/drawing_highlights.gif)
 
