@@ -144,6 +144,7 @@ return to the cell where you were adding your _Graffiti_. The text
 where you clicked now has an dashed underline. Mouse over the
 underline to see your _Graffiti_ tip.
 
+![minimum_outcome](./images/minimum_outcome.png)
 ![first_tip](./images/first_tip.png)
 
 Within the markdown of a _Graffiti_, certain special controls are
@@ -154,23 +155,29 @@ the special characters `%%`. These are:
 1. `%%caption`     : Specify a special caption that appears at the top of this tip, formatted in boldface, such as _"Will explains..."_
 1. `%%caption_pic` : Provide the markdown path to a small image you want to display to the left of the caption. 
 
+Here's an example of how you enter these special controls:
+![caption_editing](./images/caption_editing.png)
+
+And here's how that looks:
+![caption_rendered](./images/caption_rendered.png)
+
 ### Creating a Recording For a Graffiti
 
 To create or replace a recording for a _Graffiti_, click the *Record*
 button. You can either add a recording to an existing _Graffiti_ or
-you can just jump to creating a recording (this will automatically
+you can start by creating a recording first (this will automatically
 create the tip as well).
 
 ![begin_recording](./images/begin_recording.png)
 
-You will now enter some markdown for the tip that goes with this movie:
+You now must enter some markdown for the tip that goes with this movie (but this can be placeholder if you're not ready to come up with this yet):
 
 ![annotation_for_movie](./images/annotation_for_movie.png)
 
 When you're happy with whatever text you want to put in the tip, click *Start Movie Recording*.
 
 To begin recording your activities, click inside any cell. You will
-now see a timer indicating how long your recording has been going for:
+now see a timer indicating how long your recording has been going for (and some hints on how to finish recording):
 
 ![recording_timer](./images/recording_timer.png)
 
