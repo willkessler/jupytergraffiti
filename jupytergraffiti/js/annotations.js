@@ -20,7 +20,8 @@ define([
         const location = document.location;
 
         state.init();
-        if (state.getAccessLevel() === 'create') {
+        const currentAccessLevel = state.getAccessLevel();
+        if (currentAccessLevel === 'create') { // this should never happen, ie accessLevel of create should never be the default
           audio.init(state);
         }
 
@@ -40,17 +41,23 @@ define([
         annotations.tokenRanges = {};
         annotations.canvases = {};
 
-        storage.loadManifest('author').then(() => {
-          audio.setAudioStorageCallback(storage.storeMovie);
-          annotations.addCMEvents();
-          setTimeout(() => { 
-            annotations.setupControls(); 
-            annotations.setNotification('Graffiti is loaded and ready for use.', () => { annotations.clearNotification(); }, 3000);
-          }, 500); // this timeout avoids too-early rendering of hidden recorder controls
-
-          annotations.refreshAllAnnotationHighlights();
-          annotations.refreshAnnotationTips();
+        storage.loadManifest('author', currentAccessLevel).then(() => {
+          annotations.initInteractivity()
+        }).catch(() => {
+          console.log('Not setting up Graffiti because this notebook has never had any authoring done yet (no recordingId).');
         });
+      },
+
+      initInteractivity: () => {
+        audio.setAudioStorageCallback(storage.storeMovie);
+        annotations.addCMEvents();
+        setTimeout(() => { 
+          annotations.setupControls(); 
+          annotations.setNotification('Graffiti is loaded and ready for use.', () => { annotations.clearNotification(); }, 3000);
+        }, 500); // this timeout avoids too-early rendering of hidden recorder controls
+
+        annotations.refreshAllAnnotationHighlights();
+        annotations.refreshAnnotationTips();
       },
 
       //i nspired by https://www.codicode.com/art/how_to_draw_on_a_html5_canvas_with_a_mouse.aspx
@@ -1531,7 +1538,7 @@ define([
         storage.loadMovie(cellId, recordingId).then( () => {
           console.log('Movie loaded for cellId, recordingId:', cellId, recordingId);
           annotations.togglePlayBack();
-        }).catch( (ex) => {
+        }).catch( () => {
           dialog.modal({
             title: 'Movie is not available.',
             body: 'We are sorry, we could not load this movie at this time. Please contact the author of this Notebook for help.',
@@ -1581,11 +1588,12 @@ define([
             audio.init();
             state.setAudioInitialized();
           }
+          storage.ensureNotebookGetsRecordingId(level);
           state.assignCellIds();
           utils.saveNotebook();
+          annotations.initInteractivity();
         }
         state.setAccessLevel(level); 
-        annotations.updateControlsDisplay();
       },
     };
 

@@ -28,6 +28,8 @@ You can see a live demonstration of a Notebook with Graffiti here:
 
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2FIntroductionToGraffiti.ipynb)
 
+Please wait about 30 seconds for the demonstration to spin up at mybinder.org.
+
 You can also find more samples in the `samples/` directory.
 
 ## Advantages of _Graffiti_ Over Traditional Screencasts

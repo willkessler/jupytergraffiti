@@ -19,6 +19,16 @@ define([
       return dirName;
     },
 
+    ensureNotebookGetsRecordingId: (currentAccessLevel) => {
+      // make sure a new notebook gets a recording id
+      const notebook = Jupyter.notebook;
+      if (currentAccessLevel === 'create') {
+        if (!notebook.metadata.hasOwnProperty('recordingId')) {
+          notebook.metadata['recordingId'] = utils.generateUniqueId();
+        }
+      }
+    },
+
     clearStorageInProcess: () => {
       const recordingCellInfo = state.getRecordingCellInfo();
       const recording = state.getManifestSingleRecording(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
@@ -72,9 +82,13 @@ define([
     // Manifests contain information about all the recordings present in this notebook.
     // mode is either 'author' or 'student-<123>' where <123> is the id of a student's graffiti.
     // This version of the system only supports author manifests.
-    loadManifest: (mode) => {
+    loadManifest: (mode, currentAccessLevel) => {
       const notebook = Jupyter.notebook;
       if (!notebook.metadata.hasOwnProperty('recordingId')) {
+        if (currentAccessLevel !== 'create') {
+          console.log('loadManifest is bailing early because we are not in "create" mode and this notebook has no recordingId.');
+          return Promise.reject();
+        }
         notebook.metadata['recordingId'] = utils.generateUniqueId();
       }
       const notebookRecordingId = notebook.metadata['recordingId'];

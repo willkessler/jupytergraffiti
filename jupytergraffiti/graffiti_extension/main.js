@@ -9,8 +9,8 @@ define([
     Annotations.init();
     utils.saveNotebook();
 
-    Jupyter.notebook.events.on('kernel_ready.Kernel', (e) => { 
-      console.log('Annotations: kernel ready, possible kernel restart, so rerunning require', e); 
+    Jupyter.notebook.events.on('kernel_restarting.Kernel', (e) => { 
+      console.log('Annotations: kernel restarted, so rerunning require', e); 
       require(['jupytergraffiti/js/loader.js']);
       utils.saveNotebook();
     });
