@@ -46,6 +46,12 @@ There are three ways to use _Jupyter Graffiti_: as a Python library, using a Doc
 
 ### Installation Option #1: Use the Python Library (Simplest Option)
 
+Note: Before using this method, you may need to Trust your
+notebook. This is because Jupyter Graffiti is built in javascript, and
+by default, if the notebook you're adding Graffitis to was not created
+by you, Jupyter Notebook will not run javascript code for security reasons.
+To make a notebook Trusted click `File...Trust Notebook`_before_ running the import command below.
+
 1. `git clone` this repo in the same directory where you keep the Notebook(s) you want to add _Graffiti_ to.
 1. Add and run this command in a cell in the Notebook you want to start adding _Graffiti_ to: 
 
