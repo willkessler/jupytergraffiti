@@ -264,13 +264,20 @@ text becomes underlined with a dashed underline. Hovering over that
 text will show the *Graffiti* tooltip.  If a recording is stored for
 that *Graffiti* and you press the *Play Movie* button, the movie will
 start to play back. The current state of the notebook will be saved
-and restored when the movie finishes, or playback is cancelled. Playback controls look like this:
+and restored when the movie finishes, or playback is
+cancelled. Playback controls look like this:
 
-![playback_controls](./images/playback_controls.gif)
+![playback_controls](./images/playback_controls.png)
 
-You can press Spacebar to pause a recording. You can press Escape at
+You can press __Spacebar__ to pause a recording. You can press __ESC__ at
 any time to end the recording and return the notebook to its previous
 state.
+
+Note that we use Jupyter's tokenizer to choose how the *Graffiti* is
+attached to which tokens. For instance, if you select part of a
+comment, the entire comment becomes the token because to Jupyter, a
+comment is a single token. However, python keywords like `print` would
+be a single token too. Experiment to see how this functions.
 
 ## Using the Jupyter Graffiti Python API
 
