@@ -7,7 +7,7 @@ Create interactive screencasts inside Jupyter Notebook that anybody can play bac
 Ever wanted to offer someone a hands-on demo in Jupyter Notebook? Now
 you can! Just add __Graffiti__, and any text inside a code cell can be
 annotated with a hoverable tip (a *Graffiti* ) where you can explain
-your code in whatever detail you want (with markdown)!
+the code in whatever detail you want (with markdown)!
 
 Even better, you can attach a recording to any _Graffiti_ of selected
 activities in your notebook, including:
@@ -205,7 +205,11 @@ the special characters `%%`. These are:
 Here's an example of how you enter these special controls:
 ![caption_editing](./images/caption_editing.png)
 
-And here's how that looks:
+And here's how that looks. Note that the *Play Movie* button is now
+renamed *Show me!*. You can get creative here, but don't go hogwild or
+your tooltip might get too wide to be properly displayed. Some ideas
+might be *Clue me in!*, *Say What?*, *Explain this more!*.
+
 ![caption_rendered](./images/caption_rendered.png)
 
 ### Creating a Recording For a Graffiti
@@ -253,16 +257,32 @@ Option at once, you can erase the lines and highlights you drew.
 
 ![drawing_highlights](./images/drawing_highlights.gif)
 
+### Viewing and Playing Back _Graffitis_
+
+The *Graffitis* are always associated with some code cell text. That
+text becomes underlined with a dashed underline. Hovering over that
+text will show the *Graffiti* tooltip.  If a recording is stored for
+that *Graffiti* and you press the *Play Movie* button, the movie will
+start to play back. The current state of the notebook will be saved
+and restored when the movie finishes, or playback is cancelled. Playback controls look like this:
+
+![playback_controls](./images/playback_controls.gif)
+
+You can press Spacebar to pause a recording. You can press Escape at
+any time to end the recording and return the notebook to its previous
+state.
+
 ## Using the Jupyter Graffiti Python API
 
-When you `import jupytergraffiti` you immediate get access to several
-functions you can use to control _Jupyter Graffiti_ from Python. Some of these
-are utility functions and others can be used to control playback. 
+When you `import jupytergraffiti` you get immediate access to
+functions you can use to control _Jupyter Graffiti_ from Python. Some
+of these are utility functions and others can be used to control
+playback.
 
 You can set your access level to either *View* or *Create*. You may
 wish to switch to *View* mode to preview what users will see by
 default when they visit your _Graffiti'd_ notebook, and then switch
-back. To switch back and forth execute this in a cell by itself:
+back. To switch back and forth, execute these in a cell by itself:
 
 ```
 jupytergraffiti.api.set_access_level('view')
@@ -272,9 +292,9 @@ jupytergraffiti.api.set_access_level('view')
 jupytergraffiti.api.set_access_level('create')
 ```
 
-Note: the first time you do this on your server, you will be asked
+__Note__: the first time you do this on your server, you will be asked
 whether you want to grant access to the microphone. You must answer
-yes if you want to record audio with your _Graffiti_ recordings.
+__Yes__ if you want to record audio with your _Graffiti_ recordings.
 
 To remove all *Graffitis* from a Notebook (so you can start fresh),
 execute this command in a cell by itself:
@@ -282,16 +302,18 @@ execute this command in a cell by itself:
 ```
 jupytergraffiti.api.remove_all_annotations()
 ```
-You will get prompt confirming whether this is something you really want to go through with.
 
-You can also play any *Graffiti* recording back from Python. This
-could be valuable to do after a student has tried several different
-ways to run code and none of them work; you could watch for this
-situation and offer to play a hint recording. Or, if a student's code
-passes all tests you can fire up a video prompting them to go on to
-the next exercise.
+You will get a prompt confirming whether this is something you really
+want to go through with.
 
-To play a *Graffiti* first find the id of the recording you want to
+You can also play any *Graffiti* recording back using Python
+code. This could be valuable, for instance, after a student has failed
+several times to make some code work; you could watch for this
+situation in your testing code, and offer to play a hint
+recording. Or, if a student's code passes all tests you can fire up a
+video prompting them to go on to the next exercise.
+
+To play back an existing *Graffiti*, first find the id of the recording you want to
 play. When you click on any *Graffiti* the recording id is displayed
 in the menu bar. Simply click it to select its text, and then use your
 browser's copy function to copy the text to your clipboard (e.g. Cmd-C
@@ -302,13 +324,15 @@ on Mac, Ctrl-C on PC).
 Now paste that id into this command in your code:
 
 ```
-jupytergraffiti.api.play_recording('abc-123')
+jupytergraffiti.api.play_recording('id-cgxukass1bi_id-towwksveqi')
 ```
 
-You can stop a recording that's playing with:
+(Note that the id above is just an example).
+
+You can stop that recording playback with:
 
 ```
-jupytergraffiti.api.stop_playback('abc-123')
+jupytergraffiti.api.stop_playback('id-cgxukass1bi_id-towwksveqi')
 ```
 
 Finally, you can put up a unobtrusive (hint) prompt to playback a specific recording:
@@ -323,13 +347,14 @@ than have it autoplay.
 
 ## Current Limitations of Jupyter Graffiti
 
-* Jupyter Graffiti can record most activities in Notebooks, but it currently does not record adding and deleting cells. This is planned for a future release.
+* Jupyter Graffiti can record most activities in Notebooks, but it currently does not record adding and deleting cells.
 * If you rearrange cells after making a recording, scrolling will try to align the cursor and the page as best it can with the cells you were mousing over and scrolling to, even if they are in a different order than when you made the original recording. However, due to complexities in cell sizes, this may not always be perfect.
-* This is version 1 of this software, so there may well be bugs. Feel free to report issues on Github and/or propose PR's.
+* Given this is the first version of this software, there may well be bugs. Feel free to report issues on Github and/or propose PR's.
 
 ### Future Plans
 
 * In the next version of *Jupyter Graffiti* you will be able to transcribe your spoken audio into subtitles that scroll along with the movie. Stay tuned.
+* We will add support for adding and deleting cells during a recording.
 * We are also working on collaborative *Graffitis*, where the author's
   *Graffitis* are displayed differently from any the viewers may
   add. This will permit students to add and share *Graffitis* with
