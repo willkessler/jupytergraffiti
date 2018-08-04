@@ -18,11 +18,11 @@ define([
         ]);
 
         const location = document.location;
-        state.recordingActive = ((!(location.hostname.match(/\.udacity-student-workspaces\.com/) != null)) ||
-                                 (  location.hostname.match(/cocoview/) != null));
 
         state.init();
-        audio.init(state);
+        if (state.getAccessLevel() === 'create') {
+          audio.init(state);
+        }
 
         annotations.LZString = LZString;
         annotations.rewindAmt = 1; /*seconds */
@@ -490,25 +490,25 @@ define([
         const panel = $('<div id="recorder-controls"></div>');
         panel.appendTo(lastButton);
         let recordHtml = '';
-        if (state.recordingActive) {
-          recordHtml +=
-            '<div id="recorder-record-controls">' +
-            '  <div id="recorder-record-controls-inner">' +
-            '    <button class="btn btn-default" id="btn-edit-annotation"><i class="fa fa-pencil"></i>&nbsp; <span>Edit</span></button>' +
-            '    <button class="btn btn-default" id="btn-finish-annotation" title="Save Annotation"><i class="fa fa-pencil"></i>' +
-            '&nbsp;<span>Save Annotation</span></button>' +
-            '    <a href="#" class="cancel" title="Cancel">Cancel changes</a>' +
-            '    <div class="recorder-time-display-recording"></div>' +
-            '    <button class="btn btn-default" id="btn-start-recording" title="Record movie for this annotation">' +
-            '<i class="fa fa-film recorder-button"></i>&nbsp;<span>Record</span></button>' +
-            '    <button class="btn btn-default recorder-hidden" id="btn-finish-recording" title="finish recording"><i class="fa fa-pause recorder-stop-button"></i>' +
-            '&nbsp;Finish</button>' +
-            '    <button class="btn btn-default" id="btn-remove-annotation" title="Remove Annotation"><i class="fa fa-trash"></i></button>' +
-            '    <div class="recorder-hint">&nbsp;</div>' +
-            '    <div id="recorder-api-key">&nbsp;</div>' +
-            '  </div>' +
-            '</div>';
-        }
+
+        recordHtml +=
+          '<div id="recorder-record-controls">' +
+          '  <div id="recorder-record-controls-inner">' +
+          '    <button class="btn btn-default" id="btn-edit-annotation"><i class="fa fa-pencil"></i>&nbsp; <span>Edit</span></button>' +
+          '    <button class="btn btn-default" id="btn-finish-annotation" title="Save Annotation"><i class="fa fa-pencil"></i>' +
+          '&nbsp;<span>Save Annotation</span></button>' +
+          '    <a href="#" class="cancel" title="Cancel">Cancel changes</a>' +
+          '    <div class="recorder-time-display-recording"></div>' +
+          '    <button class="btn btn-default" id="btn-start-recording" title="Record movie for this annotation">' +
+          '<i class="fa fa-film recorder-button"></i>&nbsp;<span>Record</span></button>' +
+          '    <button class="btn btn-default recorder-hidden" id="btn-finish-recording" title="finish recording"><i class="fa fa-pause recorder-stop-button"></i>' +
+          '&nbsp;Finish</button>' +
+          '    <button class="btn btn-default" id="btn-remove-annotation" title="Remove Annotation"><i class="fa fa-trash"></i></button>' +
+          '    <div class="recorder-hint">&nbsp;</div>' +
+          '    <div id="recorder-api-key">&nbsp;</div>' +
+          '  </div>' +
+          '</div>';
+
         recordHtml +=
           '<div id="recorder-playback-controls">' +
           '  <div id="recorder-playback-inner">' +
@@ -1573,6 +1573,18 @@ define([
       setAuthoringMode: (authoringMode) => {
       },
 
+      changeAccessLevel: (level) => {
+        if (level === 'create') {
+          if (!state.getAudioInitialized()) {
+            audio.init();
+            state.setAudioInitialized();
+          }
+          state.assignCellIds();
+          utils.saveNotebook();
+        }
+        state.setAccessLevel(level); 
+        annotations.updateControlsDisplay();
+      },
     };
 
     // Functions exposed externally
@@ -1582,10 +1594,7 @@ define([
       playRecordingByIdWithPrompt: annotations.playRecordingByIdWithPrompt,
       cancelPlayback: annotations.cancelPlayback,
       removeAllAnnotations: annotations.removeAllAnnotationsPrompt,
-      setAccessLevel: (level) => { 
-        state.setAccessLevel(level); 
-        annotations.updateControlsDisplay();
-      }
+      setAccessLevel: (level) => { annotations.changeAccessLevel(level) },
     }
 
   })();

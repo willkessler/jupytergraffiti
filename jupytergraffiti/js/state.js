@@ -7,7 +7,8 @@ define([
       state.history = undefined;
       state.manifest = {};
       state.utils = utils;
-      state.accessLevel = 'create'; // one of 'create' or 'view'. If 'create' then we can create new graffitis, otherwise we can only view them
+      state.accessLevel = 'view'; // one of 'create' or 'view'. If 'create' then we can create new graffitis, otherwise we can only view them
+      state.audioInitialized = false;
       state.activity = 'idle'; // one of "recording", "playing", "idle"
       state.pointer = { x : 0, y: 0 };
       state.playbackTimeElapsed = 0;
@@ -82,6 +83,14 @@ define([
 
     setAccessLevel: (level) => {
       state.accessLevel = level;
+    },
+
+    getAudioInitialized: () => {
+      return state.audioInitialized;
+    },
+
+    setAudioInitialized: () => {
+      state.audioInitialized = true;
     },
 
     // Window proportion adjustments for when recording is played on a different sized window than what it was recorded on. Not used any more

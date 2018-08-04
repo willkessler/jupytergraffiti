@@ -62,7 +62,6 @@ typings/
 
 # Graffiti-specific ignores
 __pycache__
-recording_data
 .local
 .ipython
 .ipynb_checkpoints

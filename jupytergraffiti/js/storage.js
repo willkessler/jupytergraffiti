@@ -71,9 +71,13 @@ define([
     // Load the manifest for this notebook.
     // Manifests contain information about all the recordings present in this notebook.
     // mode is either 'author' or 'student-<123>' where <123> is the id of a student's graffiti.
-    // This version of the system only supports author manaifests.
+    // This version of the system only supports author manifests.
     loadManifest: (mode) => {
-      const notebookRecordingId = Jupyter.notebook.metadata['recordingId'];
+      const notebook = Jupyter.notebook;
+      if (!notebook.metadata.hasOwnProperty('recordingId')) {
+        notebook.metadata['recordingId'] = utils.generateUniqueId();
+      }
+      const notebookRecordingId = notebook.metadata['recordingId'];
       let manifestPath = 'recording_data/manifests/';
       if (mode === 'author') {
         manifestPath += 'author/manifest_' + notebookRecordingId.replace('-','_').replace('id_','') + '.json';

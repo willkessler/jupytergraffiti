@@ -5,10 +5,6 @@ define([
   const audio = {
 
     init: (state) => {
-      if (!state.recordingActive) {
-        return;
-      }
-
       console.log('Annotations audio constructor.');
       // fork getUserMedia for multiple browser versions, for the future
       // when more browsers support MediaRecorder
