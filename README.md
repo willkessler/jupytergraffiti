@@ -7,7 +7,7 @@ Create interactive screencasts inside Jupyter Notebook that anybody can play bac
 Ever wanted to offer someone a hands-on demo in Jupyter Notebook? Now
 you can! Just add _Graffiti_, and any text inside a code cell can be
 annotated with a hoverable tip (a _Graffiti_ ) where you can explain
-your code in whatever detail you want (with markdown)! 
+your code in whatever detail you want (with markdown)!
 
 Even better, you can attach a recording to any _Graffiti_ of selected
 activities in your notebook, including:
@@ -42,7 +42,7 @@ you in the same environment you recorded in.
 
 ## Installation
 
-There are three ways to use _Jupyter Graffiti_: as a Python library, using a Docker image, or by installing a plugin into your Jupyter Notebook configuration. 
+There are three ways to use _Jupyter Graffiti_: as a Python library, using a Docker image, or by installing a plugin into your Jupyter Notebook configuration.
 
 ### Installation Option #1: Use the Python Library (Simplest Option)
 
@@ -53,7 +53,7 @@ by you, Jupyter Notebook will not run javascript code for security reasons.
 To make a notebook Trusted click `File...Trust Notebook`_before_ running the import command below.
 
 1. `git clone` this repo in the same directory where you keep the Notebook(s) you want to add _Graffiti_ to.
-1. Add and run this command in a cell in the Notebook you want to start adding _Graffiti_ to: 
+1. Add and run this command in a cell in the Notebook you want to start adding _Graffiti_ to:
 
 ```
 import jupytergraffiti
@@ -119,8 +119,19 @@ You may need to restart your Jupyter server to get the extension to load, althou
 #### Uninstalling the Graffiti extension from your Jupyter Server
 
 To disable the plugin, you can visit
-`~/.jupyter/nbconfig/notebook.json` and set
-`"jupyter_graffit/graffiti_extension/main": false` in the
+
+```
+~/.jupyter/nbconfig/notebook.json
+```
+
+and set
+
+```
+"jupytergraffiti/graffiti_extension/main": false
+```
+
+in the
+
 `"load_extensions"` block. Then restart the Jupyter server.
 
 ## Using _Jupyter Graffiti_
@@ -128,7 +139,7 @@ To disable the plugin, you can visit
 ### Creating and Editing _Graffitis_
 
 To add a _Graffiti_, simply click in any text in any code cell and click
-either *Create* or *Record*. 
+either *Create* or *Record*.
 
 ![click_to_create](./images/click_to_create.png)
 
@@ -159,7 +170,7 @@ the special characters `%%`. These are:
 
 1. `%%button_name` : Specify a different button title to display when you record a movie as part of your _Graffiti_. The default title is _Play Movie_.
 1. `%%caption`     : Specify a special caption that appears at the top of this tip, formatted in boldface, such as _"Will explains..."_
-1. `%%caption_pic` : Provide the markdown path to a small image you want to display to the left of the caption. 
+1. `%%caption_pic` : Provide the markdown path to a small image you want to display to the left of the caption.
 
 Here's an example of how you enter these special controls:
 ![caption_editing](./images/caption_editing.png)
@@ -190,7 +201,7 @@ now see a timer indicating how long your recording has been going for (and some 
 When you've concluded your recording, click the *Finish* button or
 press the ESC key. You will now see a message telling you your
 recording is complete and a link you can use to play the recording
-back to make sure it's OK. 
+back to make sure it's OK.
 
 ![recording_complete](./images/recording_complete.png)
 
