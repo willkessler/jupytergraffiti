@@ -53,7 +53,7 @@ define([
         annotations.addCMEvents();
         setTimeout(() => { 
           annotations.setupControls(); 
-          annotations.setNotification('Graffiti is loaded and ready for use.', () => { annotations.clearNotification(); }, 3000);
+          annotations.setNotification('Graffiti is loaded and ready for use.', () => { annotations.clearNotification(); }, 5000);
         }, 500); // this timeout avoids too-early rendering of hidden recorder controls
 
         annotations.refreshAllAnnotationHighlights();

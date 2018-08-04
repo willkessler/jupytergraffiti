@@ -61,15 +61,22 @@ To make a notebook Trusted click `File...Trust Notebook`_before_ running the imp
 import jupytergraffiti
 ```
 
-If everything works, you should see the following message (temporarily) displayed in your Jupyter menu bar:
+If everything works, you should see the following message (temporarily) displayed in your Jupyter menu bar for 5 seconds before fading out:
 
 ![graffiti_loaded](./images/graffiti_loaded.png)
 
-In addition, clicking in a code cell will show the _Graffiti_ content creation controls:
+If you don't see this message apeparing, use `Kernel... Restart and Clear Output` first, then try running ```import jupytergraffiti``` again.
+
+This will put you in *View* mode, ie you can only play existing _Graffitis_. Since you don't have any _Graffitis_ created yet, you will want to switch to *Create* mode. To do so, execute this in a cell by itself:
+
+```
+jupytergraffiti.api.set_access_level('create')
+```
+
+Now, clicking anywhere in a code cell will show the _Graffiti_ content creation controls:
 
 ![basic_controls](./images/basic_controls.png)
 
-If you don't see either of these things, use `Kernel... Restart and Clear Output` first, then try running ```import jupytergraffiti``` again.
 
 ![kernel_restart](./images/kernel_restart.png)
 
