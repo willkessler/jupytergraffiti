@@ -1577,11 +1577,6 @@ define([
         annotations.loadAndPlayMovie(cellId, recordingId);
       },
 
-      // if true is passed in, we display authoring controls. if false, we don't and you can only play back recordings.
-      // when the plugin is used, false is passed in.
-      setAuthoringMode: (authoringMode) => {
-      },
-
       changeAccessLevel: (level) => {
         if (level === 'create') {
           if (!state.getAudioInitialized()) {

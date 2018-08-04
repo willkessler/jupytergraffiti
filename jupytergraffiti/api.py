@@ -14,11 +14,8 @@ def initialize():
 def play_recording(recording_id):
     run_js("window.Annotations.playRecordingById('" + recording_id + "')", False)
 
-def play_recording_with_prompt(recording_id):
+def play_recording_with_prompt(recording_id, prompt_info):
     run_js("window.Annotations.playRecordingByIdWithPrompt('" + recording_id + "')", False)
-
-def authoring_mode(mode):
-    run_js("window.Annotations.setAuthoringMode(" + mode + ")", False)
 
 def stop_playback():
     run_js("window.Annotations.cancelPlayback()", False)

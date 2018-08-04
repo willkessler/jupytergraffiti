@@ -5,8 +5,8 @@ Create interactive screencasts inside Jupyter Notebook that anybody can play bac
 ![intro_movie](./images/intro_movie.gif)
 
 Ever wanted to offer someone a hands-on demo in Jupyter Notebook? Now
-you can! Just add _Graffiti_, and any text inside a code cell can be
-annotated with a hoverable tip (a _Graffiti_ ) where you can explain
+you can! Just add __Graffiti__, and any text inside a code cell can be
+annotated with a hoverable tip (a *Graffiti* ) where you can explain
 your code in whatever detail you want (with markdown)!
 
 Even better, you can attach a recording to any _Graffiti_ of selected
@@ -24,7 +24,7 @@ All of this activity can be played back by hovering over the _Graffiti_ and clic
 
 ## Demo
 
-You can see a live demonstration of a Notebook with Graffiti here:
+You can see a live demonstration of a Notebook with _Graffiti_ here:
 
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2FIntroductionToGraffiti.ipynb)
 
@@ -39,7 +39,7 @@ You can also find more samples in the `samples/` directory.
 * Viewers can pause recorded playback any time, scrub forward and backward, and interact with the Notebook during
 playback at any point. No need to watch a whole recorded screencast first, and then switch context to a Notebook; students can explore right along with
 you in the same environment you recorded in.
-* Jupyter Graffiti is easy to set up: either use the Python library or build the Docker image with the included Jupyter extension.  (At Udacity, Jupyter Notebook Workspaces use the extension. See below how to accomplish this).
+* _Jupyter Graffiti_ is easy to set up: either use the Python library or build the Docker image with the included Jupyter extension.  (At Udacity, Jupyter Notebook Workspaces use the extension. See below how to accomplish this).
 * All data, including audio, is stored in compressed plain text in a directory separate from your notebook files for easy portability and storage in any version control system.
 
 ## Installation
@@ -49,8 +49,8 @@ There are three ways to use _Jupyter Graffiti_: as a Python library, using a Doc
 ### Installation Option #1: Use the Python Library (Simplest Option)
 
 Note: Before using this method, you may need to Trust your
-notebook. This is because Jupyter Graffiti is built in javascript, and
-by default, if the notebook you're adding Graffitis to was not created
+notebook. This is because _Jupyter Graffiti_ is built in javascript, and
+by default, if the notebook you're adding _Graffitis_ to was not created
 by you, Jupyter Notebook will not run javascript code for security reasons.
 To make a notebook Trusted click `File...Trust Notebook`_before_ running the import command below.
 
@@ -80,22 +80,24 @@ Now, clicking anywhere in a code cell will show the _Graffiti_ content creation 
 
 ![kernel_restart](./images/kernel_restart.png)
 
-### Installation Option #2: Install a Docker image (Slightly More Complex Option)
+### Installation Option #2: Run Jupyter Notebook with a Docker Image Containing Graffiti (Slightly More Complex Option)
 
-You'll need to [install Docker](https://docs.docker.com/install) first. Then you can take the following steps in a terminal shell on your laptop:
+[Install Docker](https://docs.docker.com/install) first unless you've already installed it.
+
+Then enter this command in a terminal on your computer:
 
 ```
 ./jupytergraffiti/build_and_run.sh
 ```
 
 This will build and start up a Docker container running the Jupyter Server and
-the Jupyter Graffiti extension, with the container's home directory
+the _Jupyter Graffiti_ extension, with the container's home directory
 being mounted where your Jupyter Notebook(s) are located.
 
-The advantage of using the Docker container is that Jupyter Graffiti
-is always loaded automatically so you don't have the run `import
-jupytergraffiti` in the Notebook just to play back _Graffiti_s (but
-you will need to run it to access the Graffiti API, cf below for
+The advantage of using the Docker container is that *Jupyter Graffiti*
+is always loaded automatically so you don't have to execute `import
+jupytergraffiti` in the Notebook just to play back *Graffitis*  (but
+you *will* need to run it to access the _Graffiti_ API, see below for
 details on that).
 
 Take a look at the output of the Jupyter Server running in the
@@ -140,29 +142,27 @@ always be available whenever you start up your Jupyter server. To
 install the extension:
 
 ```
-jupyter nbextension install jupytergraffiti/graffiti_extension --symlink --user
-jupyter nbextension enable jupytergraffiti/graffiti_extension/main --user
+cd jupytergraffiti
+jupyter nbextension install graffiti_extension --symlink --user
+jupyter nbextension enable graffiti_extension/main --user
+cd ..
 ```
 
 You may need to restart your Jupyter server to get the extension to load, although usually that's not required.
 
-#### Uninstalling the Graffiti extension from your Jupyter Server
+#### Disabling the Graffiti extension in your Jupyter Server
 
-To disable the plugin, you can edit:
+If you need to disable the _Graffiti_ plugin for some reason, you can easily do it.
 
-```
-~/.jupyter/nbconfig/notebook.json
-```
-
-and set:
+To disable the plugin:
 
 ```
-"jupytergraffiti/graffiti_extension/main": false
+cd jupytergraffiti
+jupyter nbextension disable graffiti_extension/main --user
+cd ..
 ```
 
-in the
-
-`"load_extensions"` block. Then restart the Jupyter server.
+Then restart your Jupyter server.
 
 ## Using _Jupyter Graffiti_
 
@@ -256,11 +256,72 @@ Option at once, you can erase the lines and highlights you drew.
 ## Using the Jupyter Graffiti Python API
 
 When you `import jupytergraffiti` you immediate get access to several
-functions you can use to control Jupyter Graffiti from Python. Some of these
-are utility functions and others can be used to control playback.
+functions you can use to control _Jupyter Graffiti_ from Python. Some of these
+are utility functions and others can be used to control playback. 
+
+You can set your access level to either *View* or *Create*. You may
+wish to switch to *View* mode to preview what users will see by
+default when they visit your _Graffiti'd_ notebook, and then switch
+back. To switch back and forth execute this in a cell by itself:
+
+```
+jupytergraffiti.api.set_access_level('view')
+```
+
+```
+jupytergraffiti.api.set_access_level('create')
+```
+
+To remove all *Graffitis* from a Notebook (so you can start fresh), execute this command in a cell by itself:
+
+```
+jupytergraffiti.api.remove_all_annotations()
+```
+You will get prompt confirming whether this is something you really want to go through with.
+
+You can also play any *Graffiti* recording back from Python. This
+could be valuable to do after a student has tried several different
+ways to run code and none of them work; you could watch for this
+situation and offer to play a hint recording. Or, if a student's code
+passes all tests you can fire up a video prompting them to go on to
+the next exercise.
+
+To play a *Graffiti* first find the id of the recording you want to
+play. When you click on any *Graffiti* the recording id is displayed
+in the menu bar. Simply click it to select its text, and then use your
+browser's copy function to copy the text to your clipboard (e.g. Cmd-C
+on Mac, Ctrl-C on PC).  Now paste that id into this command in your code:
+
+```
+jupytergraffiti.api.play_recording('abc-123')
+```
+
+You can stop a recording that's playing with:
+
+```
+jupytergraffiti.api.stop_playback('abc-123')
+```
+
+Finally, you can put up a unobtrusive (hint) prompt to playback a specific recording:
+
+```
+jupytergraffiti.api.play_recording_with_prompt('abc-123', 'Click here to learn about the next puzzler!')
+```
+
+This may be useful if you want to queue up a recording for playback,
+but still give the viewer the option to start it themselves rather
+than have it autoplay.
 
 ## Current Limitations of Jupyter Graffiti
 
 * Jupyter Graffiti can record most activities in Notebooks, but it currently does not record adding and deleting cells. This is planned for a future release.
 * If you rearrange cells after making a recording, scrolling will try to align the cursor and the page as best it can with the cells you were mousing over and scrolling to, even if they are in a different order than when you made the original recording. However, due to complexities in cell sizes, this may not always be perfect.
 * This is version 1 of this software, so there may well be bugs. Feel free to report issues on Github and/or propose PR's.
+
+### Future Plans
+
+* In the next version of *Jupyter Graffiti* you will be able to transcribe your spoken audio into subtitles that scroll along with the movie. Stay tuned.
+* We are also working on collaborative *Graffitis*, where the author's
+  *Graffitis* are displayed differently from any the viewers may
+  add. This will permit students to add and share *Graffitis* with
+  each other.
