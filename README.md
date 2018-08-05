@@ -2,9 +2,9 @@
 
 Create interactive screencasts inside Jupyter Notebook that anybody can play back.
 
-<kbd>
-![intro_movie](./images/intro_movie.gif)
-</kbd>
+<p align="center">
+  <img src="./images/intro_movie.gif" style="border:1px solid #ccc;padding:2px;margin:5px;width:100%"/>
+</p>
 
 Ever wanted to offer someone a hands-on demo in Jupyter Notebook? Now
 you can! Just add __Graffiti__, and any text inside a code cell can be
