@@ -32,7 +32,7 @@ All of this activity can be played back by hovering over the _Graffiti_ and clic
 
 ## Demo
 
-You can see a live demonstration of a Notebook with _Graffiti_ by clicking the Binder badge below:
+You can see a live demonstration of a Notebook with _Graffitis_ by clicking the Binder badge below:
 
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2FIntroductionToGraffiti.ipynb)
 
@@ -430,6 +430,7 @@ want to go through with.
 
 * Jupyter Graffiti can record most activities in Notebooks, but it currently does not record adding and deleting cells.
 * If you rearrange cells after making a recording, scrolling will try to align the cursor and the page as best it can with the cells you were mousing over and scrolling to, even if they are in a different order than when you made the original recording. However, due to complexities involving cell sizing, this process may not always be perfect.
+* Copying cells does not copy their Graffiti.
 * Make a Copy ... of the current Notebook will not create a copy of the recordings; in fact, it will use the same recording ID and therefore supplant recordings on the original notebook.
 * Given this is the first version of this software, there may well be bugs. Feel free to report issues on Github and/or propose PR's.
 
