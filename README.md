@@ -28,12 +28,13 @@ All of this activity can be played back by hovering over the _Graffiti_ and clic
 * [Advantages of Graffiti Over Traditional Screencasts](#advantages-of-graffiti-over-traditional-screencasts)
 * [Installation](#installation)
 * [Using Jupyter Graffiti](#using-jupyter-graffiti)
-* [Using the Jupyter Graffiti Python API]
+* [Using the Jupyter Graffiti Python API](#using-the-jupyter-graffiti-python-api)
+
 ## Demo
 
 You can see a live demonstration of a Notebook with _Graffiti_ by clicking the Binder badge below:
 
-[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2FIntroductionToGraffiti.ipynb)
+[![Binder](https://mybinder.org/badge.svg width=250)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2FIntroductionToGraffiti.ipynb)
 
 Please wait about 30 seconds for the demonstration to spin up at <a href="mybinder.org">mybinder.org</a>. (Props to the folks at MyBinder for this awesome service).
 
