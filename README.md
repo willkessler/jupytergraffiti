@@ -63,10 +63,10 @@ There are three ways to use _Jupyter Graffiti_: by using a Python library, by us
 *Note*: Before using this method, you may need to Trust your
 notebook. This is because _Jupyter Graffiti_ is built in Javascript,
 and by default, if the notebook you're adding _Graffitis_ to was not
-created by you, Jupyter Notebook will not run "Trust" it and will not
-javascript code (for security reasons).  To make a notebook Trusted,
-click `File...Trust Notebook`*before* running the import command
-below.
+created by you, Jupyter Notebook will not "Trust" it and will not run
+externally loaded javascript code, for security reasons.  To Trust a
+notebook, click `File...Trust Notebook`*before* running the import
+command below.
 
 1. `git clone` this repo in the same directory where you keep the Notebook(s) you want to add _Graffiti_ to.
 1. Add and run the following command in a cell in the Notebook you want to start adding _Graffiti_ to:
@@ -75,17 +75,18 @@ below.
 import jupytergraffiti
 ```
 
-If everything works, you should see the following message (temporarily) displayed in your Jupyter menu bar for 5 seconds before fading out:
+If everything works, you should see the following message displayed in your Jupyter menu bar for 5 seconds, before fading out:
 
 ![graffiti_loaded](./images/graffiti_loaded.png)
 
-If you don't see this message apeparing, use `Kernel... Restart and Clear Output` first, then try running ```import jupytergraffiti``` again.
+If you don't see this message appearing, use `Kernel... Restart and Clear Output` first, then try running ```import jupytergraffiti``` again.
 
 ![kernel_restart](./images/kernel_restart.png)
 
 By default, *Jupyter Graffiti* starts off in *View* mode, ie you can
 only play existing _Graffitis_. To create your first _Graffiti_ in a
-Notebook, you will need to switch to *Create* mode. Execute this in a
+Notebook, you will need to switch to *Create* mode. Assuming you've
+already run `import jupytergraffiti`, you must now execute this in a
 cell by itself:
 
 ```
@@ -96,9 +97,11 @@ Now, clicking anywhere in a code cell will show the _Graffiti_ content creation 
 
 ![basic_controls](./images/basic_controls.png)
 
+From here you can start to create *Graffitis*. Jump to [Using Jupyter Graffiti](#using-jupyter-graffiti) to learn more.
+
 ### Installation Option #2: Run Jupyter Notebook with a Docker Image Containing Graffiti (Slightly More Complex Option)
 
-Make sure to [install Docker](https://docs.docker.com/install) first (unless you've already installed it).
+Make sure to **[install Docker](https://docs.docker.com/install)** on your system first (unless you've already installed it).
 
 Then enter this command in a terminal on your computer:
 
@@ -135,7 +138,7 @@ running.
 
 The Docker container will serve content out of port 8888. If you already have
 something (e.g. another Jupyter server) running on this port, pass a different port to
-`build_and_run.sh` e.g. :
+`build_and_run.sh` like so:
 
 ```
 ./jupytergraffiti/build_and_run.sh 8889
@@ -147,14 +150,14 @@ containing the secret key will still show port 8888, because
 internally it still uses port 8888; via Docker port mappings, we
 have remapped 8888 to the port you specify. In the example above,
 therefore, you would need to access the server at:
-`http://localhost:8889?token=<secret token>`.
+`http://localhost:8889?token=e58a08f167881500e207ff9be05ad57ffe00e3457e54017c`.
 
 ### Installation Option #3: Install the Graffiti Extension in Your Own Jupyter Server (Most Complex Option)
 
-This will permanently install the extension in Jupyter (although you
-can always uninstall it if you want to). This means the extension will
-always be available whenever you start up your Jupyter server. To
-install the extension:
+This will permanently install the extension in your computer's
+installation of the Jupyter Server (although you can always disable
+it if you want to). This means the extension will always be available
+whenever you start up your Jupyter server. To install the extension:
 
 ```
 cd jupytergraffiti
@@ -179,7 +182,7 @@ cd ..
 
 Then restart your Jupyter server.
 
-## Using _Jupyter Graffiti_
+## Using Jupyter Graffiti
 
 ### Creating and Editing _Graffitis_
 
@@ -207,7 +210,8 @@ where you clicked now has an dashed underline. Mouse over the
 underline to see your _Graffiti_ tip.
 
 ![minimum_outcome](./images/minimum_outcome.png)
-![first_tip](./images/first_tip.png)
+
+### Dressing Up Your Graffiti Tips
 
 Within the markdown of a _Graffiti_, certain special controls are
 available to you (optional). These are lines of markdown starting with
@@ -230,20 +234,27 @@ might be *Clue me in!*, *Say What?*, *Explain this more!*.
 ### Creating a Recording For a Graffiti
 
 To create or replace a recording for a _Graffiti_, click the *Record*
-button. You can either add a recording to an existing _Graffiti_ or
+button. You can either add a recording to an existing _Graffiti_ tip or
 you can start by creating a recording first (this will automatically
 create the tip as well).
 
 ![begin_recording](./images/begin_recording.png)
 
-You now must enter some markdown for the tip that goes with this movie (but this can be placeholder if you're not ready to come up with this yet):
+If you already have a recording on a *Graffiti* then you will see *Re-Record* instead of *Record* displayed:
+
+![rerecord_button](./images/rerecord_button.png)
+
+You must now enter some markdown for the tip that goes with this movie (but this can be placeholder if you're not ready to come up with this yet):
 
 ![annotation_for_movie](./images/annotation_for_movie.png)
 
 When you're happy with whatever text you want to put in the tip, click *Start Movie Recording*.
 
-To begin recording your activities, click inside any cell. You will
-now see a timer indicating how long your recording has been going for (and some hints on how to finish recording):
+To begin recording your activities, click inside any cell. 
+
+![click_anywhere_to_begin_recording](./images/click_anywhere_to_begin_recording.png)
+
+The system will now show you a a timer indicating how long your recording has been going for (and some hints on how to finish recording):
 
 ![recording_timer](./images/recording_timer.png)
 
@@ -259,10 +270,6 @@ play the recording back from the tip.
 
 ![play_new_recording](./images/play_new_recording.png)
 
-If you need to, you can remove any _Graffiti_ by clicking in its text and clicking the *Trash* button:
-
-![trash_icon](./images/trash_icon.png)
-
 ### Drawing Lines and Highlights in Recordings
 
 While you are recording for a _Graffiti_, you can draw lines and mark
@@ -273,7 +280,13 @@ drawings and highlights can cover multiple cells (for instance if you
 want to draw an arrow between two cells). They only exist while the
 recording is played back; they will not appear otherwise.
 
-![drawing_highlights](./images/drawing_highlights.gif)
+![drawing_on_errors](./images/drawing_on_errors.gif)
+
+### Removing a Single Graffiti
+
+If you need to, you can remove any _Graffiti_ by clicking in its text and clicking the *Trash* button:
+
+![trash_icon](./images/trash_icon.png)
 
 ### Viewing and Playing Back _Graffitis_
 
@@ -333,8 +346,8 @@ You can also play any *Graffiti* recording back using Python
 code. This could be valuable, for instance, after a student has failed
 several times to make some code work; you could watch for this
 situation in your testing code, and offer to play a hint
-recording. Or, if a student's code passes all tests you can fire up a
-video prompting them to go on to the next exercise.
+recording. Or, if a student's code passes all tests you can start up a
+recording prompting them to go on to the next exercise.
 
 To play back an existing *Graffiti*, first you need the "movie API
 key" of the specific recording you want to play. When you click on any
@@ -362,7 +375,7 @@ jupytergraffiti.api.stop_playback('id-cgxukass1bi_id-towwksveqi')
 Finally, you can put up a unobtrusive (hint) prompt suggesting a user play back a specific recording:
 
 ```
-jupytergraffiti.api.play_recording_with_prompt('abc-123', 'Click here to learn about the next puzzler!')
+jupytergraffiti.api.play_recording_with_prompt('id-cgxukass1bi_id-towwksveqi', 'Click here to learn about the next exercise!')
 ```
 
 This may be useful if you want to queue up a recording for playback,
@@ -385,14 +398,20 @@ want to go through with.
 
 * Jupyter Graffiti can record most activities in Notebooks, but it currently does not record adding and deleting cells.
 * If you rearrange cells after making a recording, scrolling will try to align the cursor and the page as best it can with the cells you were mousing over and scrolling to, even if they are in a different order than when you made the original recording. However, due to complexities involving cell sizing, this process may not always be perfect.
-* Given this is the first version of this software, there may well be bugs. Feel free to report issues on Github and/or propose PR's.
 * Make a Copy ... of the current Notebook will not create a copy of the recordings; in fact, it will use the same recording ID and therefore supplant recordings on the original notebook.
+* Given this is the first version of this software, there may well be bugs. Feel free to report issues on Github and/or propose PR's.
 
 ### Future Plans
 
-* In the next version of *Jupyter Graffiti* you will be able to transcribe your spoken audio into subtitles that scroll along with the movie. Stay tuned.
+* In the next version of *Jupyter Graffiti* you will be able to
+  automatically transcribe your spoken audio into subtitles that
+  scroll along with the movie (leverages Google's Transcribe service,
+  so you must be a Google Compute user). Stay tuned.
+
 * We will add support for adding and deleting cells during a recording.
+
 * Make a Copy ... of a notebook should copy the recordings to a new notebook recording ID.
+
 * We are also working on collaborative *Graffitis*, where the author's
   *Graffitis* are displayed differently from any the viewers may
   add. This will permit students to add and share *Graffitis* with
