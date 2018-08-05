@@ -254,7 +254,7 @@ To begin recording your activities, click inside any cell.
 
 ![click_anywhere_to_begin_recording](./images/click_anywhere_to_begin_recording.png)
 
-The system will now show you a a timer indicating how long your recording has been going for (and some hints on how to finish recording):
+The system will now show you a timer indicating how long your recording has been going for (and some hints on how to finish recording):
 
 ![recording_timer](./images/recording_timer.png)
 
@@ -310,15 +310,23 @@ state.
 Note that we use Jupyter's tokenizer to choose how the *Graffiti* is
 attached to which tokens. For instance, if you select part of a
 comment, the entire comment becomes the token because to Jupyter, a
-comment is a single token. However, python keywords like `print` would
-be a single token too. Experiment to see how this functions.
+comment is a single token. However, Python keywords like `print` would
+be a single token too. You can select multiple tokens to have a
+*Graffiti* span them. Play around to see how this functions; you can
+always remove a *Graffiti* and start over to adjust what's highlighted
+for your *Graffiti*.  When you click inside an existing *Graffiti*
+while in *Create* mode, the entire underline section gets a yellow
+background so it's clear which tokens are being used for the
+*Graffiti*.
+
+![rerecord_button](./images/rerecord_button.png width=600)
 
 ## Using the Jupyter Graffiti Python API
 
 When you `import jupytergraffiti` you get immediate access to
 functions you can use to control _Jupyter Graffiti_ from Python. Some
 of these are utility functions, and others can be used to control
-recordings playback.  To use them, simply run the python functions in your
+recordings playback.  To use them, simply run the Python functions in your
 notebook's cells.
 
 #### Switching Access Levels
@@ -351,8 +359,8 @@ recording prompting them to go on to the next exercise.
 
 To play back an existing *Graffiti*, first you need the "movie API
 key" of the specific recording you want to play. When you click on any
-*Graffiti* the movie API id is displayed in the menu bar (see
-illustration below). Simply click it to select its text, and then use
+*Graffiti* the movie API key is displayed in the menu bar (see
+illustration below). Simply click inside it to auto-select its text, and then use
 your browser's copy function to copy the text to your clipboard
 (e.g. Cmd-C on Mac, Ctrl-C on PC).
 
@@ -401,7 +409,7 @@ want to go through with.
 * Make a Copy ... of the current Notebook will not create a copy of the recordings; in fact, it will use the same recording ID and therefore supplant recordings on the original notebook.
 * Given this is the first version of this software, there may well be bugs. Feel free to report issues on Github and/or propose PR's.
 
-### Future Plans
+## Future Plans
 
 * In the next version of *Jupyter Graffiti* you will be able to
   automatically transcribe your spoken audio into subtitles that

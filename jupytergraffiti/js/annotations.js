@@ -828,7 +828,7 @@ define([
         }
       },
 
-      removeAllAnnotationsPrompt: () => {
+      removeAllAnnotationsWithConfirmation: () => {
         dialog.modal({
           title: 'Are you sure you want to remove ALL annotations from this notebook?',
           body: 'Note: this cannot be undone.',
@@ -964,6 +964,7 @@ define([
 
       clearNotification: (force) => {
         const notifier = $('#recorder-notifier');
+        notifier.find('span:first').unbind('click');
         if (force) {
           notifier.hide();
         } else {
@@ -979,6 +980,14 @@ define([
         }
       },
 
+      setNotificationClickable: (notification, cb) => {
+        const notifier = $('#recorder-notifier');
+        notifier.html(notification).show();
+        if (cb !== undefined) {
+          notifier.find('span:first').bind('click', cb);
+        }
+      },
+
       //
       // Recording control functions
       //
@@ -987,13 +996,13 @@ define([
         const recorderHintDisplay = $('.recorder-hint:first');
         recorderHintDisplay.html(hint).show();
         if (cb !== undefined) {
-          recorderHintDisplay.find('span').bind('click', cb);
+          recorderHintDisplay.find('span:first').bind('click', cb);
         }
       },
 
       clearRecorderHint: () => {
         const recorderHintDisplay = $('.recorder-hint:first');
-        recorderHintDisplay.find('span').unbind('click');
+        recorderHintDisplay.find('span:first').unbind('click');
         recorderHintDisplay.hide();
       },
 
@@ -1570,11 +1579,13 @@ define([
         annotations.loadAndPlayMovie(cellId, recordingId);
       },
 
-      playRecordingByIdWithPrompt: (recordingFullId) => {
-        const parts = recordingFullId.split('_');
-        const cellId = parts[0];
-        const recordingId = parts[1];
-        annotations.loadAndPlayMovie(cellId, recordingId);
+      playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => {
+        const promptHtml = '<span>' + utils.renderMarkdown(promptMarkdown) + '</span>';
+        
+        annotations.setNotificationClickable(promptHtml, () => {
+          annotations.clearNotification(true);
+          annotations.playRecordingById(recordingFullId);
+        });
       },
 
       changeAccessLevel: (level) => {
@@ -1593,13 +1604,13 @@ define([
       },
     };
 
-    // Functions exposed externally
+    // Functions exposed externally to the Python API.
     return {
       init: annotations.init,
       playRecordingById: annotations.playRecordingById,
-      playRecordingByIdWithPrompt: annotations.playRecordingByIdWithPrompt,
+      playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => { annotations.playRecordingByIdWithPrompt(recordingFullId, promptMarkdown) },
       cancelPlayback: annotations.cancelPlayback,
-      removeAllAnnotations: annotations.removeAllAnnotationsPrompt,
+      removeAllAnnotations: annotations.removeAllAnnotationsWithConfirmation,
       setAccessLevel: (level) => { annotations.changeAccessLevel(level) },
     }
 
