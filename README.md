@@ -22,13 +22,20 @@ All of this activity can be played back by hovering over the _Graffiti_ and clic
 
 ![intro_to_play_movie](./images/intro_to_play_movie.png)
 
+## Table of Contents
+
+* [Demo](#demo)
+* [Advantages of Graffiti Over Traditional Screencasts](#advantages-of-graffiti-over-traditional-screencasts)
+* [Installation](#installation)
+* [Using Jupyter Graffiti](#using-jupyter-graffiti)
+* [Using the Jupyter Graffiti Python API]
 ## Demo
 
 You can see a live demonstration of a Notebook with _Graffiti_ by clicking the Binder badge below:
 
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2FIntroductionToGraffiti.ipynb)
 
-Please wait about 30 seconds for the demonstration to spin up at mybinder.org.
+Please wait about 30 seconds for the demonstration to spin up at <a href="mybinder.org">mybinder.org</a>. (Props to the folks at MyBinder for this awesome service).
 
 You can also find more sample Notebooks with *Graffitis* in the `samples/` directory.
 
@@ -84,10 +91,10 @@ If you don't see this message appearing, use `Kernel... Restart and Clear Output
 ![kernel_restart](./images/kernel_restart.png)
 
 By default, *Jupyter Graffiti* starts off in *View* mode, ie you can
-only play existing _Graffitis_. To create your first _Graffiti_ in a
-Notebook, you will need to switch to *Create* mode. Assuming you've
-already run `import jupytergraffiti`, you must now execute this in a
-cell by itself:
+only play _Graffitis_ already added to a Notebook. To create your very
+first _Graffiti_ in a Notebook that has none, you will need to switch
+to *Create* mode. Assuming you've already run `import
+jupytergraffiti`, you must execute this (in a cell by itself):
 
 ```
 jupytergraffiti.api.set_access_level('create')
@@ -120,8 +127,12 @@ jupytergraffiti` in the Notebook just to play back *Graffitis* (but
 you *will* need to run it to access the _Graffiti_ API and switch to
 *Create* mode).
 
+using the Docker container also ensures you're running a recent
+version of Jupyter Notebook.
+
+
 Take a look at the output of the Jupyter Server running in the
-container. It has the secret key you need to be able to surf to this
+container. It has the secret key you need to be able to surf to the Dockerized
 Jupyter server. The output will look something like this (but note
 that the Jupyter Server login token will change every time you run `build_and_run.sh`):
 
