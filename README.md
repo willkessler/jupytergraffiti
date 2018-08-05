@@ -386,6 +386,18 @@ Finally, you can put up a unobtrusive (hint) prompt suggesting a user play back 
 jupytergraffiti.api.play_recording_with_prompt('id-cgxukass1bi_id-towwksveqi', 'Click here to learn about the next exercise!')
 ```
 
+The first parameter is the recording API key as before. The second
+parameter is a markdown string you can use to display for the
+hint. For instance, we could call this function like so:
+
+```
+jupytergraffiti.api.play_recording_with_prompt('id-cgxukass1bi_id-mwgcuw6hnq', '![bulb](../images/lightbulb_small.jpg) Need a hint? Click **here**.')
+```
+
+And this will produce a clickable hint in the Jupyter menu bar like so:
+
+![clickable_hint](./images/clickable_hint.png)
+
 This may be useful if you want to queue up a recording for playback,
 but still give the viewer the option to start it themselves rather
 than have it play automatically.

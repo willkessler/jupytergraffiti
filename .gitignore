@@ -60,6 +60,10 @@ typings/
 # next.js build output
 .next
 
+.DS_Store
+.bash_history
+.jupyter
+
 # Graffiti-specific ignores
 __pycache__
 .local
