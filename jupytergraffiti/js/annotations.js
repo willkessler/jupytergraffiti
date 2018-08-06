@@ -1617,6 +1617,7 @@ define([
       cancelPlayback: annotations.cancelPlayback,
       removeAllAnnotations: annotations.removeAllAnnotationsWithConfirmation,
       setAccessLevel: (level) => { annotations.changeAccessLevel(level) },
+      setAuthorId: (authorId) => { state.setAuthorId(authorId) },
     }
 
   })();
