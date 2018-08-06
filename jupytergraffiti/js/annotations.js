@@ -414,7 +414,7 @@ define([
                   break;
                 case 'playing':
                 case 'playbackPaused':
-                  annotations.cancelPlayback();
+                  annotations.cancelPlayback({cancelAnimation:true});
                   break;
               }
               break;
@@ -576,7 +576,7 @@ define([
         $('#btn-remove-annotation').click((e) => { annotations.removeAnnotationPrompt(); });
         $('#recorder-record-controls .cancel').click((e) => { annotations.finishAnnotation(false); });
         $('#recorder-playback-controls .cancel span:first').click((e) => { annotations.stopPlayback(); });
-        $('#recorder-playback-controls .cancel span:last').click((e) => { annotations.cancelPlayback(); });
+        $('#recorder-playback-controls .cancel span:last').click((e) => { annotations.cancelPlayback({cancelAnimation:true}); });
         $('#recorder-api-key').click((e) => { $('#recorder-api-key input').select(); });
 
         $('#btn-play, #btn-stop-play').click((e) => { annotations.togglePlayBack(); });
@@ -1471,7 +1471,7 @@ define([
         state.restoreCellStates('selections');
       },
 
-      cancelPlayback: () => {
+      cancelPlayback: (opts) => {
         const activity = state.getActivity();
         if ((activity !== 'playing') && (activity !== 'playbackPaused')) {
           return;
@@ -1484,7 +1484,9 @@ define([
         annotations.refreshAllAnnotationHighlights();
         annotations.refreshAnnotationTips();
         annotations.updateControlsDisplay();
-        annotations.sitePanel.animate({ scrollTop: state.getScrollTop() }, 750);
+        if (opts.cancelAnimation) {
+          annotations.sitePanel.animate({ scrollTop: state.getScrollTop() }, 750);
+        }
       },
 
       startPlayback: () => {
@@ -1551,7 +1553,7 @@ define([
       },
 
       loadAndPlayMovie: (cellId, recordingId) => {
-        annotations.cancelPlayback(); // cancel any ongoing movie playback b/c user is switching to a different movie
+        annotations.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
         storage.loadMovie(cellId, recordingId).then( () => {
           console.log('Movie loaded for cellId, recordingId:', cellId, recordingId);
           annotations.togglePlayBack();
@@ -1619,7 +1621,7 @@ define([
       init: annotations.init,
       playRecordingById: annotations.playRecordingById,
       playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => { annotations.playRecordingByIdWithPrompt(recordingFullId, promptMarkdown) },
-      cancelPlayback: annotations.cancelPlayback,
+      cancelPlayback: () => { annotations.cancelPlayback({cancelAnimation:true}) },
       removeAllAnnotations: annotations.removeAllAnnotationsWithConfirmation,
       setAccessLevel: (level) => { annotations.changeAccessLevel(level) },
       setAuthorId: (authorId) => { state.setAuthorId(authorId) },

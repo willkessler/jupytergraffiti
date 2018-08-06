@@ -674,6 +674,8 @@ define([
     },
 
     setScrollTop: (scrollTop) => {
+      console.log('setting scrollTop to:', scrollTop, 'at');
+      console.trace();
       state.scrollTop = scrollTop;
     },
 
