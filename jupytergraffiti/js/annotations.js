@@ -43,7 +43,7 @@ define([
 
         // for right now, we are only loading manifests for the creator(teacher), not for viewers (students). 
         // this is why we pass undefined for the authorId (first parameter)
-        storage.loadManifest(undefined, currentAccessLevel).then(() => {
+        storage.loadManifest(currentAccessLevel).then(() => {
           annotations.initInteractivity()
         }).catch(() => {
           console.log('Not setting up Graffiti because this notebook has never had any authoring done yet (no recordingId).');
