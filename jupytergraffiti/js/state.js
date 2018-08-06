@@ -9,6 +9,7 @@ define([
       state.utils = utils;
       state.accessLevel = 'view'; // one of 'create' or 'view'. If 'create' then we can create new graffitis, otherwise we can only view them
       state.authorId = 0; // defaults to the creator(teacher) in v1 of Graffiti but eventually this will be (potentially) set to a viewer(student) id.
+      state.authorType = 'creator';  // currently hardwired to be creator (teacher).
       state.audioInitialized = false;
       state.activity = 'idle'; // one of "recording", "playing", "idle"
       state.pointer = { x : 0, y: 0 };
@@ -92,6 +93,14 @@ define([
 
     setAuthorId: (authorId) => {
       state.authorId = authorId;
+    },
+
+    getAuthorType: () => {
+      return state.authorType;
+    },
+
+    setAuthorType: (authorType) => {
+      state.authorType = authorType;
     },
 
     getAudioInitialized: () => {

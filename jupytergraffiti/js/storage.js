@@ -67,7 +67,7 @@ define([
       state.setStorageInProcess(false);
       state.setMovieRecordingStarted(false);
       console.log('clearStorageInProcess saving manifest.');
-      storage.storeManifest('author');
+      storage.storeManifest();
       utils.saveNotebook();
     },
 
@@ -142,7 +142,7 @@ define([
       });
     },
 
-    storeManifest: (authorId) => {
+    storeManifest: () => {
       const manifest = state.getManifest();
       const manifestInfo = storage.constructManifestPath();
       console.log('Saving manifest to:', manifestInfo.file);

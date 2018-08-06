@@ -645,7 +645,8 @@ define([
             inProgress: true,
             tokens: $.extend({}, annotations.selectedTokens.tokens),
             markdown: '',
-            author: 'author',
+            authorId: state.getAuthorId(),
+            authorType: state.getAuthorType(), // one of "creator" (eg teacher), "viewer" (eg student)
             hasMovie: false
           }
           // Store recording info in the manifest
@@ -752,7 +753,7 @@ define([
             recordings[recordingCellInfo.recordingKey].markdown = editCellContents;
           }
         }
-        storage.storeManifest(undefined); // undefined means author is the creator(teacher) vs a viewer(student)
+        storage.storeManifest();
         utils.saveNotebook();
 
         // need to reselect annotation text that was selected in case it somehow got unselected
@@ -793,7 +794,7 @@ define([
             }
           }
         }
-        storage.storeManifest('author');
+        storage.storeManifest();
         if (annotations.highlightMarkText !== undefined) {
           annotations.highlightMarkText.clear();
         }
@@ -825,7 +826,7 @@ define([
           annotations.refreshAnnotationHighlights({cell: recordingCell, clear: true});
           annotations.refreshAnnotationTips();
           annotations.updateControlsDisplay();
-          storage.storeManifest('author');
+          storage.storeManifest();
           utils.saveNotebook();
         }
       },
@@ -1596,6 +1597,8 @@ define([
             audio.init();
             state.setAudioInitialized();
           }
+          state.setAuthorId(0); // currently hardwiring this to creator(teacher) ID, which is always 0. Eventually we will replace this with 
+                                // individual author ids
           storage.ensureNotebookGetsGraffitiId();
           state.assignCellIds();
           utils.saveNotebook();
