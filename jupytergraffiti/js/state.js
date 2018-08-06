@@ -39,6 +39,8 @@ define([
         selections: {}
       };
 
+      utils.refreshCellMaps();
+
     },
 
     getManifest: () => {

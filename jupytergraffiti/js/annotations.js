@@ -680,6 +680,7 @@ define([
         const annotationEditCell = Jupyter.notebook.insert_cell_above('markdown');
 
         annotationEditCell.metadata.cellId = utils.generateUniqueId();
+        utils.refreshCellMaps();
         let editableText = '';
         let finishLabel = 'Save Annotation';
         let finishIconClass = 'fa-pencil';
@@ -1124,22 +1125,26 @@ define([
           const newCell = results.cell;
           const newCellIndex = results.index;
           newCell.metadata.cellId = utils.generateUniqueId();
+          utils.refreshCellMaps();
           annotations.addCMEventsToSingleCell(newCell);
           state.storeHistoryRecord('contents');
         });
 
         Jupyter.notebook.events.on('delete.Cell', (e) => {
+          utils.refreshCellMaps();
           annotations.stopPlayback();
           state.storeHistoryRecord('contents');
         });
 
         Jupyter.notebook.events.on('finished_execute.CodeCell', (e, results) => {
           console.log('Finished execution event fired, e, results:',e, results);
+          utils.refreshCellMaps();
           state.storeHistoryRecord('contents');
         });
 
         Jupyter.notebook.events.on('shell_reply.Kernel', (e, results) => {
           console.log('Kernel shell reply event fired, e, results:',e, results);
+          utils.refreshCellMaps();
           if (state.getStorageInProcess()) {
             storage.clearStorageInProcess();
             annotations.updateAllAnnotationDisplays();
@@ -1196,7 +1201,7 @@ define([
 
             audio.startRecording();
             $('#recorder-range').attr('disabled',1);
-            annotations.setRecorderHint('ESC: complete recording. Alt: draw lines. Option: draw highlights. Both:Erase.');
+            annotations.setRecorderHint('ESC: complete recording. Alt/Command: draw lines. Option: draw highlights. Both:Erase.');
 //            state.storeHistoryRecord('selections'); // is this necessary?
             state.setScrollTop(annotations.sitePanel.scrollTop());
             state.setGarnishing(false);
