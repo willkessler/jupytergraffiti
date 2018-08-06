@@ -26,15 +26,13 @@ define([
         }
 
         annotations.LZString = LZString;
-        annotations.rewindAmt = 1; /*seconds */
+        annotations.rewindAmt = 2; /*seconds */
         annotations.CMEvents = {};
         annotations.sitePanel = $('#site');
         annotations.notebookPanel = $('#notebook');
         annotations.notebookContainer = $('#notebook-container');
 
         annotations.storageInProcess = false;
-        annotations.newScrollTop = 0;
-        annotations.savedScrollTop = undefined;
         annotations.highlightMarkText = undefined;
         annotations.cmLineHeight = 17.0001; // line height of code mirror lines as styled in Jupyter
         annotations.cmLineFudge = 8; // buffer between lines
@@ -1269,7 +1267,7 @@ define([
             //console.log('Showing cursor:', offsetPosition, lastPosition);
             const offsetPositionPx = { left: offsetPosition.x + 'px', top: offsetPosition.y + 'px'};
             annotations.recordingCursor.css(offsetPositionPx);
-          }
+          }            
           state.setLastRecordingCursorPosition(offsetPosition);
         }
       },
@@ -1290,6 +1288,7 @@ define([
         }
 
         if (record.pointerUpdate) {
+          //console.log('pointerUpdate is true, record:', record);
           annotations.recordingCursor.show();
           annotations.updatePointer(record);
         } else {
@@ -1334,8 +1333,7 @@ define([
         const currentScrollTop = annotations.sitePanel.scrollTop();
         
         const record = state.getHistoryItem('selections', index);
-        let selectionsUpdated = false;
-        let cellId, cell, selections, code_mirror, currentSelections, active;
+        let cellId, cell, selections, code_mirror, currentSelections, active, selectionsUpdateThisFrame = false;
         for (cellId of Object.keys(record.cellsSelections)) {
           selections = record.cellsSelections[cellId].selections;
           active = record.cellsSelections[cellId].active;
@@ -1348,14 +1346,16 @@ define([
               //console.log('updating selection, rec:', record, 'sel:', selections, 'cell:', cell);
               annotations.recordingCursor.hide();
               code_mirror.setSelections(selections);
-              selectionsUpdated = true;
+              selectionsUpdateThisFrame = true;
             }
           }
         }
-        if (selectionsUpdated) {
+        if (selectionsUpdateThisFrame) {
+          // This code restores page position after a selection is made; updating selections causes Jupyter to scroll randomly, see above
           if (annotations.sitePanel.scrollTop() !== currentScrollTop) {
             console.log('Jumped scrolltop');
             annotations.sitePanel.scrollTop(currentScrollTop);
+            annotations.recordingCursor.hide();
           }
         }
       },
