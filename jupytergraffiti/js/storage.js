@@ -5,28 +5,56 @@ define([
   './LZString.js'
 ], function (state,audio,utils, LZString) {
 
-  const storage = {
-    constructMoviePath: (recordingCellId, recordingKey) => {
-      const notebook = Jupyter.notebook;
-      if (!notebook.metadata.hasOwnProperty('recordingId')) {
-        notebook.metadata['recordingId'] = utils.generateUniqueId();
-      }
-      const notebookRecordingId = notebook.metadata['recordingId'];
-      const dirName = "recording_data/" +
-                      notebookRecordingId.replace('-','_') + '/' +
-                      recordingCellId.replace('-','_') + '/' +
-                      recordingKey;
-      return dirName;
-    },
+  //
+  // Storage tree is organized like this:
+  //
+  // recording_data/
+  //   notebooks/
+  //     id_1234/
+  //     authors/
+  //      id_0 (creator)/
+  //        manifest.json
+  //        cells/
+  //          id_1234/
+  //             graffitis/
+  //               id_1234/
+  //      id_123 (viewer)/
+  //        manifest.json
+  //        cells/
+  //          id_1234/
+  //            graffitis/
+  //              id_1234
 
-    ensureNotebookGetsRecordingId: (currentAccessLevel) => {
+  const storage = {
+
+    ensureNotebookGetsGraffitiId: () => {
       // make sure a new notebook gets a recording id
       const notebook = Jupyter.notebook;
-      if (currentAccessLevel === 'create') {
-        if (!notebook.metadata.hasOwnProperty('recordingId')) {
-          notebook.metadata['recordingId'] = utils.generateUniqueId();
-        }
+      if (!notebook.metadata.hasOwnProperty('graffitiId')) {
+        notebook.metadata['graffitiId'] = utils.generateUniqueId();
       }
+    },
+
+    constructBasePath: () => {
+      const notebook = Jupyter.notebook;
+      if (!notebook.metadata.hasOwnProperty('graffitiId')) {
+        notebook.metadata['graffitiId'] = graffitiId;
+      }
+      const basePath = "recording_data/notebooks/" + notebook.metadata['graffitiId'] + '/authors/id_' + state.getAuthorId() + '/';
+      return basePath;
+    },
+
+    constructManifestPath: () => {
+      const basePath = storage.constructBasePath();
+      return { path: basePath, file: 'manifest.json' };
+    },
+
+    constructGraffitiPath: (pathParts) => {
+      const basePath = storage.constructBasePath();
+      const graffitiPath = basePath + 
+                           'cells/' + pathParts.recordingCellId + '/' + 
+                           'graffitis/' + pathParts.recordingKey + '/';
+      return graffitiPath;
     },
 
     clearStorageInProcess: () => {
@@ -57,15 +85,18 @@ define([
       const recordingMetaData = {
         duration: state.getHistoryDuration()
       };
-      const dirName = storage.constructMoviePath(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
+      const graffitiPath = storage.constructGraffitiPath({
+        recordingCellId: recordingCellInfo.recordingCellId,
+        recordingKey: recordingCellInfo.recordingKey
+      });
       const jsonMeta = JSON.stringify(recordingMetaData).replace(/\"/g,'\\"');
       let bashScript = "import os\n";
-      bashScript += 'os.system("mkdir -p ' + dirName + '")' + "\n";
-      bashScript += "with open('" + dirName + '/' + "audio.txt', 'w') as f:\n";
+      bashScript += 'os.system("mkdir -p ' + graffitiPath + '")' + "\n";
+      bashScript += "with open('" + graffitiPath + '/' + "audio.txt', 'w') as f:\n";
       bashScript += "    f.write('" + encodedAudio + "')\n";
-      bashScript += "with open('" + dirName + '/' + "history.txt', 'w') as f:\n";
+      bashScript += "with open('" + graffitiPath + '/' + "history.txt', 'w') as f:\n";
       bashScript += "    f.write('" + base64CompressedHistory + "')\n";
-      bashScript += "with open('" + dirName + '/' + "meta.json', 'w') as f:\n";
+      bashScript += "with open('" + graffitiPath + '/' + "meta.json', 'w') as f:\n";
       bashScript += "    f.write('" + jsonMeta + "')\n";
       console.log(bashScript);
       Jupyter.notebook.kernel.execute(bashScript,
@@ -80,29 +111,21 @@ define([
 
     // Load the manifest for this notebook.
     // Manifests contain information about all the recordings present in this notebook.
-    // mode is either 'author' or 'student-<123>' where <123> is the id of a student's graffiti.
+    // mode is either 'author' or 'user-<123>' where <123> is the id of a (non-author) user's graffiti.
     // This version of the system only supports author manifests.
-    loadManifest: (mode, currentAccessLevel) => {
+    loadManifest: (currentAccessLevel) => {
       const notebook = Jupyter.notebook;
-      if (!notebook.metadata.hasOwnProperty('recordingId')) {
+      if (!notebook.metadata.hasOwnProperty('graffitiId')) {
         if (currentAccessLevel !== 'create') {
-          console.log('loadManifest is bailing early because we are not in "create" mode and this notebook has no recordingId.');
+          console.log('loadManifest is bailing early because we are not in "create" mode and this notebook has no graffitiId.');
           return Promise.reject();
         }
-        notebook.metadata['recordingId'] = utils.generateUniqueId();
       }
-      const notebookRecordingId = notebook.metadata['recordingId'];
-      let manifestPath = 'recording_data/manifests/';
-      if (mode === 'author') {
-        manifestPath += 'author/manifest_' + notebookRecordingId.replace('-','_').replace('id_','') + '.json';
-      } else {
-        console.log('Cannot load student graffitis yet.');
-        return;
-      }
-      console.log('Loading manifest from:', manifestPath);
       const credentials = { credentials: 'include' };
-
-      return fetch(manifestPath, credentials).then((response) => {
+      const manifestInfo = storage.constructManifestPath();
+      console.log('Loading manifest from:', manifestInfo);
+      const manifestFullFilePath = manifestInfo.path + manifestInfo.file;
+      return fetch(manifestFullFilePath, credentials).then((response) => {
         if (!response.ok) {
           // We could not fetch for some reason (maybe manifest file doesn't exist) so initialize an empty manifest
           return(undefined);
@@ -119,23 +142,15 @@ define([
       });
     },
 
-    storeManifest: (mode, studentId) => {
+    storeManifest: (authorId) => {
       const manifest = state.getManifest();
-      const notebookRecordingId = Jupyter.notebook.metadata['recordingId'];
-      let manifestPath = "recording_data/manifests/", manifestFile;
-      if (mode === 'author') {
-        manifestPath += "author";
-        manifestFile = "manifest_" + notebookRecordingId.replace('-','_').replace('id_','') + '.json';
-      } else {
-        console.log('Cannot save student graffiti for studentId:', studentId, ' yet.');
-        return;
-      }
-      manifestPath += '/';
-      console.log('Saving manifest to:', manifestPath);
+      const manifestInfo = storage.constructManifestPath();
+      console.log('Saving manifest to:', manifestInfo.file);
       let bashScript = "import os\n";
       const base64CompressedManifest = LZString.compressToBase64(JSON.stringify(manifest));
-      bashScript += 'os.system("mkdir -p ' + manifestPath + '")' + "\n";
-      bashScript += "with open('" + manifestPath + manifestFile + "', 'w') as f:\n";
+      const manifestFullFilePath = manifestInfo.path + manifestInfo.file;
+      bashScript += 'os.system("mkdir -p ' + manifestInfo.path + '")' + "\n";
+      bashScript += "with open('" + manifestFullFilePath + "', 'w') as f:\n";
       bashScript += "    f.write('" + base64CompressedManifest + "')\n";
       console.log(bashScript);
       Jupyter.notebook.kernel.execute(bashScript,
@@ -146,23 +161,20 @@ define([
                                         stop_on_error : true
                                       });
 
-      },
+    },
 
     //
     // Load a movie.
     // Returns a promise.
     //
-    loadMovie: (recordingCellId, recordingId) => {
+    loadMovie: (recordingCellId, recordingKey) => {
 
-      // This optimization may be causing a bug where the wrong movie plays.
-      //      if (recordingId === state.getCurrentRecordingId()) {
-      //        return Promise.resolve();
-      //      }
-
-      state.setCurrentRecordingId(recordingId);
-      const notebookRecordingId = Jupyter.notebook.metadata['recordingId'];
-      const dirName = "./recording_data/" + notebookRecordingId.replace('-', '_') + '/' + recordingCellId.replace('-','_')  + '/' + recordingId;
-      const metaUrl = dirName + '/meta.json';
+      const notebookRecordingId = Jupyter.notebook.metadata['graffitiId'];
+      const graffitiPath = storage.constructGraffitiPath( {
+        recordingCellId: recordingCellId,
+        recordingKey: recordingKey
+      });
+      const metaUrl = graffitiPath + 'meta.json';
       const credentials = { credentials: 'include'};
       storage.successfulLoad = false; /* assume we cannot fetch this recording ok */
       console.log('loading movie from metaUrl:', metaUrl);
@@ -172,7 +184,7 @@ define([
         }
         return response.json();
       }).then((metaInfo) => {
-        const historyUrl = dirName + '/history.txt';
+        const historyUrl = graffitiPath + 'history.txt';
         return fetch(historyUrl, credentials).then((response) => {
           if (!response.ok) {
             throw Error(response.statusText);
@@ -186,7 +198,7 @@ define([
             state.storeWholeHistory(parsedHistory);
             console.log('Loaded previous history.');
             console.log(parsedHistory);
-            const audioUrl = dirName + '/audio.txt';
+            const audioUrl = graffitiPath + 'audio.txt';
             return fetch(audioUrl, { credentials: 'include' }).then((response) => {
               if (!response.ok) {
                 throw Error(response.statusText);
@@ -196,13 +208,14 @@ define([
               try {
                 audio.setRecordedAudio(base64CompressedAudio);
                 storage.successfulLoad = true;
-                state.setCurrentRecordingId(recordingId);
               } catch(ex) {
                 console.log('Could not parse saved audio, ex:', ex);
+                return Promise.reject('Could not parse saved audio, ex :' + ex);
               }
             });
           } catch (ex) {
             console.log('Could not parse previous history, ex :',ex);
+            return Promise.reject('Could not parse previous history, ex :' + ex);
           }
         });
       }).catch((ex) => {
@@ -211,9 +224,12 @@ define([
       });
     },
 
-    deleteMovie: (recordingCellId, recordingId) => {
-      const dirName = storage.constructMoviePath(recordingCellId, recordingId);
-      const deletePython = "import os\nos.system('rm -r " + dirName + "')\n";
+    deleteMovie: (recordingCellId, recordingKey) => {
+      const graffitiPath = storage.constructGraffitiPath({ 
+        recordingCellId: recordingCellId, 
+        recordingKey: recordingKey 
+      });
+      const deletePython = "import os\nos.system('rm -r " + graffitiPath + "')\n";
       console.log('deleteMovie:', deletePython);
 
       this.Jupyter.notebook.kernel.execute(deletePython,

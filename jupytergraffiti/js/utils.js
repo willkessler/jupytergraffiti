@@ -4,7 +4,7 @@ define([
 
   const utils = {
     generateUniqueId: () => {
-      return 'id-' + Math.random().toString(36).substr(2, 16);
+      return 'id_' + Math.random().toString(36).substr(2, 16);
     },
 
     getNow: () => {

@@ -41,7 +41,9 @@ define([
         annotations.tokenRanges = {};
         annotations.canvases = {};
 
-        storage.loadManifest('author', currentAccessLevel).then(() => {
+        // for right now, we are only loading manifests for the creator(teacher), not for viewers (students). 
+        // this is why we pass undefined for the authorId (first parameter)
+        storage.loadManifest(undefined, currentAccessLevel).then(() => {
           annotations.initInteractivity()
         }).catch(() => {
           console.log('Not setting up Graffiti because this notebook has never had any authoring done yet (no recordingId).');
@@ -258,7 +260,7 @@ define([
         //console.log('refreshAnnotationTips: binding mousenter/mouseleave');
         tips.unbind('mouseenter mouseleave').bind('mouseenter mouseleave', (e) => {
           const highlightElem = $(e.target);
-          const idMatch = highlightElem.attr('class').match(/an-(id-.[^\-]+)-(id-[^\s]+)/);
+          const idMatch = highlightElem.attr('class').match(/an-(id_.[^\-]+)-(id_[^\s]+)/);
           if (idMatch !== undefined) {
             const cellId = idMatch[1];
             const recordingId = idMatch[2];
@@ -750,7 +752,7 @@ define([
             recordings[recordingCellInfo.recordingKey].markdown = editCellContents;
           }
         }
-        storage.storeManifest('author');
+        storage.storeManifest(undefined); // undefined means author is the creator(teacher) vs a viewer(student)
         utils.saveNotebook();
 
         // need to reselect annotation text that was selected in case it somehow got unselected
@@ -1547,7 +1549,7 @@ define([
         storage.loadMovie(cellId, recordingId).then( () => {
           console.log('Movie loaded for cellId, recordingId:', cellId, recordingId);
           annotations.togglePlayBack();
-        }).catch( () => {
+        }).catch( (ex) => {
           dialog.modal({
             title: 'Movie is not available.',
             body: 'We are sorry, we could not load this movie at this time. Please contact the author of this Notebook for help.',
@@ -1594,7 +1596,7 @@ define([
             audio.init();
             state.setAudioInitialized();
           }
-          storage.ensureNotebookGetsRecordingId(level);
+          storage.ensureNotebookGetsGraffitiId();
           state.assignCellIds();
           utils.saveNotebook();
           annotations.initInteractivity();
