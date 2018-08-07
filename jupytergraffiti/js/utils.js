@@ -16,16 +16,13 @@ define([
     refreshCellMaps: () => {
       utils.cellMaps = {
         cells: Jupyter.notebook.get_cells(),
-        maps: {},
-        codeMirrors: {}
+        maps: {}
       }
       let cell, cellKeys = Object.keys(utils.cellMaps.cells);
       for (let cellIndex = 0; cellIndex < cellKeys.length; ++cellIndex) {
         cell = utils.cellMaps.cells[cellIndex];
         // supports lookups by cellId
         utils.cellMaps.maps[cell.metadata.cellId] = cellIndex;
-        // supports lookups by codemirrors
-        utils.cellMaps.codeMirrors[cell.code_mirror] = cellIndex;
       }
     },
 
@@ -38,7 +35,12 @@ define([
     },
 
     findCellByCodeMirror: (cm) => {
-      return utils.cellMaps.cells[utils.cellMaps.codeMirrors[cm]];
+      for (let cell of utils.cellMaps.cells) {
+        if (cell.code_mirror === cm) {
+          return cell;
+        }
+      }
+      return undefined;
     },
     
     renderMarkdown: (contents) => {
@@ -119,7 +121,7 @@ define([
     },
 
     saveNotebook: () => {
-      Jupyter.notebook.save_notebook().then( () => { console.log('Notebook saved.') });
+      Jupyter.notebook.save_notebook().then( () => { console.log('Graffiti: Notebook saved.') });
     },
 
     collectTokenStrings: (allTokens, tokens) => {
@@ -128,7 +130,7 @@ define([
       return subTokens.reduce( (tokensString, token) => { tokensString + token.string } )
     },
 
-    // Find out whether the current selection intersections with any annotation token ranges, or which tokens are in the selection if not.
+    // Find out whether the current selection intersections with any graffiti token ranges, or which tokens are in the selection if not.
     findSelectionTokens: (recordingCell,  tokenRanges, state) => {
       //console.log('findSelectionTokens, tokenRanges:', tokenRanges);
       let range, startRange, endRange, recordingKey, markdown, isIntersecting = false;
@@ -148,7 +150,7 @@ define([
           range = tokenRangesThisCell[recordingKey];
           startRange = cm.indexFromPos(range.start);
           endRange = cm.indexFromPos(range.end);
-          //console.log('startPos:', startPos, 'endPos:', endPos, '| startRange:', startRange, 'endRange:', endRange, 'range:', range);
+          console.log('startPos:', startPos, 'endPos:', endPos, '| startRange:', startRange, 'endRange:', endRange, 'range:', range);
           if ((startPos <= startRange && endPos >= endRange) || // selection surrounds or equals the range
               ((startPos >= startRange && startPos <= endRange) || (endPos >= startRange && endPos <= endRange))) { // selection is inside the range
             if (startRange < minStartRange) {
@@ -179,21 +181,16 @@ define([
         //console.log('not intersecting, now checking for new annots');
         const allTokens = utils.collectCMTokens(cm);
         let startCheck, endCheck, token, startToken, lastToken, startTokenIndex, tokenCount = 0, tokensString = '';
+        const noResults = { isIntersecting: false, noTokensPresent: true };
         if (allTokens.length === 0) {
           // degnerate case 1: no tokens present at all in the cell
-          results = {
-            isIntersecting: false,
-            noTokensPresent : true
-          };
+          results = noResults;
         } else {
           token = allTokens[allTokens.length - 1];
           endCheck = cm.indexFromPos({line: token.line, ch: token.end});
           if (startPos > endCheck) {
             // degenerate case 2: selection caret is past the last token present
-            results = {
-              isIntersecting: false,
-              noTokensPresent : true
-            };
+            results = noResults;
           } else {
             for (let i = 0; i < allTokens.length; ++i) {
               lastToken = token;
@@ -202,7 +199,8 @@ define([
               endCheck = cm.indexFromPos({line: token.line, ch: token.end});
               //console.log('startPos, endPos:', startPos, endPos, 'checking token:', token.string, startCheck, endCheck);
               if (startToken === undefined) {
-                if (startPos >= startCheck && startPos <= endCheck) {
+                if ((startPos >= startCheck && startPos <= endCheck) ||
+                    (endPos >= startCheck && endPos <= endCheck)) {
                   startToken = token;
                   startTokenIndex = i;
                   tokenCount = 1;
@@ -220,41 +218,46 @@ define([
               }
               if (startCheck > endPos) {
                 if (startToken === undefined && lastToken !== undefined) {
-                  startToken = lastToken; // if between tokens, take last token seen
-                  endToken = lastToken;
+                  console.log('Graffiti: between tokens, so cannot create a Graffiti.');
+                  results = noResults;
                 }
                 break;
               }
             }
             
             // Find the occurence count of the first token in the code cell, e.g. if the token is the second "hello" in "hello there, mr. hello dude"
-            //console.log('startPos, endPos:', startPos, endPos, 'startToken,endToken:', startToken,endToken);
-            startToken.offset = 0;
-            for (let i = 0; i < allTokens.length; ++i) {
-              token = allTokens[i];
-              if (token.type === startToken.type && token.string === startToken.string) {
-                if (i < startTokenIndex) {
+            if (startToken === undefined) {
+              results = noResults;
+              console.log('Graffiti: degenerate case 3, startToken not found despite everything. Falling to safe route.');
+            } else {
+              console.log('Graffiti: startPos, endPos:', startPos, endPos, 'startToken,endToken:', startToken,endToken);
+              startToken.offset = 0;
+              for (let i = 0; i < allTokens.length; ++i) {
+                token = allTokens[i];
+                if (token.type === startToken.type && token.string === startToken.string) {
+                  if (i < startTokenIndex) {
               ++startToken.offset;
-                } else {
-                  break;
+                  } else {
+                    break;
+                  }
                 }
               }
-            }
 
-            results = {
-              isIntersecting: false,
-              noTokensPresent: false,
-              tokens: {
-                start: {
-                  type: startToken.type,
-                  string: startToken.string,
-                  offset: startToken.offset
+              results = {
+                isIntersecting: false,
+                noTokensPresent: false,
+                tokens: {
+                  start: {
+                    type: startToken.type,
+                    string: startToken.string,
+                    offset: startToken.offset
+                  },
+                  count: tokenCount,
+                  allTokensString: tokensString            
                 },
-                count: tokenCount,
-                allTokensString: tokensString            
-              },
-              start: cm.indexFromPos({line:startToken.line, ch: startToken.ch}),
-              end:   cm.indexFromPos({line:endToken.line, ch: endToken.ch})
+                start: cm.indexFromPos({line:startToken.line, ch: startToken.ch}),
+                end:   cm.indexFromPos({line:endToken.line, ch: endToken.ch})
+              }
             }
           }
         }
@@ -265,7 +268,7 @@ define([
     },
 
     // Collect all tokens in code-mirror into an array and tag each with which line it's found on. We use this 
-    // in refreshAnnotationHighlights() as we mark up a cell with existing recorded annotations.
+    // in refreshAnnotationHighlights() as we mark up a cell with existing recorded graffitis.
     collectCMTokens: (cm) => {
       let allTokens = [];
       const lineCount = cm.lineCount();
@@ -280,7 +283,7 @@ define([
     },
 
     // Given a start token string and a tokenOffset, and how many subsequent tokens are needed, pull the line and character ranges
-    // out of the given code mirror instance (since those ranges might have changed since the annotation was first created).
+    // out of the given code mirror instance (since those ranges might have changed since the graffiti was first created).
     getCMTokenRange: (cm, tokens, allTokens) => {
       const startToken = tokens.start;
       const allTokensLength = allTokens.length;

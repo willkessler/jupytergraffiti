@@ -7,15 +7,17 @@ define([
   './storage.js',
   'components/marked/lib/marked'
 ], function(dialog, LZString, state, utils, audio, storage, marked) {
-  const Annotations = (function() {
-    const annotations = {
+  const Graffiti = (function() {
+    const graffiti = {
 
       init: () => {
-        console.log('Annotations constructor running.');
+        console.log('Graffiti: Main constructor running.');
+
         utils.loadCss([
-          'jupytergraffiti/css/font-awesome.min.css',
-          'jupytergraffiti/css/annotations.css'
+          'jupytergraffiti/css/graffiti.css',
+          'jupytergraffiti/css/font-awesome.min.css'
         ]);
+
 
         const location = document.location;
 
@@ -25,24 +27,24 @@ define([
           audio.init(state);
         }
 
-        annotations.LZString = LZString;
-        annotations.rewindAmt = 2; /*seconds */
-        annotations.CMEvents = {};
-        annotations.sitePanel = $('#site');
-        annotations.notebookPanel = $('#notebook');
-        annotations.notebookContainer = $('#notebook-container');
+        graffiti.LZString = LZString;
+        graffiti.rewindAmt = 2; /*seconds */
+        graffiti.CMEvents = {};
+        graffiti.sitePanel = $('#site');
+        graffiti.notebookPanel = $('#notebook');
+        graffiti.notebookContainer = $('#notebook-container');
 
-        annotations.storageInProcess = false;
-        annotations.highlightMarkText = undefined;
-        annotations.cmLineHeight = 17.0001; // line height of code mirror lines as styled in Jupyter
-        annotations.cmLineFudge = 8; // buffer between lines
-        annotations.tokenRanges = {};
-        annotations.canvases = {};
+        graffiti.storageInProcess = false;
+        graffiti.highlightMarkText = undefined;
+        graffiti.cmLineHeight = 17.0001; // line height of code mirror lines as styled in Jupyter
+        graffiti.cmLineFudge = 8; // buffer between lines
+        graffiti.tokenRanges = {};
+        graffiti.canvases = {};
 
         // for right now, we are only loading manifests for the creator(teacher), not for viewers (students). 
         // this is why we pass undefined for the authorId (first parameter)
         storage.loadManifest(currentAccessLevel).then(() => {
-          annotations.initInteractivity()
+          graffiti.initInteractivity()
         }).catch(() => {
           console.log('Not setting up Graffiti because this notebook has never had any authoring done yet (no recordingId).');
         });
@@ -50,21 +52,21 @@ define([
 
       initInteractivity: () => {
         audio.setAudioStorageCallback(storage.storeMovie);
-        annotations.addCMEvents();
+        graffiti.addCMEvents();
         setTimeout(() => { 
-          annotations.setupControls(); 
-          annotations.setNotification('Graffiti is loaded and ready for use.', () => { annotations.clearNotification(); }, 5000);
+          graffiti.setupControls(); 
+          graffiti.setNotification('Graffiti: Loaded and ready for use.', () => { graffiti.clearNotification(); }, 5000);
         }, 500); // this timeout avoids too-early rendering of hidden recorder controls
 
-        annotations.refreshAllAnnotationHighlights();
-        annotations.refreshAnnotationTips();
+        graffiti.refreshAllGraffitiHighlights();
+        graffiti.refreshGraffitiTips();
       },
 
       //i nspired by https://www.codicode.com/art/how_to_draw_on_a_html5_canvas_with_a_mouse.aspx
       // and : http://perfectionkills.com/exploring-canvas-drawing-techniques/
 
       placeCanvas: (cellId, canvasType) => {
-        if (annotations.canvases[cellId] !== undefined) {
+        if (graffiti.canvases[cellId] !== undefined) {
           //console.log('not adding ' + canvasType + ' canvas to this cell, already exists.');
           return;
         }
@@ -90,7 +92,7 @@ define([
         ctx.lineJoin = "round";
         ctx.lineCap = "round";
 
-        annotations.canvases[cellId] = {
+        graffiti.canvases[cellId] = {
           div: newCellCanvasDiv,
           canvas: newCellCanvas,
           ctx: ctx,
@@ -99,7 +101,7 @@ define([
       },
       
       setCanvasStyle: (cellId, canvasType) => {
-        const canvas = annotations.canvases[cellId];
+        const canvas = graffiti.canvases[cellId];
         const ctx = canvas.ctx;
         if (canvasType === 'highlight') {
           ctx.strokeStyle = 'rgb(255,255,0)';
@@ -117,22 +119,22 @@ define([
       },
 
       clearCanvas: (cellId) => {
-        const canvas = annotations.canvases[cellId];
+        const canvas = graffiti.canvases[cellId];
         const ctx = canvas.ctx;
         const cellRect = canvas.cellRect;
         ctx.clearRect(0, 0, cellRect.width, cellRect.height);
       },
       
       clearAllCanvases: () => {
-        for (let cellId of Object.keys(annotations.canvases)) {
-          annotations.clearCanvas(cellId);
+        for (let cellId of Object.keys(graffiti.canvases)) {
+          graffiti.clearCanvas(cellId);
         }
       },
 
       updateGarnishDisplay: (cellId, ax, ay, bx, by, garnishStyle) => {
         //console.log('updateGarnishDisplay');
-        if (annotations.canvases.hasOwnProperty(cellId)) {
-          const ctx = annotations.canvases[cellId].ctx;
+        if (graffiti.canvases.hasOwnProperty(cellId)) {
+          const ctx = graffiti.canvases[cellId].ctx;
           if (garnishStyle === 'erase') {
             const eraseBuffer = 25;
             ctx.clearRect(ax - eraseBuffer / 2, ay - eraseBuffer / 2, eraseBuffer, eraseBuffer);
@@ -150,10 +152,10 @@ define([
         if (state.getActivity() === 'recording') {
           const lastGarnishInfo = state.getLastGarnishInfo();
           if (viewInfo.garnishing) {
-            annotations.placeCanvas(viewInfo.cellId, viewInfo.garnishStyle);
-            annotations.setCanvasStyle(viewInfo.cellId, viewInfo.garnishStyle);
+            graffiti.placeCanvas(viewInfo.cellId, viewInfo.garnishStyle);
+            graffiti.setCanvasStyle(viewInfo.cellId, viewInfo.garnishStyle);
             const cellRect = viewInfo.cellRect;
-            annotations.updateGarnishDisplay(viewInfo.cellId, 
+            graffiti.updateGarnishDisplay(viewInfo.cellId, 
                                              ax - cellRect.left,
                                              ay - cellRect.top, 
                                              bx - cellRect.left,
@@ -206,7 +208,7 @@ define([
       // we should store the ranges we get back for the recordings so we can tell if the cursor is in any of them on cursorActivity
       // ******************************************************************************************************************************************
 
-      refreshAnnotationHighlights: (params) => {
+      refreshGraffitiHighlights: (params) => {
         const recordings = state.getManifestRecordingsForCell(params.cell.metadata.cellId);
         const cm = params.cell.code_mirror;
         const marks = cm.getAllMarks();
@@ -216,11 +218,11 @@ define([
             mark.clear();
           }
         } else {
-          markClasses = marks.map((mark) => { return mark.className }).join(' ').replace(/annotation-highlight /g, '');
+          markClasses = marks.map((mark) => { return mark.className }).join(' ').replace(/graffiti-highlight /g, '');
         }
         const allTokens = utils.collectCMTokens(cm);
         const cellId = params.cell.metadata.cellId;
-        annotations.tokenRanges[cellId] = {};
+        graffiti.tokenRanges[cellId] = {};
         if (recordings !== undefined) {
           if (Object.keys(recordings).length > 0) {
             let keyParts,recording, recordingKey, tokens, firstToken, marker, range;
@@ -231,13 +233,13 @@ define([
               range = utils.getCMTokenRange(cm, tokens, allTokens);
               if (range !== undefined) {
                 // Store computed character ranges for checking selections against recording ranges.
-                annotations.tokenRanges[cellId][recordingKey] = range;
+                graffiti.tokenRanges[cellId][recordingKey] = range;
                 if (params.clear || (!params.clear && markClasses !== undefined && markClasses.indexOf(recordingKey) === -1)) {
                   // don't call markText twice on a previously marked range
                   marker = 'an-' + recording.cellId + '-' + recordingKey;
                   cm.markText({ line:range.start.line, ch:range.start.ch},
                               { line:range.end.line,   ch:range.end.ch  },
-                              { className: 'annotation-highlight ' + marker });
+                              { className: 'graffiti-highlight ' + marker });
                 }
               }
             }
@@ -245,17 +247,17 @@ define([
         }
       },
 
-      refreshAllAnnotationHighlights: () => {
+      refreshAllGraffitiHighlights: () => {
         const cells = Jupyter.notebook.get_cells();
         for (let cell of cells) {
-          annotations.refreshAnnotationHighlights({ cell: cell, clear: true });
+          graffiti.refreshGraffitiHighlights({ cell: cell, clear: true });
         }
       },
 
-      refreshAnnotationTips: () => {
-        const tips = $('.annotation-highlight');
+      refreshGraffitiTips: () => {
+        const tips = $('.graffiti-highlight');
         //console.log('tips:', tips);
-        //console.log('refreshAnnotationTips: binding mousenter/mouseleave');
+        //console.log('refreshGraffitiTips: binding mousenter/mouseleave');
         tips.unbind('mouseenter mouseleave').bind('mouseenter mouseleave', (e) => {
           const highlightElem = $(e.target);
           const idMatch = highlightElem.attr('class').match(/an-(id_.[^\-]+)-(id_[^\s]+)/);
@@ -267,7 +269,7 @@ define([
             const hoverCellElementPosition = $(hoverCellElement).position();
             const outerInputElement = $(hoverCellElement).find('.CodeMirror-lines');
             const recording = state.getManifestSingleRecording(cellId, recordingId);
-            let existingTip = annotations.notebookContainer.find('.annotation-tip');
+            let existingTip = graffiti.notebookContainer.find('.graffiti-tip');
             if (e.type === 'mouseleave') {
               state.setTipTimeout(() => { existingTip.hide(); }, 500);
             } else {
@@ -287,7 +289,7 @@ define([
                   // "below.\n\n Let's go to [**Udacity**](https://udacity.com).");
                   let contentMarkdown = '';
                   //console.log('markId:', markId, 'recordings:', hoverCell.metadata.recordings);
-                  const tooltipCommands = annotations.extractTooltipCommands(recording.markdown);
+                  const tooltipCommands = graffiti.extractTooltipCommands(recording.markdown);
                   let headlineMarkdown = '';
                   if (tooltipCommands !== undefined) {
                     headlineMarkdown = '<div class="headline">' +
@@ -307,8 +309,8 @@ define([
                   tooltipContents += '</div>';
 
                   if (existingTip.length === 0) {
-                    existingTip = $('<div class="annotation-tip" id="annotation-tip">' + tooltipContents + '</div>')
-                      .prependTo(annotations.notebookContainer);
+                    existingTip = $('<div class="graffiti-tip" id="graffiti-tip">' + tooltipContents + '</div>')
+                      .prependTo(graffiti.notebookContainer);
                     existingTip.bind('mouseenter mouseleave', (e) => {
                       //console.log(e.type === 'mouseenter' ? 'entering tooltip' : 'leaving tooltip');
                       if (e.type === 'mouseenter') {
@@ -322,7 +324,7 @@ define([
                     existingTip.html(tooltipContents);
                   }
                   existingTip.find('#moviePlay').click((e) => {
-                    console.log('click in tip');
+                    //console.log('click in tip');
                     state.clearTipTimeout();
                     existingTip.hide();
                     e.stopPropagation(); // for reasons unknown even still propogates to the codemirror editing area undeneath
@@ -330,7 +332,7 @@ define([
                     const tipCellId = button.attr('cell-id');
                     const tipRecordingId = button.attr('recording-id');
                     const activity = state.getActivity();
-                    annotations.loadAndPlayMovie(tipCellId, tipRecordingId);
+                    graffiti.loadAndPlayMovie(tipCellId, tipRecordingId);
                     return false;
                   });
                   const outerInputOffset = outerInputElement.offset();
@@ -347,7 +349,7 @@ define([
                   // if the highlight element is in the upper half of the notebook panel area. flip the tooltip to be below the highlightElem
                   const rectDifference = highlightElemRect.top - headerRect.bottom - 20;
                   if (rectDifference < existingTipHeight ) {
-                    tipPosition.top = highlightElemOffset.top - outerInputOffset.top + annotations.cmLineHeight + annotations.cmLineFudge;
+                    tipPosition.top = highlightElemOffset.top - outerInputOffset.top + graffiti.cmLineHeight + graffiti.cmLineFudge;
                   }
                   tipPosition.top += hoverCellElementPosition.top;
                   const positionPx = { left: tipPosition.left + 'px', top: tipPosition.top + 'px' };
@@ -377,13 +379,13 @@ define([
 
       setupBackgroundEvents: () => {
         // Handle rubber banding scrolling that occurs on short notebooks so cursor doesn't look wrong (possibly, only chrome?).
-        console.log('setupBackgroundEvents');
+        console.log('Graffiti: setupBackgroundEvents');
 
-        annotations.sitePanel.on('scroll', (e) => {
-          const notebookPanelHeight = annotations.notebookPanel.height();
+        graffiti.sitePanel.on('scroll', (e) => {
+          const notebookPanelHeight = graffiti.notebookPanel.height();
           const viewInfo = utils.collectViewInfo(state.getPointerPosition().y,
-                                                 annotations.notebookPanel.height(),
-                                                 annotations.sitePanel.scrollTop(),
+                                                 graffiti.notebookPanel.height(),
+                                                 graffiti.sitePanel.scrollTop(),
                                                  state.getGarnishing(),
                                                  state.getGarnishStyle());
           state.storeViewInfo(viewInfo);
@@ -399,29 +401,29 @@ define([
             case 32: // space key stops playback
               if (activity === 'playing') {
                 stopProp = true;
-                annotations.togglePlayBack();
+                graffiti.togglePlayBack();
               }
               break;
             case 27: // escape key stops playback, cancels pendingRecording, and completes regular recording in process
               stopProp = true;
               switch (activity) {
                 case 'recording':
-                  annotations.toggleRecording();
-                  annotations.updateControlsDisplay();
+                  graffiti.toggleRecording();
+                  graffiti.updateControlsDisplay();
                   break;
                 case 'recordingPending':
-                  annotations.clearPendingRecording();
+                  graffiti.clearPendingRecording();
                   break;
                 case 'playing':
                 case 'playbackPaused':
-                  annotations.cancelPlayback({cancelAnimation:true});
+                  graffiti.cancelPlayback({cancelAnimation:true});
                   break;
               }
               break;
             case 13:
               if (e.altKey) {
                 console.log('alt key pressed with return', e);
-                annotations.finishAnnotation(true);
+                graffiti.finishGraffiti(true);
                 stopProp = true;
               }
               break;
@@ -444,7 +446,7 @@ define([
             default:
               break; // let other keys pass through
           }
-            
+          
           if (stopProp) {
             e.preventDefault();
             e.stopPropagation();
@@ -459,10 +461,10 @@ define([
           state.setGarnishing(false);
         });
 
-        annotations.sitePanel.on('click', (e) => {
+        graffiti.sitePanel.on('click', (e) => {
           //console.log('notebook panel click event:',e);
           const target = $(e.target);
-          //annotations.handleControlsClick(target);
+          //graffiti.handleControlsClick(target);
           return true;
         });
 
@@ -474,22 +476,22 @@ define([
           const previousPointerY = previousPointerPosition.y;
           state.storePointerPosition( e.clientX, e.clientY ); // keep track of current pointer position at all times
           const viewInfo = utils.collectViewInfo(e.clientY, 
-                                                 annotations.notebookPanel.height(), 
-                                                 annotations.sitePanel.scrollTop(),
+                                                 graffiti.notebookPanel.height(), 
+                                                 graffiti.sitePanel.scrollTop(),
                                                  state.getGarnishing(),
                                                  state.getGarnishStyle());
           state.storeViewInfo(viewInfo);
           state.storeHistoryRecord('pointer');
-          annotations.updateGarnishDisplayIfRecording(previousPointerX, previousPointerY, e.clientX, e.clientY, viewInfo );
+          graffiti.updateGarnishDisplayIfRecording(previousPointerX, previousPointerY, e.clientX, e.clientY, viewInfo );
           return true;
         };
 
         // if we were playing a recording when they hit reload, we need to cancel it, restore, and save before we continue
         window.onbeforeunload = (e) => {
-          annotations.cancelPlaybackNoVisualUpdates();
+          graffiti.cancelPlaybackNoVisualUpdates();
         };
 
-        console.log('Annotations: background setup complete.');
+        console.log('Graffiti: Background setup complete.');
       },
 
       setupControls: () => {
@@ -501,16 +503,16 @@ define([
         recordHtml +=
           '<div id="recorder-record-controls">' +
           '  <div id="recorder-record-controls-inner">' +
-          '    <button class="btn btn-default" id="btn-edit-annotation"><i class="fa fa-pencil"></i>&nbsp; <span>Edit</span></button>' +
-          '    <button class="btn btn-default" id="btn-finish-annotation" title="Save Annotation"><i class="fa fa-pencil"></i>' +
-          '&nbsp;<span>Save Annotation</span></button>' +
+          '    <button class="btn btn-default" id="btn-edit-graffiti"><i class="fa fa-pencil"></i>&nbsp; <span>Edit</span></button>' +
+          '    <button class="btn btn-default" id="btn-finish-graffiti" title="Save Graffiti"><i class="fa fa-pencil"></i>' +
+          '&nbsp;<span>Save Graffiti</span></button>' +
           '    <a href="#" class="cancel" title="Cancel">Cancel changes</a>' +
           '    <div class="recorder-time-display-recording"></div>' +
-          '    <button class="btn btn-default" id="btn-start-recording" title="Record movie for this annotation">' +
+          '    <button class="btn btn-default" id="btn-start-recording" title="Record movie for this graffiti">' +
           '<i class="fa fa-film recorder-button"></i>&nbsp;<span>Record</span></button>' +
           '    <button class="btn btn-default recorder-hidden" id="btn-finish-recording" title="finish recording"><i class="fa fa-pause recorder-stop-button"></i>' +
           '&nbsp;Finish</button>' +
-          '    <button class="btn btn-default" id="btn-remove-annotation" title="Remove Annotation"><i class="fa fa-trash"></i></button>' +
+          '    <button class="btn btn-default" id="btn-remove-graffiti" title="Remove Graffiti"><i class="fa fa-trash"></i></button>' +
           '    <div class="recorder-hint">&nbsp;</div>' +
           '    <div id="recorder-api-key">&nbsp;</div>' +
           '  </div>' +
@@ -532,10 +534,10 @@ define([
           '    </div>' +
           '    <div class="recorder-time-display"></div>' +
           '    <div class="recorder-skip-buttons">' +
-          '      <button class="btn btn-default btn-rewind" id="btn-rewind" title="go back ' + annotations.rewindAmt + ' second">' +
+          '      <button class="btn btn-default btn-rewind" id="btn-rewind" title="go back ' + graffiti.rewindAmt + ' second">' +
           '        <i class="fa fa-backward"></i>' +
           '      </button>' +
-          '      <button class="btn btn-default btn-forward" id="btn-forward" title="jump forward ' + annotations.rewindAmt + ' second">' +
+          '      <button class="btn btn-default btn-forward" id="btn-forward" title="jump forward ' + graffiti.rewindAmt + ' second">' +
           '        <i class="fa fa-forward"></i>' +
           '      </button>' +
           '      <button class="btn btn-default btn-sound-on" id="btn-sound-on" title="mute">' +
@@ -556,46 +558,55 @@ define([
 
         $('#recorder-range').on('mousedown', (e) => {
           //console.log('slider:mousedown');
-          annotations.stopPlayback(); // stop playback if playing when you start to scrub
-          annotations.clearAllCanvases();
+          graffiti.stopPlayback(); // stop playback if playing when you start to scrub
+          graffiti.clearAllCanvases();
           state.setActivity('scrubbing');
         });
         $('#recorder-range').on('mouseup', (e) => {
           //console.log('slider:mouseup')
           state.setActivity('playbackPaused');
-          annotations.updateAllAnnotationDisplays();
+          graffiti.updateAllGraffitiDisplays();
         });
 
-        $('#recorder-range').on('input', annotations.handleSliderDrag);
-        annotations.recordingCursor = $('#recorder-cursor');
+        $('#recorder-range').on('input', graffiti.handleSliderDrag);
+        graffiti.recordingCursor = $('#recorder-cursor');
 
-        $('#btn-start-recording').click((e) => { annotations.beginMovieRecordingProcess(); });
-        $('#btn-finish-recording').click((e) => { annotations.toggleRecording(); });
-        $('#btn-edit-annotation').click((e) => { annotations.editAnnotation('annotating'); });
-        $('#btn-finish-annotation').click((e) => { annotations.finishAnnotation(true); });
-        $('#btn-remove-annotation').click((e) => { annotations.removeAnnotationPrompt(); });
-        $('#recorder-record-controls .cancel').click((e) => { annotations.finishAnnotation(false); });
-        $('#recorder-playback-controls .cancel span:first').click((e) => { annotations.stopPlayback(); });
-        $('#recorder-playback-controls .cancel span:last').click((e) => { annotations.cancelPlayback({cancelAnimation:true}); });
-        $('#recorder-api-key').click((e) => { $('#recorder-api-key input').select(); });
+        $('#btn-start-recording').click((e) => { graffiti.beginMovieRecordingProcess(); });
+        $('#btn-finish-recording').click((e) => { graffiti.toggleRecording(); });
+        $('#btn-edit-graffiti').click((e) => { graffiti.editGraffiti('graffiting'); });
+        $('#btn-finish-graffiti').click((e) => { graffiti.finishGraffiti(true); });
+        $('#btn-remove-graffiti').click((e) => { graffiti.removeGraffitiPrompt(); });
+        $('#recorder-record-controls .cancel').click((e) => { graffiti.finishGraffiti(false); });
+        $('#recorder-playback-controls .cancel span:first').click((e) => { graffiti.stopPlayback(); });
+        $('#recorder-playback-controls .cancel span:last').click((e) => { graffiti.cancelPlayback({cancelAnimation:true}); });
+        $('#recorder-api-key').click((e) => { 
+          const apiKey = $('#recorder-api-key span').attr('id');
+          let recorderApiKeyCell = Jupyter.notebook.insert_cell_below('code');
+          let invocationLine = "jupytergraffiti.api.play_recording('" + apiKey + "')\n" +
+                               "# jupytergraffiti.api.play_recording_with_prompt('" + apiKey +
+                               "', '![idea](../images/lightbulb_small.jpg) Click **here** to learn more.')\n" +
+                               "# jupytergraffiti.api.stop_playback()";
+          recorderApiKeyCell.set_text(invocationLine);          
+          Jupyter.notebook.select_next();
+        });
 
-        $('#btn-play, #btn-stop-play').click((e) => { annotations.togglePlayBack(); });
+        $('#btn-play, #btn-stop-play').click((e) => { graffiti.togglePlayBack(); });
         $('#btn-forward,#btn-rewind').click((e) => {
           // console.log('btn-forward/btn-rewind clicked');
           let direction = 1;
           if (($(e.target).attr('id') === 'btn-rewind') || ($(e.target).hasClass('fa-backward'))) {
             direction = -1;
           }
-          annotations.stopPlayback();
+          graffiti.stopPlayback();
           const timeElapsed = state.getPlaybackTimeElapsed();
-          const t = Math.max(0, Math.min(timeElapsed + (annotations.rewindAmt * 1000 * direction), state.getHistoryDuration() - 1 ));
+          const t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction), state.getHistoryDuration() - 1 ));
           console.log('t:', t);
           const frameIndexes = state.getHistoryRecordsAtTime(t);
           state.clearSetupForReset();
           state.setPlaybackTimeElapsed(t);
-          annotations.updateDisplay(frameIndexes);
-          annotations.updateSlider(t);
-          annotations.updateAllAnnotationDisplays();
+          graffiti.updateDisplay(frameIndexes);
+          graffiti.updateSlider(t);
+          graffiti.updateAllGraffitiDisplays();
         });
 
         $('#btn-sound-on, #btn-sound-off').on('click', (e) => {
@@ -617,18 +628,18 @@ define([
           }
         });
 
-        console.log('Annotations controls set up.');
+        console.log('Graffiti: UX Controls set up.');
 
-        annotations.setupBackgroundEvents();
+        graffiti.setupBackgroundEvents();
       },
 
       storeRecordingInfoInCell: () => {
         let recordingRecord, newRecording, recordingCell, recordingCellId, recordingKey;
-        if (annotations.selectedTokens.isIntersecting) { 
+        if (graffiti.selectedTokens.isIntersecting) { 
           // Prepare to update existing recording
-          recordingCell = annotations.selectedTokens.recordingCell;
-          recordingCellId = annotations.selectedTokens.recordingCellId;
-          recordingKey = annotations.selectedTokens.recordingKey;
+          recordingCell = graffiti.selectedTokens.recordingCell;
+          recordingCellId = graffiti.selectedTokens.recordingCellId;
+          recordingKey = graffiti.selectedTokens.recordingKey;
           recordingRecord = state.getManifestSingleRecording(recordingCellId, recordingKey);
           newRecording = false;
         } else { 
@@ -641,7 +652,7 @@ define([
             cellId: recordingCellId,
             createDate: utils.getNow(),
             inProgress: true,
-            tokens: $.extend({}, annotations.selectedTokens.tokens),
+            tokens: $.extend({}, graffiti.selectedTokens.tokens),
             markdown: '',
             authorId: state.getAuthorId(),
             authorType: state.getAuthorType(), // one of "creator" (eg teacher), "viewer" (eg student)
@@ -657,36 +668,36 @@ define([
           recordingCell: recordingCell,
           recordingCellId: recordingCellId,
           recordingKey: recordingKey,
-          scrollTop: annotations.sitePanel.scrollTop()
+          scrollTop: graffiti.sitePanel.scrollTop()
         });
 
         return recordingCell;
       },
 
-      highlightIntersectingAnnotationRange: () => {
-        const cell = annotations.selectedTokens.recordingCell;
+      highlightIntersectingGraffitiRange: () => {
+        const cell = graffiti.selectedTokens.recordingCell;
         const cm = cell.code_mirror;
-        const startLoc = cm.posFromIndex(annotations.selectedTokens.start);
-        const endLoc = cm.posFromIndex(annotations.selectedTokens.end);
-        annotations.highlightMarkText = cm.markText(startLoc, endLoc, { className: 'annotation-selected' });
+        const startLoc = cm.posFromIndex(graffiti.selectedTokens.start);
+        const endLoc = cm.posFromIndex(graffiti.selectedTokens.end);
+        graffiti.highlightMarkText = cm.markText(startLoc, endLoc, { className: 'graffiti-selected' });
       },
 
-      editAnnotation: (newState) => {
+      editGraffiti: (newState) => {
         state.setActivity(newState);
-        annotations.updateControlsDisplay();
-        annotations.storeRecordingInfoInCell();
+        graffiti.updateControlsDisplay();
+        graffiti.storeRecordingInfoInCell();
 
         const activeCellIndex = Jupyter.notebook.get_selected_index();
-        const annotationEditCell = Jupyter.notebook.insert_cell_above('markdown');
+        const graffitiEditCell = Jupyter.notebook.insert_cell_above('markdown');
 
-        annotationEditCell.metadata.cellId = utils.generateUniqueId();
+        graffitiEditCell.metadata.cellId = utils.generateUniqueId();
         utils.refreshCellMaps();
         let editableText = '';
-        let finishLabel = 'Save Annotation';
+        let finishLabel = 'Save Graffiti';
         let finishIconClass = 'fa-pencil';
-        $('#btn-finish-annotation i').removeClass('fa-film, fa-pencil');
-        if (annotations.selectedTokens.isIntersecting) {
-          editableText = annotations.selectedTokens.markdown; // use whatever author put into this annotation previously
+        $('#btn-finish-graffiti i').removeClass('fa-film, fa-pencil');
+        if (graffiti.selectedTokens.isIntersecting) {
+          editableText = graffiti.selectedTokens.markdown; // use whatever author put into this graffiti previously
           if (state.getActivity() === 'recordingLabelling') {
             finishLabel = 'Start Movie Recording';
             finishIconClass = 'fa-film';
@@ -697,32 +708,32 @@ define([
             finishIconClass = 'fa-film';
             editableText = 'Enter any markdown to describe your movie, then click "Start Movie Recording", above.' + "\n";
           } else {
-            editableText = 'Enter your markdown for the annotation here and then click "Save Annotation" above.' + "\n";
-            // Add whatever tokens are selected for initial annotation
+            editableText = 'Enter your markdown for the graffiti here and then click "Save Graffiti" above.' + "\n";
+            // Add whatever tokens are selected for initial graffiti
           }
-          editableText += annotations.selectedTokens.tokens.allTokensString;
+          editableText += graffiti.selectedTokens.tokens.allTokensString;
         }
-        $('#btn-finish-annotation i').addClass(finishIconClass);
-        $('#btn-finish-annotation span').text(finishLabel);
+        $('#btn-finish-graffiti i').addClass(finishIconClass);
+        $('#btn-finish-graffiti span').text(finishLabel);
 
-        annotationEditCell.set_text(editableText);
-        annotationEditCell.unrender();
+        graffitiEditCell.set_text(editableText);
+        graffitiEditCell.unrender();
         Jupyter.notebook.scroll_to_cell(Math.max(0,activeCellIndex),500);
         const selectedCell = Jupyter.notebook.get_selected_cell();
         selectedCell.unselect();
-        annotationEditCell.select();
-        annotationEditCell.code_mirror.focus();
-        annotationEditCell.code_mirror.execCommand('selectAll');
+        graffitiEditCell.select();
+        graffitiEditCell.code_mirror.focus();
+        graffitiEditCell.code_mirror.execCommand('selectAll');
 
-        annotations.annotationEditCellId = annotationEditCell.metadata.cellId;
+        graffiti.graffitiEditCellId = graffitiEditCell.metadata.cellId;
 
-        annotations.setRecorderHint('Alt- or Option-Enter to save your entry.');
+        graffiti.setRecorderHint('Alt- or Option-Enter to save your entry.');
 
       },
 
-      finishAnnotation: (doSave) => {
+      finishGraffiti: (doSave) => {
         const activity = state.getActivity();
-        if (activity !== 'annotating' && activity !== 'recordingLabelling')
+        if (activity !== 'graffiting' && activity !== 'recordingLabelling')
           return;
 
         const recordingCellInfo = state.getRecordingCellInfo();
@@ -730,53 +741,55 @@ define([
 
         $('#recorder-record-controls').hide();
         $('#btn-record').show();
-        $('#btn-edit-annotation').show();
-        $('#btn-finish-annotation').hide();
-        $('#btn-remove-annotation').hide();
+        $('#btn-edit-graffiti').show();
+        $('#btn-finish-graffiti').hide();
+        $('#btn-remove-graffiti').hide();
         $('#recorder-record-controls .cancel').hide();
 
-        const editCellIndex = utils.findCellIndexByCellId(annotations.annotationEditCellId);
+        const editCellIndex = utils.findCellIndexByCellId(graffiti.graffitiEditCellId);
 
         let editCellContents = '';
         if (editCellIndex !== undefined) {
-          const editCell = utils.findCellByCellId(annotations.annotationEditCellId);
+          const editCell = utils.findCellByCellId(graffiti.graffitiEditCellId);
           editCellContents = editCell.get_text();
           Jupyter.notebook.delete_cell(editCellIndex);
 
-          // Save the annotation text into the right cell recording.
+          // Save the graffiti text into the right cell recording.
           const recordings = state.getManifestRecordingsForCell(recordingCellInfo.recordingCellId);
           if (doSave) {
             if (recordingCellInfo.newRecording) {
               recordings[recordingCellInfo.recordingKey] = recordingCellInfo.recordingRecord;
             }
             recordings[recordingCellInfo.recordingKey].markdown = editCellContents;
+          } else {
+            state.removeManifestEntry(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
           }
         }
         storage.storeManifest();
         utils.saveNotebook();
 
-        // need to reselect annotation text that was selected in case it somehow got unselected
+        // need to reselect graffiti text that was selected in case it somehow got unselected
         //recordingCell.code_mirror.setSelections(recordingCellInfo.selections);
-        annotations.sitePanel.animate({ scrollTop: recordingCellInfo.scrollTop}, 500);
+        graffiti.sitePanel.animate({ scrollTop: recordingCellInfo.scrollTop}, 500);
         if (doSave && state.getActivity() === 'recordingLabelling') {
-          annotations.setPendingRecording();
+          graffiti.setPendingRecording();
         } else {
           state.setActivity('idle');
           recordingCell.code_mirror.focus();
-          annotations.clearRecorderHint();
-          annotations.refreshAnnotationHighlights({cell: recordingCell, clear: false});
-          annotations.refreshAnnotationTips();
+          graffiti.clearRecorderHint();
+          graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: false});
+          graffiti.refreshGraffitiTips();
         }
-        annotations.updateControlsDisplay();
+        graffiti.updateControlsDisplay();
       },
 
-      removeAnnotationCore: (recordingCell, recordingKey) => {
+      removeGraffitiCore: (recordingCell, recordingKey) => {
         const recordingCellId = recordingCell.metadata.cellId;
         storage.deleteMovie(recordingCellId, recordingKey);
       },
 
 
-      removeAllAnnotations: () => {
+      removeAllGraffitis: () => {
         const manifest = state.getManifest(); // save manifest before we wipe it out
         state.setManifest({});
         let recordingCellId, recordingCell, recordingIds, recordingKeys, destructions = 0;
@@ -788,17 +801,17 @@ define([
             for (recordingKey of recordingKeys) {
               console.log('Removing recording id:', recordingKey);
               destructions++;
-              annotations.removeAnnotationCore(recordingCell, recordingKey);
-              annotations.refreshAnnotationHighlights({cell: recordingCell, clear: true});
+              graffiti.removeGraffitiCore(recordingCell, recordingKey);
+              graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
             }
           }
         }
         storage.storeManifest();
-        if (annotations.highlightMarkText !== undefined) {
-          annotations.highlightMarkText.clear();
+        if (graffiti.highlightMarkText !== undefined) {
+          graffiti.highlightMarkText.clear();
         }
-        annotations.refreshAnnotationTips();
-        annotations.updateControlsDisplay();
+        graffiti.refreshGraffitiTips();
+        graffiti.updateControlsDisplay();
         utils.saveNotebook();
 
         dialog.modal({
@@ -808,7 +821,7 @@ define([
           buttons: {
             'OK': {
               click: (e) => {
-                console.log('You clicked ok, you want to remove ALL annotations');
+                console.log('You clicked ok, you want to remove ALL graffitis');
               }
             }
           }
@@ -816,30 +829,30 @@ define([
 
       },
 
-      removeAnnotation: (recordingCell, recordingKey) => {
-        annotations.removeAnnotationCore(recordingCell, recordingKey);
+      removeGraffiti: (recordingCell, recordingKey) => {
+        graffiti.removeGraffitiCore(recordingCell, recordingKey);
         if (state.removeManifestEntry(recordingCell.metadata.cellId, recordingKey)) {
-          if (annotations.highlightMarkText !== undefined) {
-            annotations.highlightMarkText.clear();
+          if (graffiti.highlightMarkText !== undefined) {
+            graffiti.highlightMarkText.clear();
           }
-          annotations.refreshAnnotationHighlights({cell: recordingCell, clear: true});
-          annotations.refreshAnnotationTips();
-          annotations.updateControlsDisplay();
+          graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
+          graffiti.refreshGraffitiTips();
+          graffiti.updateControlsDisplay();
           storage.storeManifest();
           utils.saveNotebook();
         }
       },
 
-      removeAllAnnotationsWithConfirmation: () => {
+      removeAllGraffitisWithConfirmation: () => {
         dialog.modal({
-          title: 'Are you sure you want to remove ALL annotations from this notebook?',
+          title: 'Are you sure you want to remove ALL graffitis from this notebook?',
           body: 'Note: this cannot be undone.',
           sanitize:false,
           buttons: {
             'OK': {
               click: (e) => {
-                console.log('You clicked ok, you want to remove ALL annotations');
-                annotations.removeAllAnnotations();
+                console.log('You clicked ok, you want to remove ALL graffitis');
+                graffiti.removeAllGraffitis();
 
               }
             },
@@ -849,57 +862,72 @@ define([
 
       },
 
-      removeAnnotationPrompt: () => {
-        if (annotations.selectedTokens.isIntersecting) {
-          const recordingCell = annotations.selectedTokens.recordingCell;
+      removeGraffitiPrompt: () => {
+        if (graffiti.selectedTokens.isIntersecting) {
+          const recordingCell = graffiti.selectedTokens.recordingCell;
           const recordingCellId = recordingCell.metadata.cellId;
-          const recordingKey = annotations.selectedTokens.recordingKey;
+          const recordingKey = graffiti.selectedTokens.recordingKey;
           const recording = state.getManifestSingleRecording(recordingCellId,recordingKey);
-          const content = '<b>Annotated string:</b>&nbsp;<i>' + recording.tokens.allTokensString + '</i><br/>' +
-                          '<b>Annotation:</b>' + utils.renderMarkdown(recording.markdown) + '<br/><br/>' +
-                          '(Note: this cannot be undone.)<br/>';
-          dialog.modal({
-            title: 'Are you sure you want to remove this annotation?',
+          const content = '(Please Note: this cannot be undone.)<br/>' +
+                          '<b>Graffiti\'d text:</b><span class="graffiti-text-display">' + recording.tokens.allTokensString + '</span><br/>' +
+                          '<b>Graffiti contents:</b>' + utils.renderMarkdown(recording.markdown) + '<br/>';
+          
+          const confirmModal = dialog.modal({
+            title: 'Are you sure you want to remove this Graffiti?',
             body: content,
             sanitize:false,
             buttons: {
               'OK': {
                 click: (e) => {
-                  console.log('you clicked ok, you want to remove annotation:',
+                  console.log('you clicked ok, you want to remove graffiti:',
                               $(e.target).parent());
-                  annotations.removeAnnotation(recordingCell, recordingKey);
+                  graffiti.removeGraffiti(recordingCell, recordingKey);
 
                 }
               },
               'Cancel': { click: (e) => { console.log('you cancelled:', $(e.target).parent()); } },
             }
           });
+          confirmModal.on('hidden.bs.modal', (e) => { 
+            console.log('Graffiti: escaped the removeGraffitiPrompt modal.');
+          });
         }
       },
 
       updateControlsDisplay: (cm) => {
         let activeCell;
+        const now = utils.getNow();
+        if (graffiti.lastUpdateControlsTime !== undefined) {
+          if ((now - graffiti.lastUpdateControlsTime) < 100) {
+            console.log('Graffiti: not updating controls display (debounce)');
+            return;
+          }
+        }
+        graffiti.lastUpdateControlsTime = now;
+
         if (cm !== undefined) {
           activeCell = utils.findCellByCodeMirror(cm);
+          // console.log('found activeCell by cm',activeCell, activeCell.get_text());
         } else {
           activeCell = Jupyter.notebook.get_selected_cell();
+          // console.log('found activeCell by selected cell', activeCell);
         }
         //console.log('updateControlsDisplay, activity:', state.getActivity());
         const cellId = activeCell.metadata.cellId;
         const activity = state.getActivity();
         switch (activity) {
           case 'recordingLabelling':
-            $('#recorder-record-controls,#btn-finish-annotation,#recorder-record-controls .cancel').show();
-            $('#btn-start-recording,#btn-edit-annotation,#btn-remove-annotation,#recorder-record-controls #recorder-api-key').hide();
+            $('#recorder-record-controls,#btn-finish-graffiti,#recorder-record-controls .cancel').show();
+            $('#btn-start-recording,#btn-edit-graffiti,#btn-remove-graffiti,#recorder-record-controls #recorder-api-key').hide();
             break;
           case 'recordingPending':
             $('#recorder-record-controls').show();
-            $('#btn-start-recording,#btn-finish-recording,#btn-edit-annotation,#btn-finish-annotation,#recorder-record-controls .cancel,' +
+            $('#btn-start-recording,#btn-finish-recording,#btn-edit-graffiti,#btn-finish-graffiti,#recorder-record-controls .cancel,' +
               '#recorder-record-controls #recorder-api-key').hide();
             break;
           case 'recording':
             $('#recorder-record-controls,#recorder-record-controls .recorder-time-display-recording:first,#btn-finish-recording').show();
-            $('#btn-start-recording,#btn-edit-annotation,#btn-finish-annotation,#btn-finish-annotation,#recorder-record-controls .cancel,' + 
+            $('#btn-start-recording,#btn-edit-graffiti,#btn-finish-graffiti,#btn-finish-graffiti,#recorder-record-controls .cancel,' + 
               '#recorder-record-controls #recorder-api-key').hide();
             break;
           case 'playing':
@@ -910,41 +938,41 @@ define([
             $('#recorder-record-controls, #btn-stop-play').hide();
             $('#recorder-playback-controls, #btn-play').show();
             break;
-          case 'annotating':
-            $('#recorder-record-controls,#btn-finish-annotation,#recorder-record-controls .cancel').show();
-            $('#btn-start-recording,#btn-edit-annotation,#recorder-record-controls #recorder-api-key').hide();
+          case 'graffiting':
+            $('#recorder-record-controls,#btn-finish-graffiti,#recorder-record-controls .cancel').show();
+            $('#btn-start-recording,#btn-edit-graffiti,#recorder-record-controls #recorder-api-key').hide();
             break;
           case 'idle':
-            $('#recorder-record-controls,#btn-start-recording,#btn-edit-annotation, #recorder-record-controls #recorder-api-key').show();
-            $('#btn-finish-recording, #btn-finish-annotation,#recorder-record-controls .recorder-time-display-recording:first').hide();
+            $('#recorder-record-controls,#btn-start-recording,#btn-edit-graffiti, #recorder-record-controls #recorder-api-key').show();
+            $('#btn-finish-recording, #btn-finish-graffiti,#recorder-record-controls .recorder-time-display-recording:first').hide();
             $('#recorder-record-controls .cancel, #recorder-playback-controls').hide();
             // Check if anchor or head of current selection is inside an existing recording token set. Controls will be different if so.
             let rangeKey, range;
-            let annotationBtnText = 'Create';
+            let graffitiBtnText = 'Create';
             let recordBtnText = 'Record';
-            $('#btn-edit-annotation').attr({title:'Create Annotation'});
-            if (annotations.highlightMarkText) {
-              annotations.highlightMarkText.clear();
+            $('#btn-edit-graffiti').attr({title:'Create Graffiti'});
+            if (graffiti.highlightMarkText) {
+              graffiti.highlightMarkText.clear();
             }
-            annotations.editableAnnotation = undefined;
-            annotations.selectedTokens = utils.findSelectionTokens(activeCell, annotations.tokenRanges, state);
+            graffiti.editableGraffiti = undefined;
+            graffiti.selectedTokens = utils.findSelectionTokens(activeCell, graffiti.tokenRanges, state);
             $('#recorder-record-controls #recorder-api-key').hide();
-            if (annotations.selectedTokens.noTokensPresent || state.getAccessLevel() === 'view') {
+            if (graffiti.selectedTokens.noTokensPresent || state.getAccessLevel() === 'view') {
               $('#recorder-record-controls').hide();
             } else {
-              if (annotations.selectedTokens.isIntersecting) {
-                annotationBtnText = 'Edit';
-                $('#btn-edit-annotation').attr({title:'Edit Annotation'});
-                $('#btn-remove-annotation').show();
-                annotations.highlightIntersectingAnnotationRange();
-                //console.log('selectedTokens:', annotations.selectedTokens);
-                if (annotations.selectedTokens.hasMovie) {
+              if (graffiti.selectedTokens.isIntersecting) {
+                graffitiBtnText = 'Edit';
+                $('#btn-edit-graffiti').attr({title:'Edit Graffiti'});
+                $('#btn-remove-graffiti').show();
+                graffiti.highlightIntersectingGraffitiRange();
+                //console.log('selectedTokens:', graffiti.selectedTokens);
+                if (graffiti.selectedTokens.hasMovie) {
                   //console.log('this recording has a movie');
                   recordBtnText = 'Re-record';
+                  const recordingFullId = graffiti.selectedTokens.recordingCellId.replace('id_','') + '_' + 
+                                          graffiti.selectedTokens.recordingKey.replace('id_','');
                   $('#btn-start-recording').attr({title:'Re-record Movie'})
-                  $('#recorder-record-controls #recorder-api-key').html('Movie api key:<span><input type="text" value="' + 
-                                                                        annotations.selectedTokens.recordingCellId + '_' + 
-                                                                        annotations.selectedTokens.recordingKey + '" /></span>');
+                  $('#recorder-record-controls #recorder-api-key').html('<span id="' + recordingFullId + '">Get API key</span>');
                   $('#recorder-record-controls #recorder-api-key').show();
                 } else {
                   recordBtnText = 'Record';
@@ -952,16 +980,16 @@ define([
                 }
               }
             }
-            $('#btn-edit-annotation span').text(annotationBtnText);
+            $('#btn-edit-graffiti span').text(graffitiBtnText);
             $('#btn-start-recording span').text(recordBtnText);
             break;
         }
       },
 
-      updateAllAnnotationDisplays: () => {
-        annotations.refreshAllAnnotationHighlights();
-        annotations.refreshAnnotationTips();
-        annotations.updateControlsDisplay();
+      updateAllGraffitiDisplays: () => {
+        graffiti.refreshAllGraffitiHighlights();
+        graffiti.refreshGraffitiTips();
+        graffiti.updateControlsDisplay();
       },
 
       clearNotification: (force) => {
@@ -1010,33 +1038,33 @@ define([
 
       setPendingRecording: () => {
         if (state.getActivity() === 'recording') {
-          annotations.toggleRecording(); // stop current recording
-          annotations.updateControlsDisplay();
+          graffiti.toggleRecording(); // stop current recording
+          graffiti.updateControlsDisplay();
         } else {
           console.log('Setting pending recording');
-          annotations.setRecorderHint('Click anywhere to begin recording movie. (ESC to cancel)');
+          graffiti.setRecorderHint('Click anywhere to begin recording movie. (ESC to cancel)');
           state.setActivity('recordingPending');
-          annotations.updateControlsDisplay();
+          graffiti.updateControlsDisplay();
           state.restoreCellStates('selections'); // reset selections to when you clicked to begin the recording
         }
       },
 
       clearPendingRecording: () => {
-        annotations.clearRecorderHint();
+        graffiti.clearRecorderHint();
         state.setActivity('idle');
       },
 
       beginMovieRecordingProcess: () => {
         // Preserve the state of all cells and selections before we begin recording so we can restore when the recording is done.
         state.storeCellStates();
-        annotations.editAnnotation('recordingLabelling');
+        graffiti.editGraffiti('recordingLabelling');
       },
 
       addCMEventsToSingleCell: (cell) => {
-        annotations.CMEvents[cell.metadata.cellId] = true;
+        graffiti.CMEvents[cell.metadata.cellId] = true;
         const cm = cell.code_mirror;
         cm.on('focus', (cm, e) => {
-          //console.log('CM focus:' , cm, e);
+          console.log('CM focus:' , cm, e);
           // Check to see if we jumped from another cell to this cell with the arrow keys. If we did and we're recording, we need to
           // create a focus history record because jupyter is not firing the select cell event in those cases.
           if (state.getActivity() === 'recording') {
@@ -1046,16 +1074,16 @@ define([
             }
           }
           if (state.getActivity() === 'recordingPending') {
-            console.log('now starting movie recording');
-            annotations.toggleRecording();
+            console.log('Graffiti: Now starting movie recording');
+            graffiti.toggleRecording();
           }
-          annotations.updateControlsDisplay();
+          graffiti.updateControlsDisplay();
         });
 
         cm.on('cursorActivity', (cm, e) => {
-          //console.log('cursorActivity');
-          annotations.updateControlsDisplay(cm);
-          //console.log('annotations.selectedTokens:', annotations.selectedTokens);
+          console.log('cursorActivity');
+          graffiti.updateControlsDisplay(cm);
+          //console.log('graffiti.selectedTokens:', graffiti.selectedTokens);
           const affectedCell = utils.findCellByCodeMirror(cm);
           state.storeCellIdAffectedByActivity(affectedCell.metadata.cellId);
           state.storeHistoryRecord('selections');
@@ -1067,13 +1095,13 @@ define([
           state.storeCellIdAffectedByActivity(affectedCell.metadata.cellId);
           state.storeHistoryRecord('contents');
           if (state.getActivity() === 'idle') {
-            annotations.refreshAnnotationHighlights({cell: affectedCell, clear: true});
+            graffiti.refreshGraffitiHighlights({cell: affectedCell, clear: true});
           }
         });
 
         cm.on('mousedown', (cm, e) => {
           //console.log('mousedown, e:', e);
-          annotations.clearNotification(true); // immediately clear notification if present
+          graffiti.clearNotification(true); // immediately clear notification if present
         });
 
         cm.on('refresh', (cm, e) => {
@@ -1082,14 +1110,14 @@ define([
 
         cm.on('update', (cm, e) => {
           //console.log('**** CM update event ****');
-          annotations.refreshAnnotationTips();
+          graffiti.refreshGraffitiTips();
         });
 
         cm.on('scroll', (cm, e) => {
           const pointerPosition = state.getPointerPosition();
           const viewInfo = utils.collectViewInfo(pointerPosition.y, 
-                                                 annotations.notebookPanel.height(), 
-                                                 annotations.sitePanel.scrollTop(),
+                                                 graffiti.notebookPanel.height(), 
+                                                 graffiti.sitePanel.scrollTop(),
                                                  state.getGarnishing(),
                                                  state.getGarnishStyle());
           state.storeViewInfo(viewInfo);
@@ -1102,21 +1130,21 @@ define([
         const inputCells = Jupyter.notebook.get_cells();
         for (let cell of inputCells) {
           // Don't rebind if already bound
-          if (!annotations.CMEvents.hasOwnProperty(cell.metadata.cellId)) {
-            annotations.addCMEventsToSingleCell(cell);
+          if (!graffiti.CMEvents.hasOwnProperty(cell.metadata.cellId)) {
+            graffiti.addCMEventsToSingleCell(cell);
           }
         }
       },
 
       // Bind all select, create, delete, execute  cell events at the notebook level
       addCMEvents: () => {
-        annotations.addCMEventsToCells();
+        graffiti.addCMEventsToCells();
 
         Jupyter.notebook.events.on('select.Cell', (e, cell) => {
           //console.log('cell select event fired, e, cell:',e, cell.cell);
           //console.log('select cell store selections');
           state.storeHistoryRecord('focus');
-          annotations.refreshAnnotationTips();
+          graffiti.refreshGraffitiTips();
         });
 
         Jupyter.notebook.events.on('create.Cell', (e, results) => {
@@ -1126,13 +1154,13 @@ define([
           const newCellIndex = results.index;
           newCell.metadata.cellId = utils.generateUniqueId();
           utils.refreshCellMaps();
-          annotations.addCMEventsToSingleCell(newCell);
+          graffiti.addCMEventsToSingleCell(newCell);
           state.storeHistoryRecord('contents');
         });
 
         Jupyter.notebook.events.on('delete.Cell', (e) => {
           utils.refreshCellMaps();
-          annotations.stopPlayback();
+          graffiti.stopPlayback();
           state.storeHistoryRecord('contents');
         });
 
@@ -1147,7 +1175,7 @@ define([
           utils.refreshCellMaps();
           if (state.getStorageInProcess()) {
             storage.clearStorageInProcess();
-            annotations.updateAllAnnotationDisplays();
+            graffiti.updateAllGraffitiDisplays();
           }
         });
 
@@ -1163,21 +1191,21 @@ define([
             // Stop movie recording currently underway.
             //
 
-            annotations.clearAllCanvases();
+            graffiti.clearAllCanvases();
             state.finalizeHistory();
             state.dumpHistory();
             clearInterval(state.getRecordingInterval());
             // This will use the callback defined in setAudioStorageCallback to actually persist everything.
             audio.stopRecording();
             $('#recorder-range').removeAttr('disabled');
-            annotations.setRecorderHint('Movie saved. Now you can <span>play this movie</span>.', annotations.startPlayback);
+            graffiti.setRecorderHint('Movie saved. Now you can <span>play this movie</span>.', graffiti.startPlayback);
             state.setActivity('idle');
-            console.log('toggleRecording refreshing.');
+            console.log('Graffiti: toggleRecording refreshing.');
             state.restoreCellStates('contents');
-            annotations.updateAllAnnotationDisplays();
-            annotations.sitePanel.animate({ scrollTop: state.getScrollTop() }, 750);
+            graffiti.updateAllGraffitiDisplays();
+            graffiti.sitePanel.animate({ scrollTop: state.getScrollTop() }, 750);
             state.restoreCellStates('selections');
-            console.log('Stopped recording.');
+            console.log('Graffiti: Stopped recording.');
           } else {
 
             //
@@ -1201,15 +1229,15 @@ define([
 
             audio.startRecording();
             $('#recorder-range').attr('disabled',1);
-            annotations.setRecorderHint('ESC: complete recording. Alt/Command: draw lines. Option: draw highlights. Both:Erase.');
+            graffiti.setRecorderHint('ESC: complete recording. Alt/Command: draw lines. Option: draw highlights. Both:Erase.');
 //            state.storeHistoryRecord('selections'); // is this necessary?
-            state.setScrollTop(annotations.sitePanel.scrollTop());
+            state.setScrollTop(graffiti.sitePanel.scrollTop());
             state.setGarnishing(false);
 
             state.setRecordingInterval(
               setInterval(() => {
                 //console.log('Moving time ahead.');
-                annotations.updateTimeDisplay(state.getTimeRecordedSoFar());
+                graffiti.updateTimeDisplay(state.getTimeRecordedSoFar());
               }, 10)
             );
             console.log('Started recording');
@@ -1252,13 +1280,13 @@ define([
           const lastGarnishInfo = state.getLastGarnishInfo();
           if (record.garnishing) {
             //console.log('lastGarnishInfo:', lastGarnishInfo);
-            annotations.placeCanvas(record.cellId,record.garnishStyle);
-            annotations.setCanvasStyle(record.cellId, record.garnishStyle);
+            graffiti.placeCanvas(record.cellId,record.garnishStyle);
+            graffiti.setCanvasStyle(record.cellId, record.garnishStyle);
             // We are currently garnishing, so draw next portion of garnish on canvas.
             //console.log('garnishing from:', lastGarnishInfo.x, lastGarnishInfo.y, '->', dxScaled, dyScaled);
             const garnishOffset = { x: dxScaled + (innerCellRect.left - cellRect.left), y: dyScaled + (innerCellRect.top - cellRect.top) };
             if (lastGarnishInfo.garnishing && lastGarnishInfo.garnishCellId == record.cellId) {
-              annotations.updateGarnishDisplay(record.cellId, lastGarnishInfo.x, lastGarnishInfo.y, garnishOffset.x + 0.5, garnishOffset.y + 0.5, record.garnishStyle);
+              graffiti.updateGarnishDisplay(record.cellId, lastGarnishInfo.x, lastGarnishInfo.y, garnishOffset.x + 0.5, garnishOffset.y + 0.5, record.garnishStyle);
             }
             state.setLastGarnishInfo(garnishOffset.x, garnishOffset.y, record.garnishing, record.garnishStyle, record.cellId);
           } else {
@@ -1271,7 +1299,7 @@ define([
             // Show cursor whenever it's moved by user
             //console.log('Showing cursor:', offsetPosition, lastPosition);
             const offsetPositionPx = { left: offsetPosition.x + 'px', top: offsetPosition.y + 'px'};
-            annotations.recordingCursor.css(offsetPositionPx);
+            graffiti.recordingCursor.css(offsetPositionPx);
           }            
           state.setLastRecordingCursorPosition(offsetPosition);
         }
@@ -1294,10 +1322,10 @@ define([
 
         if (record.pointerUpdate) {
           //console.log('pointerUpdate is true, record:', record);
-          annotations.recordingCursor.show();
-          annotations.updatePointer(record);
+          graffiti.recordingCursor.show();
+          graffiti.updatePointer(record);
         } else {
-          annotations.recordingCursor.hide();
+          graffiti.recordingCursor.hide();
         }
 
         // Update innerScroll if required
@@ -1307,7 +1335,7 @@ define([
 
 
           // Compute mapped scrollTop for this timeframe
-          const currentNotebookPanelHeight = annotations.notebookPanel.height();
+          const currentNotebookPanelHeight = graffiti.notebookPanel.height();
           const scrollRatio = record.scrollTop / record.notebookPanelHeight;
           const mappedScrollTop = scrollRatio * currentNotebookPanelHeight;
 
@@ -1326,16 +1354,16 @@ define([
           // Now the updated scrollTop is computed by adding all three values together.
           const scrollTop = parseInt(mappedScrollTop + positionDifference + heightDiffAdjustment);
 
-          const currentScrollTop = annotations.sitePanel.scrollTop();
+          const currentScrollTop = graffiti.sitePanel.scrollTop();
           if (currentScrollTop !== scrollTop) {
-            annotations.sitePanel.scrollTop(scrollTop);
+            graffiti.sitePanel.scrollTop(scrollTop);
           }
         }
       },
 
       updateSelections: (index) => {
         // Preserve scrollTop position because latest CM codebase sometimes seems to change it when you setSelections.
-        const currentScrollTop = annotations.sitePanel.scrollTop();
+        const currentScrollTop = graffiti.sitePanel.scrollTop();
         
         const record = state.getHistoryItem('selections', index);
         let cellId, cell, selections, code_mirror, currentSelections, active, selectionsUpdateThisFrame = false;
@@ -1349,7 +1377,7 @@ define([
             //console.log('cellId, selections, currentSelections:', cellId, selections, currentSelections);
             if (!(_.isEqual(selections,currentSelections))) {
               //console.log('updating selection, rec:', record, 'sel:', selections, 'cell:', cell);
-              annotations.recordingCursor.hide();
+              graffiti.recordingCursor.hide();
               code_mirror.setSelections(selections);
               selectionsUpdateThisFrame = true;
             }
@@ -1357,10 +1385,10 @@ define([
         }
         if (selectionsUpdateThisFrame) {
           // This code restores page position after a selection is made; updating selections causes Jupyter to scroll randomly, see above
-          if (annotations.sitePanel.scrollTop() !== currentScrollTop) {
-            console.log('Jumped scrolltop');
-            annotations.sitePanel.scrollTop(currentScrollTop);
-            annotations.recordingCursor.hide();
+          if (graffiti.sitePanel.scrollTop() !== currentScrollTop) {
+            // console.log('Graffiti: Jumped scrolltop');
+            graffiti.sitePanel.scrollTop(currentScrollTop);
+            graffiti.recordingCursor.hide();
           }
         }
       },
@@ -1400,9 +1428,9 @@ define([
       },
 
       updateDisplay: (frameIndexes) => {
-        annotations.updateContents(frameIndexes.contents);
-        annotations.updateSelections(frameIndexes.selections);
-        annotations.updateView(frameIndexes.view);
+        graffiti.updateContents(frameIndexes.contents);
+        graffiti.updateSelections(frameIndexes.selections);
+        graffiti.updateView(frameIndexes.view);
       },
 
       updateSlider: (playedSoFar) => {
@@ -1430,13 +1458,13 @@ define([
         const timeLocation = target.val() / 1000;
         //console.log('slider value:', timeLocation);
         state.clearSetupForReset();
-        annotations.recordingCursor.show();
+        graffiti.recordingCursor.show();
         const t = Math.min(state.getHistoryDuration() * timeLocation, state.getHistoryDuration() - 1);
         // Now we need to set the time we are going to start with if we play from here.
         state.setPlaybackTimeElapsed(t);
         const frameIndexes = state.getHistoryRecordsAtTime(t);
-        annotations.updateDisplay(frameIndexes);
-        annotations.updateTimeDisplay(t);
+        graffiti.updateDisplay(frameIndexes);
+        graffiti.updateTimeDisplay(t);
       },
 
       // Stop any ongoing playback
@@ -1446,23 +1474,23 @@ define([
 
         clearInterval(state.getPlaybackInterval());
         state.setActivity('playbackPaused');
-        annotations.togglePlayButtons();
+        graffiti.togglePlayButtons();
         audio.stopPlayback();
         state.setPlaybackTimeElapsed();
-        // annotations.dockCursor();
+        // graffiti.dockCursor();
 
-        annotations.refreshAllAnnotationHighlights();
-        annotations.refreshAnnotationTips();
-        annotations.updateControlsDisplay();
+        graffiti.refreshAllGraffitiHighlights();
+        graffiti.refreshGraffitiTips();
+        graffiti.updateControlsDisplay();
 
         // Save after play stops, so if the user reloads we don't get the annoying dialog box warning us changes were made.
-        // annotations.saveNotebook();
+        // graffiti.saveNotebook();
 
-        console.log('Stopped playback.');
+        console.log('Graffiti: Stopped playback.');
       },
 
       cancelPlaybackNoVisualUpdates: () => {
-        annotations.stopPlayback();
+        graffiti.stopPlayback();
         state.setGarnishing(false);
         state.resetPlayState();
         state.setActivity('idle');
@@ -1477,38 +1505,38 @@ define([
           return;
         }
 
-        console.log('cancelling playback');
-        annotations.cancelPlaybackNoVisualUpdates();
-        annotations.recordingCursor.hide();
-        annotations.clearAllCanvases();
-        annotations.refreshAllAnnotationHighlights();
-        annotations.refreshAnnotationTips();
-        annotations.updateControlsDisplay();
+        console.log('Graffiti: Cancelling playback');
+        graffiti.cancelPlaybackNoVisualUpdates();
+        graffiti.recordingCursor.hide();
+        graffiti.clearAllCanvases();
+        graffiti.refreshAllGraffitiHighlights();
+        graffiti.refreshGraffitiTips();
+        graffiti.updateControlsDisplay();
         if (opts.cancelAnimation) {
-          annotations.sitePanel.animate({ scrollTop: state.getScrollTop() }, 750);
+          graffiti.sitePanel.animate({ scrollTop: state.getScrollTop() }, 750);
         }
       },
 
       startPlayback: () => {
         // start playback
-        console.log('Starting playback.');
+        console.log('Graffiti: Starting playback.');
         const activity = state.getActivity();
         if (activity === 'idle') {
           // If just starting to play back, store all cells current contents so we can restore them when you cancel playback.
           utils.saveNotebook();
-          annotations.clearRecorderHint(); // clear any recorder hint e.g. "play your new movie"
+          graffiti.clearRecorderHint(); // clear any recorder hint e.g. "play your new movie"
           state.setLastGarnishInfo(0,0,false, 'highlight'); // make sure we've turned off any garnishing flag from a previous interrupted playback
-          state.setScrollTop(annotations.sitePanel.scrollTop());
+          state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.storeCellStates();
           // Restore all cell outputs seen when a recording began
-          //annotations.restoreAllCellOutputs();
+          //graffiti.restoreAllCellOutputs();
         }
 
-        annotations.clearAllCanvases();
-        annotations.recordingCursor.show();
+        graffiti.clearAllCanvases();
+        graffiti.recordingCursor.show();
         state.setActivity('playing');
 
-        annotations.togglePlayButtons();
+        graffiti.togglePlayButtons();
 
         if (state.resetOnNextPlay) {
           console.log('Resetting for first play.');
@@ -1528,13 +1556,13 @@ define([
             const playedSoFar = state.getTimePlayedSoFar();
             if (playedSoFar >= state.getHistoryDuration()) {
               // reached end of recording naturally, so set up for restart on next press of play button
-              annotations.togglePlayBack();
+              graffiti.togglePlayBack();
               state.setupForReset();
             } else {
-              annotations.updateSlider(playedSoFar);
-              annotations.updateTimeDisplay(playedSoFar);
+              graffiti.updateSlider(playedSoFar);
+              graffiti.updateTimeDisplay(playedSoFar);
               const frameIndexes = state.getHistoryRecordsAtTime(playedSoFar);
-              annotations.updateDisplay(frameIndexes);
+              graffiti.updateDisplay(frameIndexes);
             }
           }, 10)
         );
@@ -1544,19 +1572,19 @@ define([
         const activity = state.getActivity();
         if (activity !== 'recording') {
           if (activity === 'playing') {
-            annotations.stopPlayback();
+            graffiti.stopPlayback();
           } else {
-            annotations.startPlayback();
+            graffiti.startPlayback();
           }
-          annotations.updateControlsDisplay();
+          graffiti.updateControlsDisplay();
         }
       },
 
       loadAndPlayMovie: (cellId, recordingId) => {
-        annotations.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
+        graffiti.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
         storage.loadMovie(cellId, recordingId).then( () => {
-          console.log('Movie loaded for cellId, recordingId:', cellId, recordingId);
-          annotations.togglePlayBack();
+          console.log('Graffiti: Movie loaded for cellId, recordingId:', cellId, recordingId);
+          graffiti.togglePlayBack();
         }).catch( (ex) => {
           dialog.modal({
             title: 'Movie is not available.',
@@ -1584,17 +1612,17 @@ define([
 
       playRecordingById: (recordingFullId) => {
         const parts = recordingFullId.split('_');
-        const cellId = parts[0];
-        const recordingId = parts[1];
-        annotations.loadAndPlayMovie(cellId, recordingId);
+        const cellId = 'id_' + parts[0];
+        const recordingId = 'id_' + parts[1];
+        graffiti.loadAndPlayMovie(cellId, recordingId);
       },
 
       playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => {
         const promptHtml = '<span>' + utils.renderMarkdown(promptMarkdown) + '</span>';
         
-        annotations.setNotificationClickable(promptHtml, () => {
-          annotations.clearNotification(true);
-          annotations.playRecordingById(recordingFullId);
+        graffiti.setNotificationClickable(promptHtml, () => {
+          graffiti.clearNotification(true);
+          graffiti.playRecordingById(recordingFullId);
         });
       },
 
@@ -1609,26 +1637,26 @@ define([
           storage.ensureNotebookGetsGraffitiId();
           state.assignCellIds();
           utils.saveNotebook();
-          annotations.initInteractivity();
+          graffiti.initInteractivity();
         }          
         state.setAccessLevel(level); 
-        annotations.updateControlsDisplay();
+        graffiti.updateControlsDisplay();
       },
     };
 
     // Functions exposed externally to the Python API.
     return {
-      init: annotations.init,
-      playRecordingById: annotations.playRecordingById,
-      playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => { annotations.playRecordingByIdWithPrompt(recordingFullId, promptMarkdown) },
-      cancelPlayback: () => { annotations.cancelPlayback({cancelAnimation:true}) },
-      removeAllAnnotations: annotations.removeAllAnnotationsWithConfirmation,
-      setAccessLevel: (level) => { annotations.changeAccessLevel(level) },
+      init: graffiti.init,
+      playRecordingById: (recordingFullId) => { graffiti.playRecordingById(recordingFullId) },
+      playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => { graffiti.playRecordingByIdWithPrompt(recordingFullId, promptMarkdown) },
+      cancelPlayback: () => { graffiti.cancelPlayback({cancelAnimation:true}) },
+      removeAllGraffitis: graffiti.removeAllGraffitisWithConfirmation,
+      setAccessLevel: (level) => { graffiti.changeAccessLevel(level) },
       setAuthorId: (authorId) => { state.setAuthorId(authorId) },
     }
 
   })();
 
-  return Annotations;
+  return Graffiti;
 
 });

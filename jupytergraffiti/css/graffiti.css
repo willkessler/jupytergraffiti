@@ -28,6 +28,7 @@
   display:flex;
   align-items:left;
   padding-left:2px;
+  justify-content:center;
 }
 
 #recorder-record-controls-inner .btn {
@@ -58,12 +59,12 @@
   display:none;
 }
 
-#recorder-record-controls-inner #btn-remove-annotation {
+#recorder-record-controls-inner #btn-remove-graffiti {
   color:red;
   display:none;
 }
 
-#recorder-record-controls-inner #btn-finish-annotation {
+#recorder-record-controls-inner #btn-finish-graffiti {
   display:none;
 }
 
@@ -91,8 +92,7 @@
   font-size:13px;
 }
 
-#recorder-record-controls-inner .recorder-hint,
-#recorder-record-controls-inner #recorder-api-key {
+#recorder-record-controls-inner .recorder-hint {
   background-color:#fff;
   font-size:1.2em;
   padding-left:4px;
@@ -102,18 +102,18 @@
 }
 
 #recorder-record-controls-inner #recorder-api-key {
-  color:#888;
-  font-size:1.1em !important;
+  cursor:pointer;
+  color:#aaa;
+  font-size:1.5em;
+  color:#999;
+  border:1px solid #ccc;
+  border-radius: 4px;
+  margin-left:10px;
+  padding:2px 4px 2px 4px;
 }
 
-#recorder-record-controls-inner #recorder-api-key span {
-  border:1px solid #aaa;
-  padding:5px;
-  margin-left:2px;
-}
-
-#recorder-record-controls-inner #recorder-api-key span input {
-  border:none;
+#recorder-record-controls-inner #recorder-api-key:hover {
+  background-color:#eee;
 }
 
 #recorder-record-controls-inner .recorder-hint span {
@@ -178,7 +178,7 @@
   cursor:pointer;
 }
 
-.annotation-tip {
+.graffiti-tip {
   background-color:#fff;
   color:#222;
   position:absolute;
@@ -190,12 +190,12 @@
   font-family: Helvetica;
 }
 
-.annotation-tip .parts {
+.graffiti-tip .parts {
   display:flex;
   align-items:left;
 }
 
-.annotation-tip .headline {
+.graffiti-tip .headline {
   display:flex;
   align-items:center;
   justify-content:left;
@@ -203,11 +203,11 @@
   padding-bottom:5px;
 }
 
-.annotation-tip .headline div img {
+.graffiti-tip .headline div img {
   height:25px;
 }
 
-.annotation-tip .info {
+.graffiti-tip .info {
   flex-grow:2;
   width:100%;
   max-width:300px;
@@ -216,12 +216,12 @@
   overflow-y:scroll;
 }
 
-.annotation-tip .movie {
+.graffiti-tip .movie {
   flex-grow:1;
   padding-left:8px;
 }
 
-.annotation-highlight {
+.graffiti-highlight {
   border-bottom:2px dashed rgb(67,127,127);
 /*
   text-decoration:underline;
@@ -231,21 +231,31 @@
 */
 }
 
-.annotation-selected {
+.graffiti-selected {
   background-color:yellow;
 }
 
-.annotation-highlight:hover {
+.graffiti-highlight:hover {
   font-weight:bold;
 }
 
+.graffiti-text-display {
+  font-family:monospace;
+  font-size:14px;
+  white-space:pre;
+  border-radius:2px;
+  padding:0 0 0 2px;
+  background-color:rgb(234,234,234);
+}
+
 /* Force back scrollbar for tooltip, see: http://simurai.com/blog/2011/07/26/webkit-scrollbar */
-.annotation-tip ::-webkit-scrollbar {
+
+.graffiti-tip ::-webkit-scrollbar {
     -webkit-appearance: none;
     width: 7px;
 }
 
-.annotation-tip ::-webkit-scrollbar-thumb {
+.graffiti-tip ::-webkit-scrollbar-thumb {
     border-radius: 4px;
     background-color: rgba(0,0,0,.5);
     -webkit-box-shadow: 0 0 1px rgba(255,255,255,.5);
