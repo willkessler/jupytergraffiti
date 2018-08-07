@@ -8,6 +8,8 @@ define([
       state.manifest = {};
       state.utils = utils;
       state.accessLevel = 'view'; // one of 'create' or 'view'. If 'create' then we can create new graffitis, otherwise we can only view them
+      state.authorId = 0; // defaults to the creator(teacher) in v1 of Graffiti but eventually this will be (potentially) set to a viewer(student) id.
+      state.authorType = 'creator';  // currently hardwired to be creator (teacher).
       state.audioInitialized = false;
       state.activity = 'idle'; // one of "recording", "playing", "idle"
       state.pointer = { x : 0, y: 0 };
@@ -36,6 +38,8 @@ define([
         changedCells: {},
         selections: {}
       };
+
+      utils.refreshCellMaps();
 
     },
 
@@ -85,6 +89,22 @@ define([
       state.accessLevel = level;
     },
 
+    getAuthorId: () => {
+      return state.authorId;
+    },
+
+    setAuthorId: (authorId) => {
+      state.authorId = authorId;
+    },
+
+    getAuthorType: () => {
+      return state.authorType;
+    },
+
+    setAuthorType: (authorType) => {
+      state.authorType = authorType;
+    },
+
     getAudioInitialized: () => {
       return state.audioInitialized;
     },
@@ -116,14 +136,6 @@ define([
 
     getSelectedCellId: () => {
       return state.selectedCellId;
-    },
-
-    getCurrentRecordingId: () => {
-      return state.currentRecordingId;
-    },
-
-    setCurrentRecordingId: (recordingId) => {
-      state.currentRecordingId = recordingId;
     },
 
     getMute: () => {
@@ -662,6 +674,8 @@ define([
     },
 
     setScrollTop: (scrollTop) => {
+      console.log('setting scrollTop to:', scrollTop, 'at');
+      console.trace();
       state.scrollTop = scrollTop;
     },
 

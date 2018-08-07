@@ -26,22 +26,22 @@ define([
         }
 
         annotations.LZString = LZString;
-        annotations.rewindAmt = 1; /*seconds */
+        annotations.rewindAmt = 2; /*seconds */
         annotations.CMEvents = {};
         annotations.sitePanel = $('#site');
         annotations.notebookPanel = $('#notebook');
         annotations.notebookContainer = $('#notebook-container');
 
         annotations.storageInProcess = false;
-        annotations.newScrollTop = 0;
-        annotations.savedScrollTop = undefined;
         annotations.highlightMarkText = undefined;
         annotations.cmLineHeight = 17.0001; // line height of code mirror lines as styled in Jupyter
         annotations.cmLineFudge = 8; // buffer between lines
         annotations.tokenRanges = {};
         annotations.canvases = {};
 
-        storage.loadManifest('author', currentAccessLevel).then(() => {
+        // for right now, we are only loading manifests for the creator(teacher), not for viewers (students). 
+        // this is why we pass undefined for the authorId (first parameter)
+        storage.loadManifest(currentAccessLevel).then(() => {
           annotations.initInteractivity()
         }).catch(() => {
           console.log('Not setting up Graffiti because this notebook has never had any authoring done yet (no recordingId).');
@@ -258,7 +258,7 @@ define([
         //console.log('refreshAnnotationTips: binding mousenter/mouseleave');
         tips.unbind('mouseenter mouseleave').bind('mouseenter mouseleave', (e) => {
           const highlightElem = $(e.target);
-          const idMatch = highlightElem.attr('class').match(/an-(id-.[^\-]+)-(id-[^\s]+)/);
+          const idMatch = highlightElem.attr('class').match(/an-(id_.[^\-]+)-(id_[^\s]+)/);
           if (idMatch !== undefined) {
             const cellId = idMatch[1];
             const recordingId = idMatch[2];
@@ -414,7 +414,7 @@ define([
                   break;
                 case 'playing':
                 case 'playbackPaused':
-                  annotations.cancelPlayback();
+                  annotations.cancelPlayback({cancelAnimation:true});
                   break;
               }
               break;
@@ -576,7 +576,7 @@ define([
         $('#btn-remove-annotation').click((e) => { annotations.removeAnnotationPrompt(); });
         $('#recorder-record-controls .cancel').click((e) => { annotations.finishAnnotation(false); });
         $('#recorder-playback-controls .cancel span:first').click((e) => { annotations.stopPlayback(); });
-        $('#recorder-playback-controls .cancel span:last').click((e) => { annotations.cancelPlayback(); });
+        $('#recorder-playback-controls .cancel span:last').click((e) => { annotations.cancelPlayback({cancelAnimation:true}); });
         $('#recorder-api-key').click((e) => { $('#recorder-api-key input').select(); });
 
         $('#btn-play, #btn-stop-play').click((e) => { annotations.togglePlayBack(); });
@@ -643,7 +643,8 @@ define([
             inProgress: true,
             tokens: $.extend({}, annotations.selectedTokens.tokens),
             markdown: '',
-            author: 'author',
+            authorId: state.getAuthorId(),
+            authorType: state.getAuthorType(), // one of "creator" (eg teacher), "viewer" (eg student)
             hasMovie: false
           }
           // Store recording info in the manifest
@@ -679,6 +680,7 @@ define([
         const annotationEditCell = Jupyter.notebook.insert_cell_above('markdown');
 
         annotationEditCell.metadata.cellId = utils.generateUniqueId();
+        utils.refreshCellMaps();
         let editableText = '';
         let finishLabel = 'Save Annotation';
         let finishIconClass = 'fa-pencil';
@@ -750,7 +752,7 @@ define([
             recordings[recordingCellInfo.recordingKey].markdown = editCellContents;
           }
         }
-        storage.storeManifest('author');
+        storage.storeManifest();
         utils.saveNotebook();
 
         // need to reselect annotation text that was selected in case it somehow got unselected
@@ -791,7 +793,7 @@ define([
             }
           }
         }
-        storage.storeManifest('author');
+        storage.storeManifest();
         if (annotations.highlightMarkText !== undefined) {
           annotations.highlightMarkText.clear();
         }
@@ -823,7 +825,7 @@ define([
           annotations.refreshAnnotationHighlights({cell: recordingCell, clear: true});
           annotations.refreshAnnotationTips();
           annotations.updateControlsDisplay();
-          storage.storeManifest('author');
+          storage.storeManifest();
           utils.saveNotebook();
         }
       },
@@ -1123,22 +1125,26 @@ define([
           const newCell = results.cell;
           const newCellIndex = results.index;
           newCell.metadata.cellId = utils.generateUniqueId();
+          utils.refreshCellMaps();
           annotations.addCMEventsToSingleCell(newCell);
           state.storeHistoryRecord('contents');
         });
 
         Jupyter.notebook.events.on('delete.Cell', (e) => {
+          utils.refreshCellMaps();
           annotations.stopPlayback();
           state.storeHistoryRecord('contents');
         });
 
         Jupyter.notebook.events.on('finished_execute.CodeCell', (e, results) => {
           console.log('Finished execution event fired, e, results:',e, results);
+          utils.refreshCellMaps();
           state.storeHistoryRecord('contents');
         });
 
         Jupyter.notebook.events.on('shell_reply.Kernel', (e, results) => {
           console.log('Kernel shell reply event fired, e, results:',e, results);
+          utils.refreshCellMaps();
           if (state.getStorageInProcess()) {
             storage.clearStorageInProcess();
             annotations.updateAllAnnotationDisplays();
@@ -1195,7 +1201,7 @@ define([
 
             audio.startRecording();
             $('#recorder-range').attr('disabled',1);
-            annotations.setRecorderHint('ESC: complete recording. Alt: draw lines. Option: draw highlights. Both:Erase.');
+            annotations.setRecorderHint('ESC: complete recording. Alt/Command: draw lines. Option: draw highlights. Both:Erase.');
 //            state.storeHistoryRecord('selections'); // is this necessary?
             state.setScrollTop(annotations.sitePanel.scrollTop());
             state.setGarnishing(false);
@@ -1266,7 +1272,7 @@ define([
             //console.log('Showing cursor:', offsetPosition, lastPosition);
             const offsetPositionPx = { left: offsetPosition.x + 'px', top: offsetPosition.y + 'px'};
             annotations.recordingCursor.css(offsetPositionPx);
-          }
+          }            
           state.setLastRecordingCursorPosition(offsetPosition);
         }
       },
@@ -1287,6 +1293,7 @@ define([
         }
 
         if (record.pointerUpdate) {
+          //console.log('pointerUpdate is true, record:', record);
           annotations.recordingCursor.show();
           annotations.updatePointer(record);
         } else {
@@ -1331,8 +1338,7 @@ define([
         const currentScrollTop = annotations.sitePanel.scrollTop();
         
         const record = state.getHistoryItem('selections', index);
-        let selectionsUpdated = false;
-        let cellId, cell, selections, code_mirror, currentSelections, active;
+        let cellId, cell, selections, code_mirror, currentSelections, active, selectionsUpdateThisFrame = false;
         for (cellId of Object.keys(record.cellsSelections)) {
           selections = record.cellsSelections[cellId].selections;
           active = record.cellsSelections[cellId].active;
@@ -1345,14 +1351,16 @@ define([
               //console.log('updating selection, rec:', record, 'sel:', selections, 'cell:', cell);
               annotations.recordingCursor.hide();
               code_mirror.setSelections(selections);
-              selectionsUpdated = true;
+              selectionsUpdateThisFrame = true;
             }
           }
         }
-        if (selectionsUpdated) {
+        if (selectionsUpdateThisFrame) {
+          // This code restores page position after a selection is made; updating selections causes Jupyter to scroll randomly, see above
           if (annotations.sitePanel.scrollTop() !== currentScrollTop) {
             console.log('Jumped scrolltop');
             annotations.sitePanel.scrollTop(currentScrollTop);
+            annotations.recordingCursor.hide();
           }
         }
       },
@@ -1463,7 +1471,7 @@ define([
         state.restoreCellStates('selections');
       },
 
-      cancelPlayback: () => {
+      cancelPlayback: (opts) => {
         const activity = state.getActivity();
         if ((activity !== 'playing') && (activity !== 'playbackPaused')) {
           return;
@@ -1476,7 +1484,9 @@ define([
         annotations.refreshAllAnnotationHighlights();
         annotations.refreshAnnotationTips();
         annotations.updateControlsDisplay();
-        annotations.sitePanel.animate({ scrollTop: state.getScrollTop() }, 750);
+        if (opts.cancelAnimation) {
+          annotations.sitePanel.animate({ scrollTop: state.getScrollTop() }, 750);
+        }
       },
 
       startPlayback: () => {
@@ -1543,11 +1553,11 @@ define([
       },
 
       loadAndPlayMovie: (cellId, recordingId) => {
-        annotations.cancelPlayback(); // cancel any ongoing movie playback b/c user is switching to a different movie
+        annotations.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
         storage.loadMovie(cellId, recordingId).then( () => {
           console.log('Movie loaded for cellId, recordingId:', cellId, recordingId);
           annotations.togglePlayBack();
-        }).catch( () => {
+        }).catch( (ex) => {
           dialog.modal({
             title: 'Movie is not available.',
             body: 'We are sorry, we could not load this movie at this time. Please contact the author of this Notebook for help.',
@@ -1594,7 +1604,9 @@ define([
             audio.init();
             state.setAudioInitialized();
           }
-          storage.ensureNotebookGetsRecordingId(level);
+          state.setAuthorId(0); // currently hardwiring this to creator(teacher) ID, which is always 0. Eventually we will replace this with 
+                                // individual author ids
+          storage.ensureNotebookGetsGraffitiId();
           state.assignCellIds();
           utils.saveNotebook();
           annotations.initInteractivity();
@@ -1609,9 +1621,10 @@ define([
       init: annotations.init,
       playRecordingById: annotations.playRecordingById,
       playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => { annotations.playRecordingByIdWithPrompt(recordingFullId, promptMarkdown) },
-      cancelPlayback: annotations.cancelPlayback,
+      cancelPlayback: () => { annotations.cancelPlayback({cancelAnimation:true}) },
       removeAllAnnotations: annotations.removeAllAnnotationsWithConfirmation,
       setAccessLevel: (level) => { annotations.changeAccessLevel(level) },
+      setAuthorId: (authorId) => { state.setAuthorId(authorId) },
     }
 
   })();

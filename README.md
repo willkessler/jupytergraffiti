@@ -107,6 +107,23 @@ Now, clicking anywhere in a code cell will show the _Graffiti_ content creation 
 
 From here you can start to create *Graffitis*. Jump to [Using Jupyter Graffiti](#using-jupyter-graffiti) to learn more.
 
+**Special Note** : if you are adding *Graffitis* to Notebooks that do not reside in the same folder where you cloned this repo, then you must :
+
+1. Create a `recording_data` directory in the folder where you cloned this repo (`mkdir recording_data`).
+1. Create symbolic links from the directory where you notebook resides
+   to both the `jupytergraffiti` folder in this repo, and to the
+   `recording_data` folder alongside where you cloned this repo.
+
+An example of this setup is to be found inside the `samples/`
+directory, where we have symlinks to both directories at one level
+up. To make this work properly, we needed to be sure that the
+`recording_data/` directory exists at one level up so that the symlink
+will work. *Jupyter Graffiti* will create directories for storage via
+the symlink but it cannot create the `recording_data` directory itself
+unless it is to be created in the same directory as the notebook
+itself.
+
+
 ### Installation Option #2: Run Jupyter Notebook with a Docker Image Containing Graffiti (Slightly More Complex Option)
 
 Make sure to **[install Docker](https://docs.docker.com/install)** on your system first (unless you've already installed it).

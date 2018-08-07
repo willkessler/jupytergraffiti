@@ -3,44 +3,42 @@ define([
 ], function (marked) {
 
   const utils = {
+    cellMaps: {},
+
     generateUniqueId: () => {
-      return 'id-' + Math.random().toString(36).substr(2, 16);
+      return 'id_' + Math.random().toString(36).substr(2, 16);
     },
 
     getNow: () => {
       return new Date().getTime();
     },
 
-    findCellByCellId: (cellId) => {
-      const inputCells = Jupyter.notebook.get_cells();
-      for (let cell of inputCells) {
-        if (cell.metadata.hasOwnProperty('cellId') && cell.metadata.cellId === cellId) {
-          return cell;
-        }
+    refreshCellMaps: () => {
+      utils.cellMaps = {
+        cells: Jupyter.notebook.get_cells(),
+        maps: {},
+        codeMirrors: {}
       }
-      return undefined;
+      let cell, cellKeys = Object.keys(utils.cellMaps.cells);
+      for (let cellIndex = 0; cellIndex < cellKeys.length; ++cellIndex) {
+        cell = utils.cellMaps.cells[cellIndex];
+        // supports lookups by cellId
+        utils.cellMaps.maps[cell.metadata.cellId] = cellIndex;
+        // supports lookups by codemirrors
+        utils.cellMaps.codeMirrors[cell.code_mirror] = cellIndex;
+      }
     },
 
-    // refactor this to use hash for faster lookup
+    findCellByCellId: (cellId) => {
+      return utils.cellMaps.cells[utils.cellMaps.maps[cellId]];
+    },
+
     findCellIndexByCellId: (cellId) => {
-      const inputCells = Jupyter.notebook.get_cells();
-      for (let cellIndex of Object.keys(inputCells)) {
-        if (inputCells[cellIndex].metadata.hasOwnProperty('cellId') && inputCells[cellIndex].metadata.cellId === cellId) {
-          // console.log('Found cellIndex:', cellIndex);
-          return parseInt(cellIndex);
-        }
-      }
-      return undefined;
+      return utils.cellMaps.maps[cellId];
     },
 
     findCellByCodeMirror: (cm) => {
-      const inputCells = Jupyter.notebook.get_cells();
-      for (let cell of inputCells) {
-        if (cell.code_mirror === cm) {
-          return cell;
-        }
-      }
-      return undefined;
+      return utils.cellMaps.cells[utils.cellMaps.codeMirrors[cm]];
     },
     
     renderMarkdown: (contents) => {
