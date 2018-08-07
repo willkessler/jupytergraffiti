@@ -466,3 +466,8 @@ want to go through with.
   *Graffitis* are displayed differently from any the viewers may
   add. This will permit students to add and share *Graffitis* with
   each other.
+
+### CREDITS
+
+Author/Maintainer: Will Kessler github:willkessler
+Advisors: Andy Brown (design), Nathan Tate, Tugce Akin, Jesse Swidler (engineering)

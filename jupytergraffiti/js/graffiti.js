@@ -761,6 +761,8 @@ define([
               recordings[recordingCellInfo.recordingKey] = recordingCellInfo.recordingRecord;
             }
             recordings[recordingCellInfo.recordingKey].markdown = editCellContents;
+          } else {
+            state.removeManifestEntry(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
           }
         }
         storage.storeManifest();

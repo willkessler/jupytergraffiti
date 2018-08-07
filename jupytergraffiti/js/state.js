@@ -19,7 +19,6 @@ define([
       state.recordedAudioString = '';
       state.audioStorageCallback = undefined;
       state.frameArrays = ['view', 'selections', 'contents'];
-      state.currentRecordingId = undefined;
       state.scrollTop = undefined;
       state.selectedCellId = undefined;
       state.mute = false;
@@ -51,34 +50,34 @@ define([
       state.manifest = $.extend({}, manifest);
     },
 
-    removeManifestEntry: (recordingCellId, recordingId) => {
+    removeManifestEntry: (recordingCellId, recordingKey) => {
       const recordings = state.getManifestRecordingsForCell(recordingCellId);
       if (recordings != undefined) {
-        if (recordings.hasOwnProperty(recordingId)) {
-          delete(recordings[recordingId]);
+        if (recordings.hasOwnProperty(recordingKey)) {
+          delete(recordings[recordingKey]);
           return true;
         }
       }
       return false;
     },
 
-    getManifestSingleRecording: (recordingCellId, recordingId) => {
+    getManifestSingleRecording: (recordingCellId, recordingKey) => {
       const recordings = state.getManifestRecordingsForCell(recordingCellId);
       if (recordings === undefined) {
         return undefined;
       }
-      return recordings.hasOwnProperty(recordingId) ? recordings[recordingId] : undefined;
+      return recordings.hasOwnProperty(recordingKey) ? recordings[recordingKey] : undefined;
     },
 
     getManifestRecordingsForCell: (recordingCellId) => {
       return state.manifest.hasOwnProperty(recordingCellId) ? state.manifest[recordingCellId] : undefined;
     },
 
-    setSingleManifestRecording: (recordingCellId, recordingId, recordingData) => {
+    setSingleManifestRecording: (recordingCellId, recordingKey, recordingData) => {
       if (!state.manifest.hasOwnProperty(recordingCellId)) {
         state.manifest[recordingCellId] = {};
       }
-      state.manifest[recordingCellId][recordingId] = recordingData;
+      state.manifest[recordingCellId][recordingKey] = recordingData;
     },
 
     getAccessLevel: () => {
