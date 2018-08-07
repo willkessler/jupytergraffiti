@@ -3,7 +3,7 @@ define([
 ], function (utils) {
   const state = {
     init: () => {
-      console.log('Annotations state constructor.');
+      console.log('Graffiti: state constructor running.');
       state.history = undefined;
       state.manifest = {};
       state.utils = utils;
@@ -248,7 +248,7 @@ define([
 
     storePointerPosition: (x,y) => {
       state.pointer = { x: x, y: y };
-      //console.log('annotations.state.pointer:', annotations.state.pointer);
+      //console.log('graffiti.state.pointer:', graffiti.state.pointer);
     },
 
     storeViewInfo: (viewInfo) => {
@@ -674,8 +674,6 @@ define([
     },
 
     setScrollTop: (scrollTop) => {
-      console.log('setting scrollTop to:', scrollTop, 'at');
-      console.trace();
       state.scrollTop = scrollTop;
     },
 

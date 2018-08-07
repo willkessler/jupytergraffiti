@@ -16,16 +16,13 @@ define([
     refreshCellMaps: () => {
       utils.cellMaps = {
         cells: Jupyter.notebook.get_cells(),
-        maps: {},
-        codeMirrors: {}
+        maps: {}
       }
       let cell, cellKeys = Object.keys(utils.cellMaps.cells);
       for (let cellIndex = 0; cellIndex < cellKeys.length; ++cellIndex) {
         cell = utils.cellMaps.cells[cellIndex];
         // supports lookups by cellId
         utils.cellMaps.maps[cell.metadata.cellId] = cellIndex;
-        // supports lookups by codemirrors
-        utils.cellMaps.codeMirrors[cell.code_mirror] = cellIndex;
       }
     },
 
@@ -38,7 +35,12 @@ define([
     },
 
     findCellByCodeMirror: (cm) => {
-      return utils.cellMaps.cells[utils.cellMaps.codeMirrors[cm]];
+      for (let cell of utils.cellMaps.cells) {
+        if (cell.code_mirror === cm) {
+          return cell;
+        }
+      }
+      return undefined;
     },
     
     renderMarkdown: (contents) => {
@@ -119,7 +121,7 @@ define([
     },
 
     saveNotebook: () => {
-      Jupyter.notebook.save_notebook().then( () => { console.log('Notebook saved.') });
+      Jupyter.notebook.save_notebook().then( () => { console.log('Graffiti: Notebook saved.') });
     },
 
     collectTokenStrings: (allTokens, tokens) => {
@@ -128,7 +130,7 @@ define([
       return subTokens.reduce( (tokensString, token) => { tokensString + token.string } )
     },
 
-    // Find out whether the current selection intersections with any annotation token ranges, or which tokens are in the selection if not.
+    // Find out whether the current selection intersections with any graffiti token ranges, or which tokens are in the selection if not.
     findSelectionTokens: (recordingCell,  tokenRanges, state) => {
       //console.log('findSelectionTokens, tokenRanges:', tokenRanges);
       let range, startRange, endRange, recordingKey, markdown, isIntersecting = false;
@@ -265,7 +267,7 @@ define([
     },
 
     // Collect all tokens in code-mirror into an array and tag each with which line it's found on. We use this 
-    // in refreshAnnotationHighlights() as we mark up a cell with existing recorded annotations.
+    // in refreshAnnotationHighlights() as we mark up a cell with existing recorded graffitis.
     collectCMTokens: (cm) => {
       let allTokens = [];
       const lineCount = cm.lineCount();
@@ -280,7 +282,7 @@ define([
     },
 
     // Given a start token string and a tokenOffset, and how many subsequent tokens are needed, pull the line and character ranges
-    // out of the given code mirror instance (since those ranges might have changed since the annotation was first created).
+    // out of the given code mirror instance (since those ranges might have changed since the graffiti was first created).
     getCMTokenRange: (cm, tokens, allTokens) => {
       const startToken = tokens.start;
       const allTokensLength = allTokens.length;

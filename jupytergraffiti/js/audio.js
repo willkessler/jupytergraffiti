@@ -5,7 +5,7 @@ define([
   const audio = {
 
     init: (state) => {
-      console.log('Annotations audio constructor.');
+      console.log('Graffiti audio constructor.');
       // fork getUserMedia for multiple browser versions, for the future
       // when more browsers support MediaRecorder
       navigator.getUserMedia = ( navigator.getUserMedia ||

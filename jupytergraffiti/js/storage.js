@@ -66,7 +66,7 @@ define([
       }
       state.setStorageInProcess(false);
       state.setMovieRecordingStarted(false);
-      console.log('clearStorageInProcess saving manifest.');
+      console.log('Graffiti: clearStorageInProcess saving manifest.');
       storage.storeManifest();
       utils.saveNotebook();
     },
@@ -117,13 +117,13 @@ define([
       const notebook = Jupyter.notebook;
       if (!notebook.metadata.hasOwnProperty('graffitiId')) {
         if (currentAccessLevel !== 'create') {
-          console.log('loadManifest is bailing early because we are not in "create" mode and this notebook has no graffitiId.');
+          console.log('Graffiti: loadManifest is bailing early because we are not in "create" mode and this notebook has no graffitiId.');
           return Promise.reject();
         }
       }
       const credentials = { credentials: 'include' };
       const manifestInfo = storage.constructManifestPath();
-      console.log('Loading manifest from:', manifestInfo);
+      console.log('Graffiti: Loading manifest from:', manifestInfo);
       const manifestFullFilePath = manifestInfo.path + manifestInfo.file;
       return fetch(manifestFullFilePath, credentials).then((response) => {
         if (!response.ok) {
@@ -145,7 +145,7 @@ define([
     storeManifest: () => {
       const manifest = state.getManifest();
       const manifestInfo = storage.constructManifestPath();
-      console.log('Saving manifest to:', manifestInfo.file);
+      console.log('Graffiti: Saving manifest to:', manifestInfo.file);
       let bashScript = "import os\n";
       const base64CompressedManifest = LZString.compressToBase64(JSON.stringify(manifest));
       const manifestFullFilePath = manifestInfo.path + manifestInfo.file;
@@ -177,7 +177,7 @@ define([
       const metaUrl = graffitiPath + 'meta.json';
       const credentials = { credentials: 'include'};
       storage.successfulLoad = false; /* assume we cannot fetch this recording ok */
-      console.log('loading movie from metaUrl:', metaUrl);
+      console.log('Graffiti storage: loading movie from metaUrl:', metaUrl);
       return fetch(metaUrl, credentials).then((response) => {
         if (!response.ok) {
           throw Error(response.statusText);
@@ -196,7 +196,7 @@ define([
             const uncompressedHistory = LZString.decompressFromBase64(base64CompressedHistory);
             const parsedHistory = JSON.parse(uncompressedHistory);
             state.storeWholeHistory(parsedHistory);
-            console.log('Loaded previous history.');
+            console.log('Graffiti: Loaded previous history.');
             console.log(parsedHistory);
             const audioUrl = graffitiPath + 'audio.txt';
             return fetch(audioUrl, { credentials: 'include' }).then((response) => {
@@ -209,17 +209,17 @@ define([
                 audio.setRecordedAudio(base64CompressedAudio);
                 storage.successfulLoad = true;
               } catch(ex) {
-                console.log('Could not parse saved audio, ex:', ex);
+                console.log('Graffiti: Could not parse saved audio, ex:', ex);
                 return Promise.reject('Could not parse saved audio, ex :' + ex);
               }
             });
           } catch (ex) {
-            console.log('Could not parse previous history, ex :',ex);
+            console.log('Graffiti: Could not parse previous history, ex :',ex);
             return Promise.reject('Could not parse previous history, ex :' + ex);
           }
         });
       }).catch((ex) => {
-        console.log('Could not fetch metadata file for history, ex:', ex);
+        console.log('Graffiti: Could not fetch metadata file for history, ex:', ex);
         return Promise.reject('Could not fetch metadata file');
       });
     },
@@ -230,7 +230,7 @@ define([
         recordingKey: recordingKey 
       });
       const deletePython = "import os\nos.system('rm -r " + graffitiPath + "')\n";
-      console.log('deleteMovie:', deletePython);
+      console.log('Graffiti: deleteMovie:', deletePython);
 
       this.Jupyter.notebook.kernel.execute(deletePython,
                                            undefined,
