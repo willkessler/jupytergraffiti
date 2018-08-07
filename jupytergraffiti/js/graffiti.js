@@ -580,14 +580,14 @@ define([
         $('#recorder-playback-controls .cancel span:first').click((e) => { graffiti.stopPlayback(); });
         $('#recorder-playback-controls .cancel span:last').click((e) => { graffiti.cancelPlayback({cancelAnimation:true}); });
         $('#recorder-api-key').click((e) => { 
-          const apiKey = $('#recorder-api-key span').text();
+          const apiKey = $('#recorder-api-key span').attr('id');
           let recorderApiKeyCell = Jupyter.notebook.insert_cell_below('code');
-          let invocationLine = "jupytergraffiti.api.play_recording('" + apiKey + "')";
+          let invocationLine = "jupytergraffiti.api.play_recording('" + apiKey + "')\n" +
+                               "# jupytergraffiti.api.play_recording_with_prompt('" + apiKey +
+                               "', '![idea](../images/lightbulb_small.jpg) Click **here** to learn more.')\n" +
+                               "# jupytergraffiti.api.stop_playback()";
           recorderApiKeyCell.set_text(invocationLine);          
           Jupyter.notebook.select_next();
-          recorderApiKeyCell = Jupyter.notebook.insert_cell_below('code');
-          invocationLine = "jupytergraffiti.api.play_recording_with_prompt('" + apiKey + "', 'Any markdown prompt goes here')";
-          recorderApiKeyCell.set_text(invocationLine);          
         });
 
         $('#btn-play, #btn-stop-play').click((e) => { graffiti.togglePlayBack(); });
@@ -967,10 +967,10 @@ define([
                 if (graffiti.selectedTokens.hasMovie) {
                   //console.log('this recording has a movie');
                   recordBtnText = 'Re-record';
+                  const recordingFullId = graffiti.selectedTokens.recordingCellId.replace('id_','') + '_' + 
+                                          graffiti.selectedTokens.recordingKey.replace('id_','');
                   $('#btn-start-recording').attr({title:'Re-record Movie'})
-                  $('#recorder-record-controls #recorder-api-key').html('Movie api key:<span>' +
-                                                                        graffiti.selectedTokens.recordingCellId + '_' + 
-                                                                        graffiti.selectedTokens.recordingKey + '</span>');
+                  $('#recorder-record-controls #recorder-api-key').html('<span id="' + recordingFullId + '">Get API key</span>');
                   $('#recorder-record-controls #recorder-api-key').show();
                 } else {
                   recordBtnText = 'Record';
@@ -1610,8 +1610,8 @@ define([
 
       playRecordingById: (recordingFullId) => {
         const parts = recordingFullId.split('_');
-        const cellId = parts[0];
-        const recordingId = parts[1];
+        const cellId = 'id_' + parts[0];
+        const recordingId = 'id_' + parts[1];
         graffiti.loadAndPlayMovie(cellId, recordingId);
       },
 
@@ -1645,7 +1645,7 @@ define([
     // Functions exposed externally to the Python API.
     return {
       init: graffiti.init,
-      playRecordingById: graffiti.playRecordingById,
+      playRecordingById: (recordingFullId) => { graffiti.playRecordingById(recordingFullId) },
       playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => { graffiti.playRecordingByIdWithPrompt(recordingFullId, promptMarkdown) },
       cancelPlayback: () => { graffiti.cancelPlayback({cancelAnimation:true}) },
       removeAllGraffitis: graffiti.removeAllGraffitisWithConfirmation,
