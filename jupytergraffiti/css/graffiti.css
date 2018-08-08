@@ -48,9 +48,14 @@
   display:inline;
 }
 
-#recorder-playback-inner .cancel span:hover {
-  cursor:pointer;
+#recorder-playback-inner .cancel span {
   text-decoration:underline;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+#recorder-playback-inner .cancel span:hover {
+  color:#666;
 }
 
 
