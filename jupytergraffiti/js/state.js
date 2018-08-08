@@ -32,6 +32,7 @@ define([
       state.garnishing = false;
       state.garnishStyle = 'highlight'; // one of: 'highlight' or 'line'
       state.lastGarnishInfo = { garnishing: false };
+      state.lastEditActivityTime = undefined;
       state.cellStates = {
         contents: {},
         changedCells: {},
@@ -110,6 +111,18 @@ define([
 
     setAudioInitialized: () => {
       state.audioInitialized = true;
+    },
+
+    getLastEditActivityTime: () => {
+      return state.lastEditActivityTime;
+    },
+
+    setLastEditActivityTime: () => {
+      state.lastEditActivityTime = utils.getNow();
+    },
+
+    clearLastEditActivityTime: () => {
+      state.lastEditActivityTime = undefined;
     },
 
     // Window proportion adjustments for when recording is played on a different sized window than what it was recorded on. Not used any more

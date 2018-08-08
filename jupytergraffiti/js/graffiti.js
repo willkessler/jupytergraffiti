@@ -390,6 +390,9 @@ define([
                                                  state.getGarnishStyle());
           state.storeViewInfo(viewInfo);
           state.storeHistoryRecord('scroll');
+          if (state.getActivity() === 'playbackPaused') {
+            graffiti.recordingCursor.hide();            
+          }
           return true;
         });
 
@@ -420,13 +423,8 @@ define([
                   break;
               }
               break;
-            case 13:
-              if (e.altKey) {
-                console.log('alt key pressed with return', e);
-                graffiti.finishGraffiti(true);
-                stopProp = true;
-              }
-              break;
+//          case 13: // enter key
+//            break;
             case 18:
               if (activity === 'recording') {
                 console.log('Start highlight garnishing.');
@@ -684,6 +682,7 @@ define([
 
       editGraffiti: (newState) => {
         state.setActivity(newState);
+        state.setLastEditActivityTime();
         graffiti.updateControlsDisplay();
         graffiti.storeRecordingInfoInCell();
 
@@ -727,14 +726,16 @@ define([
 
         graffiti.graffitiEditCellId = graffitiEditCell.metadata.cellId;
 
-        graffiti.setRecorderHint('Alt- or Option-Enter to save your entry.');
+        graffiti.setRecorderHint('Ctrl- or Shift-Enter to save your entry.');
 
       },
 
       finishGraffiti: (doSave) => {
         const activity = state.getActivity();
-        if (activity !== 'graffiting' && activity !== 'recordingLabelling')
+        if (activity !== 'graffiting' && activity !== 'recordingLabelling') {
+          debugger;
           return;
+        }
 
         const recordingCellInfo = state.getRecordingCellInfo();
         const recordingCell = recordingCellInfo.recordingCell;
@@ -1170,6 +1171,18 @@ define([
           state.storeHistoryRecord('contents');
         });
 
+        Jupyter.notebook.events.on('rendered.MarkdownCell', (e, results) => {
+          const activity = state.getActivity();
+          if (activity === 'graffiting') { 
+            const lastEditActivityTime = state.getLastEditActivityTime();
+            if (lastEditActivityTime !== undefined && utils.getNow() - lastEditActivityTime > 250) {
+              console.log('rendered MarkdownCell event fired and editing with long enough delay, so finishing graffiti. e, results:',e, results);
+              graffiti.finishGraffiti(true);
+              state.clearLastEditActivityTime();
+            }
+          }
+        });
+
         Jupyter.notebook.events.on('shell_reply.Kernel', (e, results) => {
           console.log('Kernel shell reply event fired, e, results:',e, results);
           utils.refreshCellMaps();
@@ -1230,7 +1243,7 @@ define([
             audio.startRecording();
             $('#recorder-range').attr('disabled',1);
             graffiti.setRecorderHint('ESC: complete recording. Alt/Command: draw lines. Option: draw highlights. Both:Erase.');
-//            state.storeHistoryRecord('selections'); // is this necessary?
+            //            state.storeHistoryRecord('selections'); // is this necessary?
             state.setScrollTop(graffiti.sitePanel.scrollTop());
             state.setGarnishing(false);
 
@@ -1628,6 +1641,7 @@ define([
 
       changeAccessLevel: (level) => {
         if (level === 'create') {
+          graffiti.cancelPlayback({cancelAnimation:true});
           if (!state.getAudioInitialized()) {
             audio.init();
             state.setAudioInitialized();
@@ -1649,7 +1663,7 @@ define([
       init: graffiti.init,
       playRecordingById: (recordingFullId) => { graffiti.playRecordingById(recordingFullId) },
       playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => { graffiti.playRecordingByIdWithPrompt(recordingFullId, promptMarkdown) },
-      cancelPlayback: () => { graffiti.cancelPlayback({cancelAnimation:true}) },
+      cancelPlayback: () => { graffiti.cancelPlayback({cancelAnimation:false}) },
       removeAllGraffitis: graffiti.removeAllGraffitisWithConfirmation,
       setAccessLevel: (level) => { graffiti.changeAccessLevel(level) },
       setAuthorId: (authorId) => { state.setAuthorId(authorId) },
