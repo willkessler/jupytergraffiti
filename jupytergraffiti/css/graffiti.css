@@ -17,7 +17,7 @@
   display:flex;
   align-items:left;
   border-radius: 4px;
-  width:600px;
+  width:650px;
 }
 
 #recorder-record-controls {
@@ -147,6 +147,7 @@
 .recorder-time-display-recording {
   padding: 4px 2px 0px 4px;
   font-size:1.4em;
+  font-family:monospace;
   display:none;
 }
 

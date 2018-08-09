@@ -584,7 +584,7 @@ define([
         $('#btn-finish-graffiti').click((e) => { graffiti.finishGraffiti(true); });
         $('#btn-remove-graffiti').click((e) => { graffiti.removeGraffitiPrompt(); });
         $('#recorder-record-controls .cancel').click((e) => { graffiti.finishGraffiti(false); });
-        graffiti.updateCancelControls('<span>Pause</span> to interact at any time, or <span>Cancel Playback</span>',
+        graffiti.updateCancelControls('<span>Pause</span> to interact w/Notebook at any time, or <span>Cancel Playback</span>',
                                       () => { graffiti.stopPlayback(); },
                                       () => { graffiti.cancelPlayback({cancelAnimation:true}) } );
         $('#recorder-api-key').click((e) => { 
@@ -983,7 +983,7 @@ define([
                   const recordingFullId = graffiti.selectedTokens.recordingCellId.replace('id_','') + '_' + 
                                           graffiti.selectedTokens.recordingKey.replace('id_','');
                   $('#btn-start-recording').attr({title:'Re-record Movie'})
-                  $('#recorder-record-controls #recorder-api-key').html('<span id="' + recordingFullId + '">Get API key</span>');
+                  $('#recorder-record-controls #recorder-api-key').html('<span id="' + recordingFullId + '">Get API calls</span>');
                   $('#recorder-record-controls #recorder-api-key').show();
                 } else {
                   recordBtnText = 'Record';
@@ -1490,23 +1490,26 @@ define([
         graffiti.updateTimeDisplay(t);
       },
 
-      // Pause any ongoing playback
-      stopPlayback: () => {
-        if (state.getActivity() !== 'playing')
-          return;
-
+      stopPlaybackNoVisualUpdates: () => {
         clearInterval(state.getPlaybackInterval());
         state.setActivity('playbackPaused');
         graffiti.togglePlayButtons();
         audio.stopPlayback();
         state.setPlaybackTimeElapsed();
-        // graffiti.dockCursor();
+      },
+
+      // Pause any ongoing playback
+      stopPlayback: () => {
+        if (state.getActivity() !== 'playing')
+          return;
+
+        graffiti.stopPlaybackNoVisualUpdates();
 
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTips();
         graffiti.updateControlsDisplay();
 
-        graffiti.updateCancelControls('<span>Continue playing</span> or <span>Cancel playback</span>',
+        graffiti.updateCancelControls('<span>Continue playing movie</span> or <span>Cancel movie</span>',
                                       () => { graffiti.startPlayback(); },
                                       () => { graffiti.cancelPlayback({cancelAnimation:true}) } );
 
@@ -1518,7 +1521,7 @@ define([
       },
 
       cancelPlaybackNoVisualUpdates: () => {
-        graffiti.stopPlayback();
+        graffiti.stopPlaybackNoVisualUpdates();
         state.setGarnishing(false);
         state.resetPlayState();
         state.setActivity('idle');
@@ -1567,7 +1570,7 @@ define([
 
         graffiti.togglePlayButtons();
 
-        graffiti.updateCancelControls('<span>Pause</span> to interact at any time or <span>Cancel playback</span>',
+        graffiti.updateCancelControls('<span>Pause</span> to interact w/Notebook at any time or <span>Cancel movie</span>',
                                       () => { graffiti.stopPlayback(); },
                                       () => { graffiti.cancelPlayback({cancelAnimation:true}) } );
 
@@ -1591,7 +1594,7 @@ define([
               // reached end of recording naturally, so set up for restart on next press of play button
               graffiti.togglePlayBack();
               state.setupForReset();
-              graffiti.updateCancelControls('Movie ended. <span>Start Over</span> or <span>Cancel playback</span>',
+              graffiti.updateCancelControls('Movie ended. <span>Start Over</span> or <span>Cancel movie</span>',
                                             () => { graffiti.togglePlayBack(); },
                                             () => { graffiti.cancelPlayback({cancelAnimation:true}) } );
             } else {
