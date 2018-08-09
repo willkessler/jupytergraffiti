@@ -492,6 +492,15 @@ define([
         console.log('Graffiti: Background setup complete.');
       },
 
+      updateCancelControls: (prompt, cb1, cb2) => {
+        const cancelControls = $('#recorder-playback-controls .cancel');
+        cancelControls.find('span:first').unbind('click');
+        cancelControls.find('span:last').unbind('click');
+        cancelControls.html(prompt);
+        cancelControls.find('span:first').click(cb1);
+        cancelControls.find('span:last').click(cb2);
+      },
+
       setupControls: () => {
         const lastButton = $('.btn-group:last');
         const panel = $('<div id="recorder-controls"></div>');
@@ -523,7 +532,7 @@ define([
           '      <button class="btn btn-default btn-play" id="btn-play" title="start playback">' +
           '        <i class="fa fa-play"></i>' +
           '      </button>' +
-          '      <button class="btn btn-default recorder-hidden" id="btn-stop-play" title="stop playback">' +
+          '      <button class="btn btn-default recorder-hidden" id="btn-stop-play" title="Pause playback">' +
           '        <i class="fa fa-pause"></i>' +
           '      </button>' +
           '    </div>' +
@@ -544,7 +553,7 @@ define([
           '      <button class="btn btn-default btn-sound-off recorder-hidden" id="btn-sound-off" title="unmute">' +
           '        <i class="fa fa-volume-off"></i>' +
           '      </button>' +
-          '      <div class="cancel" title="Cancel Playback"><span>Pause</span> to interact at any time, or <span>Cancel playback</span></div>' +
+          '      <div class="cancel" title="Cancel Playback"></div>' +
           '    </div>' +
           '  </div>' +
           '  <i id="recorder-cursor" name="cursor" class="recorder-cursor"><img src="jupytergraffiti/css/transparent_bullseye2.png"></i>' +
@@ -575,8 +584,9 @@ define([
         $('#btn-finish-graffiti').click((e) => { graffiti.finishGraffiti(true); });
         $('#btn-remove-graffiti').click((e) => { graffiti.removeGraffitiPrompt(); });
         $('#recorder-record-controls .cancel').click((e) => { graffiti.finishGraffiti(false); });
-        $('#recorder-playback-controls .cancel span:first').click((e) => { graffiti.stopPlayback(); });
-        $('#recorder-playback-controls .cancel span:last').click((e) => { graffiti.cancelPlayback({cancelAnimation:true}); });
+        graffiti.updateCancelControls('<span>Pause</span> to interact at any time, or <span>Cancel Playback</span>',
+                                      () => { graffiti.stopPlayback(); },
+                                      () => { graffiti.cancelPlayback({cancelAnimation:true}) } );
         $('#recorder-api-key').click((e) => { 
           const apiKey = $('#recorder-api-key span').attr('id');
           let recorderApiKeyCell = Jupyter.notebook.insert_cell_below('code');
@@ -1480,7 +1490,7 @@ define([
         graffiti.updateTimeDisplay(t);
       },
 
-      // Stop any ongoing playback
+      // Pause any ongoing playback
       stopPlayback: () => {
         if (state.getActivity() !== 'playing')
           return;
@@ -1495,6 +1505,11 @@ define([
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTips();
         graffiti.updateControlsDisplay();
+
+        graffiti.updateCancelControls('<span>Continue playing</span> or <span>Cancel playback</span>',
+                                      () => { graffiti.startPlayback(); },
+                                      () => { graffiti.cancelPlayback({cancelAnimation:true}) } );
+
 
         // Save after play stops, so if the user reloads we don't get the annoying dialog box warning us changes were made.
         // graffiti.saveNotebook();
@@ -1541,6 +1556,7 @@ define([
           state.setLastGarnishInfo(0,0,false, 'highlight'); // make sure we've turned off any garnishing flag from a previous interrupted playback
           state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.storeCellStates();
+          graffiti.clearNotification(true); // immediately clear notification if present
           // Restore all cell outputs seen when a recording began
           //graffiti.restoreAllCellOutputs();
         }
@@ -1550,6 +1566,10 @@ define([
         state.setActivity('playing');
 
         graffiti.togglePlayButtons();
+
+        graffiti.updateCancelControls('<span>Pause</span> to interact at any time or <span>Cancel playback</span>',
+                                      () => { graffiti.stopPlayback(); },
+                                      () => { graffiti.cancelPlayback({cancelAnimation:true}) } );
 
         if (state.resetOnNextPlay) {
           console.log('Resetting for first play.');
@@ -1571,6 +1591,9 @@ define([
               // reached end of recording naturally, so set up for restart on next press of play button
               graffiti.togglePlayBack();
               state.setupForReset();
+              graffiti.updateCancelControls('Movie ended. <span>Start Over</span> or <span>Cancel playback</span>',
+                                            () => { graffiti.togglePlayBack(); },
+                                            () => { graffiti.cancelPlayback({cancelAnimation:true}) } );
             } else {
               graffiti.updateSlider(playedSoFar);
               graffiti.updateTimeDisplay(playedSoFar);
