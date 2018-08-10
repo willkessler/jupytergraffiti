@@ -267,6 +267,32 @@
     -webkit-box-shadow: 0 0 1px rgba(255,255,255,.5);
 }
 
-/*
-.qtip { max-width: none !important; }
+.graffiti-floater {
+  position:fixed;
+  padding:6px;
+  left:10px;
+  bottom:10px;
+  min-width:150px;
+  min-height:40px;
+  background-color:rgba(245,245,245,0.8);
+  border-radius:4px;
+  border:1px solid #aaa;
+  display:flex;
+}
+
+.graffiti-floater div {
+  padding-left:4px;
+}
+
+.graffiti-drag-handle {
+  margin-left:0px !important;
+  width:10px;
+  cursor:pointer;
+}
+
+/* 
+http://www.patternify.com/
 */
+.graffiti-small-dot-pattern { 
+  background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAAF0lEQVQYV2NkYGD4z8DAwMgAI0AMDA4AI3EBBMY7CTgAAAAASUVORK5CYII=) repeat;
+}
