@@ -41,6 +41,8 @@ define([
         graffiti.tokenRanges = {};
         graffiti.canvases = {};
 
+        graffiti.initControlsFloater();
+
         // for right now, we are only loading manifests for the creator(teacher), not for viewers (students). 
         // this is why we pass undefined for the authorId (first parameter)
         storage.loadManifest(currentAccessLevel).then(() => {
@@ -48,6 +50,15 @@ define([
         }).catch(() => {
           console.log('Not setting up Graffiti because this notebook has never had any authoring done yet (no recordingId).');
         });
+      },
+
+      initControlsFloater: () => {
+        const floater = $('<div id="graffiti-floater" class="graffiti-floater">' +
+                          '  <div class="graffiti-small-dot-pattern graffiti-drag-handle">&nbsp;</div>' +
+                          '  <div>controls</div>' +
+                          '</div>');
+        const header = $('#header');
+        floater.appendTo(header);
       },
 
       initInteractivity: () => {
