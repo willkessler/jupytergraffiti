@@ -33,6 +33,8 @@ define([
       state.garnishStyle = 'highlight'; // one of: 'highlight' or 'line'
       state.lastGarnishInfo = { garnishing: false };
       state.lastEditActivityTime = undefined;
+      state.controlPanelDragging = false;
+      state.controlPanelDragOffset = { x: 0, y: 0 };
       state.cellStates = {
         contents: {},
         changedCells: {},
@@ -123,6 +125,22 @@ define([
 
     clearLastEditActivityTime: () => {
       state.lastEditActivityTime = undefined;
+    },
+
+    getControlPanelDragging: () => {
+      return state.controlPanelDragging;
+    },
+
+    getControlPanelDragOffset: () => {
+      return state.controlPanelDragOffset;
+    },
+
+    setControlPanelDragOffset: (offset) => {
+      state.controlPanelDragOffset = offset;
+    },
+    
+    setControlPanelDragging: (dragging) => {
+      state.controlPanelDragging = dragging;
     },
 
     // Window proportion adjustments for when recording is played on a different sized window than what it was recorded on. Not used any more

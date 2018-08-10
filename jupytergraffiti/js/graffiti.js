@@ -53,12 +53,68 @@ define([
       },
 
       initControlsFloater: () => {
-        const floater = $('<div id="graffiti-floater" class="graffiti-floater">' +
+        let floater = $('<div id="graffiti-floater" class="graffiti-floater">' +
                           '  <div class="graffiti-small-dot-pattern graffiti-drag-handle">&nbsp;</div>' +
-                          '  <div>controls</div>' +
+                          '  <div id="graffiti-floater-controls"></div>' +
                           '</div>');
         const header = $('#header');
         floater.appendTo(header);
+        graffiti.controlPanel = $('#graffiti-floater');
+        const dragHandle = graffiti.controlPanel.find('.graffiti-drag-handle:first');
+        dragHandle.on('mousedown', (e) => {
+          console.log('Graffiti: dragging control panel');
+          const controlPanelPosition = graffiti.controlPanel.position();
+          const pointerPosition = state.getPointerPosition();
+          state.setControlPanelDragging(true);
+          state.setControlPanelDragOffset({ left: pointerPosition.x - controlPanelPosition.left, top: pointerPosition.y - controlPanelPosition.top });
+          e.preventDefault();
+          e.stopPropagation();
+        });
+        $('body').on('mouseup', (e) => {
+          console.log('Graffiti: no longer dragging control panel');
+          if (state.getControlPanelDragging()) {
+            state.setControlPanelDragging(false);
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        });
+
+        let recordHtml =
+          '<div id="recorder-playback-controls">' +
+          '  <div id="recorder-playback-inner">' +
+          '    <div class="recorder-playback-buttons">' +
+          '      <button class="btn btn-default btn-play" id="btn-play" title="start playback">' +
+          '        <i class="fa fa-play"></i>' +
+          '      </button>' +
+          '      <button class="btn btn-default recorder-hidden" id="btn-stop-play" title="Pause playback">' +
+          '        <i class="fa fa-pause"></i>' +
+          '      </button>' +
+          '    </div>' +
+          '    <div class="recorder-skip-buttons">' +
+          '      <button class="btn btn-default btn-rewind" id="btn-rewind" title="go back ' + graffiti.rewindAmt + ' second">' +
+          '        <i class="fa fa-backward"></i>' +
+          '      </button>' +
+          '      <button class="btn btn-default btn-forward" id="btn-forward" title="jump forward ' + graffiti.rewindAmt + ' second">' +
+          '        <i class="fa fa-forward"></i>' +
+          '      </button>' +
+          '      <button class="btn btn-default btn-sound-on" id="btn-sound-on" title="mute">' +
+          '        <i class="fa fa-volume-up"></i>' +
+          '      </button>' +
+          '      <button class="btn btn-default btn-sound-off recorder-hidden" id="btn-sound-off" title="unmute">' +
+          '        <i class="fa fa-volume-off"></i>' +
+          '      </button>' +
+          '    </div>' +
+          '  </div>' +
+          '  <div class="recorder-range">' +
+          '    <input title="scrub" type="range" min="0" max="1000" value="0" id="recorder-range"></input>' +
+          '    <div class="recorder-time-display"></div>' +
+          '  </div>' +
+          '  <div class="cancel" title="Cancel Playback"></div>' +
+          '  <i id="recorder-cursor" name="cursor" class="recorder-cursor"><img src="jupytergraffiti/css/transparent_bullseye2.png"></i>' +
+          '</div>' +
+          '<div id="recorder-notifier"></div>';
+
+        $('#graffiti-floater-controls').html(recordHtml);
       },
 
       initInteractivity: () => {
@@ -388,6 +444,16 @@ define([
          */
       },
 
+      updateControlPanelPosition: () => {
+        if (state.getControlPanelDragging()) {
+          const position = state.getPointerPosition();
+          const offset = state.getControlPanelDragOffset();
+          const newPosition =   { left: Math.max(0,position.x - offset.left), top: Math.max(0,position.y - offset.top) };
+          const newPositionPx = { top: newPosition.top + 'px', left: newPosition.left + 'px' };
+          graffiti.controlPanel.css(newPositionPx);
+        }
+      },
+
       setupBackgroundEvents: () => {
         // Handle rubber banding scrolling that occurs on short notebooks so cursor doesn't look wrong (possibly, only chrome?).
         console.log('Graffiti: setupBackgroundEvents');
@@ -492,6 +558,7 @@ define([
           state.storeViewInfo(viewInfo);
           state.storeHistoryRecord('pointer');
           graffiti.updateGarnishDisplayIfRecording(previousPointerX, previousPointerY, e.clientX, e.clientY, viewInfo );
+          graffiti.updateControlPanelPosition();
           return true;
         };
 
@@ -598,6 +665,8 @@ define([
         graffiti.updateCancelControls('<span>Pause</span> to interact w/Notebook at any time, or <span>Cancel Playback</span>',
                                       () => { graffiti.stopPlayback(); },
                                       () => { graffiti.cancelPlayback({cancelAnimation:true}) } );
+        
+        // Provide API usage examples in a cell after the current recording.
         $('#recorder-api-key').click((e) => { 
           const apiKey = $('#recorder-api-key span').attr('id');
           let recorderApiKeyCell = Jupyter.notebook.insert_cell_below('code');
@@ -754,7 +823,6 @@ define([
       finishGraffiti: (doSave) => {
         const activity = state.getActivity();
         if (activity !== 'graffiting' && activity !== 'recordingLabelling') {
-          debugger;
           return;
         }
 
@@ -1194,7 +1262,7 @@ define([
 
         Jupyter.notebook.events.on('rendered.MarkdownCell', (e, results) => {
           const activity = state.getActivity();
-          if (activity === 'graffiting') { 
+          if ((activity === 'graffiting') || (activity === 'recordingPending')) { 
             const lastEditActivityTime = state.getLastEditActivityTime();
             if (lastEditActivityTime !== undefined && utils.getNow() - lastEditActivityTime > 250) {
               console.log('rendered MarkdownCell event fired and editing with long enough delay, so finishing graffiti. e, results:',e, results);
