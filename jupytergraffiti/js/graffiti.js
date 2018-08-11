@@ -40,6 +40,7 @@ define([
         graffiti.cmLineFudge = 8; // buffer between lines
         graffiti.tokenRanges = {};
         graffiti.canvases = {};
+        graffiti.lastUpdateControlsTime = utils.getNow();
 
         graffiti.initControlsFloater();
 
@@ -434,7 +435,7 @@ define([
         const recorderTimeDisplay = $('.recorder-time-display:first');
         recorderTimeDisplay.text(timeDisplay);
         /*
-           // Update recording flasher icon
+           // Update recording flasher icon. Restore this someday maybe...
            const now = utils.getNow();
            if (now % 1000 < 500) {
            $('#recorder-flasher').hide();
@@ -852,7 +853,9 @@ define([
             }
             recordings[recordingCellInfo.recordingKey].markdown = editCellContents;
           } else {
-            state.removeManifestEntry(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
+            if (recordingCellInfo.newRecording) {
+              state.removeManifestEntry(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
+            }
           }
         }
         storage.storeManifest();
@@ -988,8 +991,9 @@ define([
         let activeCell;
         const now = utils.getNow();
         if (graffiti.lastUpdateControlsTime !== undefined) {
-          if ((now - graffiti.lastUpdateControlsTime) < 100) {
-            console.log('Graffiti: not updating controls display (debounce)');
+          const timeDiff = now - graffiti.lastUpdateControlsTime;
+          if (timeDiff <= 2) {
+            console.log('Graffiti: not updating controls display (debounce), timeDiff:', timeDiff);
             return;
           }
         }
@@ -1030,7 +1034,7 @@ define([
             break;
           case 'graffiting':
             $('#recorder-record-controls,#btn-finish-graffiti,#recorder-record-controls .cancel').show();
-            $('#btn-start-recording,#btn-edit-graffiti,#recorder-record-controls #recorder-api-key').hide();
+            $('#btn-start-recording,#btn-edit-graffiti,#btn-remove-graffiti,#recorder-record-controls #recorder-api-key').hide();
             break;
           case 'idle':
             $('#recorder-record-controls,#btn-start-recording,#btn-edit-graffiti, #recorder-record-controls #recorder-api-key').show();
