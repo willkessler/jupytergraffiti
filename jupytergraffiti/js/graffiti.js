@@ -1266,7 +1266,7 @@ define([
 
         Jupyter.notebook.events.on('rendered.MarkdownCell', (e, results) => {
           const activity = state.getActivity();
-          if ((activity === 'graffiting') || (activity === 'recordingPending')) { 
+          if ((activity === 'graffiting') || (activity === 'recordingLabelling')) { 
             const lastEditActivityTime = state.getLastEditActivityTime();
             if (lastEditActivityTime !== undefined && utils.getNow() - lastEditActivityTime > 250) {
               console.log('rendered MarkdownCell event fired and editing with long enough delay, so finishing graffiti. e, results:',e, results);
