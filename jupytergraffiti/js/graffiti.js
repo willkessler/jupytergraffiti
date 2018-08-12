@@ -42,7 +42,7 @@ define([
         graffiti.canvases = {};
         graffiti.lastUpdateControlsTime = utils.getNow();
 
-        graffiti.initControlsFloater();
+        graffiti.setupGraffitiControls();
 
         // for right now, we are only loading manifests for the creator(teacher), not for viewers (students). 
         // this is why we pass undefined for the authorId (first parameter)
@@ -53,18 +53,32 @@ define([
         });
       },
 
-      initControlsFloater: () => {
-        let floater = $('<div id="graffiti-floater" class="graffiti-floater">' +
-                          '  <div class="graffiti-small-dot-pattern graffiti-drag-handle">&nbsp;</div>' +
-                          '  <div id="graffiti-floater-controls"></div>' +
-                          '</div>');
+      setupOneControlPanel: (elemId,elemHtml) => {
+        if (graffiti.controlPanelIds === undefined) {
+          graffiti.controlPanelIds = {};
+        }
+        const fullHtml = '<div class="graffiti-control-panel" id="' + elemId +'">' + elemHtml + '</div>';
+        const elem = $(fullHtml);
+        elem.appendTo(graffiti.controlPanelsShell)
+        graffiti.controlPanelIds[elemId] = graffiti.controlPanelsShell.find('#' + elemId);
+      },
+
+      setupGraffitiControls: () => {
+        const outerControlPanel = $('<div id="graffiti-outer-control-panel">' +
+                                    '  <div class="graffiti-small-dot-pattern" id="graffiti-drag-handle">&nbsp;</div>' +
+                                    '  <div id="graffiti-control-panels-shell"></div>' +
+                                    '</div>');
         const header = $('#header');
-        floater.appendTo(header);
-        graffiti.controlPanel = $('#graffiti-floater');
-        const dragHandle = graffiti.controlPanel.find('.graffiti-drag-handle:first');
+        outerControlPanel.appendTo(header);
+        graffiti.outerControlPanel = $('#graffiti-outer-control-panel');
+        graffiti.controlPanelsShell = $('#graffiti-control-panels-shell');
+        const outerControlCancel = $('<div id="graffiti-control-panel-cancel" title="Cancel">X</div>');
+        outerControlCancel.appendTo(graffiti.outerControlPanel);
+
+        const dragHandle = $('#graffiti-drag-handle');
         dragHandle.on('mousedown', (e) => {
           console.log('Graffiti: dragging control panel');
-          const controlPanelPosition = graffiti.controlPanel.position();
+          const controlPanelPosition = graffiti.outerControlPanel.position();
           const pointerPosition = state.getPointerPosition();
           state.setControlPanelDragging(true);
           state.setControlPanelDragOffset({ left: pointerPosition.x - controlPanelPosition.left, top: pointerPosition.y - controlPanelPosition.top });
@@ -80,42 +94,62 @@ define([
           }
         });
 
-        let recordHtml =
-          '<div id="recorder-playback-controls">' +
-          '  <div id="recorder-playback-inner">' +
-          '    <div class="recorder-playback-buttons">' +
-          '      <button class="btn btn-default btn-play" id="btn-play" title="start playback">' +
-          '        <i class="fa fa-play"></i>' +
-          '      </button>' +
-          '      <button class="btn btn-default recorder-hidden" id="btn-stop-play" title="Pause playback">' +
-          '        <i class="fa fa-pause"></i>' +
-          '      </button>' +
-          '    </div>' +
-          '    <div class="recorder-skip-buttons">' +
-          '      <button class="btn btn-default btn-rewind" id="btn-rewind" title="go back ' + graffiti.rewindAmt + ' second">' +
-          '        <i class="fa fa-backward"></i>' +
-          '      </button>' +
-          '      <button class="btn btn-default btn-forward" id="btn-forward" title="jump forward ' + graffiti.rewindAmt + ' second">' +
-          '        <i class="fa fa-forward"></i>' +
-          '      </button>' +
-          '      <button class="btn btn-default btn-sound-on" id="btn-sound-on" title="mute">' +
-          '        <i class="fa fa-volume-up"></i>' +
-          '      </button>' +
-          '      <button class="btn btn-default btn-sound-off recorder-hidden" id="btn-sound-off" title="unmute">' +
-          '        <i class="fa fa-volume-off"></i>' +
-          '      </button>' +
-          '    </div>' +
-          '  </div>' +
-          '  <div class="recorder-range">' +
-          '    <input title="scrub" type="range" min="0" max="1000" value="0" id="recorder-range"></input>' +
-          '    <div class="recorder-time-display"></div>' +
-          '  </div>' +
-          '  <div class="cancel" title="Cancel Playback"></div>' +
-          '  <i id="recorder-cursor" name="cursor" class="recorder-cursor"><img src="jupytergraffiti/css/transparent_bullseye2.png"></i>' +
-          '</div>' +
-          '<div id="recorder-notifier"></div>';
+        graffiti.setupOneControlPanel('graffiti-record-controls', 
+                                      '  <button class="btn btn-default" id="btn-edit-graffiti"><i class="fa fa-pencil"></i>&nbsp; <span>Edit</span></button>' +
+                                      '  <button class="btn btn-default" id="btn-start-recording" title="Record movie for a graffiti">' +
+                                      '<i class="fa fa-film recorder-button"></i>&nbsp;<span>Record</span></button>' +
+                                      '  <button class="btn btn-default" id="btn-remove-graffiti" title="Remove Graffiti"><i class="fa fa-trash"></i></button>'
+        );
 
-        $('#graffiti-floater-controls').html(recordHtml);
+        graffiti.setupOneControlPanel('graffiti-edit-complete-controls', 
+                                      '<button class="btn btn-default" id="btn-finish-graffiti" title="Save Graffiti">Save Graffiti</button>'
+        );
+
+        graffiti.setupOneControlPanel('graffiti-recording-complete-controls', 
+                                      '<button class="btn btn-default" id="btn-finish-recording" title="finish recording">' +
+                                      '<i class="fa fa-pause recorder-stop-button"></i>&nbsp;Finish Recording</button>' +
+                                      '<div id="graffiti-time-display-recording"></div>'
+        );
+
+        graffiti.setupOneControlPanel('graffiti-playback-controls', 
+                                      '<div id="graffiti-playback-buttons">' +
+                                      '  <button class="btn btn-default btn-play" id="btn-play" title="Start playback">' +
+                                      '    <i class="fa fa-play"></i>' +
+                                      '  </button>' +
+                                      '  <button class="btn btn-default recorder-hidden" id="btn-stop-play" title="Pause playback">' +
+                                      '    <i class="fa fa-pause"></i>' +
+                                      '  </button>' +
+                                      '  <div id="graffiti-skip-buttons">' +
+                                      '    <button class="btn btn-default btn-rewind" id="btn-rewind" title="Skip back ' + graffiti.rewindAmt + ' seconds">' +
+                                      '      <i class="fa fa-backward"></i>' +
+                                      '    </button>' +
+                                      '    <button class="btn btn-default btn-forward" id="btn-forward" title="Skip forward ' + graffiti.rewindAmt + ' seconds">' +
+                                      '      <i class="fa fa-forward"></i>' +
+                                      '    </button>' +
+                                      '  </div>' +
+                                      '  <div id="graffiti-sound-buttons">' +
+                                      '    <button class="btn btn-default btn-sound-on" id="btn-sound-on" title="mute">' +
+                                      '       <i class="fa fa-volume-up"></i>' +
+                                      '   </button>' +
+                                      '   <button class="btn btn-default btn-sound-off recorder-hidden" id="btn-sound-off" title="unmute">' +
+                                      '     <i class="fa fa-volume-off"></i>' +
+                                      '   </button>' +
+                                      '  </div>' +
+                                      '</div>' +
+                                      '<div id="graffiti-scrub-controls">' +
+                                      '  <div id="graffiti-playback-range">' +
+                                      '    <input title="scrub" type="range" min="0" max="1000" value="0" id="recorder-range"></input>' +
+                                      '  </div>' +
+                                      '  <div id="graffiti-time-display-playback"></div>' +
+                                      '</div>'
+        );
+        
+        graffiti.setupOneControlPanel('graffiti-notifier', 
+                                      '<div id ="graffiti-notifier">' +
+                                      '  <div><span>Pause</span> to interact w/Notebook, or</div><div><span>cancel movie playback</span></div>' +
+                                      '</div>'
+        );
+
       },
 
       initInteractivity: () => {
@@ -128,6 +162,10 @@ define([
 
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTips();
+
+        $('#graffiti-playback-controls').show();
+        $('#graffiti-notifier').show();
+
       },
 
       //i nspired by https://www.codicode.com/art/how_to_draw_on_a_html5_canvas_with_a_mouse.aspx
@@ -451,7 +489,7 @@ define([
           const offset = state.getControlPanelDragOffset();
           const newPosition =   { left: Math.max(0,position.x - offset.left), top: Math.max(0,position.y - offset.top) };
           const newPositionPx = { top: newPosition.top + 'px', left: newPosition.left + 'px' };
-          graffiti.controlPanel.css(newPositionPx);
+          graffiti.outerControlPanel.css(newPositionPx);
         }
       },
 
@@ -607,31 +645,6 @@ define([
         recordHtml +=
           '<div id="recorder-playback-controls">' +
           '  <div id="recorder-playback-inner">' +
-          '    <div class="recorder-playback-buttons">' +
-          '      <button class="btn btn-default btn-play" id="btn-play" title="start playback">' +
-          '        <i class="fa fa-play"></i>' +
-          '      </button>' +
-          '      <button class="btn btn-default recorder-hidden" id="btn-stop-play" title="Pause playback">' +
-          '        <i class="fa fa-pause"></i>' +
-          '      </button>' +
-          '    </div>' +
-          '    <div class="recorder-range">' +
-          '      <input title="scrub" type="range" min="0" max="1000" value="0" id="recorder-range"></input>' +
-          '    </div>' +
-          '    <div class="recorder-time-display"></div>' +
-          '    <div class="recorder-skip-buttons">' +
-          '      <button class="btn btn-default btn-rewind" id="btn-rewind" title="go back ' + graffiti.rewindAmt + ' second">' +
-          '        <i class="fa fa-backward"></i>' +
-          '      </button>' +
-          '      <button class="btn btn-default btn-forward" id="btn-forward" title="jump forward ' + graffiti.rewindAmt + ' second">' +
-          '        <i class="fa fa-forward"></i>' +
-          '      </button>' +
-          '      <button class="btn btn-default btn-sound-on" id="btn-sound-on" title="mute">' +
-          '        <i class="fa fa-volume-up"></i>' +
-          '      </button>' +
-          '      <button class="btn btn-default btn-sound-off recorder-hidden" id="btn-sound-off" title="unmute">' +
-          '        <i class="fa fa-volume-off"></i>' +
-          '      </button>' +
           '      <div class="cancel" title="Cancel Playback"></div>' +
           '    </div>' +
           '  </div>' +
