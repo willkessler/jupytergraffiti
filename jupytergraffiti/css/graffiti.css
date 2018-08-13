@@ -268,7 +268,10 @@
     -webkit-box-shadow: 0 0 1px rgba(255,255,255,.5);
 }
 
-.graffiti-control-panel {
+/* Graffiti control panel css */
+
+
+#graffiti-control-panel {
   display:none;
 }
 
@@ -289,11 +292,6 @@
   z-index:1000;
 }
 
-#graffiti-control-panels-shell {
-}
-
-#graffiti-playback-controls {
-}
 
 #graffiti-playback-buttons,
 #graffiti-scrub-controls {
@@ -314,8 +312,14 @@
   width:70px;
 }
 
+#graffiti-time-display-playback,
+#graffiti-time-display-recording {
+  margin-left:4px;
+  font-family:monospace;
+}
+
 #graffiti-notifier {
-  max-width:150px;
+  max-width:160px;
   font-size:0.9em;
 }
 
@@ -343,9 +347,29 @@
   cursor:pointer;
 }
 
+#graffiti-recorder-range {
+  padding-left:4px;
+  padding-top:5px;
+  flex-grow:1.25;
+  width:70px; /* we never want the recorder-buttons to wrap */
+}
+
+#graffiti-time-display-recording,
+#graffiti-time-display-playback {
+  padding: 4px 2px 0px 4px;
+  font-size:1.4em;
+  font-family:monospace;
+  display:none;
+}
+
+.recorder-time-display-recording {
+  color:red;
+}
+
 /* 
 http://www.patternify.com/
 */
 .graffiti-small-dot-pattern { 
   background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAAF0lEQVQYV2NkYGD4z8DAwMgAI0AMDA4AI3EBBMY7CTgAAAAASUVORK5CYII=) repeat;
 }
+
