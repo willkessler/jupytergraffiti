@@ -53,7 +53,7 @@ define([
         });
       },
 
-      setupOneControlPanel: (elemId,elemHtml) => {
+      setupOneControlPanel: (elemId,elemHtml, callbacks) => {
         if (graffiti.controlPanelIds === undefined) {
           graffiti.controlPanelIds = {};
         }
@@ -61,6 +61,8 @@ define([
         const elem = $(fullHtml);
         elem.appendTo(graffiti.controlPanelsShell)
         graffiti.controlPanelIds[elemId] = graffiti.controlPanelsShell.find('#' + elemId);
+        if (callbacks != undefined) {
+
       },
 
       setupGraffitiControls: () => {
@@ -95,9 +97,12 @@ define([
         });
 
         graffiti.setupOneControlPanel('graffiti-record-controls', 
+                                      '  <button class="btn btn-default" id="btn-create-graffiti"><i class="fa fa-pencil"></i>&nbsp; <span>Create</span></button>' +
                                       '  <button class="btn btn-default" id="btn-edit-graffiti"><i class="fa fa-pencil"></i>&nbsp; <span>Edit</span></button>' +
-                                      '  <button class="btn btn-default" id="btn-start-recording" title="Record movie for a graffiti">' +
+                                      '  <button class="btn btn-default" id="btn-start-recording" title="Record movie">' +
                                       '<i class="fa fa-film recorder-button"></i>&nbsp;<span>Record</span></button>' +
+                                      '  <button class="btn btn-default" id="btn-restart-recording" title="ReRecord movie">' +
+                                      '<i class="fa fa-film recorder-button"></i>&nbsp;<span>Rerecord</span></button>' +
                                       '  <button class="btn btn-default" id="btn-remove-graffiti" title="Remove Graffiti"><i class="fa fa-trash"></i></button>'
         );
 
@@ -138,9 +143,9 @@ define([
                                       '</div>' +
                                       '<div id="graffiti-scrub-controls">' +
                                       '  <div id="graffiti-playback-range">' +
-                                      '    <input title="scrub" type="range" min="0" max="1000" value="0" id="recorder-range"></input>' +
+                                      '    <input title="scrub" type="range" min="0" max="1000" value="0" id="graffiti-recorder-range"></input>' +
                                       '  </div>' +
-                                      '  <div id="graffiti-time-display-playback"></div>' +
+                                      '  <div id="graffiti-time-display-playback">00:00</div>' +
                                       '</div>'
         );
         
@@ -149,6 +154,15 @@ define([
                                       '  <div><span>Pause</span> to interact w/Notebook, or</div><div><span>cancel movie playback</span></div>' +
                                       '</div>'
         );
+
+        graffiti.setupOneControlPanel('graffiti-hot-tip',
+                                      '<div id ="graffiti-hot-tip"><div>Hot Tip!</div></div>'
+        );
+
+        graffiti.setupOneControlPanel('graffiti-api-key',
+                                      '<button class="btn btn-default" id="btn-api-key" title="Get API Key"></i>&nbsp; <span>Get API Key</span></button>'
+        );
+        
 
       },
 
@@ -998,6 +1012,78 @@ define([
             console.log('Graffiti: escaped the removeGraffitiPrompt modal.');
           });
         }
+      },
+
+      updateControlPanels: () => {
+        const activity = state.getActivity();
+        switch (activity) {
+          case 'graffiting':
+            // display Save Graffiti panel
+            // notification: run cell to save graffiti. 
+            break;
+          case 'recordingLabelling':
+            // display Start recording panel
+            // notification: run cell to start recording. X: cancel recording
+            break;
+          case 'recordingPending':
+            // notification: recording is pending, X: cancel recording
+            break;
+          case 'recording':
+            // display Recording panel
+            // notification: ESC to finish graffiti, X: cancel recording
+            break;
+          case 'playing':
+            // display Playback panel, show pause button
+            // notification: Esc to cancel, update X title 
+            break;
+          case 'playbackPaused':
+            // display Playback panel, show play button
+            // notification: Esc to cancel, restart link if setupForReset, update X title 
+            break;
+          case 'idle':
+            // hide controls panel initially
+            // Check if anchor or head of current selection is inside an existing recording token set. Controls will be different if so.
+            let rangeKey, range;
+            let graffitiBtnText = 'Create';
+            let recordBtnText = 'Record';
+            $('#btn-edit-graffiti').attr({title:'Create Graffiti'});
+            if (graffiti.highlightMarkText) {
+              graffiti.highlightMarkText.clear();
+            }
+            graffiti.editableGraffiti = undefined;
+            graffiti.selectedTokens = utils.findSelectionTokens(activeCell, graffiti.tokenRanges, state);
+            $('#recorder-record-controls #recorder-api-key').hide();
+            if (graffiti.selectedTokens.noTokensPresent || state.getAccessLevel() === 'view') {
+              // controls panel will be hidden
+            } else {
+              // show recording panel with: edit + record
+              if (graffiti.selectedTokens.isIntersecting) {
+                // update recording panel edit button
+                graffitiBtnText = 'Edit';
+                $('#btn-edit-graffiti').attr({title:'Edit Graffiti'});
+                $('#btn-remove-graffiti').show();
+                graffiti.highlightIntersectingGraffitiRange();
+                //console.log('selectedTokens:', graffiti.selectedTokens);
+                if (graffiti.selectedTokens.hasMovie) {
+                  //console.log('this recording has a movie');
+                  // update recording panel record button
+                  recordBtnText = 'Re-record';
+                  const recordingFullId = graffiti.selectedTokens.recordingCellId.replace('id_','') + '_' + 
+                                          graffiti.selectedTokens.recordingKey.replace('id_','');
+                  $('#btn-start-recording').attr({title:'Re-record Movie'})
+                  $('#recorder-record-controls #recorder-api-key').html('<span id="' + recordingFullId + '">Get API calls</span>');
+                  $('#recorder-record-controls #recorder-api-key').show();
+                } else {
+                  recordBtnText = 'Record';
+                  $('#btn-start-recording').attr({title:'Record Movie'})
+                }
+              }
+            }
+            $('#btn-edit-graffiti span').text(graffitiBtnText);
+            $('#btn-start-recording span').text(recordBtnText);
+            break;
+        }
+
       },
 
       updateControlsDisplay: (cm) => {
