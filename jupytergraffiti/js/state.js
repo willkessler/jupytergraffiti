@@ -250,6 +250,10 @@ define([
       }
     },
 
+    getSetupForReset: () => {
+      return state.resetOnNextPlay;
+    },
+
     clearSetupForReset: () => {
       state.resetOnNextPlay = false;
     },

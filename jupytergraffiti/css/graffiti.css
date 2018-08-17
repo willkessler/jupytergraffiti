@@ -316,7 +316,7 @@
 }
 
 #graffiti-notifier {
-  max-width:160px;
+  max-width:180px;
   font-size:0.9em;
 }
 
@@ -361,8 +361,7 @@
   color:red;
 }
 
-#graffiti-pause-link,
-#graffiti-cancel-playback-link {
+.graffiti-notifier-link {
   cursor:pointer;
   font-weight:bold;
   text-decoration:underline;

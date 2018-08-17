@@ -41,6 +41,7 @@ define([
         graffiti.tokenRanges = {};
         graffiti.canvases = {};
         graffiti.lastUpdateControlsTime = utils.getNow();
+        graffiti.notificationMsgs = {};
 
         graffiti.setupGraffitiControls();
 
@@ -53,23 +54,41 @@ define([
         });
       },
 
+      bindControlPanelCallbacks: (parent, callbacks) => {
+        if (callbacks !== undefined) {
+          let cb, id, elem;
+          for (cb of callbacks) {
+            for (id of cb.ids) {
+              parent.find('#' + id).on(cb.event, cb.fn);
+            }
+          }
+        }
+      },
+
+      setNotifier: (notificationMsg, callbacks) => {
+        const notifierPanel = graffiti.controlPanelIds['graffiti-notifier'];
+        notifierPanel.children().hide();
+        if (graffiti.notificationMsgs.hasOwnProperty(notificationMsg)) {
+          graffiti.notificationMsgs[notificationMsg].show();
+        } else {
+          const notificationId = 'graffiti-notification-' + utils.generateUniqueId();
+          const notificationHtml = $('<div id="' + notificationId + '">' + notificationMsg + '</div>');
+          notificationHtml.appendTo(notifierPanel);
+          const newNotificationDiv = notifierPanel.find('#' + notificationId);
+          graffiti.notificationMsgs[notificationMsg] = newNotificationDiv;
+          graffiti.bindControlPanelCallbacks(newNotificationDiv, callbacks);
+        }
+      },
+
       setupOneControlPanel: (elemId,elemHtml, callbacks) => {
         if (graffiti.controlPanelIds === undefined) {
           graffiti.controlPanelIds = {};
         }
         const fullHtml = '<div class="graffiti-control-panel" id="' + elemId +'">' + elemHtml + '</div>';
         const elem = $(fullHtml);
-        elem.appendTo(graffiti.controlPanelsShell)
+        elem.appendTo(graffiti.controlPanelsShell);
         graffiti.controlPanelIds[elemId] = graffiti.controlPanelsShell.find('#' + elemId);
-        if (callbacks != undefined) {
-          let cb, id, elem;
-          for (cb of callbacks) {
-            for (id of cb.ids) {
-              elem = graffiti.controlPanelIds[elemId].find('#' + id);
-              elem.on(cb.event, cb.fn);
-            }
-          }
-        }
+        graffiti.bindControlPanelCallbacks(graffiti.controlPanelIds[elemId], callbacks);
       },
 
       setupGraffitiControls: () => {
@@ -204,7 +223,7 @@ define([
                                             //console.log('slider:mousedown');
                                             graffiti.stopPlayback(); // stop playback if playing when you start to scrub
                                             graffiti.clearAllCanvases();
-                                            state.setActivity('scrubbing');
+                                            graffiti.changeActivity('scrubbing');
                                           }
                                         },
                                         {
@@ -212,7 +231,7 @@ define([
                                           event: 'mouseup',
                                           fn: (e) => {
                                             //console.log('slider:mouseup')
-                                            state.setActivity('playbackPaused');
+                                            graffiti.changeActivity('playbackPaused');
                                             graffiti.updateAllGraffitiDisplays();
                                           }
                                         },
@@ -227,27 +246,8 @@ define([
         );
         
         graffiti.setupOneControlPanel('graffiti-notifier', 
-                                      '<div id ="graffiti-notifier">' +
-                                      '  <div><span id="graffiti-pause-link">Pause</span> to interact w/Notebook, or</div>' +
-                                      '  <div><span id="graffiti-cancel-playback-link">Cancel</span> movie playback</div>' +
-                                      '</div>',
-                                      [
-                                        {
-                                          ids: ['graffiti-pause-link'],
-                                          event: 'click',
-                                          fn: (e) => {
-                                            graffiti.togglePlayback();
-                                          }
-                                        },
-                                        {
-                                          ids: ['graffiti-cancel-playback-link'],
-                                          event: 'click',
-                                          fn: (e) => {
-                                            graffiti.cancelPlayback({cancelAnimation:true});
-                                          }
-                                        }
-                                      ]
-        );
+                                      '<div id ="graffiti-notifier"></div>');
+
 
         graffiti.setupOneControlPanel('graffiti-hot-tip',
                                       '<div id ="graffiti-hot-tip"><div>Hot Tip!</div></div>'
@@ -269,15 +269,10 @@ define([
 
       },
 
-      setNotifier: (notificationMsg) => {
-        graffiti.controlPanelIds['graffiti-notifier'].find('div').html(notificationMsg);
-      },
-
       showControlPanels: (panels) => {
-        let controlPanelId;
-        for (controlPanelId of Object.keys(graffiti.controlPanelIds)) {
-          
-        }
+        graffiti.outerControlPanel.children().hide();
+        graffiti.outerControlPanel.find('.graffiti-small-dot-pattern, #graffiti-control-panels-shell').show();
+        graffiti.controlPanelIds['graffiti-playback-controls'].show();
         for (controlPanelId of panels) {
           graffiti.controlPanelIds[controlPanelId].show();
         }
@@ -795,11 +790,11 @@ define([
           //console.log('slider:mousedown');
           graffiti.stopPlayback(); // stop playback if playing when you start to scrub
           graffiti.clearAllCanvases();
-          state.setActivity('scrubbing');
+          graffiti.changeActivity('scrubbing');
         });
         $('#recorder-range').on('mouseup', (e) => {
           //console.log('slider:mouseup')
-          state.setActivity('playbackPaused');
+          graffiti.changeActivity('playbackPaused');
           graffiti.updateAllGraffitiDisplays();
         });
 
@@ -925,7 +920,7 @@ define([
       },
 
       editGraffiti: (newState) => {
-        state.setActivity(newState);
+        graffiti.changeActivity(newState);
         state.setLastEditActivityTime();
         graffiti.updateControlsDisplay();
         graffiti.storeRecordingInfoInCell();
@@ -1020,7 +1015,7 @@ define([
         if (doSave && state.getActivity() === 'recordingLabelling') {
           graffiti.setPendingRecording();
         } else {
-          state.setActivity('idle');
+          graffiti.changeActivity('idle');
           recordingCell.code_mirror.focus();
           graffiti.clearRecorderHint();
           graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: false});
@@ -1433,7 +1428,7 @@ define([
         } else {
           console.log('Setting pending recording');
           graffiti.setRecorderHint('Click anywhere to begin recording movie. (ESC to cancel)');
-          state.setActivity('recordingPending');
+          graffiti.changeActivity('recordingPending');
           graffiti.updateControlsDisplay();
           state.restoreCellStates('selections'); // reset selections to when you clicked to begin the recording
         }
@@ -1441,7 +1436,7 @@ define([
 
       clearPendingRecording: () => {
         graffiti.clearRecorderHint();
-        state.setActivity('idle');
+        graffiti.changeActivity('idle');
       },
 
       beginMovieRecordingProcess: () => {
@@ -1601,7 +1596,7 @@ define([
             audio.stopRecording();
             $('#recorder-range').removeAttr('disabled');
             graffiti.setRecorderHint('Movie saved. Now you can <span>play this movie</span>.', graffiti.startPlayback);
-            state.setActivity('idle');
+            graffiti.changeActivity('idle');
             console.log('Graffiti: toggleRecording refreshing.');
             state.restoreCellStates('contents');
             graffiti.updateAllGraffitiDisplays();
@@ -1622,7 +1617,7 @@ define([
             }
             console.log('Begin recording for cell id:', recordingCellInfo.recordingCellId);
 
-            state.setActivity('recording');
+            graffiti.changeActivity('recording');
             state.setMovieRecordingStarted(true);
             state.assignCellIds();
             state.initHistory({
@@ -1644,6 +1639,81 @@ define([
             );
             console.log('Started recording');
           }
+        }
+      },
+
+
+      changeActivity: (newActivity) => {
+        if (state.getActivity() === newActivity) {
+          return; // no change to activity
+        }
+        state.setActivity(newActivity);
+
+        // When we transition to a new state, control panel tweaks need to be made
+        switch (newActivity) {
+          case 'playing':
+            graffiti.controlPanelIds['graffiti-playback-controls'].find('#btn-play').hide().parent().find('#btn-pause').show();
+            graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-pause-link">Pause</span> to interact w/Notebook, or</div>' +
+                                 '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-link">Cancel</span> movie playback</div>',
+                                 [
+                                   {
+                                     ids: ['graffiti-pause-link'],
+                                     event: 'click',
+                                     fn: (e) => {
+                                       graffiti.togglePlayback();
+                                     }
+                                   },
+                                   {
+                                     ids: ['graffiti-cancel-playback-link'],
+                                     event: 'click',
+                                     fn: (e) => {
+                                       graffiti.cancelPlayback({cancelAnimation:true});
+                                     }
+                                   }
+                                 ]);
+            break;
+          case 'playbackPaused':
+            graffiti.controlPanelIds['graffiti-playback-controls'].find('#btn-pause').hide().parent().find('#btn-play').show();
+            if (state.getSetupForReset()) {
+              graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-play-link">Play movie again</span>, or</div>' +
+                                   '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-link">Cancel</span> movie playback</div>',
+                                   [
+                                     {
+                                       ids: ['graffiti-play-link'],
+                                       event: 'click',
+                                       fn: (e) => {
+                                         graffiti.togglePlayback();
+                                       }
+                                     },
+                                     {
+                                       ids: ['graffiti-cancel-playback-link'],
+                                       event: 'click',
+                                       fn: (e) => {
+                                         graffiti.cancelPlayback({cancelAnimation:true});
+                                       }
+                                     }
+                                   ]);
+            } else {
+              graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-play-link">Continue</span> movie playback, or</div>' +
+                                   '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-link">Cancel</span> movie playback</div>',
+                                   [
+                                     {
+                                       ids: ['graffiti-play-link'],
+                                       event: 'click',
+                                       fn: (e) => {
+                                         graffiti.togglePlayback();
+                                       }
+                                     },
+                                     {
+                                       ids: ['graffiti-cancel-playback-link'],
+                                       event: 'click',
+                                       fn: (e) => {
+                                         graffiti.cancelPlayback({cancelAnimation:true});
+                                       }
+                                     }
+                                   ]);
+            }
+            break;
         }
       },
 
@@ -1898,7 +1968,7 @@ define([
 
       stopPlaybackNoVisualUpdates: () => {
         clearInterval(state.getPlaybackInterval());
-        state.setActivity('playbackPaused');
+        graffiti.changeActivity('playbackPaused');
         graffiti.togglePlayButtons();
         audio.stopPlayback();
         state.setPlaybackTimeElapsed();
@@ -1930,7 +2000,7 @@ define([
         graffiti.stopPlaybackNoVisualUpdates();
         state.setGarnishing(false);
         state.resetPlayState();
-        state.setActivity('idle');
+        graffiti.changeActivity('idle');
         state.restoreCellStates('contents');
         utils.saveNotebook();
         state.restoreCellStates('selections');
@@ -1972,7 +2042,7 @@ define([
 
         graffiti.clearAllCanvases();
         graffiti.graffitiCursor.show();
-        state.setActivity('playing');
+        graffiti.changeActivity('playing');
 
         /*        graffiti.togglePlayButtons();*/
 
@@ -1998,8 +2068,8 @@ define([
             const playedSoFar = state.getTimePlayedSoFar();
             if (playedSoFar >= state.getHistoryDuration()) {
               // reached end of recording naturally, so set up for restart on next press of play button
-              graffiti.togglePlayback();
               state.setupForReset();
+              graffiti.togglePlayback();
               graffiti.updateCancelControls('Movie ended. <span>Start Over</span> or <span>Cancel movie</span>',
                                             () => { graffiti.togglePlayback(); },
                                             () => { graffiti.cancelPlayback({cancelAnimation:true}) } );
