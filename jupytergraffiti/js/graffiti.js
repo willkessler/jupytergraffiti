@@ -278,23 +278,112 @@ define([
         }
       },
 
-      tweakControls: (panelId, tweaks) => {
-        let tweak;
-        if (tweaks.shown !== undefined) {
-          for (tweak of tweaks.shown) {
-            graffiti.controlPanelIds[panelId].find('#' + tweak).show();
-          }
+
+      tweakControlPanels: () => {
+        // When we transition to a new state, control panel tweaks need to be made
+        const activity = state.getActivity();
+        switch (activity) {
+          case 'idle':
+            // Check if anchor or head of current selection is inside an existing recording token set. Controls will be different if so.
+            const activeCell = Jupyter.notebook.get_selected_cell();
+            graffiti.selectedTokens = utils.findSelectionTokens(activeCell, graffiti.tokenRanges, state);
+            if (graffiti.highlightMarkText) {
+              graffiti.highlightMarkText.clear();
+            }
+            let visibleControlPanels;
+            if (graffiti.selectedTokens.noTokensPresent) {
+              visibleControlPanels = []; // hide all control panels if in view only mode and not play mode
+            } else if (state.getAccessLevel() === 'view') {
+              visibleControlPanels = ['graffiti-playback-controls']; // hide all control panels if in view only mode and not play mode
+            } else {
+              visibleControlPanels = ['graffiti-playback-controls', 'graffiti-record-controls'];
+              if (graffiti.selectedTokens.isIntersecting) {
+                console.log('Graffiti: tweaking recording controls');
+                graffiti.highlightIntersectingGraffitiRange();
+                graffiti.controlPanelIds['graffiti-record-controls'].find('#btn-create-graffiti').hide().parent().find('#btn-edit-graffiti').show();
+                //console.log('selectedTokens:', graffiti.selectedTokens);
+                if (graffiti.selectedTokens.hasMovie) {
+                  graffiti.recordingAPIkey = graffiti.selectedTokens.recordingCellId.replace('id_','') + '_' + 
+                                             graffiti.selectedTokens.recordingKey.replace('id_','');
+                  visibleControlPanels.push('graffiti-api-key');
+                  //console.log('this recording has a movie');
+                  graffiti.controlPanelIds['graffiti-record-controls'].find('#btn-start-recording').hide().parent().find('#btn-restart-recording').show();
+                  graffiti.controlPanelIds['graffiti-api-key'].find('#btn-api-key').show();
+                } else {
+                  graffiti.controlPanelIds['graffiti-record-controls'].find('#btn-start-recording').show().parent().find('#btn-restart-recording').hide();
+                  graffiti.controlPanelIds['graffiti-api-key'].find('#btn-api-key').hide();
+                }
+              } else {
+                graffiti.controlPanelIds['graffiti-record-controls'].find('#btn-create-graffiti').show().parent().find('#btn-edit-graffiti').hide();
+              }
+            }
+            graffiti.showControlPanels(visibleControlPanels);
+            break;
+          case 'playing':
+            graffiti.controlPanelIds['graffiti-playback-controls'].find('#btn-play').hide().parent().find('#btn-pause').show();
+            graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-pause-link">Pause</span> to interact w/Notebook, or</div>' +
+                                 '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-link">Cancel</span> movie playback</div>',
+                                 [
+                                   {
+                                     ids: ['graffiti-pause-link'],
+                                     event: 'click',
+                                     fn: (e) => {
+                                       graffiti.togglePlayback();
+                                     }
+                                   },
+                                   {
+                                     ids: ['graffiti-cancel-playback-link'],
+                                     event: 'click',
+                                     fn: (e) => {
+                                       graffiti.cancelPlayback({cancelAnimation:true});
+                                     }
+                                   }
+                                 ]);
+            break;
+          case 'playbackPaused':
+            graffiti.controlPanelIds['graffiti-playback-controls'].find('#btn-pause').hide().parent().find('#btn-play').show();
+            if (state.getSetupForReset()) {
+              graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-play-link">Play movie again</span>, or</div>' +
+                                   '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-link">Cancel</span> movie playback</div>',
+                                   [
+                                     {
+                                       ids: ['graffiti-play-link'],
+                                       event: 'click',
+                                       fn: (e) => {
+                                         graffiti.togglePlayback();
+                                       }
+                                     },
+                                     {
+                                       ids: ['graffiti-cancel-playback-link'],
+                                       event: 'click',
+                                       fn: (e) => {
+                                         graffiti.cancelPlayback({cancelAnimation:true});
+                                       }
+                                     }
+                                   ]);
+            } else {
+              graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-play-link">Continue</span> movie playback, or</div>' +
+                                   '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-link">Cancel</span> movie playback</div>',
+                                   [
+                                     {
+                                       ids: ['graffiti-play-link'],
+                                       event: 'click',
+                                       fn: (e) => {
+                                         graffiti.togglePlayback();
+                                       }
+                                     },
+                                     {
+                                       ids: ['graffiti-cancel-playback-link'],
+                                       event: 'click',
+                                       fn: (e) => {
+                                         graffiti.cancelPlayback({cancelAnimation:true});
+                                       }
+                                     }
+                                   ]);
+            }
+            break;
         }
-        if (tweaks.hidden !== undefined) {
-          for (tweak of tweaks.hidden) {
-            
-          }
-        }
-        if (tweaks.rename !== undefined) {
-          for (tweak of tweaks.rename) {
-            graffiti.controlPanelIds[panelId].find('#' + tweak.id).attr({title: tweak.name});
-          }
-        }
+
       },
 
       initInteractivity: () => {
@@ -1208,6 +1297,7 @@ define([
       },
 
       updateControlsDisplay: () => {
+        return;
         const activity = state.getActivity();
         switch (activity) {
           case 'graffiting':
@@ -1240,6 +1330,7 @@ define([
             break;
           case 'idle':
             // Check if anchor or head of current selection is inside an existing recording token set. Controls will be different if so.
+
             const activeCell = Jupyter.notebook.get_selected_cell();
             graffiti.selectedTokens = utils.findSelectionTokens(activeCell, graffiti.tokenRanges, state);
             if (graffiti.highlightMarkText) {
@@ -1273,6 +1364,7 @@ define([
             }
             $('#btn-edit-graffiti span').text(graffitiBtnText);
             $('#btn-start-recording span').text(recordBtnText);
+
             break;
         }
 
@@ -1467,7 +1559,8 @@ define([
 
         cm.on('cursorActivity', (cm, e) => {
           console.log('cursorActivity');
-          graffiti.updateControlsDisplay(cm);
+          //graffiti.updateControlsDisplay(cm);
+          graffiti.tweakControlPanels();
           //console.log('graffiti.selectedTokens:', graffiti.selectedTokens);
           const affectedCell = utils.findCellByCodeMirror(cm);
           state.storeCellIdAffectedByActivity(affectedCell.metadata.cellId);
@@ -1648,73 +1741,7 @@ define([
           return; // no change to activity
         }
         state.setActivity(newActivity);
-
-        // When we transition to a new state, control panel tweaks need to be made
-        switch (newActivity) {
-          case 'playing':
-            graffiti.controlPanelIds['graffiti-playback-controls'].find('#btn-play').hide().parent().find('#btn-pause').show();
-            graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-pause-link">Pause</span> to interact w/Notebook, or</div>' +
-                                 '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-link">Cancel</span> movie playback</div>',
-                                 [
-                                   {
-                                     ids: ['graffiti-pause-link'],
-                                     event: 'click',
-                                     fn: (e) => {
-                                       graffiti.togglePlayback();
-                                     }
-                                   },
-                                   {
-                                     ids: ['graffiti-cancel-playback-link'],
-                                     event: 'click',
-                                     fn: (e) => {
-                                       graffiti.cancelPlayback({cancelAnimation:true});
-                                     }
-                                   }
-                                 ]);
-            break;
-          case 'playbackPaused':
-            graffiti.controlPanelIds['graffiti-playback-controls'].find('#btn-pause').hide().parent().find('#btn-play').show();
-            if (state.getSetupForReset()) {
-              graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-play-link">Play movie again</span>, or</div>' +
-                                   '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-link">Cancel</span> movie playback</div>',
-                                   [
-                                     {
-                                       ids: ['graffiti-play-link'],
-                                       event: 'click',
-                                       fn: (e) => {
-                                         graffiti.togglePlayback();
-                                       }
-                                     },
-                                     {
-                                       ids: ['graffiti-cancel-playback-link'],
-                                       event: 'click',
-                                       fn: (e) => {
-                                         graffiti.cancelPlayback({cancelAnimation:true});
-                                       }
-                                     }
-                                   ]);
-            } else {
-              graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-play-link">Continue</span> movie playback, or</div>' +
-                                   '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-link">Cancel</span> movie playback</div>',
-                                   [
-                                     {
-                                       ids: ['graffiti-play-link'],
-                                       event: 'click',
-                                       fn: (e) => {
-                                         graffiti.togglePlayback();
-                                       }
-                                     },
-                                     {
-                                       ids: ['graffiti-cancel-playback-link'],
-                                       event: 'click',
-                                       fn: (e) => {
-                                         graffiti.cancelPlayback({cancelAnimation:true});
-                                       }
-                                     }
-                                   ]);
-            }
-            break;
-        }
+        graffiti.tweakControlPanels();
       },
 
       //
