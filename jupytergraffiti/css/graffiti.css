@@ -163,7 +163,7 @@
   display:none;
 }
 
-.recorder-cursor {
+.graffiti-cursor {
   position: fixed;
   z-index:1000;
   color:#fd5;
@@ -174,7 +174,7 @@
   display:none;
 }
 
-.recorder-cursor img {
+.graffiti-cursor img {
   width: 24px;
   height:24px;
 }
@@ -357,8 +357,15 @@
   font-family:monospace;
 }
 
-.recorder-time-display-recording {
+#graffiti-time-display-recording {
   color:red;
+}
+
+#graffiti-pause-link,
+#graffiti-cancel-playback-link {
+  cursor:pointer;
+  font-weight:bold;
+  text-decoration:underline;
 }
 
 /* 
