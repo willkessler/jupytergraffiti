@@ -271,7 +271,7 @@
 /* Graffiti control panel css */
 
 
-#graffiti-control-panel {
+.graffiti-control-panel {
   display:none;
 }
 
@@ -283,9 +283,9 @@
   position:absolute;
   padding:6px 24px 6px 4px;
   margin-right:21px;
-  top:0px;
-  display:flex;
+  top:100px;
   left:10px;
+  display:flex;
   background-color:rgba(245,245,245,0.9);
   border-radius:4px;
   border:1px solid #aaa;
@@ -300,16 +300,13 @@
   justify-content:left;
 }
 
-#graffiti-playback-buttons #btn-play {
+#graffiti-playback-buttons #btn-play,
+#graffiti-playback-buttons #btn-pause {
   width:50px;
 }
 
 #graffiti-scrub-controls {
   margin-top:2px;
-}
-
-#graffiti-playback-range {
-  width:70px;
 }
 
 #graffiti-time-display-playback,
@@ -348,18 +345,16 @@
 }
 
 #graffiti-recorder-range {
+  width:86px;
   padding-left:4px;
   padding-top:5px;
   flex-grow:1.25;
-  width:70px; /* we never want the recorder-buttons to wrap */
 }
 
 #graffiti-time-display-recording,
 #graffiti-time-display-playback {
   padding: 4px 2px 0px 4px;
-  font-size:1.4em;
   font-family:monospace;
-  display:none;
 }
 
 .recorder-time-display-recording {

@@ -62,7 +62,14 @@ define([
         elem.appendTo(graffiti.controlPanelsShell)
         graffiti.controlPanelIds[elemId] = graffiti.controlPanelsShell.find('#' + elemId);
         if (callbacks != undefined) {
-
+          let cb, id, elem;
+          for (cb of callbacks) {
+            for (id of cb.ids) {
+              elem = graffiti.controlPanelIds[elemId].find('#' + id);
+              elem.on(cb.event, cb.fn);
+            }
+          }
+        }
       },
 
       setupGraffitiControls: () => {
@@ -121,7 +128,7 @@ define([
                                       '  <button class="btn btn-default btn-play" id="btn-play" title="Start playback">' +
                                       '    <i class="fa fa-play"></i>' +
                                       '  </button>' +
-                                      '  <button class="btn btn-default recorder-hidden" id="btn-stop-play" title="Pause playback">' +
+                                      '  <button class="btn btn-default recorder-hidden" id="btn-pause" title="Pause playback">' +
                                       '    <i class="fa fa-pause"></i>' +
                                       '  </button>' +
                                       '  <div id="graffiti-skip-buttons">' +
@@ -146,7 +153,73 @@ define([
                                       '    <input title="scrub" type="range" min="0" max="1000" value="0" id="graffiti-recorder-range"></input>' +
                                       '  </div>' +
                                       '  <div id="graffiti-time-display-playback">00:00</div>' +
-                                      '</div>'
+                                      '</div>',
+                                      [
+                                        {
+                                          ids: ['btn-play', 'btn-pause'],
+                                          event: 'click',
+                                          fn: (e) => {
+                                            graffiti.togglePlayback();
+                                          }
+                                        },
+                                        { 
+                                          ids: ['btn-forward','btn-rewind'],
+                                          event: 'click',
+                                          fn: (e) => {
+                                            console.log('btn-forward/btn-rewind clicked');
+                                            let direction = 1;
+                                            if (($(e.target).attr('id') === 'btn-rewind') || ($(e.target).hasClass('fa-backward'))) {
+                                              direction = -1;
+                                            }
+                                            graffiti.jumpPlayback(direction);
+                                          }
+                                        },
+                                        {
+                                          ids: ['btn-sound-on', 'btn-sound-off'],
+                                          event: 'click',
+                                          fn: (e) => {
+                                            if (state.getMute()) {
+                                              state.setMute(false);
+                                              graffiti.updateControlsDisplay();
+                                              if (state.getActivity() === 'playing') {
+                                                audio.startPlayback(state.getTimePlayedSoFar());
+                                              }
+                                            } else {
+                                              state.setMute(true);
+                                              graffiti.updateControlsDisplay();
+                                              if (state.getActivity() === 'playing') {
+                                                audio.stopPlayback();
+                                              }
+                                            }
+                                          }
+                                        },
+                                        {
+                                          ids: ['graffiti-recorder-range'],
+                                          event: 'mousedown',
+                                          fn: (e) => {
+                                            //console.log('slider:mousedown');
+                                            graffiti.stopPlayback(); // stop playback if playing when you start to scrub
+                                            graffiti.clearAllCanvases();
+                                            state.setActivity('scrubbing');
+                                          }
+                                        },
+                                        {
+                                          ids: ['graffiti-recorder-range'],
+                                          event: 'mouseup',
+                                          fn: (e) => {
+                                            //console.log('slider:mouseup')
+                                            state.setActivity('playbackPaused');
+                                            graffiti.updateAllGraffitiDisplays();
+                                          }
+                                        },
+                                        {
+                                          ids: ['graffiti-recorder-range'],
+                                          event: 'input',
+                                          fn: (e) => {
+                                            graffiti.handleSliderDrag(e);
+                                          }
+                                        }
+                                      ]
         );
         
         graffiti.setupOneControlPanel('graffiti-notifier', 
@@ -160,10 +233,46 @@ define([
         );
 
         graffiti.setupOneControlPanel('graffiti-api-key',
-                                      '<button class="btn btn-default" id="btn-api-key" title="Get API Key"></i>&nbsp; <span>Get API Key</span></button>'
+                                      '<button class="btn btn-default" id="btn-api-key" title="Get API Key"></i>&nbsp; <span>Get API Key</span></button>',
+                                      [
+                                        { 
+                                          ids: ['graffiti-api-key'],
+                                          event: 'click', 
+                                          fn: (e) => { 
+                                            console.log('you clicked api key'); 
+                                          }
+                                        }
+                                      ]
         );
         
 
+      },
+
+      setNotifier: (notificationMsg) => {
+        graffiti.controlPanelIds['graffiti-notifier'].find('div').html(notificationMsg);
+      },
+
+      showControlPanels: (panels) => {
+        let controlPanelId;
+        for (controlPanelId of Object.keys(graffiti.controlPanelIds)) {
+          
+        }
+        for (controlPanelId of panels) {
+          graffiti.controlPanelIds[controlPanelId].show();
+        }
+      },
+
+      tweakControls: (panelId, tweaks) => {
+        if (tweaks.shown !== undefined) {
+          for (let tweak of tweaks.shown) {
+            graffiti.controlPanelIds[panelId].find('#' + tweak).show();
+          }
+        }
+        if (tweaks.hidden !== undefined) {
+          for (let tweak of tweaks.hidden) {
+            graffiti.controlPanelIds[panelId].find('#' + tweak).hide();
+          }
+        }
       },
 
       initInteractivity: () => {
@@ -182,7 +291,7 @@ define([
 
       },
 
-      //i nspired by https://www.codicode.com/art/how_to_draw_on_a_html5_canvas_with_a_mouse.aspx
+      // Inspired by https://www.codicode.com/art/how_to_draw_on_a_html5_canvas_with_a_mouse.aspx
       // and : http://perfectionkills.com/exploring-canvas-drawing-techniques/
 
       placeCanvas: (cellId, canvasType) => {
@@ -276,11 +385,11 @@ define([
             graffiti.setCanvasStyle(viewInfo.cellId, viewInfo.garnishStyle);
             const cellRect = viewInfo.cellRect;
             graffiti.updateGarnishDisplay(viewInfo.cellId, 
-                                             ax - cellRect.left,
-                                             ay - cellRect.top, 
-                                             bx - cellRect.left,
-                                             by - cellRect.top,
-                                             viewInfo.garnishStyle);
+                                          ax - cellRect.left,
+                                          ay - cellRect.top, 
+                                          bx - cellRect.left,
+                                          by - cellRect.top,
+                                          viewInfo.garnishStyle);
             state.setLastGarnishInfo(bx, by, viewInfo.garnishing, viewInfo.garnishStyle, viewInfo.cellId);
           } else {
             // finished garnishing so set this garnish to fade out, if it's a highlighting garnish. line garnishes don't fade
@@ -398,7 +507,7 @@ define([
               state.setTipTimeout(() => {
                 const newPointerPosition = state.getPointerPosition();
                 const cursorDistanceSquared = (newPointerPosition.x - currentPointerPosition.x) * (newPointerPosition.x - currentPointerPosition.x) +
-                                                 (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
+                                                  (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
 
                 //console.log('comparing currentPointerPosition, newPointerPosition:', currentPointerPosition,
                 //            newPointerPosition, cursorDistanceSquared);
@@ -482,21 +591,6 @@ define([
         });
       },
 
-      updateTimeDisplay: (playedSoFar) => {
-        const timeDisplay = utils.formatTime(playedSoFar);
-        const recorderTimeDisplay = $('.recorder-time-display:first');
-        recorderTimeDisplay.text(timeDisplay);
-        /*
-           // Update recording flasher icon. Restore this someday maybe...
-           const now = utils.getNow();
-           if (now % 1000 < 500) {
-           $('#recorder-flasher').hide();
-           } else {
-           $('#recorder-flasher').show();
-           }
-         */
-      },
-
       updateControlPanelPosition: () => {
         if (state.getControlPanelDragging()) {
           const position = state.getPointerPosition();
@@ -534,7 +628,7 @@ define([
             case 32: // space key stops playback
               if (activity === 'playing') {
                 stopProp = true;
-                graffiti.togglePlayBack();
+                graffiti.togglePlayback();
               }
               break;
             case 27: // escape key stops playback, cancels pendingRecording, and completes regular recording in process
@@ -553,8 +647,8 @@ define([
                   break;
               }
               break;
-//          case 13: // enter key
-//            break;
+              //          case 13: // enter key
+              //            break;
             case 18:
               if (activity === 'recording') {
                 console.log('Start highlight garnishing.');
@@ -706,25 +800,28 @@ define([
           Jupyter.notebook.select_next();
         });
 
-        $('#btn-play, #btn-stop-play').click((e) => { graffiti.togglePlayBack(); });
-        $('#btn-forward,#btn-rewind').click((e) => {
-          // console.log('btn-forward/btn-rewind clicked');
-          let direction = 1;
-          if (($(e.target).attr('id') === 'btn-rewind') || ($(e.target).hasClass('fa-backward'))) {
-            direction = -1;
-          }
-          graffiti.stopPlayback();
-          const timeElapsed = state.getPlaybackTimeElapsed();
-          const t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction), state.getHistoryDuration() - 1 ));
-          console.log('t:', t);
-          const frameIndexes = state.getHistoryRecordsAtTime(t);
-          state.clearSetupForReset();
-          state.setPlaybackTimeElapsed(t);
-          graffiti.updateDisplay(frameIndexes);
-          graffiti.updateSlider(t);
-          graffiti.updateAllGraffitiDisplays();
-        });
+        /*
+           $('#btn-play, #btn-stop-play').click((e) => { graffiti.togglePlayback(); });
+           $('#btn-forward,#btn-rewind').click((e) => {
+           // console.log('btn-forward/btn-rewind clicked');
+           let direction = 1;
+           if (($(e.target).attr('id') === 'btn-rewind') || ($(e.target).hasClass('fa-backward'))) {
+           direction = -1;
+           }
+           graffiti.stopPlayback();
+           const timeElapsed = state.getPlaybackTimeElapsed();
+           const t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction), state.getHistoryDuration() - 1 ));
+           console.log('t:', t);
+           const frameIndexes = state.getHistoryRecordsAtTime(t);
+           state.clearSetupForReset();
+           state.setPlaybackTimeElapsed(t);
+           graffiti.updateDisplay(frameIndexes);
+           graffiti.updateSlider(t);
+           graffiti.updateAllGraffitiDisplays();
+           });
+         */
 
+        /*
         $('#btn-sound-on, #btn-sound-off').on('click', (e) => {
           console.log('volume toggle')
           if (state.getMute()) {
@@ -743,6 +840,8 @@ define([
             }
           }
         });
+
+*/
 
         console.log('Graffiti: UX Controls set up.');
 
@@ -1086,7 +1185,78 @@ define([
 
       },
 
-      updateControlsDisplay: (cm) => {
+      updateControlsDisplay: () => {
+        const activity = state.getActivity();
+        switch (activity) {
+          case 'graffiting':
+            break;
+          case 'recordingLabelling':
+            graffiti.setNotifier('Enter or update your Graffiti tip, then click <b>Start Recording</b> when ready to record.');
+            graffiti.showControlPanels(['graffiti-record-controls', 'graffiti-notifier']);
+            break;
+          case 'recordingPending':
+            graffiti.setNotifier('Click inside any cell to begin your recording.');
+            graffiti.showControlPanels(['graffiti-record-controls', 'graffiti-notifier']);
+            break;
+          case 'recording':
+            graffiti.setNotifier('Click <b>Finish Recording</b> or press ESC to complete your recording.');
+            graffiti.showControlPanels(['graffiti-record-controls', 'graffiti-notifier']);
+            break;
+          case 'playing':
+          case 'playbackPaused':
+            if (activity === 'playing') {
+              graffiti.tweakControls('graffiti-playback-controls', { shown: ['btn-pause'], hidden: ['btn-play'] });
+            } else {
+              graffiti.tweakControls('graffiti-playback-controls', { shown: ['btn-play'], hidden: ['btn-pause'] });
+            }
+            if (state.getMute()) {
+              graffiti.tweakControls('graffiti-playback-controls', { shown: ['btn-sound-off'], hidden: ['btn-sound-on'] });
+            } else {
+              graffiti.tweakControls('graffiti-playback-controls', { shown: ['btn-sound-on'], hidden: ['btn-sound-off'] });
+            }
+            graffiti.showControlPanels(['graffiti-playback-controls']);
+            break;
+          case 'idle':
+            // Check if anchor or head of current selection is inside an existing recording token set. Controls will be different if so.
+            let graffitiBtnText = 'Create';
+            let recordBtnText = 'Record';
+            $('#btn-edit-graffiti').attr({title:'Create Graffiti'});
+            graffiti.selectedTokens = utils.findSelectionTokens(activeCell, graffiti.tokenRanges, state);
+            $('#recorder-record-controls #recorder-api-key').hide();
+            if (graffiti.selectedTokens.noTokensPresent || state.getAccessLevel() === 'view') {
+              if (graffiti.highlightMarkText) {
+                graffiti.highlightMarkText.clear();
+              }
+              $('#recorder-record-controls').hide();
+            } else {
+              if (graffiti.selectedTokens.isIntersecting) {
+                graffitiBtnText = 'Edit';
+                $('#btn-edit-graffiti').attr({title:'Edit Graffiti'});
+                $('#btn-remove-graffiti').show();
+                graffiti.highlightIntersectingGraffitiRange();
+                //console.log('selectedTokens:', graffiti.selectedTokens);
+                if (graffiti.selectedTokens.hasMovie) {
+                  //console.log('this recording has a movie');
+                  recordBtnText = 'Re-record';
+                  const recordingFullId = graffiti.selectedTokens.recordingCellId.replace('id_','') + '_' + 
+                                          graffiti.selectedTokens.recordingKey.replace('id_','');
+                  $('#btn-start-recording').attr({title:'Re-record Movie'})
+                  $('#recorder-record-controls #recorder-api-key').html('<span id="' + recordingFullId + '">Get API calls</span>');
+                  $('#recorder-record-controls #recorder-api-key').show();
+                } else {
+                  recordBtnText = 'Record';
+                  $('#btn-start-recording').attr({title:'Record Movie'})
+                }
+              }
+            }
+            $('#btn-edit-graffiti span').text(graffitiBtnText);
+            $('#btn-start-recording span').text(recordBtnText);
+            break;
+        }
+
+      },
+
+      updateControlsDisplayOld: (cm) => {
         let activeCell;
         const now = utils.getNow();
         if (graffiti.lastUpdateControlsTime !== undefined) {
@@ -1638,28 +1808,55 @@ define([
         graffiti.updateView(frameIndexes.view);
       },
 
+      // update the timer display for play or recording
+      updateTimeDisplay: (playedSoFar) => {
+        const timeDisplay = utils.formatTime(playedSoFar);
+        let recorderTimeDisplay;
+        if (state.getActivity() === 'recording') {
+          recorderTimeDisplay = $('#graffiti-time-display-recording');
+        } else {
+          recorderTimeDisplay = $('#graffiti-time-display-playback');
+        }
+        recorderTimeDisplay.text(timeDisplay);
+        /*
+           // Update recording flasher icon. Restore this someday maybe...
+           const now = utils.getNow();
+           if (now % 1000 < 500) {
+           $('#recorder-flasher').hide();
+           } else {
+           $('#recorder-flasher').show();
+           }
+         */
+      },
+
       updateSlider: (playedSoFar) => {
         const ratio = playedSoFar / state.getHistoryDuration();
         const sliderVal = ratio * 1000;
         //console.log('updateSlider, playedSoFar:', playedSoFar, 'sliderVal:', sliderVal);
-        const slider = $('#recorder-range');
+        const slider = $('#graffiti-recorder-range');
         slider.val(sliderVal);
-      },
-
-      updateTimeDisplay: (timeSoFar) => {
-        const timeDisplay = utils.formatTime(timeSoFar);
-        const activity = state.getActivity();
-        const recorderTimeDisplay = (activity === 'recording' ? $('.recorder-time-display-recording:first') : $('.recorder-time-display:first'));
-        recorderTimeDisplay.text(timeDisplay);
       },
 
       //
       // Playback functions
       //
 
+      jumpPlayback: (direction) => {
+        graffiti.stopPlayback();
+        const timeElapsed = state.getPlaybackTimeElapsed();
+        const t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction), state.getHistoryDuration() - 1 ));
+        console.log('t:', t);
+        const frameIndexes = state.getHistoryRecordsAtTime(t);
+        state.clearSetupForReset();
+        state.setPlaybackTimeElapsed(t);
+        graffiti.updateDisplay(frameIndexes);
+        graffiti.updateSlider(t);
+        graffiti.updateAllGraffitiDisplays();
+      },
+
       handleSliderDrag: () => {
         // Handle slider drag
-        const target = $('#recorder-range');
+        const target = $('#graffiti-recorder-range');
         const timeLocation = target.val() / 1000;
         //console.log('slider value:', timeLocation);
         state.clearSetupForReset();
@@ -1750,7 +1947,7 @@ define([
         graffiti.recordingCursor.show();
         state.setActivity('playing');
 
-        graffiti.togglePlayButtons();
+        /*        graffiti.togglePlayButtons();*/
 
         graffiti.updateCancelControls('<span>Pause</span> to interact w/Notebook at any time or <span>Cancel movie</span>',
                                       () => { graffiti.stopPlayback(); },
@@ -1774,10 +1971,10 @@ define([
             const playedSoFar = state.getTimePlayedSoFar();
             if (playedSoFar >= state.getHistoryDuration()) {
               // reached end of recording naturally, so set up for restart on next press of play button
-              graffiti.togglePlayBack();
+              graffiti.togglePlayback();
               state.setupForReset();
               graffiti.updateCancelControls('Movie ended. <span>Start Over</span> or <span>Cancel movie</span>',
-                                            () => { graffiti.togglePlayBack(); },
+                                            () => { graffiti.togglePlayback(); },
                                             () => { graffiti.cancelPlayback({cancelAnimation:true}) } );
             } else {
               graffiti.updateSlider(playedSoFar);
@@ -1789,7 +1986,7 @@ define([
         );
       },
 
-      togglePlayBack: () => {
+      togglePlayback: () => {
         const activity = state.getActivity();
         if (activity !== 'recording') {
           if (activity === 'playing') {
@@ -1805,7 +2002,7 @@ define([
         graffiti.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
         storage.loadMovie(cellId, recordingId).then( () => {
           console.log('Graffiti: Movie loaded for cellId, recordingId:', cellId, recordingId);
-          graffiti.togglePlayBack();
+          graffiti.togglePlayback();
         }).catch( (ex) => {
           dialog.modal({
             title: 'Movie is not available.',
@@ -1824,10 +2021,10 @@ define([
       togglePlayButtons: () => {
         if (state.getActivity() === 'playing') {
           $('#btn-play').hide();
-          $('#btn-stop-play').show();
+          $('#btn-pause').show();
         } else if (state.getActivity() === 'idle') {
           $('#btn-play').show();
-          $('#btn-stop-play').hide();
+          $('#btn-pause').hide();
         }
       },
 
