@@ -273,6 +273,7 @@
 
 .graffiti-control-panel {
   display:none;
+  margin-top:4px;
 }
 
 .graffiti-control-panel .btn {
@@ -316,7 +317,7 @@
 }
 
 #graffiti-notifier {
-  max-width:180px;
+  max-width:150px;
   font-size:0.9em;
 }
 
