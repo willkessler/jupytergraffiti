@@ -126,7 +126,6 @@ define([
 
     collectTokenStrings: (allTokens, tokens) => {
       const subTokens = allTokens.slice(tokens.firstTokenOffset, tokens.firstTokenOffset + tokens.extraTokens + 1);
-      debugger;
       return subTokens.reduce( (tokensString, token) => { tokensString + token.string } )
     },
 
