@@ -54,6 +54,16 @@ define([
         });
       },
 
+      provideAPIKeyExamples: () => {
+        let recorderApiKeyCell = Jupyter.notebook.insert_cell_below('code');
+        let invocationLine = "jupytergraffiti.api.play_recording('" + graffiti.recordingAPIKey + "')\n" +
+                             "# jupytergraffiti.api.play_recording_with_prompt('" + graffiti.recordingAPIKey +
+                             "', '![idea](../images/lightbulb_small.jpg) Click **here** to learn more.')\n" +
+                             "# jupytergraffiti.api.stop_playback()";
+        recorderApiKeyCell.set_text(invocationLine);          
+        Jupyter.notebook.select_next();
+      },
+
       bindControlPanelCallbacks: (parent, callbacks) => {
         if (callbacks !== undefined) {
           let cb, id, elem;
@@ -67,10 +77,8 @@ define([
 
       setNotifier: (notificationMsg, callbacks) => {
         const notifierPanel = graffiti.controlPanelIds['graffiti-notifier'];
-        notifierPanel.children().hide();
-        if (graffiti.notificationMsgs.hasOwnProperty(notificationMsg)) {
-          graffiti.notificationMsgs[notificationMsg].show();
-        } else {
+        notifierPanel.show().children().hide();
+        if (!graffiti.notificationMsgs.hasOwnProperty(notificationMsg)) {
           const notificationId = 'graffiti-notification-' + utils.generateUniqueId();
           const notificationHtml = $('<div id="' + notificationId + '">' + notificationMsg + '</div>');
           notificationHtml.appendTo(notifierPanel);
@@ -78,6 +86,7 @@ define([
           graffiti.notificationMsgs[notificationMsg] = newNotificationDiv;
           graffiti.bindControlPanelCallbacks(newNotificationDiv, callbacks);
         }
+        graffiti.notificationMsgs[notificationMsg].show();
       },
 
       setupOneControlPanel: (elemId,elemHtml, callbacks) => {
@@ -127,21 +136,39 @@ define([
         });
 
         graffiti.setupOneControlPanel('graffiti-record-controls', 
-                                      '  <button class="btn btn-default" id="btn-create-graffiti"><i class="fa fa-pencil"></i>&nbsp; <span>Create</span></button>' +
-                                      '  <button class="btn btn-default" id="btn-edit-graffiti"><i class="fa fa-pencil"></i>&nbsp; <span>Edit</span></button>' +
+                                      '  <button class="btn btn-default" id="btn-create-graffiti">' +
+                                      '<i class="fa fa-pencil"></i>&nbsp; <span>Create</span></button>' +
+                                      '  <button class="btn btn-default" id="btn-edit-graffiti" title="Edit Graffiti movie">' +
+                                      '<i class="fa fa-pencil"></i>&nbsp; <span>Edit</span></button>' +
                                       '  <button class="btn btn-default" id="btn-start-recording" title="Record movie">' +
                                       '<i class="fa fa-film recorder-button"></i>&nbsp;<span>Record</span></button>' +
                                       '  <button class="btn btn-default" id="btn-restart-recording" title="ReRecord movie">' +
                                       '<i class="fa fa-film recorder-button"></i>&nbsp;<span>Rerecord</span></button>' +
-                                      '  <button class="btn btn-default" id="btn-remove-graffiti" title="Remove Graffiti"><i class="fa fa-trash"></i></button>'
+                                      '  <button class="btn btn-default" id="btn-remove-graffiti" title="Remove Graffiti">' +
+                                      '<i class="fa fa-trash"></i></button>',
+                                      [
+                                        {
+                                          ids: ['btn-create-graffiti', 'btn-edit-graffiti'],
+                                          event: 'click',
+                                          fn: (e) => {
+                                            graffiti.editGraffiti('graffiting');
+                                          }
+                                        },
+                                      ]
         );
 
-        graffiti.setupOneControlPanel('graffiti-edit-complete-controls', 
+        graffiti.setupOneControlPanel('graffiti-finish-edit-controls', 
                                       '<button class="btn btn-default" id="btn-finish-graffiti" title="Save Graffiti">Save Graffiti</button>'
         );
 
-        graffiti.setupOneControlPanel('graffiti-recording-complete-controls', 
-                                      '<button class="btn btn-default" id="btn-finish-recording" title="finish recording">' +
+        graffiti.setupOneControlPanel('graffiti-start-recording-controls', 
+                                      '<button class="btn btn-default" id="btn-start-recording" title="Start recording">' +
+                                      '<i class="fa fa-pause recorder-start-button"></i>&nbsp;Start Recording</button>' +
+                                      '<div id="graffiti-time-display-recording"></div>'
+        );
+
+        graffiti.setupOneControlPanel('graffiti-finish-recording-controls', 
+                                      '<button class="btn btn-default" id="btn-finish-recording" title="Finish recording">' +
                                       '<i class="fa fa-pause recorder-stop-button"></i>&nbsp;Finish Recording</button>' +
                                       '<div id="graffiti-time-display-recording"></div>'
         );
@@ -246,7 +273,7 @@ define([
         );
         
         graffiti.setupOneControlPanel('graffiti-notifier', 
-                                      '<div id ="graffiti-notifier"></div>');
+                                      '<div id="graffiti-notifier"></div>');
 
 
         graffiti.setupOneControlPanel('graffiti-hot-tip',
@@ -257,10 +284,11 @@ define([
                                       '<button class="btn btn-default" id="btn-api-key" title="Get API Key"></i>&nbsp; <span>Get API Key</span></button>',
                                       [
                                         { 
-                                          ids: ['graffiti-api-key'],
+                                          ids: ['btn-api-key'],
                                           event: 'click', 
                                           fn: (e) => { 
-                                            console.log('you clicked api key'); 
+                                            console.log('Graffiti: API key is:', graffiti.recordingAPIKey);
+                                            graffiti.provideAPIKeyExamples();
                                           }
                                         }
                                       ]
@@ -270,51 +298,66 @@ define([
       },
 
       showControlPanels: (panels) => {
-        graffiti.outerControlPanel.children().hide();
-        graffiti.outerControlPanel.find('.graffiti-small-dot-pattern, #graffiti-control-panels-shell').show();
-        graffiti.controlPanelIds['graffiti-playback-controls'].show();
+        graffiti.controlPanelsShell.children().hide();
         for (controlPanelId of panels) {
+          console.log('Graffiti: showing panel:', controlPanelId);
+          if (controlPanelId === 'graffiti-finish-edit-controls')
+            debugger;
           graffiti.controlPanelIds[controlPanelId].show();
         }
       },
 
 
-      tweakControlPanels: () => {
+      tweakControlPanels: (cm) => {
         // When we transition to a new state, control panel tweaks need to be made
         const activity = state.getActivity();
+        console.log('tweakControlPanels, activity:', activity);
         switch (activity) {
           case 'idle':
             // Check if anchor or head of current selection is inside an existing recording token set. Controls will be different if so.
-            const activeCell = Jupyter.notebook.get_selected_cell();
+            let activeCell;
+            if (cm === undefined) {
+              activeCell = Jupyter.notebook.get_selected_cell();
+            } else {
+              activeCell = utils.findCellByCodeMirror(cm);
+            }
             graffiti.selectedTokens = utils.findSelectionTokens(activeCell, graffiti.tokenRanges, state);
             if (graffiti.highlightMarkText) {
               graffiti.highlightMarkText.clear();
             }
             let visibleControlPanels;
             if (graffiti.selectedTokens.noTokensPresent) {
+              console.log('no tokens');
               visibleControlPanels = []; // hide all control panels if in view only mode and not play mode
             } else if (state.getAccessLevel() === 'view') {
+              console.log('view only');
               visibleControlPanels = ['graffiti-playback-controls']; // hide all control panels if in view only mode and not play mode
             } else {
-              visibleControlPanels = ['graffiti-playback-controls', 'graffiti-record-controls'];
+              visibleControlPanels = ['graffiti-record-controls'];
+              graffiti.controlPanelIds['graffiti-record-controls'].find('#btn-start-recording').show().
+                       parent().find('#btn-restart-recording').hide().
+                       parent().find('#btn-remove-graffiti').hide();
+              graffiti.controlPanelIds['graffiti-api-key'].find('#btn-api-key').hide();
+              graffiti.controlPanelIds['graffiti-record-controls'].
+                       find('#btn-create-graffiti').show().
+                       parent().find('#btn-edit-graffiti').hide();
               if (graffiti.selectedTokens.isIntersecting) {
+                visibleControlPanels.push('graffiti-playback-controls');
                 console.log('Graffiti: tweaking recording controls');
                 graffiti.highlightIntersectingGraffitiRange();
-                graffiti.controlPanelIds['graffiti-record-controls'].find('#btn-create-graffiti').hide().parent().find('#btn-edit-graffiti').show();
+                graffiti.controlPanelIds['graffiti-record-controls'].
+                         find('#btn-create-graffiti').hide().
+                         parent().find('#btn-edit-graffiti').show().
+                         parent().find('#btn-remove-graffiti').show();
                 //console.log('selectedTokens:', graffiti.selectedTokens);
                 if (graffiti.selectedTokens.hasMovie) {
-                  graffiti.recordingAPIkey = graffiti.selectedTokens.recordingCellId.replace('id_','') + '_' + 
+                  graffiti.recordingAPIKey = graffiti.selectedTokens.recordingCellId.replace('id_','') + '_' + 
                                              graffiti.selectedTokens.recordingKey.replace('id_','');
                   visibleControlPanels.push('graffiti-api-key');
                   //console.log('this recording has a movie');
                   graffiti.controlPanelIds['graffiti-record-controls'].find('#btn-start-recording').hide().parent().find('#btn-restart-recording').show();
                   graffiti.controlPanelIds['graffiti-api-key'].find('#btn-api-key').show();
-                } else {
-                  graffiti.controlPanelIds['graffiti-record-controls'].find('#btn-start-recording').show().parent().find('#btn-restart-recording').hide();
-                  graffiti.controlPanelIds['graffiti-api-key'].find('#btn-api-key').hide();
                 }
-              } else {
-                graffiti.controlPanelIds['graffiti-record-controls'].find('#btn-create-graffiti').show().parent().find('#btn-edit-graffiti').hide();
               }
             }
             graffiti.showControlPanels(visibleControlPanels);
@@ -382,6 +425,28 @@ define([
                                    ]);
             }
             break;
+          case 'graffiting':
+            graffiti.showControlPanels(['graffiti-finish-edit-controls']);
+            graffiti.setNotifier('<div>Or, <span class="graffiti-notifier-link" id="graffiti-cancel-graffiti-link">Cancel changes</span></div>',
+                                 [
+                                   {
+                                     ids: ['graffiti-cancel-graffiti-link'],
+                                     event: 'click',
+                                     fn: (e) => {
+                                       graffiti.finishGraffiti(false);
+                                     }
+                                   }
+                                 ]);
+            break;
+          case 'recordingLabelling':
+            graffiti.showControlPanels(['graffiti-start-recording-controls']);
+            break;
+          case 'recordingPending':
+            // setNotifier to click on anything... or cancel
+            break;
+          case 'recording':
+            graffiti.showControlPanels(['graffiti-finish-recording-controls']);
+            break;
         }
 
       },
@@ -396,9 +461,6 @@ define([
 
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTips();
-
-        $('#graffiti-playback-controls').show();
-        $('#graffiti-notifier').show();
 
       },
 
@@ -1008,8 +1070,8 @@ define([
         graffiti.highlightMarkText = cm.markText(startLoc, endLoc, { className: 'graffiti-selected' });
       },
 
-      editGraffiti: (newState) => {
-        graffiti.changeActivity(newState);
+      editGraffiti: (newActivity) => {
+        graffiti.changeActivity(newActivity);
         state.setLastEditActivityTime();
         graffiti.updateControlsDisplay();
         graffiti.storeRecordingInfoInCell();
@@ -1020,28 +1082,21 @@ define([
         graffitiEditCell.metadata.cellId = utils.generateUniqueId();
         utils.refreshCellMaps();
         let editableText = '';
+        /*
         let finishLabel = 'Save Graffiti';
         let finishIconClass = 'fa-pencil';
         $('#btn-finish-graffiti i').removeClass('fa-film, fa-pencil');
+        */
         if (graffiti.selectedTokens.isIntersecting) {
           editableText = graffiti.selectedTokens.markdown; // use whatever author put into this graffiti previously
-          if (state.getActivity() === 'recordingLabelling') {
-            finishLabel = 'Start Movie Recording';
-            finishIconClass = 'fa-film';
-          }
         } else {
-          if (state.getActivity() === 'recordingLabelling') {
-            finishLabel = 'Start Movie Recording';
-            finishIconClass = 'fa-film';
-            editableText = 'Enter any markdown to describe your movie, then click "Start Movie Recording", above.' + "\n";
+          if (newActivity === 'recordingLabelling') {
+            editableText = 'Enter any markdown to describe your movie, then click "Start Movie Recording" (or just run this cell).' + "\n";
           } else {
-            editableText = 'Enter your markdown for the graffiti here and then click "Save Graffiti" above.' + "\n";
-            // Add whatever tokens are selected for initial graffiti
+            editableText = 'Enter any markdown you like to display in the graffiti here, and then click "Save Graffiti" (or just run this cell).' + "\n";
           }
           editableText += graffiti.selectedTokens.tokens.allTokensString;
         }
-        $('#btn-finish-graffiti i').addClass(finishIconClass);
-        $('#btn-finish-graffiti span').text(finishLabel);
 
         graffitiEditCell.set_text(editableText);
         graffitiEditCell.unrender();
@@ -1317,7 +1372,7 @@ define([
           case 'playing':
           case 'playbackPaused':
             if (activity === 'playing') {
-              graffiti.tweakControls('graffiti-playback-controls', { shown: ['btn-pause'], hidden: ['btn-play'] });
+              graffiti.tweakControlPanels('graffiti-playback-controls', { shown: ['btn-pause'], hidden: ['btn-play'] });
             } else {
               graffiti.tweakControls('graffiti-playback-controls', { shown: ['btn-play'], hidden: ['btn-pause'] });
             }
@@ -1554,13 +1609,13 @@ define([
             console.log('Graffiti: Now starting movie recording');
             graffiti.toggleRecording();
           }
-          graffiti.updateControlsDisplay();
+          graffiti.tweakControlPanels(cm);
         });
 
         cm.on('cursorActivity', (cm, e) => {
           console.log('cursorActivity');
           //graffiti.updateControlsDisplay(cm);
-          graffiti.tweakControlPanels();
+          graffiti.tweakControlPanels(cm);
           //console.log('graffiti.selectedTokens:', graffiti.selectedTokens);
           const affectedCell = utils.findCellByCodeMirror(cm);
           state.storeCellIdAffectedByActivity(affectedCell.metadata.cellId);
