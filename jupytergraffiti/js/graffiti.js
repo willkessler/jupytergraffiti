@@ -105,8 +105,8 @@ define([
                                     '  <div class="graffiti-small-dot-pattern" id="graffiti-drag-handle">&nbsp;</div>' +
                                     '  <div id="graffiti-control-panels-shell"></div>' +
                                     '</div>');
-        const header = $('#header');
-        outerControlPanel.appendTo(header);
+        //const header = $('#header');
+        outerControlPanel.appendTo($('body'));
         const graffitiCursor = $('<i id="graffiti-cursor" name="cursor" class="graffiti-cursor"><img src="jupytergraffiti/css/transparent_bullseye2.png"></i>');
         graffitiCursor.appendTo(header);
         graffiti.graffitiCursor = $('#graffiti-cursor');
@@ -159,14 +159,14 @@ define([
                                           ids: ['btn-begin-recording', 'btn-begin-rerecording'],
                                           event: 'click',
                                           fn: (e) => {
-                                            graffiti.editGraffiti('recordingLabelling');
+                                            graffiti.beginMovieRecordingProcess();
                                           }
                                         },
                                         {
                                           ids: ['btn-remove-graffiti'],
                                           event: 'click',
                                           fn: (e) => {
-                                            graffiti.removeGraffitiPrompt();
+                                            graffiti.removeGraffitiWithPrompt();
                                           }
                                         },
                                       ]
@@ -194,16 +194,25 @@ define([
                                           ids: ['btn-start-recording', 'btn-restart-recording'],
                                           event: 'click',
                                           fn: (e) => {
-                                            graffiti.beginMovieRecordingProcess();
+                                            graffiti.finishGraffiti(true);
                                           }
                                         }
                                       ]
         );
 
-        graffiti.setupOneControlPanel('graffiti-finish-recording-controls', 
-                                      '<button class="btn btn-default" id="btn-finish-recording" title="Finish recording">' +
-                                      '<i class="fa fa-pause recorder-stop-button"></i>&nbsp;Finish Recording</button>' +
-                                      '<div id="graffiti-time-display-recording"></div>'
+        graffiti.setupOneControlPanel('graffiti-recording-controls', 
+                                      '<button class="btn btn-default" id="btn-end-recording" title="End recording">' +
+                                      '<i class="fa fa-pause recorder-stop-button"></i>&nbsp;End Recording</button>' +
+                                      '<div id="graffiti-time-display-recording"></div>',
+                                      [
+                                        {
+                                          ids: ['btn-end-recording'],
+                                          event: 'click',
+                                          fn: (e) => {
+                                            graffiti.toggleRecording();
+                                          }
+                                        }
+                                      ]
         );
 
         graffiti.setupOneControlPanel('graffiti-playback-controls', 
@@ -313,11 +322,11 @@ define([
                                       '<div id ="graffiti-hot-tip"><div>Hot Tip!</div></div>'
         );
 
-        graffiti.setupOneControlPanel('graffiti-use-api',
-                                      '<button class="btn btn-default" id="btn-api-key" title="Use API"></i>&nbsp; <span>Use API</span></button>',
+        graffiti.setupOneControlPanel('graffiti-access-api',
+                                      '<button class="btn btn-default" id="graffiti-access-api" title="Access API"></i>&nbsp; <span>Access API</span></button>',
                                       [
                                         { 
-                                          ids: ['btn-api-key'],
+                                          ids: ['graffiti-access-api'],
                                           event: 'click', 
                                           fn: (e) => { 
                                             console.log('Graffiti: API key is:', graffiti.recordingAPIKey);
@@ -382,9 +391,20 @@ define([
                 if (graffiti.selectedTokens.hasMovie) {
                   graffiti.recordingAPIKey = graffiti.selectedTokens.recordingCellId.replace('id_','') + '_' + 
                                              graffiti.selectedTokens.recordingKey.replace('id_','');
-                  visibleControlPanels.push('graffiti-use-api');
+                  visibleControlPanels.push('graffiti-access-api');
+                  visibleControlPanels.push('graffiti-notifier');
                   //console.log('this recording has a movie');
                   graffiti.controlPanelIds['graffiti-record-controls'].find('#btn-begin-recording').hide().parent().find('#btn-begin-rerecording').show();
+                  graffiti.setNotifier('<div>You can <span class="graffiti-notifier-link" id="graffiti-idle-play-link">play</span> this movie any time.</div>',
+                                       [
+                                         {
+                                           ids: ['graffiti-idle-play-link'],
+                                           event: 'click',
+                                           fn: (e) => {
+                                             graffiti.togglePlayback();
+                                           }
+                                         },
+                                       ]);
                 }
               }
             }
@@ -392,6 +412,7 @@ define([
             break;
           case 'playing':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#btn-play').hide().parent().find('#btn-pause').show();
+            graffiti.showControlPanels(['graffiti-playback-controls']);
             graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-pause-link">Pause</span> to interact w/Notebook, or</div>' +
                                  '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-link">Cancel</span> movie playback</div>',
                                  [
@@ -414,11 +435,11 @@ define([
           case 'playbackPaused':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#btn-pause').hide().parent().find('#btn-play').show();
             if (state.getSetupForReset()) {
-              graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-play-link">Play movie again</span>, or</div>' +
+              graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-restart-play-link">Play movie again</span>, or</div>' +
                                    '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-link">Cancel</span> movie playback</div>',
                                    [
                                      {
-                                       ids: ['graffiti-play-link'],
+                                       ids: ['graffiti-restart-play-link'],
                                        event: 'click',
                                        fn: (e) => {
                                          graffiti.togglePlayback();
@@ -433,11 +454,11 @@ define([
                                      }
                                    ]);
             } else {
-              graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-play-link">Continue</span> movie playback, or</div>' +
+              graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-continue-play-link">Continue</span> movie playback, or</div>' +
                                    '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-link">Cancel</span> movie playback</div>',
                                    [
                                      {
-                                       ids: ['graffiti-play-link'],
+                                       ids: ['graffiti-continue-play-link'],
                                        event: 'click',
                                        fn: (e) => {
                                          graffiti.togglePlayback();
@@ -469,8 +490,8 @@ define([
             break;
           case 'recordingLabelling':
             graffiti.showControlPanels(['graffiti-start-recording-controls']);
-            graffiti.setNotifier('<div>Enter markdown to describe your movie, then click "Start Movie Recording" (or just run the label cell).</div>' +
-                                 'Or, <span class="graffiti-notifier-link" id="graffiti-cancel-recording-labelling-link">Cancel changes</span></div>',
+            graffiti.setNotifier('<div>Enter markdown to describe your movie, then click "Start Recording" (or just run the label cell).</div>' +
+                                 '<div>Or, <span class="graffiti-notifier-link" id="graffiti-cancel-recording-labelling-link">Cancel changes</span></div>',
                                  [
                                    {
                                      ids: ['graffiti-cancel-recording-labelling-link'],
@@ -482,20 +503,41 @@ define([
                                  ]);
             break;
           case 'recordingPending':
+            graffiti.showControlPanels([]);
             graffiti.setNotifier('<div>Click in any code cell to begin recording your movie.</div>' +
-                                 'Or, <span class="graffiti-notifier-link" id="graffiti-cancel-recording-link">Cancel recording</span></div>',
+                                 '<div>Or, <span class="graffiti-notifier-link" id="graffiti-cancel-recording-pending-link">Cancel recording</span></div>',
                                  [
+                                   {
+                                     ids: ['graffiti-cancel-recording-pending-link'],
+                                     event: 'click',
+                                     fn: (e) => {
+                                       graffiti.finishGraffiti(false);
+                                     }
+                                   }
+                                 ]);
+            break;
+          case 'recording':
+            graffiti.showControlPanels(['graffiti-recording-controls']);
+            graffiti.setNotifier('<div>Your activities are being recorded.' + 
+                                 'Press ESC or click <span class="graffiti-notifier-link" id="graffiti-end-recording-link">End Recording</span> ' +
+                                 'to end recording.</div>' +
+                                 '<div>Or, <span class="graffiti-notifier-link" id="graffiti-cancel-recording-link">Cancel recording</span></div>',
+                                 [
+                                   {
+                                     ids: ['graffiti-end-recording-link'],
+                                     event: 'click',
+                                     fn: (e) => {
+                                       graffiti.toggleRecording(true);
+                                     }
+                                   },
                                    {
                                      ids: ['graffiti-cancel-recording-link'],
                                      event: 'click',
-                                 fn: (e) => {
-                                   graffiti.finishGraffiti(false);
-                                 }
-        }
-]);
-        break;
-          case 'recording':
-            graffiti.showControlPanels(['graffiti-finish-recording-controls']);
+                                     fn: (e) => {
+                                       graffiti.finishGraffiti(false);
+                                     }
+                                   }
+                                 ]);
             break;
         }
 
@@ -730,7 +772,7 @@ define([
               state.setTipTimeout(() => {
                 const newPointerPosition = state.getPointerPosition();
                 const cursorDistanceSquared = (newPointerPosition.x - currentPointerPosition.x) * (newPointerPosition.x - currentPointerPosition.x) +
-                                                    (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
+                                                     (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
 
                 //console.log('comparing currentPointerPosition, newPointerPosition:', currentPointerPosition,
                 //            newPointerPosition, cursorDistanceSquared);
@@ -859,7 +901,6 @@ define([
               switch (activity) {
                 case 'recording':
                   graffiti.toggleRecording();
-                  graffiti.updateControlsDisplay();
                   break;
                 case 'recordingPending':
                   graffiti.clearPendingRecording();
@@ -987,27 +1028,27 @@ define([
 
         $('#recorder-controls').html(recordHtml);
 
-           $('#recorder-range').on('mousedown', (e) => {
-           //console.log('slider:mousedown');
-           graffiti.stopPlayback(); // stop playback if playing when you start to scrub
-           graffiti.clearAllCanvases();
-           graffiti.changeActivity('scrubbing');
-           });
-           $('#recorder-range').on('mouseup', (e) => {
-           //console.log('slider:mouseup')
-           graffiti.changeActivity('playbackPaused');
-           graffiti.updateAllGraffitiDisplays();
-           });
+        $('#recorder-range').on('mousedown', (e) => {
+          //console.log('slider:mousedown');
+          graffiti.stopPlayback(); // stop playback if playing when you start to scrub
+          graffiti.clearAllCanvases();
+          graffiti.changeActivity('scrubbing');
+        });
+        $('#recorder-range').on('mouseup', (e) => {
+          //console.log('slider:mouseup')
+          graffiti.changeActivity('playbackPaused');
+          graffiti.updateAllGraffitiDisplays();
+        });
 
-           $('#recorder-range').on('input', graffiti.handleSliderDrag);
-           graffiti.recordingCursor = $('#recorder-cursor');
+        $('#recorder-range').on('input', graffiti.handleSliderDrag);
+        graffiti.recordingCursor = $('#recorder-cursor');
 
 
         $('#btn-start-recording').click((e) => { graffiti.beginMovieRecordingProcess(); });
         $('#btn-finish-recording').click((e) => { graffiti.toggleRecording(); });
         $('#btn-edit-graffiti').click((e) => { graffiti.editGraffiti('graffiting'); });
         $('#btn-finish-graffiti').click((e) => { graffiti.finishGraffiti(true); });
-        $('#btn-remove-graffiti').click((e) => { graffiti.removeGraffitiPrompt(); });
+        $('#btn-remove-graffiti').click((e) => { graffiti.removeGraffitiWithPrompt(); });
         $('#recorder-record-controls .cancel').click((e) => { graffiti.finishGraffiti(false); });
         graffiti.updateCancelControls('<span>Pause</span> to interact w/Notebook at any time, or <span>Cancel Playback</span>',
                                       () => { graffiti.stopPlayback(); },
@@ -1026,43 +1067,43 @@ define([
         });
 
 
-           $('#btn-play, #btn-stop-play').click((e) => { graffiti.togglePlayback(); });
-           $('#btn-forward,#btn-rewind').click((e) => {
-           // console.log('btn-forward/btn-rewind clicked');
-           let direction = 1;
-           if (($(e.target).attr('id') === 'btn-rewind') || ($(e.target).hasClass('fa-backward'))) {
-           direction = -1;
-           }
-           graffiti.stopPlayback();
-           const timeElapsed = state.getPlaybackTimeElapsed();
-           const t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction), state.getHistoryDuration() - 1 ));
-           console.log('t:', t);
-           const frameIndexes = state.getHistoryRecordsAtTime(t);
-           state.clearSetupForReset();
-           state.setPlaybackTimeElapsed(t);
-           graffiti.updateDisplay(frameIndexes);
-           graffiti.updateSlider(t);
-           graffiti.updateAllGraffitiDisplays();
-           });
+        $('#btn-play, #btn-stop-play').click((e) => { graffiti.togglePlayback(); });
+        $('#btn-forward,#btn-rewind').click((e) => {
+          // console.log('btn-forward/btn-rewind clicked');
+          let direction = 1;
+          if (($(e.target).attr('id') === 'btn-rewind') || ($(e.target).hasClass('fa-backward'))) {
+            direction = -1;
+          }
+          graffiti.stopPlayback();
+          const timeElapsed = state.getPlaybackTimeElapsed();
+          const t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction), state.getHistoryDuration() - 1 ));
+          console.log('t:', t);
+          const frameIndexes = state.getHistoryRecordsAtTime(t);
+          state.clearSetupForReset();
+          state.setPlaybackTimeElapsed(t);
+          graffiti.updateDisplay(frameIndexes);
+          graffiti.updateSlider(t);
+          graffiti.updateAllGraffitiDisplays();
+        });
 
-           $('#btn-sound-on, #btn-sound-off').on('click', (e) => {
-           console.log('volume toggle')
-           if (state.getMute()) {
-           state.setMute(false);
-           $('#btn-sound-off').hide();
-           $('#btn-sound-on').show();
-           if (state.getActivity() === 'playing') {
-           audio.startPlayback(state.getTimePlayedSoFar());
-           }
-           } else {
-           state.setMute(true);
-           $('#btn-sound-on').hide();
-           $('#btn-sound-off').show();
-           if (state.getActivity() === 'playing') {
-           audio.stopPlayback();
-           }
-           }
-           });
+        $('#btn-sound-on, #btn-sound-off').on('click', (e) => {
+          console.log('volume toggle')
+          if (state.getMute()) {
+            state.setMute(false);
+            $('#btn-sound-off').hide();
+            $('#btn-sound-on').show();
+            if (state.getActivity() === 'playing') {
+              audio.startPlayback(state.getTimePlayedSoFar());
+            }
+          } else {
+            state.setMute(true);
+            $('#btn-sound-on').hide();
+            $('#btn-sound-off').show();
+            if (state.getActivity() === 'playing') {
+              audio.stopPlayback();
+            }
+          }
+        });
 
 
         console.log('Graffiti: UX Controls set up.');
@@ -1113,10 +1154,12 @@ define([
 
       highlightIntersectingGraffitiRange: () => {
         const cell = graffiti.selectedTokens.recordingCell;
-        const cm = cell.code_mirror;
-        const startLoc = cm.posFromIndex(graffiti.selectedTokens.start);
-        const endLoc = cm.posFromIndex(graffiti.selectedTokens.end);
-        graffiti.highlightMarkText = cm.markText(startLoc, endLoc, { className: 'graffiti-selected' });
+        if (cell !== undefined) {
+          const cm = cell.code_mirror;
+          const startLoc = cm.posFromIndex(graffiti.selectedTokens.start);
+          const endLoc = cm.posFromIndex(graffiti.selectedTokens.end);
+          graffiti.highlightMarkText = cm.markText(startLoc, endLoc, { className: 'graffiti-selected' });
+        }
       },
 
       editGraffiti: (newActivity) => {
@@ -1279,7 +1322,7 @@ define([
 
       },
 
-      removeGraffitiPrompt: () => {
+      removeGraffitiWithPrompt: () => {
         if (graffiti.selectedTokens.isIntersecting) {
           const recordingCell = graffiti.selectedTokens.recordingCell;
           const recordingCellId = recordingCell.metadata.cellId;
@@ -1306,7 +1349,7 @@ define([
             }
           });
           confirmModal.on('hidden.bs.modal', (e) => { 
-            console.log('Graffiti: escaped the removeGraffitiPrompt modal.');
+            console.log('Graffiti: escaped the removeGraffitiWithPrompt modal.');
           });
         }
       },
@@ -1438,12 +1481,10 @@ define([
       setPendingRecording: () => {
         if (state.getActivity() === 'recording') {
           graffiti.toggleRecording(); // stop current recording
-          graffiti.updateControlsDisplay();
         } else {
           console.log('Setting pending recording');
           graffiti.setRecorderHint('Click anywhere to begin recording movie. (ESC to cancel)');
           graffiti.changeActivity('recordingPending');
-          graffiti.updateControlsDisplay();
           state.restoreCellStates('selections'); // reset selections to when you clicked to begin the recording
         }
       },
@@ -1476,7 +1517,7 @@ define([
             console.log('Graffiti: Now starting movie recording');
             graffiti.toggleRecording();
           }
-          graffiti.tweakControlPanels(cm);
+          graffiti.tweakControlPanels(cm); // this is necessary since a focus change can happen when you arrow advance from one cell to the next cell
         });
 
         cm.on('cursorActivity', (cm, e) => {
@@ -1613,12 +1654,12 @@ define([
             audio.stopRecording();
             $('#recorder-range').removeAttr('disabled');
             graffiti.setRecorderHint('Movie saved. Now you can <span>play this movie</span>.', graffiti.startPlayback);
-            graffiti.changeActivity('idle');
             console.log('Graffiti: toggleRecording refreshing.');
             state.restoreCellStates('contents');
             graffiti.updateAllGraffitiDisplays();
             graffiti.sitePanel.animate({ scrollTop: state.getScrollTop() }, 750);
             state.restoreCellStates('selections');
+            graffiti.changeActivity('idle');
             console.log('Graffiti: Stopped recording.');
           } else {
 
@@ -1969,7 +2010,8 @@ define([
         graffiti.clearAllCanvases();
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTips();
-        graffiti.updateControlsDisplay();
+        graffiti.highlightIntersectingGraffitiRange();
+
         if (opts.cancelAnimation) {
           graffiti.sitePanel.animate({ scrollTop: state.getScrollTop() }, 750);
         }

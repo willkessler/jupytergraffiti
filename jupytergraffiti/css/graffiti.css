@@ -310,10 +310,9 @@
   margin-top:2px;
 }
 
-#graffiti-time-display-playback,
-#graffiti-time-display-recording {
-  margin-left:4px;
-  font-family:monospace;
+#graffiti-access-api {
+  font-size:0.8em;
+  padding:2px;
 }
 
 #graffiti-notifier {
