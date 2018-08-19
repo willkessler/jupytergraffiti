@@ -96,7 +96,7 @@ define([
       audio.playAudio(elapsedTime);
     },
 
-    stopPlayback: () => {
+    pausePlayback: () => {
       audio.pauseAudio();
     },
 

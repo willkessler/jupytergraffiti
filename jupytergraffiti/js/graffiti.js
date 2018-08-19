@@ -271,15 +271,15 @@ define([
                                           fn: (e) => {
                                             if (state.getMute()) {
                                               state.setMute(false);
-                                              graffiti.updateControlsDisplay();
+                                              graffiti.tweakControlPanels();
                                               if (state.getActivity() === 'playing') {
                                                 audio.startPlayback(state.getTimePlayedSoFar());
                                               }
                                             } else {
                                               state.setMute(true);
-                                              graffiti.updateControlsDisplay();
+                                              graffiti.tweakControlPanels();
                                               if (state.getActivity() === 'playing') {
-                                                audio.stopPlayback();
+                                                audio.pausePlayback();
                                               }
                                             }
                                           }
@@ -289,7 +289,7 @@ define([
                                           event: 'mousedown',
                                           fn: (e) => {
                                             //console.log('slider:mousedown');
-                                            graffiti.stopPlayback(); // stop playback if playing when you start to scrub
+                                            graffiti.pausePlayback(); // stop playback if playing when you start to scrub
                                             graffiti.clearAllCanvases();
                                             graffiti.changeActivity('scrubbing');
                                           }
@@ -413,6 +413,11 @@ define([
             break;
           case 'playing':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#btn-play').hide().parent().find('#btn-pause').show();
+            if (state.getMute()) {
+              graffiti.controlPanelIds['graffiti-playback-controls'].find('#btn-sound-on').hide().parent().find('#btn-sound-off').show();
+            } else {
+              graffiti.controlPanelIds['graffiti-playback-controls'].find('#btn-sound-off').hide().parent().find('#btn-sound-on').show();
+            }
             graffiti.showControlPanels(['graffiti-playback-controls']);
             graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-pause-link">Pause</span> to interact w/Notebook, or</div>' +
                                  '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-link">Cancel</span> movie playback</div>',
@@ -1034,7 +1039,7 @@ define([
 
         $('#recorder-range').on('mousedown', (e) => {
           //console.log('slider:mousedown');
-          graffiti.stopPlayback(); // stop playback if playing when you start to scrub
+          graffiti.pausePlayback(); // stop playback if playing when you start to scrub
           graffiti.clearAllCanvases();
           graffiti.changeActivity('scrubbing');
         });
@@ -1055,7 +1060,7 @@ define([
         $('#btn-remove-graffiti').click((e) => { graffiti.removeGraffitiWithPrompt(); });
         $('#recorder-record-controls .cancel').click((e) => { graffiti.finishGraffiti(false); });
         graffiti.updateCancelControls('<span>Pause</span> to interact w/Notebook at any time, or <span>Cancel Playback</span>',
-                                      () => { graffiti.stopPlayback(); },
+                                      () => { graffiti.pausePlayback(); },
                                       () => { graffiti.cancelPlayback({cancelAnimation:true}) } );
         
         // Provide API usage examples in a cell after the current recording.
@@ -1078,7 +1083,7 @@ define([
           if (($(e.target).attr('id') === 'btn-rewind') || ($(e.target).hasClass('fa-backward'))) {
             direction = -1;
           }
-          graffiti.stopPlayback();
+          graffiti.pausePlayback();
           const timeElapsed = state.getPlaybackTimeElapsed();
           const t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction), state.getHistoryDuration() - 1 ));
           console.log('t:', t);
@@ -1104,7 +1109,7 @@ define([
             $('#btn-sound-on').hide();
             $('#btn-sound-off').show();
             if (state.getActivity() === 'playing') {
-              audio.stopPlayback();
+              audio.pausePlayback();
             }
           }
         });
@@ -1606,7 +1611,7 @@ define([
 
         Jupyter.notebook.events.on('delete.Cell', (e) => {
           utils.refreshCellMaps();
-          graffiti.stopPlayback();
+          graffiti.pausePlayback();
           state.storeHistoryRecord('contents');
         });
 
@@ -1939,7 +1944,7 @@ define([
       //
 
       jumpPlayback: (direction) => {
-        graffiti.stopPlayback();
+        graffiti.pausePlayback();
         const timeElapsed = state.getPlaybackTimeElapsed();
         const t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction), state.getHistoryDuration() - 1 ));
         console.log('t:', t);
@@ -1967,20 +1972,20 @@ define([
         graffiti.updateTimeDisplay(t);
       },
 
-      stopPlaybackNoVisualUpdates: () => {
+      pausePlaybackNoVisualUpdates: () => {
         clearInterval(state.getPlaybackInterval());
         graffiti.changeActivity('playbackPaused');
         graffiti.togglePlayButtons();
-        audio.stopPlayback();
+        audio.pausePlayback();
         state.setPlaybackTimeElapsed();
       },
 
       // Pause any ongoing playback
-      stopPlayback: () => {
+      pausePlayback: () => {
         if (state.getActivity() !== 'playing')
           return;
 
-        graffiti.stopPlaybackNoVisualUpdates();
+        graffiti.pausePlaybackNoVisualUpdates();
 
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTips();
@@ -1998,7 +2003,7 @@ define([
       },
 
       cancelPlaybackNoVisualUpdates: () => {
-        graffiti.stopPlaybackNoVisualUpdates();
+        graffiti.pausePlaybackNoVisualUpdates();
         state.setGarnishing(false);
         state.resetPlayState();
         graffiti.changeActivity('idle');
@@ -2049,7 +2054,7 @@ define([
         /*        graffiti.togglePlayButtons();*/
 
         graffiti.updateCancelControls('<span>Pause</span> to interact w/Notebook at any time or <span>Cancel movie</span>',
-                                      () => { graffiti.stopPlayback(); },
+                                      () => { graffiti.pausePlayback(); },
                                       () => { graffiti.cancelPlayback({cancelAnimation:true}) } );
 
         if (state.resetOnNextPlay) {
@@ -2089,7 +2094,7 @@ define([
         const activity = state.getActivity();
         if (activity !== 'recording') {
           if (activity === 'playing') {
-            graffiti.stopPlayback();
+            graffiti.pausePlayback();
           } else {
             graffiti.startPlayback();
           }
