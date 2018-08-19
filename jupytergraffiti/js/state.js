@@ -35,6 +35,7 @@ define([
       state.lastEditActivityTime = undefined;
       state.controlPanelDragging = false;
       state.controlPanelDragOffset = { x: 0, y: 0 };
+      state.playableMovies = {};
       state.cellStates = {
         contents: {},
         changedCells: {},
@@ -299,6 +300,18 @@ define([
     storeRecordingCellInfo: (cellInfo) => {
       // console.log('storeRecordingCellInfo');
       state.recordingCellInfo = cellInfo;
+    },
+
+    getPlayableMovie: (kind) => {
+      return state.playableMovies[kind];
+    },
+
+    setPlayableMovie: (kind, cellId, recordingKey) => {
+      state.playableMovies[kind] = { cellId: cellId, recordingKey: recordingKey };      
+    },
+
+    clearPlayableMovie: (kind) => {
+      state.playableMovies[kind] = undefined;
     },
 
     getMovieRecordingStarted: () => {
