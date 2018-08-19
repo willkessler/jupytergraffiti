@@ -128,8 +128,8 @@ define([
           e.stopPropagation();
         });
         $('body').on('mouseup', (e) => {
-          console.log('Graffiti: no longer dragging control panel');
           if (state.getControlPanelDragging()) {
+            console.log('Graffiti: no longer dragging control panel');
             state.setControlPanelDragging(false);
             e.preventDefault();
             e.stopPropagation();
@@ -187,8 +187,7 @@ define([
 
         graffiti.setupOneControlPanel('graffiti-start-recording-controls', 
                                       '<button class="btn btn-default" id="btn-start-recording" title="Start recording">' +
-                                      '<i class="fa fa-pause recorder-start-button"></i>&nbsp;Start Recording</button>' +
-                                      '<div id="graffiti-time-display-recording"></div>',
+                                      '<i class="fa fa-pause recorder-start-button"></i>&nbsp;Start Recording</button>',
                                       [
                                         {
                                           ids: ['btn-start-recording', 'btn-restart-recording'],
@@ -1436,7 +1435,6 @@ define([
       updateAllGraffitiDisplays: () => {
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTips();
-        graffiti.updateControlsDisplay();
       },
 
       clearNotification: (force) => {
@@ -1636,6 +1634,7 @@ define([
           if (state.getStorageInProcess()) {
             storage.clearStorageInProcess();
             graffiti.updateAllGraffitiDisplays();
+            graffiti.tweakControlPanels();
           }
         });
 
@@ -1657,13 +1656,16 @@ define([
             clearInterval(state.getRecordingInterval());
             // This will use the callback defined in setAudioStorageCallback to actually persist everything.
             audio.stopRecording();
-            $('#recorder-range').removeAttr('disabled');
-            graffiti.setRecorderHint('Movie saved. Now you can <span>play this movie</span>.', graffiti.startPlayback);
+            //$('#recorder-range').removeAttr('disabled');
+            //graffiti.setRecorderHint('Movie saved. Now you can <span>play this movie</span>.', graffiti.startPlayback);
             console.log('Graffiti: toggleRecording refreshing.');
             state.restoreCellStates('contents');
             graffiti.updateAllGraffitiDisplays();
             graffiti.sitePanel.animate({ scrollTop: state.getScrollTop() }, 750);
             state.restoreCellStates('selections');
+            state.deleteTrackingArrays();
+//            const recordingCellInfo = state.getRecordingCellInfo();
+//            state.setPlayableMovie(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
             graffiti.changeActivity('idle');
             console.log('Graffiti: Stopped recording.');
           } else {
@@ -1708,6 +1710,7 @@ define([
 
       changeActivity: (newActivity) => {
         if (state.getActivity() === newActivity) {
+          console.log('Graffiti: state is already :', newActivity, 'not changing it');
           return; // no change to activity
         }
         state.setActivity(newActivity);
@@ -1945,6 +1948,7 @@ define([
         state.setPlaybackTimeElapsed(t);
         graffiti.updateDisplay(frameIndexes);
         graffiti.updateSlider(t);
+        graffiti.updateTimeDisplay(t);
         graffiti.updateAllGraffitiDisplays();
       },
 

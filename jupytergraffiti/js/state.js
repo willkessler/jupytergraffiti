@@ -275,6 +275,7 @@ define([
 
     setActivity: (newState) => {
       state.activity = newState;
+      console.trace('Graffiti: set activity to:', newState);
     },
 
     getPointerPosition: () => {
@@ -555,13 +556,15 @@ define([
     },
 
     finalizeHistory: () => {
-      console.log('finalizeHistory: deleting Tracking arrays');
-      delete(state.history.cellContentsTracking);
-      delete(state.history.cellOutputsTracking);
-      state.setActivity('idle');
       state.setHistoryDuration();
       state.normalizeTimeframes();
       state.setupForReset();
+    },
+
+    deleteTrackingArrays: () => {
+      console.log('finalizeHistory: deleting Tracking arrays');
+      delete(state.history.cellContentsTracking);
+      delete(state.history.cellOutputsTracking);
     },
 
     getJSONHistory: () => {
