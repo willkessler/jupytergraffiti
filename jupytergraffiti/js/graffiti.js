@@ -388,7 +388,9 @@ define([
                          parent().find('#btn-edit-graffiti').show().
                          parent().find('#btn-remove-graffiti').show();
                 //console.log('selectedTokens:', graffiti.selectedTokens);
+                state.clearPlayableMovie('cursorActivity');
                 if (graffiti.selectedTokens.hasMovie) {
+                  state.setPlayableMovie('cursorActivity', graffiti.selectedTokens.recordingCellId,graffiti.selectedTokens.recordingKey);
                   graffiti.recordingAPIKey = graffiti.selectedTokens.recordingCellId.replace('id_','') + '_' + 
                                              graffiti.selectedTokens.recordingKey.replace('id_','');
                   visibleControlPanels.push('graffiti-access-api');
@@ -401,7 +403,7 @@ define([
                                            ids: ['graffiti-idle-play-link'],
                                            event: 'click',
                                            fn: (e) => {
-                                             graffiti.togglePlayback();
+                                             graffiti.loadAndPlayMovie('cursorActivity');
                                            }
                                          },
                                        ]);
@@ -748,6 +750,13 @@ define([
         }
       },
 
+      hideTip: (tip,clearPlayableMovie) => {
+        tip.hide();
+        if (clearPlayableMovie) {
+          state.clearPlayableMovie('tip');
+        }
+      },
+
       refreshGraffitiTips: () => {
         const tips = $('.graffiti-highlight');
         //console.log('tips:', tips);
@@ -757,22 +766,22 @@ define([
           const idMatch = highlightElem.attr('class').match(/an-(id_.[^\-]+)-(id_[^\s]+)/);
           if (idMatch !== undefined) {
             const cellId = idMatch[1];
-            const recordingId = idMatch[2];
+            const recordingKey = idMatch[2];
             const hoverCell = utils.findCellByCellId(cellId);
             const hoverCellElement = hoverCell.element[0];
             const hoverCellElementPosition = $(hoverCellElement).position();
             const outerInputElement = $(hoverCellElement).find('.CodeMirror-lines');
-            const recording = state.getManifestSingleRecording(cellId, recordingId);
+            const recording = state.getManifestSingleRecording(cellId, recordingKey);
             let existingTip = graffiti.notebookContainer.find('.graffiti-tip');
             if (e.type === 'mouseleave') {
-              state.setTipTimeout(() => { existingTip.hide(); }, 500);
+              state.setTipTimeout(() => { graffiti.hideTip(existingTip,true); }, 500);
             } else {
               const currentPointerPosition = state.getPointerPosition();
               // Only show tip if cursor rests on hover for a 1/2 second
               state.setTipTimeout(() => {
                 const newPointerPosition = state.getPointerPosition();
                 const cursorDistanceSquared = (newPointerPosition.x - currentPointerPosition.x) * (newPointerPosition.x - currentPointerPosition.x) +
-                                                     (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
+                                              (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
 
                 //console.log('comparing currentPointerPosition, newPointerPosition:', currentPointerPosition,
                 //            newPointerPosition, cursorDistanceSquared);
@@ -796,9 +805,9 @@ define([
                   let tooltipContents = headlineMarkdown + '<div class="parts">' + '<div class="info">' + contentMarkdown + '</div>';
                   if (recording.hasMovie) {
                     const buttonName = (((tooltipCommands !== undefined) && (tooltipCommands.buttonName !== undefined)) ? tooltipCommands.buttonName : 'Play Movie');
+                    state.setPlayableMovie('tip', cellId, recordingKey);
                     tooltipContents +=
-                      '   <div class="movie"><button class="btn btn-default btn-small" id="moviePlay" cell-id="' + cellId + '" recording-id="' + recordingId + '">' +
-                      buttonName + '</button></div>';
+                      '   <div class="movie"><button class="btn btn-default btn-small" id="moviePlay">' + buttonName + '</button></div>';
                   }
                   tooltipContents += '</div>';
 
@@ -810,7 +819,7 @@ define([
                       if (e.type === 'mouseenter') {
                         state.clearTipTimeout();
                       } else {
-                        existingTip.hide();
+                        graffiti.hideTip(existingTip,true);
                       }
                     });
                   } else {
@@ -820,13 +829,9 @@ define([
                   existingTip.find('#moviePlay').click((e) => {
                     //console.log('click in tip');
                     state.clearTipTimeout();
-                    existingTip.hide();
+                    graffiti.hideTip(existingTip,false);
                     e.stopPropagation(); // for reasons unknown even still propogates to the codemirror editing area undeneath
-                    const button = $(e.target);
-                    const tipCellId = button.attr('cell-id');
-                    const tipRecordingId = button.attr('recording-id');
-                    const activity = state.getActivity();
-                    graffiti.loadAndPlayMovie(tipCellId, tipRecordingId);
+                    graffiti.loadAndPlayMovie('tip');
                     return false;
                   });
                   const outerInputOffset = outerInputElement.offset();
@@ -1521,7 +1526,7 @@ define([
         });
 
         cm.on('cursorActivity', (cm, e) => {
-          console.log('cursorActivity');
+          //console.log('cursorActivity');
           //graffiti.updateControlsDisplay(cm);
           if (state.getActivity() === 'idle') {
             graffiti.tweakControlPanels(cm);
@@ -2088,10 +2093,15 @@ define([
         }
       },
 
-      loadAndPlayMovie: (cellId, recordingId) => {
+      loadAndPlayMovie: (kind) => {
+        const playableMovie = state.getPlayableMovie(kind);
+        if (playableMovie === undefined) {
+          console.log('Graffiti: no playable movie defined.');
+          return;
+        }
         graffiti.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
-        storage.loadMovie(cellId, recordingId).then( () => {
-          console.log('Graffiti: Movie loaded for cellId, recordingId:', cellId, recordingId);
+        storage.loadMovie(playableMovie.cellId, playableMovie.recordingKey).then( () => {
+          console.log('Graffiti: Movie loaded for cellId, recordingKey:', playableMovie.cellId, playableMovie.recordingKey);
           graffiti.togglePlayback();
         }).catch( (ex) => {
           dialog.modal({
@@ -2121,8 +2131,9 @@ define([
       playRecordingById: (recordingFullId) => {
         const parts = recordingFullId.split('_');
         const cellId = 'id_' + parts[0];
-        const recordingId = 'id_' + parts[1];
-        graffiti.loadAndPlayMovie(cellId, recordingId);
+        const recordingKey = 'id_' + parts[1];
+        state.setPlayableMovie('api', cellId,recordingKey);
+        graffiti.loadAndPlayMovie('api');
       },
 
       playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => {
