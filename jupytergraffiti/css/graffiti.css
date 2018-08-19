@@ -367,6 +367,11 @@
   text-decoration:underline;
 }
 
+#btn-sound-on,
+#btn-sound-off {
+  min-width:24px;
+}
+
 /* 
 http://www.patternify.com/
 */
