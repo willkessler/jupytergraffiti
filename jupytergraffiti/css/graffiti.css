@@ -137,8 +137,6 @@
 }
 
 .recorder-range {
-  padding-left:4px;
-  padding-top:5px;
   flex-grow:1.25;
   width:70px; /* we never want the recorder-buttons to wrap */
 }
@@ -361,6 +359,13 @@
   flex-grow:1.25;
 }
 
+#graffiti-recording-status {
+  display:flex;
+  justify-content:left;
+  align-items:center;
+  margin-left:2px;
+}
+
 #graffiti-time-display-recording,
 #graffiti-time-display-playback {
   padding: 4px 2px 0px 4px;
@@ -370,6 +375,15 @@
 #graffiti-time-display-recording {
   color:red;
 }
+
+#graffiti-recording-flash-icon {
+  width:10px;
+  height:10px;
+  border-radius:6px;
+  background:red;
+  margin-top:2px;
+}
+
 
 .graffiti-notifier-link {
   cursor:pointer;
