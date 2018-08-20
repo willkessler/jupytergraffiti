@@ -293,6 +293,15 @@
   z-index:1000;
 }
 
+#graffiti-control-panel-title {
+  font-color:#666;
+  text-transform:uppercase;
+  text-align:center;
+  width:100%;
+  margin:0px;
+  font-size:.8em;
+  border-bottom:1px dotted #aaa;
+}
 
 #graffiti-playback-buttons,
 #graffiti-scrub-controls {
