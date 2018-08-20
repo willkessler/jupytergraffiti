@@ -210,7 +210,10 @@ define([
         graffiti.setupOneControlPanel('graffiti-recording-controls', 
                                       '<button class="btn btn-default" id="btn-end-recording" title="End recording">' +
                                       '<i class="fa fa-pause recorder-stop-button"></i>&nbsp;End Recording</button>' +
-                                      '<div id="graffiti-time-display-recording"></div>',
+                                      '<div id="graffiti-recording-status">' +
+                                      '  <div id="graffiti-recording-flash-icon"></div>' +
+                                      '  <div id="graffiti-time-display-recording"></div>' +
+                                      '</div>',
                                       [
                                         {
                                           ids: ['btn-end-recording'],
@@ -542,7 +545,7 @@ define([
                                      ids: ['graffiti-end-recording-link'],
                                      event: 'click',
                                      fn: (e) => {
-                                       graffiti.toggleRecording(true);
+                                       graffiti.toggleRecording();
                                      }
                                    },
                                    {
@@ -1008,126 +1011,6 @@ define([
         cancelControls.find('span:last').click(cb2);
       },
 
-      setupControls: () => {
-
-        const lastButton = $('.btn-group:last');
-        const panel = $('<div id="recorder-controls"></div>');
-        panel.appendTo(lastButton);
-        let recordHtml = '';
-
-        recordHtml +=
-          '<div id="recorder-record-controls">' +
-          '  <div id="recorder-record-controls-inner">' +
-          '    <button class="btn btn-default" id="btn-edit-graffiti"><i class="fa fa-pencil"></i>&nbsp; <span>Edit</span></button>' +
-          '    <button class="btn btn-default" id="btn-finish-graffiti" title="Save Graffiti"><i class="fa fa-pencil"></i>' +
-          '&nbsp;<span>Save Graffiti</span></button>' +
-          '    <a href="#" class="cancel" title="Cancel">Cancel changes</a>' +
-          '    <div class="recorder-time-display-recording"></div>' +
-          '    <button class="btn btn-default" id="btn-start-recording" title="Record movie for this graffiti">' +
-          '<i class="fa fa-film recorder-button"></i>&nbsp;<span>Record</span></button>' +
-          '    <button class="btn btn-default recorder-hidden" id="btn-finish-recording" title="finish recording"><i class="fa fa-pause recorder-stop-button"></i>' +
-          '&nbsp;Finish</button>' +
-          '    <button class="btn btn-default" id="btn-remove-graffiti" title="Remove Graffiti"><i class="fa fa-trash"></i></button>' +
-          '    <div class="recorder-hint">&nbsp;</div>' +
-          '    <div id="recorder-api-key">&nbsp;</div>' +
-          '  </div>' +
-          '</div>';
-
-        recordHtml +=
-          '<div id="recorder-playback-controls">' +
-          '  <div id="recorder-playback-inner">' +
-          '      <div class="cancel" title="Cancel Playback"></div>' +
-          '    </div>' +
-          '  </div>' +
-          '  <i id="recorder-cursor" name="cursor" class="recorder-cursor"><img src="jupytergraffiti/css/transparent_bullseye2.png"></i>' +
-          '</div>' +
-          '<div id="recorder-notifier"></div>';
-        //'  <i id="recorder-cursor" name="cursor" class="fa fa-mouse-pointer recorder-cursor">&nbsp;</i>' +
-
-        $('#recorder-controls').html(recordHtml);
-
-        $('#recorder-range').on('mousedown', (e) => {
-          //console.log('slider:mousedown');
-          graffiti.pausePlayback(); // stop playback if playing when you start to scrub
-          graffiti.clearAllCanvases();
-          graffiti.changeActivity('scrubbing');
-        });
-        $('#recorder-range').on('mouseup', (e) => {
-          //console.log('slider:mouseup')
-          graffiti.changeActivity('playbackPaused');
-          graffiti.updateAllGraffitiDisplays();
-        });
-
-        $('#recorder-range').on('input', graffiti.handleSliderDrag);
-        graffiti.recordingCursor = $('#recorder-cursor');
-
-
-        $('#btn-start-recording').click((e) => { graffiti.beginMovieRecordingProcess(); });
-        $('#btn-finish-recording').click((e) => { graffiti.toggleRecording(); });
-        $('#btn-edit-graffiti').click((e) => { graffiti.editGraffiti('graffiting'); });
-        $('#btn-finish-graffiti').click((e) => { graffiti.finishGraffiti(true); });
-        $('#btn-remove-graffiti').click((e) => { graffiti.removeGraffitiWithPrompt(); });
-        $('#recorder-record-controls .cancel').click((e) => { graffiti.finishGraffiti(false); });
-        graffiti.updateCancelControls('<span>Pause</span> to interact w/Notebook at any time, or <span>Cancel Playback</span>',
-                                      () => { graffiti.pausePlayback(); },
-                                      () => { graffiti.cancelPlayback({cancelAnimation:true}) } );
-        
-        // Provide API usage examples in a cell after the current recording.
-        $('#recorder-api-key').click((e) => { 
-          const apiKey = $('#recorder-api-key span').attr('id');
-          let recorderApiKeyCell = Jupyter.notebook.insert_cell_below('code');
-          let invocationLine = "jupytergraffiti.api.play_recording('" + apiKey + "')\n" +
-                               "# jupytergraffiti.api.play_recording_with_prompt('" + apiKey +
-                               "', '![idea](../images/lightbulb_small.jpg) Click **here** to learn more.')\n" +
-                               "# jupytergraffiti.api.stop_playback()";
-          recorderApiKeyCell.set_text(invocationLine);          
-          Jupyter.notebook.select_next();
-        });
-
-
-        $('#btn-play, #btn-stop-play').click((e) => { graffiti.togglePlayback(); });
-        $('#btn-forward,#btn-rewind').click((e) => {
-          // console.log('btn-forward/btn-rewind clicked');
-          let direction = 1;
-          if (($(e.target).attr('id') === 'btn-rewind') || ($(e.target).hasClass('fa-backward'))) {
-            direction = -1;
-          }
-          graffiti.pausePlayback();
-          const timeElapsed = state.getPlaybackTimeElapsed();
-          const t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction), state.getHistoryDuration() - 1 ));
-          console.log('t:', t);
-          const frameIndexes = state.getHistoryRecordsAtTime(t);
-          state.clearSetupForReset();
-          state.setPlaybackTimeElapsed(t);
-          graffiti.updateDisplay(frameIndexes);
-          graffiti.updateSlider(t);
-          graffiti.updateAllGraffitiDisplays();
-        });
-
-        $('#btn-sound-on, #btn-sound-off').on('click', (e) => {
-          console.log('volume toggle')
-          if (state.getMute()) {
-            state.setMute(false);
-            $('#btn-sound-off').hide();
-            $('#btn-sound-on').show();
-            if (state.getActivity() === 'playing') {
-              audio.startPlayback(state.getTimePlayedSoFar());
-            }
-          } else {
-            state.setMute(true);
-            $('#btn-sound-on').hide();
-            $('#btn-sound-off').show();
-            if (state.getActivity() === 'playing') {
-              audio.pausePlayback();
-            }
-          }
-        });
-
-
-        console.log('Graffiti: UX Controls set up.');
-
-        graffiti.setupBackgroundEvents();
-      },
 
       storeRecordingInfoInCell: () => {
         let recordingRecord, newRecording, recordingCell, recordingCellId, recordingKey;
@@ -1589,6 +1472,10 @@ define([
             //
 
             graffiti.clearAllCanvases();
+            if (graffiti.recordingIndicatorInterval !== undefined) {
+              clearInterval(graffiti.recordingIndicatorInterval);
+              graffiti.recordingIndicatorInterval = undefined;
+            }
             state.finalizeHistory();
             state.dumpHistory();
             clearInterval(state.getRecordingInterval());
@@ -1640,6 +1527,13 @@ define([
                 graffiti.updateTimeDisplay(state.getTimeRecordedSoFar());
               }, 10)
             );
+            graffiti.recordingIndicatorInterval = setInterval(() => {
+              if (state.getTimeRecordedSoFar() % 2000 > 1000) {
+                $('#graffiti-recording-flash-icon').css({background:'rgb(245,245,245)'});
+              } else {
+                $('#graffiti-recording-flash-icon').css({background:'rgb(255,0,0)'});
+              }
+            }, 1000);
             console.log('Started recording');
           }
         }
