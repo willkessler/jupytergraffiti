@@ -136,6 +136,9 @@ define([
           }
         });
 
+        graffiti.setupOneControlPanel('graffiti-control-panel-title', 
+                                      'G&nbsp;&nbsp;&nbsp;R&nbsp;&nbsp;&nbsp;A&nbsp;&nbsp;&nbsp;F&nbsp;&nbsp;&nbsp;F&nbsp;&nbsp;&nbsp;I&nbsp;&nbsp;&nbsp;T&nbsp;&nbsp;&nbsp;I');
+
         graffiti.setupOneControlPanel('graffiti-record-controls', 
                                       '  <button class="btn btn-default" id="btn-create-graffiti">' +
                                       '<i class="fa fa-pencil"></i>&nbsp; <span>Create</span></button>' +
@@ -340,6 +343,7 @@ define([
 
       showControlPanels: (panels) => {
         graffiti.controlPanelsShell.children().hide();
+        graffiti.controlPanelIds['graffiti-control-panel-title'].show(); // the title bar is always shown
         for (controlPanelId of panels) {
           console.log('Graffiti: showing panel:', controlPanelId);
           graffiti.controlPanelIds[controlPanelId].show();
