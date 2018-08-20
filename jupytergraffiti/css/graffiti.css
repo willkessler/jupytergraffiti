@@ -282,7 +282,7 @@
 
 #graffiti-outer-control-panel {
   position:absolute;
-  padding:6px 24px 6px 4px;
+  padding:6px 6px 6px 4px;
   margin-right:21px;
   top:100px;
   left:10px;
@@ -298,9 +298,10 @@
   text-transform:uppercase;
   text-align:center;
   width:100%;
-  margin:0px;
+  margin-top:0px;
+  margin-bottom:8px;
   font-size:.8em;
-  border-bottom:1px dotted #aaa;
+  cursor:pointer;
 }
 
 #graffiti-playback-buttons,

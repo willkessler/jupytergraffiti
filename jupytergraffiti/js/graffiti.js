@@ -89,6 +89,16 @@ define([
         graffiti.notificationMsgs[notificationMsg].show();
       },
 
+      startPanelDragging: (e) => {
+        console.log('Graffiti: dragging control panel');
+        const controlPanelPosition = graffiti.outerControlPanel.position();
+        const pointerPosition = state.getPointerPosition();
+        state.setControlPanelDragging(true);
+        state.setControlPanelDragOffset({ left: pointerPosition.x - controlPanelPosition.left, top: pointerPosition.y - controlPanelPosition.top });
+        e.preventDefault();
+        e.stopPropagation();
+      },
+      
       setupOneControlPanel: (elemId,elemHtml, callbacks) => {
         if (graffiti.controlPanelIds === undefined) {
           graffiti.controlPanelIds = {};
@@ -114,19 +124,9 @@ define([
         graffiti.outerControlPanel = $('#graffiti-outer-control-panel');
         graffiti.controlPanelsShell = $('#graffiti-control-panels-shell');
 
-//        const outerControlCancel = $('<div id="graffiti-control-panel-cancel" title="Cancel">X</div>');
-//        outerControlCancel.appendTo(graffiti.outerControlPanel);
+        //        const outerControlCancel = $('<div id="graffiti-control-panel-cancel" title="Cancel">X</div>');
+        //        outerControlCancel.appendTo(graffiti.outerControlPanel);
 
-        const dragHandle = $('#graffiti-drag-handle');
-        dragHandle.on('mousedown', (e) => {
-          console.log('Graffiti: dragging control panel');
-          const controlPanelPosition = graffiti.outerControlPanel.position();
-          const pointerPosition = state.getPointerPosition();
-          state.setControlPanelDragging(true);
-          state.setControlPanelDragOffset({ left: pointerPosition.x - controlPanelPosition.left, top: pointerPosition.y - controlPanelPosition.top });
-          e.preventDefault();
-          e.stopPropagation();
-        });
         $('body').on('mouseup', (e) => {
           if (state.getControlPanelDragging()) {
             console.log('Graffiti: no longer dragging control panel');
@@ -136,8 +136,13 @@ define([
           }
         });
 
-        graffiti.setupOneControlPanel('graffiti-control-panel-title', 
-                                      'G&nbsp;&nbsp;&nbsp;R&nbsp;&nbsp;&nbsp;A&nbsp;&nbsp;&nbsp;F&nbsp;&nbsp;&nbsp;F&nbsp;&nbsp;&nbsp;I&nbsp;&nbsp;&nbsp;T&nbsp;&nbsp;&nbsp;I');
+        const logoText = 'Graffiti'.split('').join('&nbsp;&nbsp;&nbsp;&nbsp;');
+        graffiti.setupOneControlPanel('graffiti-control-panel-title', logoText);
+
+        const dragHandle = $('#graffiti-drag-handle,#graffiti-control-panel-title');
+        dragHandle.on('mousedown', (e) => {
+          graffiti.startPanelDragging(e); 
+        });
 
         graffiti.setupOneControlPanel('graffiti-record-controls', 
                                       '  <button class="btn btn-default" id="btn-create-graffiti">' +
@@ -486,7 +491,7 @@ define([
             break;
           case 'graffiting':
             graffiti.showControlPanels(['graffiti-finish-edit-controls']);
-            graffiti.setNotifier('<div>Enter markdown you want to be displayed in the Graffiti and then click "Save Graffiti"  (or just run the label cell).</div>' +
+            graffiti.setNotifier('<div>Enter the markdown you want to be displayed in the Graffiti and then click "Save Graffiti"  (or just run the label cell).</div>' +
                                  '<div>Or, <span class="graffiti-notifier-link" id="graffiti-cancel-graffiting-link">Cancel changes</span></div>',
                                  [
                                    {
@@ -1178,7 +1183,6 @@ define([
       editGraffiti: (newActivity) => {
         graffiti.changeActivity(newActivity);
         state.setLastEditActivityTime();
-        graffiti.updateControlsDisplay();
         graffiti.storeRecordingInfoInCell();
 
         const activeCellIndex = Jupyter.notebook.get_selected_index();
@@ -1253,7 +1257,7 @@ define([
           graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: false});
           graffiti.refreshGraffitiTips();
         }
-        graffiti.tweakControlPanels();
+//        graffiti.tweakControlPanels();
       },
 
       removeGraffitiCore: (recordingCell, recordingKey) => {
@@ -1284,7 +1288,7 @@ define([
           graffiti.highlightMarkText.clear();
         }
         graffiti.refreshGraffitiTips();
-        graffiti.updateControlsDisplay();
+        graffiti.tweakControlPanels();
         utils.saveNotebook();
 
         dialog.modal({
@@ -1365,80 +1369,6 @@ define([
             console.log('Graffiti: escaped the removeGraffitiWithPrompt modal.');
           });
         }
-      },
-
-      updateControlsDisplay: () => {
-        return;
-        const activity = state.getActivity();
-        switch (activity) {
-          case 'graffiting':
-            break;
-          case 'recordingLabelling':
-            graffiti.setNotifier('Enter or update your Graffiti tip, then click <b>Start Recording</b> when ready to record.');
-            graffiti.showControlPanels(['graffiti-record-controls', 'graffiti-notifier']);
-            break;
-          case 'recordingPending':
-            graffiti.setNotifier('Click inside any cell to begin your recording.');
-            graffiti.showControlPanels(['graffiti-record-controls', 'graffiti-notifier']);
-            break;
-          case 'recording':
-            graffiti.setNotifier('Click <b>Finish Recording</b> or press ESC to complete your recording.');
-            graffiti.showControlPanels(['graffiti-record-controls', 'graffiti-notifier']);
-            break;
-          case 'playing':
-          case 'playbackPaused':
-            if (activity === 'playing') {
-              graffiti.tweakControlPanels('graffiti-playback-controls', { shown: ['btn-pause'], hidden: ['btn-play'] });
-            } else {
-              graffiti.tweakControls('graffiti-playback-controls', { shown: ['btn-play'], hidden: ['btn-pause'] });
-            }
-            if (state.getMute()) {
-              graffiti.tweakControls('graffiti-playback-controls', { shown: ['btn-sound-off'], hidden: ['btn-sound-on'] });
-            } else {
-              graffiti.tweakControls('graffiti-playback-controls', { shown: ['btn-sound-on'], hidden: ['btn-sound-off'] });
-            }
-            graffiti.showControlPanels(['graffiti-playback-controls']);
-            break;
-          case 'idle':
-            // Check if anchor or head of current selection is inside an existing recording token set. Controls will be different if so.
-
-            const activeCell = Jupyter.notebook.get_selected_cell();
-            graffiti.selectedTokens = utils.findSelectionTokens(activeCell, graffiti.tokenRanges, state);
-            if (graffiti.highlightMarkText) {
-              graffiti.highlightMarkText.clear();
-            }
-            graffiti.showControlPanels(['graffiti-record-controls']);
-            if (state.getAccessLevel() === 'view') {
-              graffiti.showControlPanels([]); // hide all control panels if in view only mode and not play mode
-            } else if (graffiti.selectedTokens.noTokensPresent) {
-              // we are authoring but we cannot create a graffiti where cursor is, so
-              // tweak record controls to disable them
-            } else {
-              if (graffiti.selectedTokens.isIntersecting) {
-                console.log('tweak record controls');
-                graffiti.highlightIntersectingGraffitiRange();
-                //console.log('selectedTokens:', graffiti.selectedTokens);
-                if (graffiti.selectedTokens.hasMovie) {
-                  //console.log('this recording has a movie');
-                  recordBtnText = 'Re-record';
-                  const recordingFullId = graffiti.selectedTokens.recordingCellId.replace('id_','') + '_' + 
-                                          graffiti.selectedTokens.recordingKey.replace('id_','');
-                  $('#btn-start-recording').attr({title:'Re-record Movie'})
-                  // tweak recording button to store rerecording id for API key
-                  $('#recorder-record-controls #recorder-api-key').html('<span id="' + recordingFullId + '">Get API calls</span>');
-                  $('#recorder-record-controls #recorder-api-key').show();
-                } else {
-                  recordBtnText = 'Record';
-                  $('#btn-start-recording').attr({title:'Record Movie'})
-                }
-              }
-            }
-            $('#btn-edit-graffiti span').text(graffitiBtnText);
-            $('#btn-start-recording span').text(recordBtnText);
-
-            break;
-        }
-
       },
 
       updateAllGraffitiDisplays: () => {
@@ -1534,9 +1464,8 @@ define([
 
         cm.on('cursorActivity', (cm, e) => {
           //console.log('cursorActivity');
-          //graffiti.updateControlsDisplay(cm);
           if (state.getActivity() === 'idle') {
-            graffiti.tweakControlPanels(cm);
+            graffiti.tweakControlPanels(cm); // this is necessary because you can move the cursor from inside a graffiti to outside one
           }
           //console.log('graffiti.selectedTokens:', graffiti.selectedTokens);
           const affectedCell = utils.findCellByCodeMirror(cm);
@@ -1643,7 +1572,7 @@ define([
           if (state.getStorageInProcess()) {
             storage.clearStorageInProcess();
             graffiti.updateAllGraffitiDisplays();
-            graffiti.tweakControlPanels();
+            graffiti.tweakControlPanels(); // necessary because we just finished a save
           }
         });
 
@@ -1993,7 +1922,6 @@ define([
 
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTips();
-        graffiti.updateControlsDisplay();
 
         graffiti.updateCancelControls('<span>Continue playing movie</span> or <span>Cancel movie</span>',
                                       () => { graffiti.startPlayback(); },
@@ -2102,7 +2030,6 @@ define([
           } else {
             graffiti.startPlayback();
           }
-          graffiti.updateControlsDisplay();
         }
       },
 
@@ -2173,7 +2100,7 @@ define([
           graffiti.initInteractivity();
         }          
         state.setAccessLevel(level); 
-        graffiti.updateControlsDisplay();
+        graffiti.tweakControlPanels();
       },
     };
 
