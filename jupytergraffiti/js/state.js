@@ -274,8 +274,8 @@ define([
     },
 
     setActivity: (newState) => {
+      console.log('Graffiti: setting activity to:', newState);
       state.activity = newState;
-      console.trace('Graffiti: set activity to:', newState);
     },
 
     getPointerPosition: () => {
