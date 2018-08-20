@@ -8,7 +8,7 @@ define([
   //
   // Storage tree is organized like this:
   //
-  // recording_data/
+  // jupytergraffiti_data/
   //   notebooks/
   //     id_1234/
   //     authors/
@@ -40,7 +40,7 @@ define([
       if (!notebook.metadata.hasOwnProperty('graffitiId')) {
         notebook.metadata['graffitiId'] = graffitiId;
       }
-      const basePath = "recording_data/notebooks/" + notebook.metadata['graffitiId'] + '/authors/id_' + state.getAuthorId() + '/';
+      const basePath = "jupytergraffiti_data/notebooks/" + notebook.metadata['graffitiId'] + '/authors/id_' + state.getAuthorId() + '/';
       return basePath;
     },
 
@@ -92,11 +92,11 @@ define([
       const jsonMeta = JSON.stringify(recordingMetaData).replace(/\"/g,'\\"');
       let bashScript = "import os\n";
       bashScript += 'os.system("mkdir -p ' + graffitiPath + '")' + "\n";
-      bashScript += "with open('" + graffitiPath + '/' + "audio.txt', 'w') as f:\n";
+      bashScript += "with open('" + graffitiPath + "audio.txt', 'w') as f:\n";
       bashScript += "    f.write('" + encodedAudio + "')\n";
-      bashScript += "with open('" + graffitiPath + '/' + "history.txt', 'w') as f:\n";
+      bashScript += "with open('" + graffitiPath + "history.txt', 'w') as f:\n";
       bashScript += "    f.write('" + base64CompressedHistory + "')\n";
-      bashScript += "with open('" + graffitiPath + '/' + "meta.json', 'w') as f:\n";
+      bashScript += "with open('" + graffitiPath + "meta.json', 'w') as f:\n";
       bashScript += "    f.write('" + jsonMeta + "')\n";
       console.log(bashScript);
       Jupyter.notebook.kernel.execute(bashScript,
