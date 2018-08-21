@@ -353,7 +353,9 @@ define([
       const computedHour = Math.floor(currentTimeSeconds / 3600);
       const computedMinutes = Math.floor((currentTimeSeconds - (computedHour * 3600)) / 60);
       const computedSeconds = Math.floor(currentTimeSeconds - (computedMinutes * 60 + computedHour * 3600));
-      const computedMilliseconds = (Math.floor(currentTimeMilliseconds - ((computedSeconds + computedMinutes * 60 + computedHour * 3600) * 1000)) / 10).toFixed(0);
+      const computedMilliseconds = Math.min(99, 
+                                            (Math.floor(currentTimeMilliseconds -
+                                                        ((computedSeconds + computedMinutes * 60 + computedHour * 3600) * 1000)) / 10).toFixed(0));
       let displayMilliseconds = utils.timeZeroPad(computedMilliseconds);
       let displaySeconds = utils.timeZeroPad(computedSeconds);
       let displayMinutes = utils.timeZeroPad(computedMinutes);
