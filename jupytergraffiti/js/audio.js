@@ -28,19 +28,24 @@ define([
 
           // Error callback
           function(err) {
-            console.log('The following getUserMedia error occured: ' + err);
+            console.log('Graffiti: The following getUserMedia error occured: ' + err);
           }
         )
       } else {
-        console.log('getUserMedia not supported on your browser!');
+        console.log('Graffiti: getUserMedia not supported on your browser!');
       }
     },
 
     storeMediaRecorder: (mediaRecorder) => {
       audio.mediaRecorder = mediaRecorder;
-      console.log('Media recorder ready and stored.');
+      console.log('Graffiti: Media recorder ready and stored.');
+      return true;
     },
     
+    isAvailable: () => {
+      return (audio.mediaRecorder !== undefined);
+    },
+
     storeAudio: (audioObj) => {
       audio.audioObj = audioObj;
     },
@@ -82,14 +87,22 @@ define([
     },
 
     startRecording: () => {
-      audio.mediaRecorder.start();
-      console.log(audio.mediaRecorder.state);
-      console.log("Audio recording started");
+      if (audio.mediaRecorder !== undefined) {
+        audio.mediaRecorder.start();
+        console.log('Graffiti:', audio.mediaRecorder.state);
+        console.log("Graffiti: Audio recording started");
+      } else {
+        console.log('Graffiti: Audio recording cannot start, access not granted.');
+      }
     },
 
     stopRecording: () => {
-      audio.mediaRecorder.stop();
-      console.log("Audio recording stopped");
+      if (audio.mediaRecorder !== undefined) {
+        audio.mediaRecorder.stop();
+        console.log("Graffiti: Audio recording stopped");
+      } else {
+        console.log('Graffiti: Audio recording cannot stop, access not granted.');
+      }
     },
 
     startPlayback: (elapsedTime) => {
@@ -103,7 +116,7 @@ define([
     saveRecordedAudio: (e) => {
       //console.log("Audio data available");
 
-      console.log('Audio data:', e.data);
+      // console.log('Graffiti: Audio data:', e.data);
       const reader = new FileReader();
       reader.addEventListener("loadend", function() {
         // reader.result contains the contents of blob as a typed array

@@ -22,9 +22,6 @@ define([
 
         state.init();
         const currentAccessLevel = state.getAccessLevel();
-        if (currentAccessLevel === 'create') { // this should never happen, ie accessLevel of create should never be the default
-          audio.init(state);
-        }
 
         graffiti.LZString = LZString;
         graffiti.rewindAmt = 2; /*seconds */
@@ -1907,7 +1904,23 @@ define([
           graffiti.cancelPlayback({cancelAnimation:true});
           if (!state.getAudioInitialized()) {
             audio.init();
-            state.setAudioInitialized();
+            setTimeout( () => {
+              if (audio.isAvailable()) {
+                state.setAudioInitialized();
+              } else {
+                dialog.modal({
+                  title: 'Please grant access to your browser\'s microphone.',
+                  body: 'You cannot record Graffiti movies unless you grant access to the microphone. ' +
+                        'Please <a href="https://help.aircall.io/hc/en-gb/articles/115001425325-How-to-allow-Google-Chrome-to-access-your-microphone" ' +
+                        'target="_">grant access</a> and then reload this page.',
+                  sanitize:false,
+                  buttons: {
+                    'OK': {
+                    }
+                  }
+                });
+              }
+            }, 500);
           }
           state.setAuthorId(0); // currently hardwiring this to creator(teacher) ID, which is always 0. Eventually we will replace this with 
           // individual author ids
