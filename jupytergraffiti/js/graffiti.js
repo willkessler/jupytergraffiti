@@ -276,13 +276,13 @@ define([
                                           fn: (e) => {
                                             if (state.getMute()) {
                                               state.setMute(false);
-                                              graffiti.tweakControlPanels();
+                                              graffiti.updateControlPanels();
                                               if (state.getActivity() === 'playing') {
                                                 audio.startPlayback(state.getTimePlayedSoFar());
                                               }
                                             } else {
                                               state.setMute(true);
-                                              graffiti.tweakControlPanels();
+                                              graffiti.updateControlPanels();
                                               if (state.getActivity() === 'playing') {
                                                 audio.pausePlayback();
                                               }
@@ -353,12 +353,12 @@ define([
       },
 
 
-      tweakControlPanels: (cm) => {
+      updateControlPanels: (cm) => {
         // When we transition to a new state, control panel tweaks need to be made
         const activity = state.getActivity();
         const accessLevel = state.getAccessLevel();
         const outerControlHidden = graffiti.outerControlPanel.css('display') === 'none';
-        // console.log('tweakControlPanels, activity:', activity);
+        // console.log('updateControlPanels, activity:', activity);
         if (accessLevel === 'view') {
           if (activity !== 'idle') {
             if (outerControlHidden) {
@@ -574,18 +574,27 @@ define([
         }
       },
 
+      updateControlPanelPosition: () => {
+        if (state.getControlPanelDragging()) {
+          const position = state.getPointerPosition();
+          const offset = state.getControlPanelDragOffset();
+          const newPosition =   { left: Math.max(0,position.x - offset.left), top: Math.max(0,position.y - offset.top) };
+          const newPositionPx = { top: newPosition.top + 'px', left: newPosition.left + 'px' };
+          graffiti.outerControlPanel.css(newPositionPx);
+        }
+      },
+
       initInteractivity: () => {
         audio.setAudioStorageCallback(storage.storeMovie);
         graffiti.addCMEvents();
         setTimeout(() => { 
           graffiti.setupBackgroundEvents();
-          graffiti.setNotification('Graffiti: Loaded and ready for use.', () => { graffiti.clearNotification(); }, 5000);
         }, 500); // this timeout avoids too-early rendering of hidden recorder controls
 
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTips();
         graffiti.setupControlPanels();
-        graffiti.tweakControlPanels();
+        graffiti.updateControlPanels();
       },
 
       // Inspired by https://www.codicode.com/art/how_to_draw_on_a_html5_canvas_with_a_mouse.aspx
@@ -888,16 +897,6 @@ define([
         });
       },
 
-      updateControlPanelPosition: () => {
-        if (state.getControlPanelDragging()) {
-          const position = state.getPointerPosition();
-          const offset = state.getControlPanelDragOffset();
-          const newPosition =   { left: Math.max(0,position.x - offset.left), top: Math.max(0,position.y - offset.top) };
-          const newPositionPx = { top: newPosition.top + 'px', left: newPosition.left + 'px' };
-          graffiti.outerControlPanel.css(newPositionPx);
-        }
-      },
-
       setupBackgroundEvents: () => {
         // Handle rubber banding scrolling that occurs on short notebooks so cursor doesn't look wrong (possibly, only chrome?).
         console.log('Graffiti: setupBackgroundEvents');
@@ -935,7 +934,7 @@ define([
                   graffiti.toggleRecording();
                   break;
                 case 'recordingPending':
-                  graffiti.clearPendingRecording();
+                  graffiti.changeActivity('idle');
                   break;
                 case 'playing':
                 case 'playbackPaused':
@@ -1102,9 +1101,6 @@ define([
         graffitiEditCell.code_mirror.execCommand('selectAll');
 
         graffiti.graffitiEditCellId = graffitiEditCell.metadata.cellId;
-
-        graffiti.setRecorderHint('Ctrl- or Shift-Enter to save your entry.');
-
       },
 
       finishGraffiti: (doSave) => {
@@ -1148,7 +1144,6 @@ define([
         } else {
           graffiti.changeActivity('idle');
           recordingCell.code_mirror.focus();
-          graffiti.clearRecorderHint();
           graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: false});
           graffiti.refreshGraffitiTips();
         }
@@ -1180,7 +1175,7 @@ define([
         storage.storeManifest();
         graffiti.highlightIntersectingGraffitiRange();
         graffiti.refreshGraffitiTips();
-        graffiti.tweakControlPanels();
+        graffiti.updateControlPanels();
         utils.saveNotebook();
 
         dialog.modal({
@@ -1206,7 +1201,7 @@ define([
           graffiti.refreshGraffitiTips();
           storage.storeManifest();
           utils.saveNotebook();
-          graffiti.tweakControlPanels();
+          graffiti.updateControlPanels();
         }
       },
 
@@ -1266,64 +1261,18 @@ define([
         graffiti.refreshGraffitiTips();
       },
 
-      clearNotification: (force) => {
-        const notifier = $('#recorder-notifier');
-        notifier.find('span:first').unbind('click');
-        if (force) {
-          notifier.hide();
-        } else {
-          notifier.fadeOut(1500);
-        }
-      },
-
-      setNotification: (notification, cb, timeout) => {
-        const notifier = $('#recorder-notifier');
-        notifier.html(notification).show();
-        if (cb !== undefined) {
-          setTimeout(cb, timeout);
-        }
-      },
-
-      setNotificationClickable: (notification, cb) => {
-        const notifier = $('#recorder-notifier');
-        notifier.html(notification).show();
-        if (cb !== undefined) {
-          notifier.find('span:first').bind('click', cb);
-        }
-      },
-
       //
       // Recording control functions
       //
-
-      setRecorderHint: (hint, cb) => {
-        const recorderHintDisplay = $('.recorder-hint:first');
-        recorderHintDisplay.html(hint).show();
-        if (cb !== undefined) {
-          recorderHintDisplay.find('span:first').bind('click', cb);
-        }
-      },
-
-      clearRecorderHint: () => {
-        const recorderHintDisplay = $('.recorder-hint:first');
-        recorderHintDisplay.find('span:first').unbind('click');
-        recorderHintDisplay.hide();
-      },
 
       setPendingRecording: () => {
         if (state.getActivity() === 'recording') {
           graffiti.toggleRecording(); // stop current recording
         } else {
           console.log('Setting pending recording');
-          graffiti.setRecorderHint('Click anywhere to begin recording movie. (ESC to cancel)');
           graffiti.changeActivity('recordingPending');
           state.restoreCellStates('selections'); // reset selections to when you clicked to begin the recording
         }
-      },
-
-      clearPendingRecording: () => {
-        graffiti.clearRecorderHint();
-        graffiti.changeActivity('idle');
       },
 
       beginMovieRecordingProcess: () => {
@@ -1349,13 +1298,13 @@ define([
             console.log('Graffiti: Now starting movie recording');
             graffiti.toggleRecording();
           }
-          graffiti.tweakControlPanels(cm); // this is necessary since a focus change can happen when you arrow advance from one cell to the next cell
+          graffiti.updateControlPanels(cm); // this is necessary since a focus change can happen when you arrow advance from one cell to the next cell
         });
 
         cm.on('cursorActivity', (cm, e) => {
           //console.log('cursorActivity');
           if (state.getActivity() === 'idle') {
-            graffiti.tweakControlPanels(cm); // this is necessary because you can move the cursor from inside a graffiti to outside one
+            graffiti.updateControlPanels(cm); // this is necessary because you can move the cursor from inside a graffiti to outside one
           }
           //console.log('graffiti.selectedTokens:', graffiti.selectedTokens);
           const affectedCell = utils.findCellByCodeMirror(cm);
@@ -1375,7 +1324,6 @@ define([
 
         cm.on('mousedown', (cm, e) => {
           //console.log('mousedown, e:', e);
-          graffiti.clearNotification(true); // immediately clear notification if present
         });
 
         cm.on('refresh', (cm, e) => {
@@ -1462,7 +1410,7 @@ define([
           if (state.getStorageInProcess()) {
             storage.clearStorageInProcess();
             graffiti.updateAllGraffitiDisplays();
-            graffiti.tweakControlPanels(); // necessary because we just finished a save
+            graffiti.updateControlPanels(); // necessary because we just finished a save
           }
         });
 
@@ -1489,7 +1437,6 @@ define([
             // This will use the callback defined in setAudioStorageCallback to actually persist everything.
             audio.stopRecording();
             //$('#recorder-range').removeAttr('disabled');
-            //graffiti.setRecorderHint('Movie saved. Now you can <span>play this movie</span>.', graffiti.startPlayback);
             console.log('Graffiti: toggleRecording refreshing.');
             state.restoreCellStates('contents');
             graffiti.updateAllGraffitiDisplays();
@@ -1521,8 +1468,6 @@ define([
 
             audio.startRecording();
             $('#recorder-range').attr('disabled',1);
-            graffiti.setRecorderHint('ESC: complete recording. Alt/Command: draw lines. Option: draw highlights. Both:Erase.');
-            //            state.storeHistoryRecord('selections'); // is this necessary?
             state.setScrollTop(graffiti.sitePanel.scrollTop());
             state.setGarnishing(false);
 
@@ -1551,7 +1496,7 @@ define([
           return; // no change to activity
         }
         state.setActivity(newActivity);
-        graffiti.tweakControlPanels();
+        graffiti.updateControlPanels();
       },
 
       //
@@ -1807,7 +1752,6 @@ define([
       pausePlaybackNoVisualUpdates: () => {
         clearInterval(state.getPlaybackInterval());
         graffiti.changeActivity('playbackPaused');
-        graffiti.togglePlayButtons();
         audio.pausePlayback();
         state.setPlaybackTimeElapsed();
       },
@@ -1850,7 +1794,7 @@ define([
         graffiti.clearAllCanvases();
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTips(); 
-        graffiti.tweakControlPanels();
+        graffiti.updateControlPanels();
         graffiti.highlightIntersectingGraffitiRange();
 
         if (opts.cancelAnimation) {
@@ -1865,13 +1809,9 @@ define([
         if (activity === 'idle') {
           // If just starting to play back, store all cells current contents so we can restore them when you cancel playback.
           utils.saveNotebook();
-          graffiti.clearRecorderHint(); // clear any recorder hint e.g. "play your new movie"
           state.setLastGarnishInfo(0,0,false, 'highlight'); // make sure we've turned off any garnishing flag from a previous interrupted playback
           state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.storeCellStates();
-          graffiti.clearNotification(true); // immediately clear notification if present
-          // Restore all cell outputs seen when a recording began
-          //graffiti.restoreAllCellOutputs();
         }
 
         graffiti.clearAllCanvases();
@@ -1946,16 +1886,6 @@ define([
 
       },
 
-      togglePlayButtons: () => {
-        if (state.getActivity() === 'playing') {
-          $('#btn-play').hide();
-          $('#btn-pause').show();
-        } else if (state.getActivity() === 'idle') {
-          $('#btn-play').show();
-          $('#btn-pause').hide();
-        }
-      },
-
       playRecordingById: (recordingFullId) => {
         const parts = recordingFullId.split('_');
         const cellId = 'id_' + parts[0];
@@ -1967,10 +1897,9 @@ define([
       playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => {
         const promptHtml = '<span>' + utils.renderMarkdown(promptMarkdown) + '</span>';
         
-        graffiti.setNotificationClickable(promptHtml, () => {
-          graffiti.clearNotification(true);
-          graffiti.playRecordingById(recordingFullId);
-        });
+        // now set the notification and the state to 'notifying' with the entire notification being clickable to start it up
+        // graffiti.playRecordingById(recordingFullId);
+
       },
 
       changeAccessLevel: (level) => {
@@ -1991,7 +1920,7 @@ define([
           graffiti.outerControlPanel.fadeOut(graffiti.panelFadeTime);          
         }
         state.setAccessLevel(level); 
-        graffiti.tweakControlPanels();
+        graffiti.updateControlPanels();
       },
     };
 
