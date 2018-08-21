@@ -40,6 +40,7 @@ define([
       if (!notebook.metadata.hasOwnProperty('graffitiId')) {
         notebook.metadata['graffitiId'] = graffitiId;
       }
+      // hardwired to only load author recordings for now
       const basePath = "jupytergraffiti_data/notebooks/" + notebook.metadata['graffitiId'] + '/authors/id_' + state.getAuthorId() + '/';
       return basePath;
     },
@@ -111,7 +112,6 @@ define([
 
     // Load the manifest for this notebook.
     // Manifests contain information about all the recordings present in this notebook.
-    // mode is either 'author' or 'user-<123>' where <123> is the id of a (non-author) user's graffiti.
     // This version of the system only supports author manifests.
     loadManifest: (currentAccessLevel) => {
       const notebook = Jupyter.notebook;
