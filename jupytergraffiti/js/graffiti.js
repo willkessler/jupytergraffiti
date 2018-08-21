@@ -12,12 +12,11 @@ define([
 
       init: () => {
         console.log('Graffiti: Main constructor running.');
-
+        
         utils.loadCss([
           'jupytergraffiti/css/graffiti.css',
           'jupytergraffiti/css/font-awesome.min.css'
         ]);
-
 
         const location = document.location;
 
@@ -42,11 +41,8 @@ define([
         graffiti.canvases = {};
         graffiti.lastUpdateControlsTime = utils.getNow();
         graffiti.notificationMsgs = {};
+        graffiti.panelFadeTime = 350;
 
-        graffiti.setupGraffitiControls();
-
-        // for right now, we are only loading manifests for the creator(teacher), not for viewers (students). 
-        // this is why we pass undefined for the authorId (first parameter)
         storage.loadManifest(currentAccessLevel).then(() => {
           graffiti.initInteractivity()
         }).catch(() => {
@@ -110,7 +106,7 @@ define([
         graffiti.bindControlPanelCallbacks(graffiti.controlPanelIds[elemId], callbacks);
       },
 
-      setupGraffitiControls: () => {
+      setupControlPanels: () => {
         const outerControlPanel = $('<div id="graffiti-outer-control-panel">' +
                                     '  <div class="graffiti-small-dot-pattern" id="graffiti-drag-handle">&nbsp;</div>' +
                                     '  <div id="graffiti-control-panels-shell"></div>' +
@@ -122,10 +118,8 @@ define([
         graffiti.graffitiCursor = $('#graffiti-cursor');
 
         graffiti.outerControlPanel = $('#graffiti-outer-control-panel');
+        graffiti.outerControlPanel.hide();
         graffiti.controlPanelsShell = $('#graffiti-control-panels-shell');
-
-        //        const outerControlCancel = $('<div id="graffiti-control-panel-cancel" title="Cancel">X</div>');
-        //        outerControlCancel.appendTo(graffiti.outerControlPanel);
 
         $('body').on('mouseup', (e) => {
           if (state.getControlPanelDragging()) {
@@ -362,7 +356,28 @@ define([
       tweakControlPanels: (cm) => {
         // When we transition to a new state, control panel tweaks need to be made
         const activity = state.getActivity();
+        const accessLevel = state.getAccessLevel();
+        const outerControlHidden = graffiti.outerControlPanel.css('display') === 'none';
         console.log('tweakControlPanels, activity:', activity);
+        if (accessLevel === 'view') {
+          if (activity !== 'idle') {
+            if (outerControlHidden) {
+              graffiti.outerControlPanel.fadeIn(graffiti.panelFadeTime);
+            }
+          } else if ((state.getPlayableMovie('tip') === undefined) && 
+                     (state.getPlayableMovie('api') === undefined) && 
+                     (state.getPlayableMovie('cursorActivity') === undefined)) {
+            if (!outerControlHidden) {
+              graffiti.outerControlPanel.fadeOut(graffiti.panelFadeTime);
+            }
+            return;
+          }
+        } else {
+          if (outerControlHidden) {
+            graffiti.outerControlPanel.fadeIn(graffiti.panelFadeTime);
+          }
+        }
+
         switch (activity) {
           case 'idle':
             // Check if anchor or head of current selection is inside an existing recording token set. Controls will be different if so.
@@ -373,14 +388,13 @@ define([
               activeCell = utils.findCellByCodeMirror(cm);
             }
             graffiti.selectedTokens = utils.findSelectionTokens(activeCell, graffiti.tokenRanges, state);
-            if (graffiti.highlightMarkText) {
-              graffiti.highlightMarkText.clear();
-            }
+            graffiti.highlightIntersectingGraffitiRange();
             let visibleControlPanels;
             if (graffiti.selectedTokens.noTokensPresent) {
               console.log('no tokens');
-              visibleControlPanels = []; // hide all control panels if in view only mode and not play mode
-            } else if (state.getAccessLevel() === 'view') {
+              visibleControlPanels = ['graffiti-notifier']; // hide all control panels if in view only mode and not play mode
+              graffiti.setNotifier('<div>Click in any text in a code cell to create or modify Graffiti\'s.</div>');
+            } else if (accessLevel === 'view') {
               console.log('view only');
               visibleControlPanels = ['graffiti-playback-controls']; // hide all control panels if in view only mode and not play mode
             } else {
@@ -558,7 +572,6 @@ define([
                                  ]);
             break;
         }
-
       },
 
       initInteractivity: () => {
@@ -571,6 +584,7 @@ define([
 
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTips();
+        graffiti.setupControlPanels();
         graffiti.tweakControlPanels();
       },
 
@@ -766,11 +780,9 @@ define([
         }
       },
 
-      hideTip: (tip,clearPlayableMovie) => {
-        tip.hide();
-        if (clearPlayableMovie) {
-          state.clearPlayableMovie('tip');
-        }
+      hideTip: (tip) => {
+        graffiti.notebookContainer.find('.graffiti-tip').hide();
+        state.clearPlayableMovie('tip');
       },
 
       refreshGraffitiTips: () => {
@@ -790,14 +802,14 @@ define([
             const recording = state.getManifestSingleRecording(cellId, recordingKey);
             let existingTip = graffiti.notebookContainer.find('.graffiti-tip');
             if (e.type === 'mouseleave') {
-              state.setTipTimeout(() => { graffiti.hideTip(existingTip,true); }, 500);
+              state.setTipTimeout(() => { graffiti.hideTip(); }, 500);
             } else {
               const currentPointerPosition = state.getPointerPosition();
               // Only show tip if cursor rests on hover for a 1/2 second
               state.setTipTimeout(() => {
                 const newPointerPosition = state.getPointerPosition();
                 const cursorDistanceSquared = (newPointerPosition.x - currentPointerPosition.x) * (newPointerPosition.x - currentPointerPosition.x) +
-                                              (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
+                                               (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
 
                 //console.log('comparing currentPointerPosition, newPointerPosition:', currentPointerPosition,
                 //            newPointerPosition, cursorDistanceSquared);
@@ -835,7 +847,7 @@ define([
                       if (e.type === 'mouseenter') {
                         state.clearTipTimeout();
                       } else {
-                        graffiti.hideTip(existingTip,true);
+                        graffiti.hideTip();
                       }
                     });
                   } else {
@@ -845,7 +857,6 @@ define([
                   existingTip.find('#moviePlay').click((e) => {
                     //console.log('click in tip');
                     state.clearTipTimeout();
-                    graffiti.hideTip(existingTip,false);
                     e.stopPropagation(); // for reasons unknown even still propogates to the codemirror editing area undeneath
                     graffiti.loadAndPlayMovie('tip');
                     return false;
@@ -1002,16 +1013,6 @@ define([
         console.log('Graffiti: Background setup complete.');
       },
 
-      updateCancelControls: (prompt, cb1, cb2) => {
-        const cancelControls = $('#recorder-playback-controls .cancel');
-        cancelControls.find('span:first').unbind('click');
-        cancelControls.find('span:last').unbind('click');
-        cancelControls.html(prompt);
-        cancelControls.find('span:first').click(cb1);
-        cancelControls.find('span:last').click(cb2);
-      },
-
-
       storeRecordingInfoInCell: () => {
         let recordingRecord, newRecording, recordingCell, recordingCellId, recordingKey;
         if (graffiti.selectedTokens.isIntersecting) { 
@@ -1054,6 +1055,13 @@ define([
       },
 
       highlightIntersectingGraffitiRange: () => {
+        if (graffiti.highlightMarkText !== undefined) {
+          graffiti.highlightMarkText.clear();
+          graffiti.highlightMarkText = undefined;
+        }
+        if (state.getAccessLevel() === 'view') { // we never do this in view mode
+          return;
+        }
         const cell = graffiti.selectedTokens.recordingCell;
         if (cell !== undefined) {
           const cm = cell.code_mirror;
@@ -1140,7 +1148,6 @@ define([
           graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: false});
           graffiti.refreshGraffitiTips();
         }
-//        graffiti.tweakControlPanels();
       },
 
       removeGraffitiCore: (recordingCell, recordingKey) => {
@@ -1167,9 +1174,7 @@ define([
           }
         }
         storage.storeManifest();
-        if (graffiti.highlightMarkText !== undefined) {
-          graffiti.highlightMarkText.clear();
-        }
+        graffiti.highlightIntersectingGraffitiRange();
         graffiti.refreshGraffitiTips();
         graffiti.tweakControlPanels();
         utils.saveNotebook();
@@ -1192,9 +1197,7 @@ define([
       removeGraffiti: (recordingCell, recordingKey) => {
         graffiti.removeGraffitiCore(recordingCell, recordingKey);
         if (state.removeManifestEntry(recordingCell.metadata.cellId, recordingKey)) {
-          if (graffiti.highlightMarkText !== undefined) {
-            graffiti.highlightMarkText.clear();
-          }
+          graffiti.highlightIntersectingGraffitiRange();
           graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
           graffiti.refreshGraffitiTips();
           storage.storeManifest();
@@ -1489,8 +1492,6 @@ define([
             graffiti.sitePanel.animate({ scrollTop: state.getScrollTop() }, 750);
             state.restoreCellStates('selections');
             state.deleteTrackingArrays();
-//            const recordingCellInfo = state.getRecordingCellInfo();
-//            state.setPlayableMovie(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
             graffiti.changeActivity('idle');
             console.log('Graffiti: Stopped recording.');
           } else {
@@ -1817,11 +1818,6 @@ define([
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTips();
 
-        graffiti.updateCancelControls('<span>Continue playing movie</span> or <span>Cancel movie</span>',
-                                      () => { graffiti.startPlayback(); },
-                                      () => { graffiti.cancelPlayback({cancelAnimation:true}) } );
-
-
         // Save after play stops, so if the user reloads we don't get the annoying dialog box warning us changes were made.
         // graffiti.saveNotebook();
 
@@ -1877,12 +1873,6 @@ define([
         graffiti.graffitiCursor.show();
         graffiti.changeActivity('playing');
 
-        /*        graffiti.togglePlayButtons();*/
-
-        graffiti.updateCancelControls('<span>Pause</span> to interact w/Notebook at any time or <span>Cancel movie</span>',
-                                      () => { graffiti.pausePlayback(); },
-                                      () => { graffiti.cancelPlayback({cancelAnimation:true}) } );
-
         if (state.resetOnNextPlay) {
           console.log('Resetting for first play.');
           state.resetPlayState();
@@ -1903,9 +1893,6 @@ define([
               // reached end of recording naturally, so set up for restart on next press of play button
               state.setupForReset();
               graffiti.togglePlayback();
-              graffiti.updateCancelControls('Movie ended. <span>Start Over</span> or <span>Cancel movie</span>',
-                                            () => { graffiti.togglePlayback(); },
-                                            () => { graffiti.cancelPlayback({cancelAnimation:true}) } );
             } else {
               graffiti.updateSlider(playedSoFar);
               graffiti.updateTimeDisplay(playedSoFar);
@@ -1937,6 +1924,7 @@ define([
         storage.loadMovie(playableMovie.cellId, playableMovie.recordingKey).then( () => {
           console.log('Graffiti: Movie loaded for cellId, recordingKey:', playableMovie.cellId, playableMovie.recordingKey);
           graffiti.togglePlayback();
+          graffiti.hideTip();
         }).catch( (ex) => {
           dialog.modal({
             title: 'Movie is not available.',
@@ -1987,12 +1975,15 @@ define([
             state.setAudioInitialized();
           }
           state.setAuthorId(0); // currently hardwiring this to creator(teacher) ID, which is always 0. Eventually we will replace this with 
-                                // individual author ids
+          // individual author ids
           storage.ensureNotebookGetsGraffitiId();
           state.assignCellIds();
           utils.saveNotebook();
-          graffiti.initInteractivity();
-        }          
+          graffiti.refreshAllGraffitiHighlights();
+          graffiti.refreshGraffitiTips();
+        } else {
+          graffiti.outerControlPanel.fadeOut(graffiti.panelFadeTime);          
+        }
         state.setAccessLevel(level); 
         graffiti.tweakControlPanels();
       },
