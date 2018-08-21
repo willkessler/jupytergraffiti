@@ -149,7 +149,7 @@ define([
           range = tokenRangesThisCell[recordingKey];
           startRange = cm.indexFromPos(range.start);
           endRange = cm.indexFromPos(range.end);
-          console.log('startPos:', startPos, 'endPos:', endPos, '| startRange:', startRange, 'endRange:', endRange, 'range:', range);
+          //console.log('startPos:', startPos, 'endPos:', endPos, '| startRange:', startRange, 'endRange:', endRange, 'range:', range);
           if ((startPos <= startRange && endPos >= endRange) || // selection surrounds or equals the range
               ((startPos >= startRange && startPos <= endRange) || (endPos >= startRange && endPos <= endRange))) { // selection is inside the range
             if (startRange < minStartRange) {
@@ -229,17 +229,22 @@ define([
               results = noResults;
               console.log('Graffiti: degenerate case 3, startToken not found despite everything. Falling to safe route.');
             } else {
-              console.log('Graffiti: startPos, endPos:', startPos, endPos, 'startToken,endToken:', startToken,endToken);
+              //console.log('Graffiti: startPos, endPos:', startPos, endPos, 'startToken,endToken:', startToken,endToken);
               startToken.offset = 0;
               for (let i = 0; i < allTokens.length; ++i) {
                 token = allTokens[i];
                 if (token.type === startToken.type && token.string === startToken.string) {
                   if (i < startTokenIndex) {
-              ++startToken.offset;
+                     ++startToken.offset;
                   } else {
                     break;
                   }
                 }
+              }
+
+              if (endToken === undefined) {
+                console.log('Graffiti: degenerate case 4, endToken not found. Falling to safe route.');
+                endToken = startToken; // degenerate case 4: never found an end token, assume just one token. not sure why this happens yet 8/20/18
               }
 
               results = {

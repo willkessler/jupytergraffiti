@@ -347,7 +347,7 @@ define([
         graffiti.controlPanelsShell.children().hide();
         graffiti.controlPanelIds['graffiti-control-panel-title'].show(); // the title bar is always shown
         for (controlPanelId of panels) {
-          console.log('Graffiti: showing panel:', controlPanelId);
+          // console.log('Graffiti: showing panel:', controlPanelId);
           graffiti.controlPanelIds[controlPanelId].show();
         }
       },
@@ -358,7 +358,7 @@ define([
         const activity = state.getActivity();
         const accessLevel = state.getAccessLevel();
         const outerControlHidden = graffiti.outerControlPanel.css('display') === 'none';
-        console.log('tweakControlPanels, activity:', activity);
+        // console.log('tweakControlPanels, activity:', activity);
         if (accessLevel === 'view') {
           if (activity !== 'idle') {
             if (outerControlHidden) {
@@ -1054,11 +1054,15 @@ define([
         return recordingCell;
       },
 
-      highlightIntersectingGraffitiRange: () => {
+      clearHighlightMarkText: () => {
         if (graffiti.highlightMarkText !== undefined) {
           graffiti.highlightMarkText.clear();
           graffiti.highlightMarkText = undefined;
         }
+      },
+
+      highlightIntersectingGraffitiRange: () => {
+        graffiti.clearHighlightMarkText();
         if (state.getAccessLevel() === 'view') { // we never do this in view mode
           return;
         }
@@ -1845,7 +1849,8 @@ define([
         graffiti.graffitiCursor.hide();
         graffiti.clearAllCanvases();
         graffiti.refreshAllGraffitiHighlights();
-        graffiti.refreshGraffitiTips();
+        graffiti.refreshGraffitiTips(); 
+        graffiti.tweakControlPanels();
         graffiti.highlightIntersectingGraffitiRange();
 
         if (opts.cancelAnimation) {
@@ -1870,6 +1875,7 @@ define([
         }
 
         graffiti.clearAllCanvases();
+        graffiti.clearHighlightMarkText();
         graffiti.graffitiCursor.show();
         graffiti.changeActivity('playing');
 
