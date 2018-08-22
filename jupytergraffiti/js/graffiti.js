@@ -55,6 +55,7 @@ define([
                              "# jupytergraffiti.api.stop_playback()";
         recorderApiKeyCell.set_text(invocationLine);          
         Jupyter.notebook.select_next();
+        recorderApiKeyCell.code_mirror.focus();
       },
 
       bindControlPanelCallbacks: (parent, callbacks) => {
@@ -363,7 +364,8 @@ define([
             }
           } else if ((state.getPlayableMovie('tip') === undefined) && 
                      (state.getPlayableMovie('api') === undefined) && 
-                     (state.getPlayableMovie('cursorActivity') === undefined)) {
+                     (state.getPlayableMovie('cursorActivity') === undefined) ||
+                     (activity !== 'notifying') ) {
             if (!outerControlHidden) {
               graffiti.outerControlPanel.fadeOut(graffiti.panelFadeTime);
             }
@@ -567,6 +569,9 @@ define([
                                      }
                                    }
                                  ]);
+            break;
+          case 'notifying': // Just showing notifier alone. Used when prompting user to play a graffiti with the notifier
+            graffiti.showControlPanels(['graffiti-notifier']);
             break;
         }
       },
@@ -1807,7 +1812,7 @@ define([
         // start playback
         console.log('Graffiti: Starting playback.');
         const activity = state.getActivity();
-        if (activity === 'idle') {
+        if ((activity === 'idle') || (activity === 'notifying')) {
           // If just starting to play back, store all cells current contents so we can restore them when you cancel playback.
           utils.saveNotebook();
           state.setLastGarnishInfo(0,0,false, 'highlight'); // make sure we've turned off any garnishing flag from a previous interrupted playback
@@ -1891,16 +1896,24 @@ define([
         const parts = recordingFullId.split('_');
         const cellId = 'id_' + parts[0];
         const recordingKey = 'id_' + parts[1];
-        state.setPlayableMovie('api', cellId,recordingKey);
+        state.setPlayableMovie('api', cellId, recordingKey);
         graffiti.loadAndPlayMovie('api');
       },
 
       playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => {
+        graffiti.changeActivity('notifying');
         const promptHtml = '<span>' + utils.renderMarkdown(promptMarkdown) + '</span>';
         
-        // now set the notification and the state to 'notifying' with the entire notification being clickable to start it up
-        // graffiti.playRecordingById(recordingFullId);
-
+        graffiti.setNotifier('<div id="graffiti-notifier-prompt">' + promptHtml + '</div>',
+                             [
+                               {
+                                 ids: ['graffiti-notifier-prompt'],
+                                 event: 'click',
+                                 fn: (e) => {
+                                   graffiti.playRecordingById(recordingFullId);
+                                 }
+                               }
+                             ]);
       },
 
       changeAccessLevel: (level) => {

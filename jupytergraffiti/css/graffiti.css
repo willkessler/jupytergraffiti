@@ -359,8 +359,6 @@
 
 #graffiti-recorder-range {
   width:86px;
-  padding-left:4px;
-  padding-top:5px;
   flex-grow:1.25;
 }
 
@@ -389,6 +387,9 @@
   margin-top:2px;
 }
 
+#graffiti-notifier-prompt {
+  cursor:pointer;
+}
 
 .graffiti-notifier-link {
   cursor:pointer;
