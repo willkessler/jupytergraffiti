@@ -7,7 +7,7 @@ define([
       state.history = undefined;
       state.manifest = {};
       state.utils = utils;
-      state.accessLevel = 'view'; // one of 'create' or 'view'. If 'create' then we can create new graffitis, otherwise we can only view them
+      state.accessLevel = 'create'; // one of 'create' or 'view'. If 'create' then we can create new graffitis, otherwise we can only view them
       state.authorId = 0; // defaults to the creator(teacher) in v1 of Graffiti but eventually this will be (potentially) set to a viewer(student) id.
       state.authorType = 'creator';  // currently hardwired to be creator (teacher).
       state.audioInitialized = false;

@@ -533,7 +533,7 @@ define([
             break;
           case 'recordingPending':
             graffiti.showControlPanels([]);
-            graffiti.setNotifier('<div>Click in any code cell to begin recording your movie.</div>' +
+            graffiti.setNotifier('<div>Click anywhere in the notebook to begin recording your movie.</div>' +
                                  '<div>Or, <span class="graffiti-notifier-link" id="graffiti-cancel-recording-pending-link">Cancel recording</span></div>',
                                  [
                                    {
@@ -582,6 +582,14 @@ define([
       },
 
       initInteractivity: () => {
+        graffiti.notebookContainer.click((e) => {
+          console.log('Graffiti: clicked container');
+          if (state.getActivity() === 'recordingPending') {
+            console.log('Graffiti: Now starting movie recording');
+            graffiti.toggleRecording();
+          }
+          return false;
+        });
         audio.setAudioStorageCallback(storage.storeMovie);
         graffiti.addCMEvents();
         setTimeout(() => { 
@@ -1263,13 +1271,9 @@ define([
       //
 
       setPendingRecording: () => {
-        if (state.getActivity() === 'recording') {
-          graffiti.toggleRecording(); // stop current recording
-        } else {
-          console.log('Setting pending recording');
-          graffiti.changeActivity('recordingPending');
-          state.restoreCellStates('selections'); // reset selections to when you clicked to begin the recording
-        }
+        console.log('Setting pending recording');
+        graffiti.changeActivity('recordingPending');
+        state.restoreCellStates('selections'); // reset selections to when you clicked to begin the recording
       },
 
       beginMovieRecordingProcess: () => {
@@ -1285,13 +1289,13 @@ define([
           console.log('CM focus:' , cm, e);
           // Check to see if we jumped from another cell to this cell with the arrow keys. If we did and we're recording, we need to
           // create a focus history record because jupyter is not firing the select cell event in those cases.
-          if (state.getActivity() === 'recording') {
+          const activity = state.getActivity();
+          if (activity === 'recording') {
             if (cell.metadata.cellId !== state.getSelectedCellId()) {
               state.saveSelectedCellId(cell.metadata.cellId);
               state.storeHistoryRecord('focus');
             }
-          }
-          if (state.getActivity() === 'recordingPending') {
+          } else if (activity === 'recordingPending') {
             console.log('Graffiti: Now starting movie recording');
             graffiti.toggleRecording();
           }
