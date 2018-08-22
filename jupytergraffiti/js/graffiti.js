@@ -5,6 +5,7 @@ define([
   './utils.js',
   './audio.js',
   './storage.js',
+  './fontawesome-5.2.0/all.min.js',
   'components/marked/lib/marked'
 ], function(dialog, LZString, state, utils, audio, storage, marked) {
   const Graffiti = (function() {
@@ -14,8 +15,7 @@ define([
         console.log('Graffiti: Main constructor running.');
         
         utils.loadCss([
-          'jupytergraffiti/css/graffiti.css',
-          'jupytergraffiti/css/font-awesome.min.css'
+          'jupytergraffiti/css/graffiti.css'
         ]);
 
         const location = document.location;
@@ -138,9 +138,9 @@ define([
 
         graffiti.setupOneControlPanel('graffiti-record-controls', 
                                       '  <button class="btn btn-default" id="btn-create-graffiti">' +
-                                      '<i class="fa fa-pencil"></i>&nbsp; <span>Create</span></button>' +
+                                      '<i class="fa fa-edit"></i>&nbsp; <span>Create</span></button>' +
                                       '  <button class="btn btn-default" id="btn-edit-graffiti" title="Edit Graffiti movie">' +
-                                      '<i class="fa fa-pencil"></i>&nbsp; <span>Edit</span></button>' +
+                                      '<i class="fa fa-edit"></i>&nbsp; <span>Edit</span></button>' +
                                       '  <button class="btn btn-default" id="btn-begin-recording" title="Record movie">' +
                                       '<i class="fa fa-film recorder-button"></i>&nbsp;<span>Record</span></button>' +
                                       '  <button class="btn btn-default" id="btn-begin-rerecording" title="ReRecord movie">' +
@@ -319,6 +319,31 @@ define([
         graffiti.setupOneControlPanel('graffiti-notifier', 
                                       '<div id="graffiti-notifier"></div>');
 
+
+        graffiti.setupOneControlPanel('graffiti-recording-pen-controls', 
+                                      '<div id="graffiti-recording-pens-shell">' +
+                                      ' <button class="btn btn-default" id="graffiti-select-highlight-pen" title="Highlighter tool"><i class="fa fa-highlighter"></i></button>' +
+                                      ' <button class="btn btn-default" id="graffiti-select-marker-pen" title="Marker tool"><i class="fa fa-pen-alt"></i></button>' +
+                                      '</div>' +
+                                      '<div id="graffiti-recording-colors-shell">' +
+                                      '  <div id="graffiti-recording-color-yellow"></div>' +
+                                      '  <div id="graffiti-recording-color-green"></div>' +
+                                      '  <div id="graffiti-recording-color-red"></div>' +
+                                      '  <div id="graffiti-recording-color-blue"></div>' +
+                                      '  <div id="graffiti-recording-color-purple"></div>' +
+                                      '  <div id="graffiti-recording-color-brown"></div>' +
+                                      '  <div id="graffiti-recording-color-black"></div>' +
+                                      '</div>',
+                                      [
+                                        {
+                                          ids: ['graffiti-select-highlight-pen'],
+                                          event: 'click',
+                                          fn: (e) => {
+                                            console.log('you picked highlighter');
+                                          }
+                                        }
+                                      ]
+        );
 
         graffiti.setupOneControlPanel('graffiti-hot-tip',
                                       '<div id ="graffiti-hot-tip"><div>Hot Tip!</div></div>'
@@ -548,7 +573,7 @@ define([
                                  ]);
             break;
           case 'recording':
-            graffiti.showControlPanels(['graffiti-recording-controls']);
+            graffiti.showControlPanels(['graffiti-recording-controls', 'graffiti-recording-pen-controls']);
             graffiti.setNotifier('<div>Your activities are being recorded.' + 
                                  'Press ESC or click <span class="graffiti-notifier-link" id="graffiti-end-recording-link">End Recording</span> ' +
                                  'to end recording.</div>' +
