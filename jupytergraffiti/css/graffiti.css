@@ -244,6 +244,11 @@
   font-weight:bold;
 }
 
+.rendered_html .graffiti-highlight:hover {
+  /* we do not want to bold on hover, on rendered markdown cells */
+  font-weight:normal !important;
+}
+
 .graffiti-text-display {
   font-family:monospace;
   font-size:14px;
