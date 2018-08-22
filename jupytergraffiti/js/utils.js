@@ -272,7 +272,7 @@ define([
     },
 
     // Collect all tokens in code-mirror into an array and tag each with which line it's found on. We use this 
-    // in refreshAnnotationHighlights() as we mark up a cell with existing recorded graffitis.
+    // in refreshGraffitiHighlights() as we mark up a cell with existing recorded graffitis.
     collectCMTokens: (cm) => {
       let allTokens = [];
       const lineCount = cm.lineCount();
