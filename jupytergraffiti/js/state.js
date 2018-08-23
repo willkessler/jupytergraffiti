@@ -696,6 +696,7 @@ define([
       if (affectedIds.length > 0) {
         let cell, cellState;
         for (let id of affectedIds) {
+          console.log('affectedid:', id);
           cell = utils.findCellByCellId(id);
           if (cell !== undefined) {
             selections = state.cellStates.selections.cellsSelections[id];
@@ -711,7 +712,7 @@ define([
               if (selections.active) {
                 cell.code_mirror.focus();
               }
-              //console.log('setting selection to :', selections.selections);
+              console.log('setting selection to :', selections.selections);
               cell.code_mirror.setSelections(selections.selections);
             }
           }

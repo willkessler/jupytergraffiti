@@ -1,134 +1,7 @@
-.recorder-cell {
-  background:white;
-  padding:5px;
-  color:white;
-  border-radius:5px;
-}
-
-.recorder-cell .recorder-info {
-  display:none;
-}
-
-#recorder-controls {
-  top:110px;
-  right:10px;
-  font-size:8px;
-  padding-left:2px;
-  display:flex;
-  align-items:left;
-  border-radius: 4px;
-  width:650px;
-}
-
-#recorder-record-controls {
-  display:none;
-}
-
-#recorder-record-controls-inner {
-  display:flex;
-  align-items:left;
-  padding-left:2px;
-  justify-content:center;
-}
-
-#recorder-record-controls-inner .btn {
-  padding: 2px 8px;
-}
-
-#recorder-record-controls-inner .cancel, 
-#recorder-playback-inner .cancel,
-#recorder-record-controls-inner .remove 
-{
-  padding: 2px 8px;
-  color:#aaa;
-  font-size:13px;
-}
-
-#recorder-playback-inner .cancel {
-  display:inline;
-}
-
-#recorder-playback-inner .cancel span {
-  text-decoration:underline;
-  cursor:pointer;
-  font-weight:bold;
-}
-
-#recorder-playback-inner .cancel span:hover {
-  color:#666;
-}
-
-
-#recorder-record-controls-inner .remove {
-  color:#f00 !important;
-  display:none;
-}
-
-#recorder-record-controls-inner #btn-remove-graffiti {
-  color:red;
-  display:none;
-}
-
-#recorder-record-controls-inner #btn-finish-graffiti {
-  display:none;
-}
-
-
-#recorder-playback-controls {
-  display:none;
-}
-
-#recorder-playback-inner {
-  display:flex;
-}
-
-
-.recorder-playback-controls .btn-play,
-.recorder-playback-controls .btn-stop-play,
-.recorder-playback-controls .btn-sound-on,
-.recorder-playback-controls .btn-sound-off {
-  color: black;
-  min-width:30px;
-}
-
-#recorder-controls-panel .btn-play {
-  background: #fff !important;
-  color:black;
-  font-size:13px;
-}
-
-#recorder-record-controls-inner .recorder-hint {
-  background-color:#fff;
-  font-size:1.2em;
-  padding-left:4px;
-  padding:4px 0 0 4px;
-  min-width:170px;
-  display:none;
-}
-
-#recorder-record-controls-inner #recorder-api-key {
-  cursor:pointer;
-  color:#aaa;
-  font-size:1.5em;
-  color:#999;
-  border:1px solid #ccc;
-  border-radius: 4px;
-  margin-left:10px;
-  padding:2px 4px 2px 4px;
-}
-
-#recorder-record-controls-inner #recorder-api-key:hover {
-  background-color:#eee;
-}
-
-#recorder-record-controls-inner .recorder-hint span {
-  cursor:pointer;
-  text-decoration:underline;
-}
 
 /* canvas for garnishes */
 
-.recorder-canvas-outer {
+.graffiti-canvas-outer {
   position:absolute;
   top:0;
   left:0;
@@ -136,29 +9,8 @@
   opacity: 0.5;
 }
 
-.recorder-range {
-  flex-grow:1.25;
-  width:70px; /* we never want the recorder-buttons to wrap */
-}
-
-.recorder-time-display,
-.recorder-time-display-recording {
-  padding: 4px 2px 0px 4px;
-  font-size:1.4em;
-  font-family:monospace;
-  display:none;
-}
-
-.recorder-time-display-recording {
-  color:red;
-}
-
-.recorder-button, .recorder-stop-button {
+.graffiti-recorder-button {
   color:#000;
-}
-
-.recorder-hidden {
-  display:none;
 }
 
 .graffiti-cursor {

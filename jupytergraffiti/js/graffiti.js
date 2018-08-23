@@ -145,9 +145,9 @@ define([
                                       '  <button class="btn btn-default" id="btn-edit-graffiti" title="Edit Graffiti movie">' +
                                       '<i class="fa fa-edit"></i>&nbsp; <span>Edit</span></button>' +
                                       '  <button class="btn btn-default" id="btn-begin-recording" title="Record movie">' +
-                                      '<i class="fa fa-film recorder-button"></i>&nbsp;<span>Record</span></button>' +
+                                      '<i class="fa fa-film graffiti-recorder-button"></i>&nbsp;<span>Record</span></button>' +
                                       '  <button class="btn btn-default" id="btn-begin-rerecording" title="ReRecord movie">' +
-                                      '<i class="fa fa-film recorder-button"></i>&nbsp;<span>Rerecord</span></button>' +
+                                      '<i class="fa fa-film graffiti-recorder-button"></i>&nbsp;<span>Rerecord</span></button>' +
                                       '  <button class="btn btn-default" id="btn-remove-graffiti" title="Remove Graffiti">' +
                                       '<i class="fa fa-trash"></i></button>',
                                       [
@@ -225,7 +225,7 @@ define([
                                       '  <button class="btn btn-default btn-play" id="btn-play" title="Start playback">' +
                                       '    <i class="fa fa-play"></i>' +
                                       '  </button>' +
-                                      '  <button class="btn btn-default recorder-hidden" id="btn-pause" title="Pause playback">' +
+                                      '  <button class="btn btn-default" id="btn-pause" title="Pause playback">' +
                                       '    <i class="fa fa-pause"></i>' +
                                       '  </button>' +
                                       '  <div id="graffiti-skip-buttons">' +
@@ -240,7 +240,7 @@ define([
                                       '    <button class="btn btn-default btn-sound-on" id="btn-sound-on" title="mute">' +
                                       '       <i class="fa fa-volume-up"></i>' +
                                       '   </button>' +
-                                      '   <button class="btn btn-default btn-sound-off recorder-hidden" id="btn-sound-off" title="unmute">' +
+                                      '   <button class="btn btn-default btn-sound-off" id="btn-sound-off" title="unmute">' +
                                       '     <i class="fa fa-volume-off"></i>' +
                                       '   </button>' +
                                       '  </div>' +
@@ -439,7 +439,7 @@ define([
                        find('#btn-create-graffiti').show().
                        parent().find('#btn-edit-graffiti').hide();
               if (graffiti.selectedTokens.isIntersecting) {
-                console.log('Graffiti: tweaking recording controls');
+                console.log('Graffiti: updating recording controls');
                 graffiti.highlightIntersectingGraffitiRange();
                 graffiti.controlPanelIds['graffiti-record-controls'].
                          find('#btn-create-graffiti').hide().
@@ -651,11 +651,11 @@ define([
         }
         const cell = utils.findCellByCellId(cellId);
         const cellElement = $(cell.element[0]);
-        const canvasClass = 'recorder-canvas-' + canvasType;
+        const canvasClass = 'graffiti-canvas-' + canvasType;
         const existingCanvas = cellElement.find('.' + canvasClass);
         const cellRect = cellElement[0].getBoundingClientRect();
-        $('<div class="recorder-canvas-outer"><canvas /></div>').appendTo(cellElement);
-        const newCellCanvasDiv = cellElement.find('.recorder-canvas-outer:first');
+        $('<div class="graffiti-canvas-outer"><canvas /></div>').appendTo(cellElement);
+        const newCellCanvasDiv = cellElement.find('.graffiti-canvas-outer:first');
         const newCellCanvas = newCellCanvasDiv.find('canvas')[0];
         const ctx =  newCellCanvas.getContext("2d");
 
@@ -1524,7 +1524,6 @@ define([
             });
 
             audio.startRecording();
-            $('#recorder-range').attr('disabled',1);
             state.setScrollTop(graffiti.sitePanel.scrollTop());
             state.setGarnishing(false);
 
