@@ -5,7 +5,6 @@ define([
   './utils.js',
   './audio.js',
   './storage.js',
-  './fontawesome-5.2.0/all.min.js',
   'components/marked/lib/marked'
 ], function(dialog, LZString, state, utils, audio, storage, marked) {
   const Graffiti = (function() {
@@ -39,6 +38,10 @@ define([
         graffiti.lastUpdateControlsTime = utils.getNow();
         graffiti.notificationMsgs = {};
         graffiti.panelFadeTime = 350;
+
+        if (state.getAccessLevel() === 'create') {
+          graffiti.activateAudio();
+        }
 
         storage.loadManifest(currentAccessLevel).then(() => {
           graffiti.initInteractivity()
@@ -320,10 +323,16 @@ define([
                                       '<div id="graffiti-notifier"></div>');
 
 
+        // These two SVGs come from fontawesome-5.2.0: fas fa-highlighter and fas fa-pen-alt, respectively. However, we can't use them without importing the latest
+        // fontawesome and that collides with Jupyter's use of fontawesome.
+
         graffiti.setupOneControlPanel('graffiti-recording-pen-controls', 
                                       '<div id="graffiti-recording-pens-shell">' +
-                                      ' <button class="btn btn-default" id="graffiti-select-highlight-pen" title="Highlighter tool"><i class="fa fa-highlighter"></i></button>' +
-                                      ' <button class="btn btn-default" id="graffiti-select-marker-pen" title="Marker tool"><i class="fa fa-pen-alt"></i></button>' +
+                                      ' <button class="btn btn-default" id="graffiti-select-highlight-pen" title="Highlighter tool">' +
+                                      '<svg class="svg-inline--fa fa-highlighter fa-w-17" aria-hidden="true" data-prefix="fa" data-icon="highlighter" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 544 512" data-fa-i2svg=""><path fill="currentColor" d="M0 479.98L99.92 512l35.45-35.45-67.04-67.04L0 479.98zm124.61-240.01a36.592 36.592 0 0 0-10.79 38.1l13.05 42.83-50.93 50.94 96.23 96.23 50.86-50.86 42.74 13.08c13.73 4.2 28.65-.01 38.15-10.78l35.55-41.64-173.34-173.34-41.52 35.44zm403.31-160.7l-63.2-63.2c-20.49-20.49-53.38-21.52-75.12-2.35L190.55 183.68l169.77 169.78L530.27 154.4c19.18-21.74 18.15-54.63-2.35-75.13z"></path></svg>' +
+                                      '</button>' +
+                                      ' <button class="btn btn-default" id="graffiti-select-marker-pen" title="Marker tool">' +
+                                      '<svg class="svg-inline--fa fa-pen-alt fa-w-16" aria-hidden="true" data-prefix="fa" data-icon="pen-alt" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" data-fa-i2svg=""><path fill="currentColor" d="M497.94 74.17l-60.11-60.11c-18.75-18.75-49.16-18.75-67.91 0l-56.55 56.55 128.02 128.02 56.55-56.55c18.75-18.75 18.75-49.15 0-67.91zm-246.8-20.53c-15.62-15.62-40.94-15.62-56.56 0L75.8 172.43c-6.25 6.25-6.25 16.38 0 22.62l22.63 22.63c6.25 6.25 16.38 6.25 22.63 0l101.82-101.82 22.63 22.62L93.95 290.03A327.038 327.038 0 0 0 .17 485.11l-.03.23c-1.7 15.28 11.21 28.2 26.49 26.51a327.02 327.02 0 0 0 195.34-93.8l196.79-196.79-82.77-82.77-84.85-84.85z"></path></svg>' +
                                       '</div>' +
                                       '<div id="graffiti-recording-colors-shell">' +
                                       '  <div id="graffiti-recording-color-yellow"></div>' +
@@ -350,7 +359,7 @@ define([
         );
 
         graffiti.setupOneControlPanel('graffiti-access-api',
-                                      '<button class="btn btn-default" id="graffiti-access-api" title="Access API"></i>&nbsp; <span>Access API</span></button>',
+                                      '<button class="btn btn-default" id="graffiti-access-api" title="Create Sample API Calls"></i>&nbsp; <span>Create Sample API Calls</span></button>',
                                       [
                                         { 
                                           ids: ['graffiti-access-api'],
@@ -590,7 +599,7 @@ define([
                                      ids: ['graffiti-cancel-recording-link'],
                                      event: 'click',
                                      fn: (e) => {
-                                       graffiti.finishGraffiti(false);
+                                       graffiti.cancelRecording();
                                      }
                                    }
                                  ]);
@@ -853,7 +862,7 @@ define([
               state.setTipTimeout(() => {
                 const newPointerPosition = state.getPointerPosition();
                 const cursorDistanceSquared = (newPointerPosition.x - currentPointerPosition.x) * (newPointerPosition.x - currentPointerPosition.x) +
-                                               (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
+                                                (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
 
                 //console.log('comparing currentPointerPosition, newPointerPosition:', currentPointerPosition,
                 //            newPointerPosition, cursorDistanceSquared);
@@ -1447,34 +1456,51 @@ define([
 
       },
 
+      //
+      // End a movie recording currently underway.
+      //
+      stopRecordingCore: (useCallback) => {
+        audio.setExecuteCallback(useCallback);
+        graffiti.clearAllCanvases();
+        state.finalizeHistory();
+        if (useCallback) {
+          state.dumpHistory();
+        }
+        if (graffiti.recordingIndicatorInterval !== undefined) {
+          clearInterval(graffiti.recordingIndicatorInterval);
+          graffiti.recordingIndicatorInterval = undefined;
+        }
+        clearInterval(state.getRecordingInterval());
+        // This will use the callback defined in setAudioStorageCallback to actually persist the whole recording, if useCallback is true
+        audio.stopRecording();
+        console.log('Graffiti: stopRecordingCore is refreshing.');
+        state.restoreCellStates('contents');
+        graffiti.updateAllGraffitiDisplays();
+        graffiti.sitePanel.animate({ scrollTop: state.getScrollTop() }, 750);
+        state.restoreCellStates('selections');
+        state.deleteTrackingArrays();
+        graffiti.changeActivity('idle');
+      },
+
+      cancelRecording: () => {
+        const currentActivity = state.getActivity();
+        if (currentActivity === 'recording') {
+          const recordingCellInfo = state.getRecordingCellInfo();
+          if (recordingCellInfo.newRecording) {
+            state.removeManifestEntry(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
+            storage.storeManifest();
+          }
+          graffiti.stopRecordingCore(false);
+          utils.saveNotebook();
+          console.log('Graffiti: cancelled recording.');
+        }
+      },
 
       toggleRecording: () => {
         const currentActivity = state.getActivity();
         if (currentActivity !== 'playing') {
           if (currentActivity === 'recording') {
-
-            //
-            // Stop movie recording currently underway.
-            //
-
-            graffiti.clearAllCanvases();
-            if (graffiti.recordingIndicatorInterval !== undefined) {
-              clearInterval(graffiti.recordingIndicatorInterval);
-              graffiti.recordingIndicatorInterval = undefined;
-            }
-            state.finalizeHistory();
-            state.dumpHistory();
-            clearInterval(state.getRecordingInterval());
-            // This will use the callback defined in setAudioStorageCallback to actually persist everything.
-            audio.stopRecording();
-            //$('#recorder-range').removeAttr('disabled');
-            console.log('Graffiti: toggleRecording refreshing.');
-            state.restoreCellStates('contents');
-            graffiti.updateAllGraffitiDisplays();
-            graffiti.sitePanel.animate({ scrollTop: state.getScrollTop() }, 750);
-            state.restoreCellStates('selections');
-            state.deleteTrackingArrays();
-            graffiti.changeActivity('idle');
+            graffiti.stopRecordingCore(true);
             console.log('Graffiti: Stopped recording.');
           } else {
 
@@ -1941,29 +1967,34 @@ define([
                              ]);
       },
 
+      activateAudio: () => {
+        if (!state.getAudioInitialized()) {
+          audio.init();
+          setTimeout( () => {
+            if (audio.isAvailable()) {
+              state.setAudioInitialized();
+            } else {
+              debugger;
+              dialog.modal({
+                title: 'Please grant access to your browser\'s microphone.',
+                body: 'You cannot record Graffiti movies unless you grant access to the microphone. ' +
+                      'Please <a href="https://help.aircall.io/hc/en-gb/articles/115001425325-How-to-allow-Google-Chrome-to-access-your-microphone" ' +
+                      'target="_">grant access</a> and then reload this page.',
+                sanitize:false,
+                buttons: {
+                  'OK': {
+                  }
+                }
+              });
+            }
+          }, 1000);
+        }
+      },
+
       changeAccessLevel: (level) => {
         if (level === 'create') {
           graffiti.cancelPlayback({cancelAnimation:true});
-          if (!state.getAudioInitialized()) {
-            audio.init();
-            setTimeout( () => {
-              if (audio.isAvailable()) {
-                state.setAudioInitialized();
-              } else {
-                dialog.modal({
-                  title: 'Please grant access to your browser\'s microphone.',
-                  body: 'You cannot record Graffiti movies unless you grant access to the microphone. ' +
-                        'Please <a href="https://help.aircall.io/hc/en-gb/articles/115001425325-How-to-allow-Google-Chrome-to-access-your-microphone" ' +
-                        'target="_">grant access</a> and then reload this page.',
-                  sanitize:false,
-                  buttons: {
-                    'OK': {
-                    }
-                  }
-                });
-              }
-            }, 500);
-          }
+          graffiti.activateAudio();
           state.setAuthorId(0); // currently hardwiring this to creator(teacher) ID, which is always 0. Eventually we will replace this with 
           // individual author ids
           storage.ensureNotebookGetsGraffitiId();
