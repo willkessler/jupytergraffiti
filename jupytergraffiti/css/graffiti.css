@@ -29,12 +29,6 @@
   height:24px;
 }
 
-#recorder-notifier {
-  margin-left:10px;
-  font-size:1.5em;
-  cursor:pointer;
-}
-
 .graffiti-tip {
   background-color:#fff;
   color:#222;
@@ -80,12 +74,6 @@
 
 .graffiti-highlight {
   border-bottom:2px dashed rgb(67,127,127);
-/*
-  text-decoration:underline;
-  text-decoration-style: dotted;
-  text-decoration-color: blueviolet;
-  text-underline-position:under;
-*/
 }
 
 .graffiti-selected {
@@ -166,8 +154,8 @@
   justify-content:left;
 }
 
-#graffiti-playback-buttons #btn-play,
-#graffiti-playback-buttons #btn-pause {
+#graffiti-playback-buttons #graffiti-play-btn,
+#graffiti-playback-buttons #graffiti-pause-btn {
   width:50px;
 }
 
@@ -175,7 +163,7 @@
   margin-top:2px;
 }
 
-#graffiti-access-api {
+#graffiti-access-api-btn {
   font-size:0.8em;
   padding:2px;
 }
@@ -253,8 +241,8 @@
   text-decoration:underline;
 }
 
-#btn-sound-on,
-#btn-sound-off {
+#graffiti-sound-on-btn,
+#graffiti-sound-off-btn {
   min-width:24px;
 }
 

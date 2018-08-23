@@ -140,33 +140,33 @@ define([
         });
 
         graffiti.setupOneControlPanel('graffiti-record-controls', 
-                                      '  <button class="btn btn-default" id="btn-create-graffiti">' +
+                                      '  <button class="btn btn-default" id="graffiti-create-btn">' +
                                       '<i class="fa fa-edit"></i>&nbsp; <span>Create</span></button>' +
-                                      '  <button class="btn btn-default" id="btn-edit-graffiti" title="Edit Graffiti movie">' +
+                                      '  <button class="btn btn-default" id="graffiti-edit-btn" title="Edit Graffiti movie">' +
                                       '<i class="fa fa-edit"></i>&nbsp; <span>Edit</span></button>' +
-                                      '  <button class="btn btn-default" id="btn-begin-recording" title="Record movie">' +
+                                      '  <button class="btn btn-default" id="graffiti-begin-recording-btn" title="Record movie">' +
                                       '<i class="fa fa-film graffiti-recorder-button"></i>&nbsp;<span>Record</span></button>' +
-                                      '  <button class="btn btn-default" id="btn-begin-rerecording" title="ReRecord movie">' +
+                                      '  <button class="btn btn-default" id="graffiti-begin-rerecording-btn" title="ReRecord movie">' +
                                       '<i class="fa fa-film graffiti-recorder-button"></i>&nbsp;<span>Rerecord</span></button>' +
-                                      '  <button class="btn btn-default" id="btn-remove-graffiti" title="Remove Graffiti">' +
+                                      '  <button class="btn btn-default" id="graffiti-remove-btn" title="Remove Graffiti">' +
                                       '<i class="fa fa-trash"></i></button>',
                                       [
                                         {
-                                          ids: ['btn-create-graffiti', 'btn-edit-graffiti'],
+                                          ids: ['graffiti-create-btn', 'graffiti-edit-btn'],
                                           event: 'click',
                                           fn: (e) => {
                                             graffiti.editGraffiti('graffiting');
                                           }
                                         },
                                         {
-                                          ids: ['btn-begin-recording', 'btn-begin-rerecording'],
+                                          ids: ['graffiti-begin-recording-btn', 'graffiti-begin-rerecording-btn'],
                                           event: 'click',
                                           fn: (e) => {
                                             graffiti.beginMovieRecordingProcess();
                                           }
                                         },
                                         {
-                                          ids: ['btn-remove-graffiti'],
+                                          ids: ['graffiti-remove-btn'],
                                           event: 'click',
                                           fn: (e) => {
                                             graffiti.removeGraffitiWithPrompt();
@@ -176,10 +176,10 @@ define([
         );
 
         graffiti.setupOneControlPanel('graffiti-finish-edit-controls', 
-                                      '<button class="btn btn-default" id="btn-finish-graffiti" title="Save Graffiti">Save Graffiti</button>',
+                                      '<button class="btn btn-default" id="finish-graffiti-btn" title="Save Graffiti">Save Graffiti</button>',
                                       [
                                         {
-                                          ids: ['btn-finish-graffiti'],
+                                          ids: ['finish-graffiti-btn'],
                                           event: 'click',
                                           fn: (e) => {
                                             graffiti.finishGraffiti(true);
@@ -222,25 +222,25 @@ define([
 
         graffiti.setupOneControlPanel('graffiti-playback-controls', 
                                       '<div id="graffiti-playback-buttons">' +
-                                      '  <button class="btn btn-default btn-play" id="btn-play" title="Start playback">' +
+                                      '  <button class="btn btn-default btn-play" id="graffiti-play-btn" title="Start playback">' +
                                       '    <i class="fa fa-play"></i>' +
                                       '  </button>' +
-                                      '  <button class="btn btn-default" id="btn-pause" title="Pause playback">' +
+                                      '  <button class="btn btn-default" id="graffiti-pause-btn" title="Pause playback">' +
                                       '    <i class="fa fa-pause"></i>' +
                                       '  </button>' +
                                       '  <div id="graffiti-skip-buttons">' +
-                                      '    <button class="btn btn-default btn-rewind" id="btn-rewind" title="Skip back ' + graffiti.rewindAmt + ' seconds">' +
+                                      '    <button class="btn btn-default btn-rewind" id="graffiti-rewind-btn" title="Skip back ' + graffiti.rewindAmt + ' seconds">' +
                                       '      <i class="fa fa-backward"></i>' +
                                       '    </button>' +
-                                      '    <button class="btn btn-default btn-forward" id="btn-forward" title="Skip forward ' + graffiti.rewindAmt + ' seconds">' +
+                                      '    <button class="btn btn-default btn-forward" id="graffiti-forward-btn" title="Skip forward ' + graffiti.rewindAmt + ' seconds">' +
                                       '      <i class="fa fa-forward"></i>' +
                                       '    </button>' +
                                       '  </div>' +
                                       '  <div id="graffiti-sound-buttons">' +
-                                      '    <button class="btn btn-default btn-sound-on" id="btn-sound-on" title="mute">' +
+                                      '    <button class="btn btn-default btn-sound-on" id="graffiti-sound-on-btn" title="mute">' +
                                       '       <i class="fa fa-volume-up"></i>' +
                                       '   </button>' +
-                                      '   <button class="btn btn-default btn-sound-off" id="btn-sound-off" title="unmute">' +
+                                      '   <button class="btn btn-default btn-sound-off" id="graffiti-sound-off-btn" title="unmute">' +
                                       '     <i class="fa fa-volume-off"></i>' +
                                       '   </button>' +
                                       '  </div>' +
@@ -253,26 +253,26 @@ define([
                                       '</div>',
                                       [
                                         {
-                                          ids: ['btn-play', 'btn-pause'],
+                                          ids: ['graffiti-play-btn', 'graffiti-pause-btn'],
                                           event: 'click',
                                           fn: (e) => {
                                             graffiti.togglePlayback();
                                           }
                                         },
                                         { 
-                                          ids: ['btn-forward','btn-rewind'],
+                                          ids: ['graffiti-forward-btn','graffiti-rewind-btn'],
                                           event: 'click',
                                           fn: (e) => {
-                                            console.log('btn-forward/btn-rewind clicked');
+                                            console.log('forward-btn/rewind-btn clicked');
                                             let direction = 1;
-                                            if (($(e.target).attr('id') === 'btn-rewind') || ($(e.target).hasClass('fa-backward'))) {
+                                            if (($(e.target).attr('id') === 'graffiti-rewind-btn') || ($(e.target).hasClass('fa-backward'))) {
                                               direction = -1;
                                             }
                                             graffiti.jumpPlayback(direction);
                                           }
                                         },
                                         {
-                                          ids: ['btn-sound-on', 'btn-sound-off'],
+                                          ids: ['graffiti-sound-on-btn', 'graffiti-sound-off-btn'],
                                           event: 'click',
                                           fn: (e) => {
                                             if (state.getMute()) {
@@ -359,10 +359,10 @@ define([
         );
 
         graffiti.setupOneControlPanel('graffiti-access-api',
-                                      '<button class="btn btn-default" id="graffiti-access-api" title="Create Sample API Calls"></i>&nbsp; <span>Create Sample API Calls</span></button>',
+                                      '<button class="btn btn-default" id="graffiti-access-api-btn" title="Create Sample API Calls"></i>&nbsp; <span>Create Sample API Calls</span></button>',
                                       [
                                         { 
-                                          ids: ['graffiti-access-api'],
+                                          ids: ['graffiti-access-api-btn'],
                                           event: 'click', 
                                           fn: (e) => { 
                                             console.log('Graffiti: API key is:', graffiti.recordingAPIKey);
@@ -432,19 +432,19 @@ define([
               visibleControlPanels = ['graffiti-playback-controls']; // hide all control panels if in view only mode and not play mode
             } else {
               visibleControlPanels = ['graffiti-record-controls'];
-              graffiti.controlPanelIds['graffiti-record-controls'].find('#btn-begin-recording').show().
-                       parent().find('#btn-begin-rerecording').hide().
-                       parent().find('#btn-remove-graffiti').hide();
+              graffiti.controlPanelIds['graffiti-record-controls'].find('#graffiti-begin-recording-btn').show().
+                       parent().find('#graffiti-begin-rerecording-btn').hide().
+                       parent().find('#graffiti-remove-btn').hide();
               graffiti.controlPanelIds['graffiti-record-controls'].
-                       find('#btn-create-graffiti').show().
-                       parent().find('#btn-edit-graffiti').hide();
+                       find('#graffiti-create-btn').show().
+                       parent().find('#graffiti-edit-btn').hide();
               if (graffiti.selectedTokens.isIntersecting) {
                 console.log('Graffiti: updating recording controls');
                 graffiti.highlightIntersectingGraffitiRange();
                 graffiti.controlPanelIds['graffiti-record-controls'].
-                         find('#btn-create-graffiti').hide().
-                         parent().find('#btn-edit-graffiti').show().
-                         parent().find('#btn-remove-graffiti').show();
+                         find('#graffiti-create-btn').hide().
+                         parent().find('#graffiti-edit-btn').show().
+                         parent().find('#graffiti-remove-btn').show();
                 //console.log('selectedTokens:', graffiti.selectedTokens);
                 state.clearPlayableMovie('cursorActivity');
                 if (graffiti.selectedTokens.hasMovie) {
@@ -454,7 +454,8 @@ define([
                   visibleControlPanels.push('graffiti-access-api');
                   visibleControlPanels.push('graffiti-notifier');
                   //console.log('this recording has a movie');
-                  graffiti.controlPanelIds['graffiti-record-controls'].find('#btn-begin-recording').hide().parent().find('#btn-begin-rerecording').show();
+                  graffiti.controlPanelIds['graffiti-record-controls'].find('#graffiti-begin-recording-btn').hide().parent().
+                           find('#graffiti-begin-rerecording-btn').show();
                   graffiti.setNotifier('<div>You can <span class="graffiti-notifier-link" id="graffiti-idle-play-link">play</span> this movie any time.</div>',
                                        [
                                          {
@@ -471,11 +472,11 @@ define([
             graffiti.showControlPanels(visibleControlPanels);
             break;
           case 'playing':
-            graffiti.controlPanelIds['graffiti-playback-controls'].find('#btn-play').hide().parent().find('#btn-pause').show();
+            graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-play-btn').hide().parent().find('#graffiti-pause-btn').show();
             if (state.getMute()) {
-              graffiti.controlPanelIds['graffiti-playback-controls'].find('#btn-sound-on').hide().parent().find('#btn-sound-off').show();
+              graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-sound-on-btn').hide().parent().find('#graffiti-sound-off-btn').show();
             } else {
-              graffiti.controlPanelIds['graffiti-playback-controls'].find('#btn-sound-off').hide().parent().find('#btn-sound-on').show();
+              graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-sound-off-btn').hide().parent().find('#graffiti-sound-on-btn').show();
             }
             graffiti.showControlPanels(['graffiti-playback-controls']);
             graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-pause-link">Pause</span> to interact w/Notebook, or</div>' +
@@ -498,7 +499,7 @@ define([
                                  ]);
             break;
           case 'playbackPaused':
-            graffiti.controlPanelIds['graffiti-playback-controls'].find('#btn-pause').hide().parent().find('#btn-play').show();
+            graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-pause-btn').hide().parent().find('#graffiti-play-btn').show();
             if (state.getSetupForReset()) {
               graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-restart-play-link">Play movie again</span>, or</div>' +
                                    '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-link">Cancel</span> movie playback</div>',
@@ -888,7 +889,7 @@ define([
                     const buttonName = (((tooltipCommands !== undefined) && (tooltipCommands.buttonName !== undefined)) ? tooltipCommands.buttonName : 'Play Movie');
                     state.setPlayableMovie('tip', cellId, recordingKey);
                     tooltipContents +=
-                      '   <div class="movie"><button class="btn btn-default btn-small" id="moviePlay">' + buttonName + '</button></div>';
+                      '   <div class="movie"><button class="btn btn-default btn-small" id="graffiti-movie-play-btn">' + buttonName + '</button></div>';
                   }
                   tooltipContents += '</div>';
 
@@ -904,10 +905,10 @@ define([
                       }
                     });
                   } else {
-                    existingTip.find('#moviePlay').unbind('click');
+                    existingTip.find('#graffiti-movie-play-btn').unbind('click');
                     existingTip.html(tooltipContents);
                   }
-                  existingTip.find('#moviePlay').click((e) => {
+                  existingTip.find('#graffiti-movie-play-btn').click((e) => {
                     //console.log('click in tip');
                     state.clearTipTimeout();
                     e.stopPropagation(); // for reasons unknown even still propogates to the codemirror editing area undeneath
