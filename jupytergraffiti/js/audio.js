@@ -6,6 +6,8 @@ define([
 
     init: (state) => {
       console.log('Graffiti audio constructor.');
+      audio.executeCallback = true; // by default always execute the storage callback
+
       // fork getUserMedia for multiple browser versions, for the future
       // when more browsers support MediaRecorder
       navigator.getUserMedia = ( navigator.getUserMedia ||
@@ -113,6 +115,10 @@ define([
       audio.pauseAudio();
     },
 
+    setExecuteCallback: (value) => {
+      audio.executeCallback = value;
+    },
+
     saveRecordedAudio: (e) => {
       //console.log("Audio data available");
 
@@ -126,7 +132,9 @@ define([
         let base64String = btoa([].reduce.call(new Uint8Array(bufferArray),function(p,c){return p+String.fromCharCode(c)},''));
         //console.log(base64String);
         audio.storeRecordedAudio(base64String);
-        audio.audioStorageCallback();
+        if (audio.executeCallback) {
+          audio.audioStorageCallback();
+        }
       });
       reader.readAsArrayBuffer(e.data);
 

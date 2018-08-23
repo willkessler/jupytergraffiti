@@ -438,6 +438,15 @@
   border:1px solid black;
 }
 
+#graffiti-recording-pens-shell button {
+  padding-top:6px;
+}
+
+#graffiti-recording-pens-shell button svg {
+  width:20px;
+  height:20px;
+}
+
 #graffiti-recording-color-red {
   background-color:red;
 }
