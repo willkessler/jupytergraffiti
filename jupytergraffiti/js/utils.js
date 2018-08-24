@@ -13,16 +13,40 @@ define([
       return new Date().getTime();
     },
 
+    // Assign cellIds to any cells that don't have them yet.
+    assignCellIds: () => {
+      const cells = Jupyter.notebook.get_cells();
+      let cell, cellId, iStr, i, innerCell;
+      for (let i = 0; i < cells.length; ++i) {
+        cell = cells[i];
+        cellId = utils.generateUniqueId();
+        if (!cell.metadata.hasOwnProperty('cellId')) {
+          cell.metadata.cellId = cellId;
+        }
+      }
+    },
+
     refreshCellMaps: () => {
       utils.cellMaps = {
         cells: Jupyter.notebook.get_cells(),
         maps: {}
       }
-      let cell, cellKeys = Object.keys(utils.cellMaps.cells);
+      let cell, cellDOM, cellKeys = Object.keys(utils.cellMaps.cells);
       for (let cellIndex = 0; cellIndex < cellKeys.length; ++cellIndex) {
         cell = utils.cellMaps.cells[cellIndex];
         // supports lookups by cellId
         utils.cellMaps.maps[cell.metadata.cellId] = cellIndex;
+        // Dress up the DOM  cellId so we can track selections in them (pretty much only markdown, selections in code_mirror are done through its API
+        if (cell.hasOwnProperty('inner_cell')) {
+          cellDOM = $(cell.inner_cell).parents('.cell');
+        } else if (cell.hasOwnProperty('element')) {
+          cellDOM = $(cell.element);
+        }
+        if (cellDOM !== undefined) {
+          if (cellDOM.attr('graffiti-cell-id') === undefined) {
+            cellDOM.attr({ 'graffiti-cell-id' : cell.metadata.cellId});
+          }
+        }
       }
     },
 

@@ -421,6 +421,7 @@ define([
               activeCell = utils.findCellByCodeMirror(cm);
             }
             graffiti.selectedTokens = utils.findSelectionTokens(activeCell, graffiti.tokenRanges, state);
+            console.log('graffiti.selectedTokens:', graffiti.selectedTokens);
             graffiti.highlightIntersectingGraffitiRange();
             let visibleControlPanels;
             if (graffiti.selectedTokens.noTokensPresent) {
@@ -645,6 +646,55 @@ define([
         graffiti.refreshGraffitiTips();
         graffiti.setupControlPanels();
         graffiti.updateControlPanels();
+
+        // Specially handle selection changes in markdown cells and output areas during recordings
+        document.addEventListener("selectionchange", function() {
+          return;
+
+          // https://stackoverflow.com/questions/1335252/how-can-i-get-the-dom-element-which-contains-the-current-selection
+          let parentElem, selection, range, ranges, savedRange;
+          if (document.selection) {
+            // IE family
+            selection = document.selection;
+            range = selection.createRange();
+            parentElem = range.parentElement();
+          } else {
+            // Sane browsers
+            ranges = window.getSelection();
+            if (ranges.rangeCount > 0) {
+              parentElem = ranges.getRangeAt(0).startContainer.parentNode;
+              savedRange = ranges.getRangeAt(0).cloneRange();
+            }
+          }
+          const cellDOM = $(parentElem).parents('.cell');
+          let cellId;
+          if (cellDOM.length > 0) {
+            cellId = cellDOM.attr('graffiti-cell-id');
+            if (cellId !== undefined) {
+              const cell = utils.findCellByCellId(cellId);
+              if (cell.cell_type === 'markdown') {
+                console.log('Markdown selection changed:', cellId, ranges);
+                setTimeout(() => {
+                  if (window.getSelection) {
+                    const winSelection = window.getSelection();
+                    winSelection.removeAllRanges();
+//                    winSelection.addRange(savedRange);
+                    console.log('savedRange:', savedRange);
+                  } else if (document.selection) {
+                    var textRange = document.body.createTextRange();
+                    textRange.moveToElementText(element);
+                    textRange.select();
+                  }
+                  
+                }, 3000);
+              } else {
+                if ($(parentElem).parents('.output_area').length > 0) {
+                  console.log('Code cell output area selection changed:', cellId, ranges);
+                }
+              }
+            }
+          }
+        });
       },
 
       // Inspired by https://www.codicode.com/art/how_to_draw_on_a_html5_canvas_with_a_mouse.aspx
@@ -1524,7 +1574,7 @@ define([
 
             graffiti.changeActivity('recording');
             state.setMovieRecordingStarted(true);
-            state.assignCellIds();
+            utils.assignCellIds();
             state.initHistory({
               storageCellId: recordingCellInfo.recordingCellId,
             });
@@ -2003,7 +2053,7 @@ define([
           state.setAuthorId(0); // currently hardwiring this to creator(teacher) ID, which is always 0. Eventually we will replace this with 
           // individual author ids
           storage.ensureNotebookGetsGraffitiId();
-          state.assignCellIds();
+          utils.assignCellIds();
           utils.saveNotebook();
           graffiti.refreshAllGraffitiHighlights();
           graffiti.refreshGraffitiTips();
