@@ -352,25 +352,6 @@ define([
       console.log("=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-");
     },
 
-    // Refresh cellIndexMap and cellIdMap before recording
-    // or after loading recordings.
-    refreshCellMaps: () => {
-    },
-
-    assignCellIds: () => {
-      const cells = Jupyter.notebook.get_cells();
-      let cell, cellId, iStr, i;
-      state.cellIndexMap = {};
-      for (let i = 0; i < cells.length; ++i) {
-        cell = cells[i];
-        cellId = utils.generateUniqueId();
-        if (!cell.metadata.hasOwnProperty('cellId')) {
-          cell.metadata.cellId = cellId;
-        }
-        state.cellIndexMap[cellId] = i;
-      }
-    },
-
     createViewRecord: (opts) => {
       return $.extend({}, state.viewInfo, {
         dx: (state.pointer.x - state.viewInfo.innerCellRect.left)  / state.viewInfo.innerCellRect.width,
