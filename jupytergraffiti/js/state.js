@@ -308,7 +308,8 @@ define([
     },
 
     setPlayableMovie: (kind, cellId, recordingKey) => {
-      state.playableMovies[kind] = { cellId: cellId, recordingKey: recordingKey };      
+      const cell = utils.findCellByCellId(cellId);
+      state.playableMovies[kind] = { cellId: cellId, recordingKey: recordingKey, cell: cell, cellType: cell.cell_type };
     },
 
     clearPlayableMovie: (kind) => {

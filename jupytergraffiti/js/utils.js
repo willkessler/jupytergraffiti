@@ -6,7 +6,7 @@ define([
     cellMaps: {},
 
     generateUniqueId: () => {
-      return 'id_' + Math.random().toString(36).substr(2, 16);
+      return 'id_' + Math.random().toString(36).substr(2, 6);
     },
 
     getNow: () => {
@@ -213,6 +213,7 @@ define([
               recordingKey: tag.recordingKey, 
               hasMovie: hasMovie,
               allTokensString: tag.innerText,
+              markdown: tag.innerText,
               range: {
                 start: tag.startRange,
                 end:   tag.endRange,
@@ -221,7 +222,7 @@ define([
           }
         } else {
           // now check for a selection in the markdown cm cell
-          if (endPos - startPos > 1) { // 2 or more chars is in the selection; this way we disallow Graffitis applied to just CR's
+          if (endPos - startPos > 0) { // 2 or more chars is in the selection; this way we disallow Graffitis applied to just CR's
             results = {
               isIntersecting: false,
               noTokensPresent: false,
