@@ -156,8 +156,9 @@ define([
     // Find out whether the current selection intersections with any graffiti token ranges, or which tokens are in the selection if not.
     findSelectionTokens: (recordingCell,  tokenRanges, state) => {
       //console.log('findSelectionTokens, tokenRanges:', tokenRanges);
-      let range, startRange, endRange, recordingKey, markdown, isIntersecting = false;
+      let range, startRange, endRange, recording, hasMovie, recordingKey, markdown, isIntersecting = false;
       const recordingCellId = recordingCell.metadata.cellId;
+      const recordingCellType = recordingCell.cell_type;
       const cm = recordingCell.code_mirror;
       const selections = cm.listSelections();
       const firstSelection = selections[0];
@@ -166,125 +167,197 @@ define([
       const startPos = Math.min(anchorPos, headPos);
       const endPos = Math.max(anchorPos, headPos);
       let minStartRange = 1000000000;
+      const noResults = { isIntersecting: false, noTokensPresent: true };
+      let results = noResults;
 
-      if (tokenRanges[recordingCellId] !== undefined) {
-        const tokenRangesThisCell = tokenRanges[recordingCellId];
-        for (recordingKey of Object.keys(tokenRangesThisCell)) {
-          range = tokenRangesThisCell[recordingKey];
-          startRange = cm.indexFromPos(range.start);
-          endRange = cm.indexFromPos(range.end);
-          //console.log('startPos:', startPos, 'endPos:', endPos, '| startRange:', startRange, 'endRange:', endRange, 'range:', range);
-          if ((startPos <= startRange && endPos >= endRange) || // selection surrounds or equals the range
-              ((startPos >= startRange && startPos <= endRange) || (endPos >= startRange && endPos <= endRange))) { // selection is inside the range
-            if (startRange < minStartRange) {
-              minStartRange = startRange;
-              recording = state.getManifestSingleRecording(recordingCellId, recordingKey);
-              markdown = recording.markdown;
-              hasMovie = recording.hasMovie;
-              //console.log('found range:', range);
+      if (recordingCellType === 'markdown') {
+        // If in a markdown cell, the selection "tokens" are simply the selection, but only if the selection is 2 characters or more. We do not try to use
+        // code mirror's tokenizer tools within markdown cells as there's other stuff like html in a markdown cell that could be confusing to it.
+        const contents = recordingCell.get_text();
+        let tagsRe = RegExp('<span class="graffiti-highlight (graffiti-[^"]+)">(.*?)</span>','g')
+        let tags = [], match, tag;
+        let idMatch;
+        while ((match = tagsRe.exec(contents)) !== null) { 
+          idMatch = match[1].match(/graffiti-(id_.[^\-]+)-(id_[^\s]+)/);
+          tags.push({
+            fullMatch: match[0],
+            recordingCellId: idMatch[1],
+            recordingKey: idMatch[2],
+            innerText: match[2],
+            startRange: match.index,
+            endRange: match.index + match[0].length
+          }); 
+        }
+        console.log("tags:", tags);
+
+        // Figure out if the startPs or endPos is inside an existing Graffiti in this markdown cell (intersecting).
+        if (tags.length > 0) {
+          for (tag of tags) {
+            if ( ((startPos >= tag.startRange) && (startPos <= tag.endRange)) ||
+                 ((endPos >= tag.startRange) && (endPos <= tag.endRange)) ) {
               isIntersecting = true;
-              results = {
-                isIntersecting: true,
-                noTokensPresent: false,
-                range: range,
-                recordingCell: recordingCell,
-                recordingCellId: recordingCellId,
-                recordingKey: recordingKey, 
-                markdown: markdown,
-                hasMovie: hasMovie,
-                start: startRange,
-                end:   endRange
-              };
+              break;
             }
           }
         }
-      }
-      if (!isIntersecting) {
-        // we didn't find a match within existing recordings. See what tokens are selected overall in that case.
-        //console.log('not intersecting, now checking for new annots');
-        const allTokens = utils.collectCMTokens(cm);
-        let startCheck, endCheck, token, startToken, lastToken, startTokenIndex, tokenCount = 0, tokensString = '';
-        const noResults = { isIntersecting: false, noTokensPresent: true };
-        if (allTokens.length === 0) {
-          // degnerate case 1: no tokens present at all in the cell
-          results = noResults;
-        } else {
-          token = allTokens[allTokens.length - 1];
-          endCheck = cm.indexFromPos({line: token.line, ch: token.end});
-          if (startPos > endCheck) {
-            // degenerate case 2: selection caret is past the last token present
-            results = noResults;
-          } else {
-            for (let i = 0; i < allTokens.length; ++i) {
-              lastToken = token;
-              token = allTokens[i];
-              startCheck = cm.indexFromPos({line: token.line, ch: token.start});
-              endCheck = cm.indexFromPos({line: token.line, ch: token.end});
-              //console.log('startPos, endPos:', startPos, endPos, 'checking token:', token.string, startCheck, endCheck);
-              if (startToken === undefined) {
-                if ((startPos >= startCheck && startPos <= endCheck) ||
-                    (endPos >= startCheck && endPos <= endCheck)) {
-                  startToken = token;
-                  startTokenIndex = i;
-                  tokenCount = 1;
-                  tokensString = startToken.string;
-                  //console.log('start token:', startToken);
-                  if (startPos === endPos) {
-                    endToken = token; // the selection is zero characters long so the startToken and the endToken are the same
-                  }
-                }
-              } else if (!(startCheck >= endPos)) { // scan forward for the ending token
-                endToken = token;
-                tokenCount++;
-                tokensString += token.string;
-                //console.log('end token:', endToken);
-              }
-              if (startCheck > endPos) {
-                if (startToken === undefined && lastToken !== undefined) {
-                  console.log('Graffiti: between tokens, so cannot create a Graffiti.');
-                  results = noResults;
-                }
-                break;
+        if (isIntersecting) {
+          recording = state.getManifestSingleRecording(tag.recordingCellId, tag.recordingKey);
+          if (recording !== undefined) {
+            markdown = recording.markdown;
+            hasMovie = recording.hasMovie;
+            results = {
+              isIntersecting: true,
+              noTokensPresent: false,
+              recordingCell: recordingCell,
+              recordingCellId: recordingCellId,
+              recordingKey: tag.recordingKey, 
+              hasMovie: hasMovie,
+              allTokensString: tag.innerText,
+              range: {
+                start: tag.startRange,
+                end:   tag.endRange,
               }
             }
-            
-            // Find the occurence count of the first token in the code cell, e.g. if the token is the second "hello" in "hello there, mr. hello dude"
-            if (startToken === undefined) {
-              results = noResults;
-              console.log('Graffiti: degenerate case 3, startToken not found despite everything. Falling to safe route.');
-            } else {
-              //console.log('Graffiti: startPos, endPos:', startPos, endPos, 'startToken,endToken:', startToken,endToken);
-              startToken.offset = 0;
-              for (let i = 0; i < allTokens.length; ++i) {
-                token = allTokens[i];
-                if (token.type === startToken.type && token.string === startToken.string) {
-                  if (i < startTokenIndex) {
-                     ++startToken.offset;
-                  } else {
-                    break;
+          }
+        } else {
+          // now check for a selection in the markdown cm cell
+          if (endPos - startPos > 1) { // 2 or more chars is in the selection; this way we disallow Graffitis applied to just CR's
+            results = {
+              isIntersecting: false,
+              noTokensPresent: false,
+              range: {
+                start: startPos,
+                end: endPos
+              },
+              allTokensString: cm.getSelection()
+            }
+          }
+        }
+        console.log('final results:',results);
+      } else if (recordingCellType === 'code') {
+        // If in a code cell, try to find tokens in and around the selection.
+        if (tokenRanges[recordingCellId] !== undefined) {
+          const tokenRangesThisCell = tokenRanges[recordingCellId];
+          for (recordingKey of Object.keys(tokenRangesThisCell)) {
+            range = tokenRangesThisCell[recordingKey];
+            startRange = cm.indexFromPos(range.start);
+            endRange = cm.indexFromPos(range.end);
+            console.log('startPos:', startPos, 'endPos:', endPos, '| startRange:', startRange, 'endRange:', endRange, 'range:', range);
+            if ((startPos <= startRange && endPos >= endRange) || // selection surrounds or equals the range
+                ((startPos >= startRange && startPos <= endRange) || (endPos >= startRange && endPos <= endRange))) { // selection is inside the range
+              if (startRange < minStartRange) {
+                minStartRange = startRange;
+                recording = state.getManifestSingleRecording(recordingCellId, recordingKey);
+                markdown = recording.markdown;
+                hasMovie = recording.hasMovie;
+                //console.log('found range:', range);
+                isIntersecting = true;
+                results = {
+                  isIntersecting: true,
+                  noTokensPresent: false,
+                  range: range,
+                  recordingCell: recordingCell,
+                  recordingCellId: recordingCellId,
+                  recordingKey: recordingKey, 
+                  markdown: markdown,
+                  hasMovie: hasMovie,
+                  range: {
+                    start: startRange,
+                    end:   endRange
                   }
+                };
+              }
+            }
+          }
+        }
+        if (!isIntersecting) {
+          // we didn't find a match within existing recordings. See what tokens are selected overall in that case.
+          // console.log('not intersecting, now checking for new graffiti creation');
+          const allTokens = utils.collectCMTokens(cm);
+          let startCheck, endCheck, token, startToken, endToken, lastToken, startTokenIndex, tokenCount = 0, tokensString = '';
+          if (allTokens.length === 0) {
+            // degnerate case 1: no tokens present at all in the cell
+            results = noResults;
+          } else {
+            token = allTokens[allTokens.length - 1];
+            endCheck = cm.indexFromPos({line: token.line, ch: token.end});
+            if (startPos > endCheck) {
+              // degenerate case 2: selection caret is past the last token present
+              results = noResults;
+            } else {
+              for (let i = 0; i < allTokens.length; ++i) {
+                lastToken = token;
+                token = allTokens[i];
+                startCheck = cm.indexFromPos({line: token.line, ch: token.start});
+                endCheck = cm.indexFromPos({line: token.line, ch: token.end});
+                //console.log('startPos, endPos:', startPos, endPos, 'checking token:', token.string, startCheck, endCheck);
+                if (startToken === undefined) {
+                  if ((startPos >= startCheck && startPos <= endCheck) ||
+                      (endPos >= startCheck && endPos <= endCheck)) {
+                    startToken = token;
+                    startTokenIndex = i;
+                    tokenCount = 1;
+                    tokensString = startToken.string;
+                    //console.log('start token:', startToken);
+                    if (startPos === endPos) {
+                      endToken = token; // the selection is zero characters long so the startToken and the endToken are the same
+                    }
+                  }
+                } else if (!(startCheck >= endPos)) { // scan forward for the ending token
+                  endToken = token;
+                  tokenCount++;
+                  tokensString += token.string;
+                  //console.log('end token:', endToken);
+                }
+                if (startCheck > endPos) {
+                  if (startToken === undefined && lastToken !== undefined) {
+                    console.log('Graffiti: between tokens, so cannot create a Graffiti.');
+                    results = noResults;
+                  }
+                  break;
                 }
               }
+              
+              // Find the occurence count of the first token in the code cell, e.g. if the token is the second "hello" in "hello there, mr. hello dude"
+              if (startToken === undefined) {
+                results = noResults;
+                console.log('Graffiti: degenerate case 3, startToken not found despite everything. Falling to safe route.');
+              } else {
+                //console.log('Graffiti: startPos, endPos:', startPos, endPos, 'startToken,endToken:', startToken,endToken);
+                startToken.offset = 0;
+                for (let i = 0; i < allTokens.length; ++i) {
+                  token = allTokens[i];
+                  if (token.type === startToken.type && token.string === startToken.string) {
+                    if (i < startTokenIndex) {
+                     ++startToken.offset;
+                    } else {
+                      break;
+                    }
+                  }
+                }
 
-              if (endToken === undefined) {
-                console.log('Graffiti: degenerate case 4, endToken not found. Falling to safe route.');
-                endToken = startToken; // degenerate case 4: never found an end token, assume just one token. not sure why this happens yet 8/20/18
-              }
+                if (endToken === undefined) {
+                  console.log('Graffiti: degenerate case 4, endToken not found. Falling to safe route.');
+                  endToken = startToken; // degenerate case 4: never found an end token, assume just one token. not sure why this happens yet 8/20/18
+                }
 
-              results = {
-                isIntersecting: false,
-                noTokensPresent: false,
-                tokens: {
-                  start: {
-                    type: startToken.type,
-                    string: startToken.string,
-                    offset: startToken.offset
+                results = {
+                  isIntersecting: false,
+                  noTokensPresent: false,
+                  tokens: {
+                    start: {
+                      type: startToken.type,
+                      string: startToken.string,
+                      offset: startToken.offset
+                    },
+                    count: tokenCount
                   },
-                  count: tokenCount,
-                  allTokensString: tokensString            
-                },
-                start: cm.indexFromPos({line:startToken.line, ch: startToken.ch}),
-                end:   cm.indexFromPos({line:endToken.line, ch: endToken.ch})
+                  allTokensString: tokensString,
+                  range: {
+                    start: cm.indexFromPos({line:startToken.line, ch: startToken.ch}),
+                    end:   cm.indexFromPos({line:endToken.line, ch: endToken.ch})
+                  }
+                }
               }
             }
           }

@@ -5,8 +5,9 @@ define([
   './utils.js',
   './audio.js',
   './storage.js',
+  './selectionSerializer.js',
   'components/marked/lib/marked'
-], function(dialog, LZString, state, utils, audio, storage, marked) {
+], function(dialog, LZString, state, utils, audio, storage, selectionSerializer, marked) {
   const Graffiti = (function() {
     const graffiti = {
 
@@ -427,7 +428,11 @@ define([
             if (graffiti.selectedTokens.noTokensPresent) {
               console.log('no tokens');
               visibleControlPanels = ['graffiti-notifier']; // hide all control panels if in view only mode and not play mode
-              graffiti.setNotifier('<div>Click in any text in a code cell to create or modify Graffiti\'s.</div>');
+              if (activeCell.cell_type === 'markdown') {
+                graffiti.setNotifier('<div>Select some text to create or modify Graffiti\'s.</div>');
+              } else {
+                graffiti.setNotifier('<div>Click in any text in a code cell to create or modify Graffiti\'s.</div>');
+              }
             } else if (accessLevel === 'view') {
               console.log('view only');
               visibleControlPanels = ['graffiti-playback-controls']; // hide all control panels if in view only mode and not play mode
@@ -647,6 +652,10 @@ define([
         graffiti.setupControlPanels();
         graffiti.updateControlPanels();
 
+        // SErialize/deserialize range objects
+        // https://github.com/tildeio/range-serializer
+        // https://www.npmjs.com/package/serialize-selection
+
         // Specially handle selection changes in markdown cells and output areas during recordings
         document.addEventListener("selectionchange", function() {
           return;
@@ -844,6 +853,9 @@ define([
       // ******************************************************************************************************************************************
 
       refreshGraffitiHighlights: (params) => {
+        if (params.cell.cell_type !== 'code') {
+          return; // We don't refresh highlights in markdown cells because markdown cells do their highlights with plain html markup.
+        }
         const recordings = state.getManifestRecordingsForCell(params.cell.metadata.cellId);
         const cm = params.cell.code_mirror;
         const marks = cm.getAllMarks();
@@ -871,7 +883,7 @@ define([
                 graffiti.tokenRanges[cellId][recordingKey] = range;
                 if (params.clear || (!params.clear && markClasses !== undefined && markClasses.indexOf(recordingKey) === -1)) {
                   // don't call markText twice on a previously marked range
-                  marker = 'an-' + recording.cellId + '-' + recordingKey;
+                  marker = 'graffiti-' + recording.cellId + '-' + recordingKey;
                   cm.markText({ line:range.start.line, ch:range.start.ch},
                               { line:range.end.line,   ch:range.end.ch  },
                               { className: 'graffiti-highlight ' + marker });
@@ -900,14 +912,19 @@ define([
         //console.log('refreshGraffitiTips: binding mousenter/mouseleave');
         tips.unbind('mouseenter mouseleave').bind('mouseenter mouseleave', (e) => {
           const highlightElem = $(e.target);
-          const idMatch = highlightElem.attr('class').match(/an-(id_.[^\-]+)-(id_[^\s]+)/);
-          if (idMatch !== undefined) {
+          const idMatch = highlightElem.attr('class').match(/graffiti-(id_.[^\-]+)-(id_[^\s]+)/);
+          if (idMatch !== null) {
             const cellId = idMatch[1];
             const recordingKey = idMatch[2];
             const hoverCell = utils.findCellByCellId(cellId);
             const hoverCellElement = hoverCell.element[0];
             const hoverCellElementPosition = $(hoverCellElement).position();
-            const outerInputElement = $(hoverCellElement).find('.CodeMirror-lines');
+            let outerInputElement;
+            if (hoverCell.cell_type === 'markdown') {
+              outerInputElement = $(hoverCellElement).find('.inner_cell');
+            } else {
+              outerInputElement = $(hoverCellElement).find('.CodeMirror-lines');
+            }
             const recording = state.getManifestSingleRecording(cellId, recordingKey);
             let existingTip = graffiti.notebookContainer.find('.graffiti-tip');
             if (e.type === 'mouseleave') {
@@ -1132,6 +1149,8 @@ define([
             createDate: utils.getNow(),
             inProgress: true,
             tokens: $.extend({}, graffiti.selectedTokens.tokens),
+            range: $.extend({}, graffiti.selectedTokens.range),
+            allTokensString: graffiti.selectedTokens.allTokensString,
             markdown: '',
             authorId: state.getAuthorId(),
             authorType: state.getAuthorType(), // one of "creator" (eg teacher), "viewer" (eg student)
@@ -1168,8 +1187,8 @@ define([
         const cell = graffiti.selectedTokens.recordingCell;
         if (cell !== undefined) {
           const cm = cell.code_mirror;
-          const startLoc = cm.posFromIndex(graffiti.selectedTokens.start);
-          const endLoc = cm.posFromIndex(graffiti.selectedTokens.end);
+          const startLoc = cm.posFromIndex(graffiti.selectedTokens.range.start);
+          const endLoc = cm.posFromIndex(graffiti.selectedTokens.range.end);
           graffiti.highlightMarkText = cm.markText(startLoc, endLoc, { className: 'graffiti-selected' });
         }
       },
@@ -1188,7 +1207,7 @@ define([
         if (graffiti.selectedTokens.isIntersecting) {
           editableText = graffiti.selectedTokens.markdown; // use whatever author put into this graffiti previously
         } else {
-          editableText = graffiti.selectedTokens.tokens.allTokensString;
+          editableText = graffiti.selectedTokens.allTokensString;
         }
 
         graffitiEditCell.set_text(editableText);
@@ -1234,6 +1253,22 @@ define([
           }
         }
         storage.storeManifest();
+
+        if (recordingCell.cell_type === 'markdown') {
+          // If we were adding a Graffiti to a markdown cell, we need to modify the markdown cell to include 
+          // our Graffiti span tag around the selection.
+          const contents = recordingCell.get_text();
+          let parts = [];
+          parts.push(contents.substring(0,recordingCellInfo.recordingRecord.range.start));
+          parts.push(contents.substring(recordingCellInfo.recordingRecord.range.start, recordingCellInfo.recordingRecord.range.end));
+          parts.push(contents.substring(recordingCellInfo.recordingRecord.range.end));
+          const spanOpenTag = '<span class="graffiti-highlight graffiti-' + 
+                              recordingCellInfo.recordingCellId + '-' + recordingCellInfo.recordingKey + '">';
+          const newContents = parts[0] + spanOpenTag + parts[1] + '</span>' + parts[2];
+          console.log('newContents:', newContents);
+          recordingCell.set_text(newContents);
+        }
+
         utils.saveNotebook();
 
         // need to reselect graffiti text that was selected in case it somehow got unselected
@@ -1251,6 +1286,22 @@ define([
 
       removeGraffitiCore: (recordingCell, recordingKey) => {
         const recordingCellId = recordingCell.metadata.cellId;
+        if (recordingCell.cell_type === 'markdown') {
+          // If this Graffiti was in a markdown cell we need to remove the span tags from the markdown source
+          const contents = recordingCell.get_text();
+          const spanRegex = RegExp('<span class="graffiti-highlight graffiti-' + recordingCellId + '-' + recordingKey + '">(.*?)</span>','g')
+          let results, foundContents = [];
+          while ((results = spanRegex.exec(contents)) !== null) { foundContents.push(results) };
+          if (foundContents.length > 0) {
+            debugger;
+            const innerContents = foundContents[0][1];
+            const sourceContents = '<span class="graffiti-highlight graffiti-' + recordingCellId + '-' + recordingKey + '">' + innerContents + '</span>';
+            const cleanedContents = contents.replace(sourceContents, innerContents);
+            console.log('cleanedContents of markdown:', cleanedContents);
+            recordingCell.set_text(cleanedContents);
+          }
+        }
+
         storage.deleteMovie(recordingCellId, recordingKey);
       },
 
@@ -1331,7 +1382,7 @@ define([
           const recordingKey = graffiti.selectedTokens.recordingKey;
           const recording = state.getManifestSingleRecording(recordingCellId,recordingKey);
           const content = '(Please Note: this cannot be undone.)<br/>' +
-                          '<b>Graffiti\'d text:</b><span class="graffiti-text-display">' + recording.tokens.allTokensString + '</span><br/>' +
+                          '<b>Graffiti\'d text:</b><span class="graffiti-text-display">' + recording.allTokensString + '</span><br/>' +
                           '<b>Graffiti contents:</b>' + utils.renderMarkdown(recording.markdown) + '<br/>';
           
           const confirmModal = dialog.modal({
@@ -1490,7 +1541,8 @@ define([
 
         Jupyter.notebook.events.on('rendered.MarkdownCell', (e, results) => {
           const activity = state.getActivity();
-          if ((activity === 'graffiting') || (activity === 'recordingLabelling')) { 
+          if (((activity === 'graffiting') || (activity === 'recordingLabelling')) &&
+              (results.cell.metadata.cellId === graffiti.graffitiEditCellId)) {
             const lastEditActivityTime = state.getLastEditActivityTime();
             if (lastEditActivityTime !== undefined && utils.getNow() - lastEditActivityTime > 250) {
               console.log('rendered MarkdownCell event fired and editing with long enough delay, so finishing graffiti. e, results:',e, results);
@@ -1498,6 +1550,7 @@ define([
               state.clearLastEditActivityTime();
             }
           }
+          graffiti.refreshAllGraffitiHighlights();
         });
 
         Jupyter.notebook.events.on('shell_reply.Kernel', (e, results) => {
@@ -2075,6 +2128,7 @@ define([
       removeAllGraffitis: graffiti.removeAllGraffitisWithConfirmation,
       setAccessLevel: (level) => { graffiti.changeAccessLevel(level) },
       setAuthorId: (authorId) => { state.setAuthorId(authorId) },
+      selectionSerializer: selectionSerializer
     }
 
   })();
