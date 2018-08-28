@@ -1146,6 +1146,7 @@ define([
           newRecording = true;
           recordingRecord = {
             cellId: recordingCellId,
+            cellType: recordingCell.cell_type,
             createDate: utils.getNow(),
             inProgress: true,
             tokens: $.extend({}, graffiti.selectedTokens.tokens),
@@ -1169,7 +1170,7 @@ define([
           scrollTop: graffiti.sitePanel.scrollTop()
         });
 
-        return recordingCell;
+        return recordingRecord;
       },
 
       clearHighlightMarkText: () => {
@@ -1196,7 +1197,7 @@ define([
       editGraffiti: (newActivity) => {
         graffiti.changeActivity(newActivity);
         state.setLastEditActivityTime();
-        graffiti.storeRecordingInfoInCell();
+        const recordingRecord = graffiti.storeRecordingInfoInCell();
 
         const activeCellIndex = Jupyter.notebook.get_selected_index();
         const graffitiEditCell = Jupyter.notebook.insert_cell_above('markdown');
@@ -1205,7 +1206,8 @@ define([
         utils.refreshCellMaps();
         let editableText;
         if (graffiti.selectedTokens.isIntersecting) {
-          editableText = graffiti.selectedTokens.markdown; // use whatever author put into this graffiti previously
+          // use whatever author put into this graffiti previously
+          editableText = recordingRecord.markdown; 
         } else {
           editableText = graffiti.selectedTokens.allTokensString;
         }
@@ -1254,7 +1256,7 @@ define([
         }
         storage.storeManifest();
 
-        if (recordingCell.cell_type === 'markdown') {
+        if ((recordingCell.cell_type === 'markdown') && (recordingCellInfo.newRecording)) {
           // If we were adding a Graffiti to a markdown cell, we need to modify the markdown cell to include 
           // our Graffiti span tag around the selection.
           const contents = recordingCell.get_text();
@@ -1275,6 +1277,9 @@ define([
         //recordingCell.code_mirror.setSelections(recordingCellInfo.selections);
         graffiti.sitePanel.animate({ scrollTop: recordingCellInfo.scrollTop}, 500);
         if (doSave && state.getActivity() === 'recordingLabelling') {
+          if (recordingCellInfo.recordingRecord.cellType === 'markdown') {
+            recordingCell.render();
+          }
           graffiti.setPendingRecording();
         } else {
           graffiti.changeActivity('idle');
@@ -1293,7 +1298,6 @@ define([
           let results, foundContents = [];
           while ((results = spanRegex.exec(contents)) !== null) { foundContents.push(results) };
           if (foundContents.length > 0) {
-            debugger;
             const innerContents = foundContents[0][1];
             const sourceContents = '<span class="graffiti-highlight graffiti-' + recordingCellId + '-' + recordingKey + '">' + innerContents + '</span>';
             const cleanedContents = contents.replace(sourceContents, innerContents);
@@ -2034,6 +2038,9 @@ define([
         graffiti.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
         storage.loadMovie(playableMovie.cellId, playableMovie.recordingKey).then( () => {
           console.log('Graffiti: Movie loaded for cellId, recordingKey:', playableMovie.cellId, playableMovie.recordingKey);
+          if (playableMovie.cellType === 'markdown') {
+            playableMovie.cell.render(); // always render a markdown cell first before playing a movie on a graffiti inside it
+          }
           graffiti.togglePlayback();
           graffiti.hideTip();
         }).catch( (ex) => {

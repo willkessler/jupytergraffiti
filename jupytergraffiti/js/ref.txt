@@ -7,3 +7,25 @@ while ((array1 = regex1.exec(str1)) !== null) {
   // expected output: "Found foo. Next starts at 9."
   // expected output: "Found foo. Next starts at 19."
 }
+
+gh = RegExp('<span class="graffiti-highlight" id="graffiti-([^"]+)">(.*?)</span>','g')
+while ((array1 = gh.exec(gg)) !== null) { console.log(array1); }
+
+
+
+"autonomousgpu/view6a0900b6",
+  "autonomousgpu/viewHJeftIbWrX",
+  "gradedjupyter/labr1x1UMGNQm",
+  "jupyter/view0a174b4c",
+  "jupyter/view24d3ba7f",
+  "jupyter/view305b1af9",
+  "jupyter/view3f484599",
+  "jupyter/view86e13931",
+  "jupyter/viewa8d052f8"
+  
+
+
+https://udacity.zendesk.com/agent/tickets/890416
+https://udacity.zendesk.com/agent/tickets/890316
+https://udacity.zendesk.com/agent/tickets/890219
+https://udacity.zendesk.com/agent/tickets/890251
