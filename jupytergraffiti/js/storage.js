@@ -136,6 +136,7 @@ define([
           state.setManifest({});
         } else {
           const uncompressedManifestString = LZString.decompressFromBase64(base64Str);
+          console.log('uncompressed manifest:', uncompressedManifestString);
           const manifestDataParsed = JSON.parse(uncompressedManifestString);
           state.setManifest(manifestDataParsed);
         }
