@@ -1768,6 +1768,8 @@ define([
         
         const record = state.getHistoryItem('selections', index);
         let cellId, cell, selectionRecord, selections, code_mirror, currentSelections, active, selectionsUpdateThisFrame = false;
+
+        // If there were text selections in rendered markdown or rendered output during this frame, restore them first if we need to.
         for (cellId of Object.keys(record.cellsSelections)) {
           selectionRecord = record.cellsSelections[cellId];
           selections = selectionRecord.selections;
@@ -1778,15 +1780,15 @@ define([
             currentSelections = utils.cleanSelectionRecords(code_mirror.listSelections());
             //console.log('cellId, selections, currentSelections:', cellId, selections, currentSelections);
             if (!(_.isEqual(selections,currentSelections))) {
-              //console.log('updating selection, rec:', record, 'sel:', selections, 'cell:', cell);
+              console.log('updating selection, rec:', record, 'sel:', selections, 'cell:', cell);
               graffiti.graffitiCursor.hide();
               code_mirror.setSelections(selections);
               selectionsUpdateThisFrame = true;
             }
           }
         }
-        // If there were text selections in rendered markdown or rendered output during this frame, restore them.
-        if (record.textSelection !== undefined) {
+
+        if (record.textSelection !== undefined && !selectionsUpdateThisFrame) {
           const cellId = record.textSelection.cellId;
           const cell = utils.findCellByCellId(cellId);
           let referenceNode;
@@ -1797,10 +1799,12 @@ define([
             } else {
               record.textSelection.referenceNode = $(cell.element).find('.output_subarea')[0];
             }
+            console.log('restoring:', record.textSelection);
             selectionSerializer.restore(record.textSelection);
             selectionsUpdateThisFrame = true;
           }
         }
+
 
         if (selectionsUpdateThisFrame) {
           // This code restores page position after a selection is made; updating selections causes Jupyter to scroll randomly, see above

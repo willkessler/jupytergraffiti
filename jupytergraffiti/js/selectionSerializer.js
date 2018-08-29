@@ -26,7 +26,6 @@ define([], function() {
 
       return { 
         state: state,
-        parentNode: parentNode,
         empty: (state.start === state.end)
       }
     },
