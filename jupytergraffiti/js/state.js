@@ -571,7 +571,13 @@ define([
     },
 
     getJSONHistory: () => {
-      return JSON.stringify(state.history);
+      let jsonHistory;
+      try {
+        jsonHistory = JSON.stringify(state.history);
+        return jsonHistory;
+      } catch(ex) {
+        return undefined;
+      }
     },
 
     getHistoryDuration: () => {
