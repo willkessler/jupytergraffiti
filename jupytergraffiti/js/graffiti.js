@@ -652,58 +652,6 @@ define([
         graffiti.setupControlPanels();
         graffiti.updateControlPanels();
 
-        // SErialize/deserialize range objects
-        // https://github.com/tildeio/range-serializer
-        // https://www.npmjs.com/package/serialize-selection
-
-        // Specially handle selection changes in markdown cells and output areas during recordings
-        document.addEventListener("selectionchange", function() {
-          return;
-
-          // https://stackoverflow.com/questions/1335252/how-can-i-get-the-dom-element-which-contains-the-current-selection
-          let parentElem, selection, range, ranges, savedRange;
-          if (document.selection) {
-            // IE family
-            selection = document.selection;
-            range = selection.createRange();
-            parentElem = range.parentElement();
-          } else {
-            // Sane browsers
-            ranges = window.getSelection();
-            if (ranges.rangeCount > 0) {
-              parentElem = ranges.getRangeAt(0).startContainer.parentNode;
-              savedRange = ranges.getRangeAt(0).cloneRange();
-            }
-          }
-          const cellDOM = $(parentElem).parents('.cell');
-          let cellId;
-          if (cellDOM.length > 0) {
-            cellId = cellDOM.attr('graffiti-cell-id');
-            if (cellId !== undefined) {
-              const cell = utils.findCellByCellId(cellId);
-              if (cell.cell_type === 'markdown') {
-                console.log('Markdown selection changed:', cellId, ranges);
-                setTimeout(() => {
-                  if (window.getSelection) {
-                    const winSelection = window.getSelection();
-                    winSelection.removeAllRanges();
-//                    winSelection.addRange(savedRange);
-                    console.log('savedRange:', savedRange);
-                  } else if (document.selection) {
-                    var textRange = document.body.createTextRange();
-                    textRange.moveToElementText(element);
-                    textRange.select();
-                  }
-                  
-                }, 3000);
-              } else {
-                if ($(parentElem).parents('.output_area').length > 0) {
-                  console.log('Code cell output area selection changed:', cellId, ranges);
-                }
-              }
-            }
-          }
-        });
       },
 
       // Inspired by https://www.codicode.com/art/how_to_draw_on_a_html5_canvas_with_a_mouse.aspx
@@ -1125,6 +1073,36 @@ define([
         window.onbeforeunload = (e) => {
           graffiti.cancelPlaybackNoVisualUpdates();
         };
+
+        // SErialize/deserialize range objects
+        // https://github.com/tildeio/range-serializer
+        // https://www.npmjs.com/package/serialize-selection
+
+        // Specially handle selection changes in rendered markdown cells and output areas during recordings
+        document.addEventListener("selectionchange", function() {
+          // get the selection and serialize it
+          if (state.getActivity() === 'recording') {
+            state.clearSelectionSerialized();
+            const viewInfo = state.getViewInfo();
+            const cellId = viewInfo.cellId;
+            if (cellId !== undefined) {
+              const cell = utils.findCellByCellId(cellId); // this is the cell we're hovering over
+              let parentNode;
+              if (cell.cell_type === 'markdown') {
+                parentNode = $(cell.element).find('.rendered_html');
+              } else {
+                parentNode = $(cell.element).find('.output_subarea');
+              }
+              if (parentNode.length > 0) {
+                const selectionSerialized = selectionSerializer.save(parentNode[0]);
+                selectionSerialized.cellType = cell.cell_type;
+                selectionSerialized.cellId = cellId;
+                state.setSelectionSerialized(selectionSerialized);
+                state.storeHistoryRecord('selections');
+              }
+            }
+          }
+        });
 
         console.log('Graffiti: Background setup complete.');
       },
@@ -1789,10 +1767,11 @@ define([
         const currentScrollTop = graffiti.sitePanel.scrollTop();
         
         const record = state.getHistoryItem('selections', index);
-        let cellId, cell, selections, code_mirror, currentSelections, active, selectionsUpdateThisFrame = false;
+        let cellId, cell, selectionRecord, selections, code_mirror, currentSelections, active, selectionsUpdateThisFrame = false;
         for (cellId of Object.keys(record.cellsSelections)) {
-          selections = record.cellsSelections[cellId].selections;
-          active = record.cellsSelections[cellId].active;
+          selectionRecord = record.cellsSelections[cellId];
+          selections = selectionRecord.selections;
+          active = selectionRecord.active;
           cell = utils.findCellByCellId(cellId);
           if (cell !== undefined) {
             code_mirror = cell.code_mirror;
@@ -1806,6 +1785,23 @@ define([
             }
           }
         }
+        // If there were text selections in rendered markdown or rendered output during this frame, restore them.
+        if (record.textSelection !== undefined) {
+          const cellId = record.textSelection.cellId;
+          const cell = utils.findCellByCellId(cellId);
+          let referenceNode;
+          if (cell !== undefined) {
+            // find the right reference node so we can highlight the correct text in either a markdown cell or a code cell output area
+            if (cell.cell_type === 'markdown') {
+              record.textSelection.referenceNode = $(cell.element).find('.rendered_html')[0];
+            } else {
+              record.textSelection.referenceNode = $(cell.element).find('.output_subarea')[0];
+            }
+            selectionSerializer.restore(record.textSelection);
+            selectionsUpdateThisFrame = true;
+          }
+        }
+
         if (selectionsUpdateThisFrame) {
           // This code restores page position after a selection is made; updating selections causes Jupyter to scroll randomly, see above
           if (graffiti.sitePanel.scrollTop() !== currentScrollTop) {
@@ -1815,9 +1811,6 @@ define([
           }
         }
       },
-
-      // Also, store outputs in content records and when a cell is executed create a content record.
-      // On output change, back reference should be updated as well as contents change.
 
       updateContents: (index) => {
         const contentsRecord = state.getHistoryItem('contents', index);

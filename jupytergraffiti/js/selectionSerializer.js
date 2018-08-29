@@ -10,6 +10,7 @@ define([], function() {
       const sel = window.getSelection();
       const range = sel.rangeCount ? sel.getRangeAt(0).cloneRange() : document.createRange();
       const startContainer = range.startContainer;
+      const parentNode = startContainer.parentNode;
       const startOffset = range.startOffset;
       let state = { 
         content: range.toString() 
@@ -23,11 +24,16 @@ define([], function() {
       state.start = range.toString().length;
       state.end = state.start + state.content.length;
 
-      return state;
+      return { 
+        state: state,
+        parentNode: parentNode,
+        empty: (state.start === state.end)
+      }
     },
 
-    restore: (state, referenceNode) => {
-      referenceNode = referenceNode || document.body;
+    restore: (selectionSerialized) => {
+      const referenceNode = selectionSerialized.referenceNode || document.body;
+      const state = selectionSerialized.state;
 
       let currentNodeCharIndex = 0;
       let nodes = [referenceNode];
@@ -70,7 +76,13 @@ define([], function() {
       sel.removeAllRanges();
       sel.addRange(range);
       return sel;
+    },
+
+    clear: () => {
+      let sel = window.getSelection();
+      sel.removeAllRanges();
     }
+    
   }
 
   return (selectionSerializer);

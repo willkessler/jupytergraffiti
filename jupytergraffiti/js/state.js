@@ -36,6 +36,7 @@ define([
       state.controlPanelDragging = false;
       state.controlPanelDragOffset = { x: 0, y: 0 };
       state.playableMovies = {};
+      state.selectionSerialized = undefined;
       state.cellStates = {
         contents: {},
         changedCells: {},
@@ -287,11 +288,27 @@ define([
       //console.log('graffiti.state.pointer:', graffiti.state.pointer);
     },
 
+    getViewInfo: () => {
+      return state.viewInfo;
+    },
+
     storeViewInfo: (viewInfo) => {
       // console.log('storeViewInfo, hover cellId:', viewInfo.cellId);
       if (viewInfo.cellId !== undefined) {
         state.viewInfo = $.extend({}, viewInfo);
       }
+    },
+
+    setSelectionSerialized: (selectionSerialized) => {
+      state.selectionSerialized = selectionSerialized;
+    },
+
+    clearSelectionSerialized: () => {
+      state.selectionSerialized = undefined;
+    },
+
+    getSelectionSerialized: () => {
+      return state.selectionSerialized;
     },
 
     getRecordingCellInfo: () => {
@@ -370,13 +387,13 @@ define([
       let cellId, cm, cell, selections, cellSelections, executed, output, outputs0, ourJs;
       for (let i = 0; i < cells.length; ++i) {
         cell = cells[i];
+        cellId = cell.metadata.cellId;
+        cm = cell.code_mirror;
+        selections = utils.cleanSelectionRecords(cm.listSelections());
+        executed = false;
+        output = null;
+        ourJs = false; 
         if (cell.cell_type === 'code') {
-          cellId = cell.metadata.cellId;
-          cm = cell.code_mirror;
-          selections = utils.cleanSelectionRecords(cm.listSelections());
-          executed = false;
-          output = null;
-          ourJs = false; 
           if (cell.output_area.outputs.length > 0) {
             outputs0 = cell.output_area.outputs[0];
             output_type = outputs0.output_type;
@@ -410,7 +427,11 @@ define([
         }
       }
 
-      return { cellsSelections: cellsSelections };
+      return { 
+        cellsSelections: cellsSelections,
+        // Record text selections in rendered markdown or output areas. These are to be found in state.selectionSerialized (or if none, undefined)
+        textSelection: state.selectionSerialized
+      };
     },
 
     extractDataFromContentRecord: (record, cellId) => {
