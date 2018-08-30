@@ -37,6 +37,13 @@ define([], function() {
       let currentNodeCharIndex = 0;
       let nodes = [referenceNode];
       let sel = window.getSelection();
+      let existingRange;
+      if (sel.rangeCount > 0) {
+        //existingRange = sel.getRangeAt(0);
+        //console.log('removing existing range:', existingRange);
+        sel.removeAllRanges();
+      }
+
       let range = document.createRange();
       let node;
       let nextNodeCharIndex;
@@ -72,16 +79,10 @@ define([], function() {
         }
       }
 
-      sel.removeAllRanges();
       sel.addRange(range);
       return sel;
     },
 
-    clear: () => {
-      let sel = window.getSelection();
-      sel.removeAllRanges();
-    }
-    
   }
 
   return (selectionSerializer);

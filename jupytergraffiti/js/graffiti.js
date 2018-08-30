@@ -44,7 +44,6 @@ define([
           graffiti.activateAudio();
         }
 
-        storage.ensureNotebookGetsGraffitiId();
         storage.loadManifest(currentAccessLevel).then(() => {
           graffiti.initInteractivity()
         }).catch(() => {
@@ -1075,6 +1074,21 @@ define([
           graffiti.cancelPlaybackNoVisualUpdates();
         };
 
+        // https://stackoverflow.com/questions/19469881/remove-all-event-listeners-of-specific-type
+        window.addEventListener('dblclick', (e) => { 
+          console.log('got doubleclick')
+          if (state.getActivity() === 'recording') {
+            const isTextCell = ($(e.target)).parents('.text_cell');
+            if (isTextCell.length > 0) {
+              console.log('Graffiti: intercepted doubleclick on markdown during recording, discarding it');
+              e.stopPropagation();
+              e.preventDefault();
+              return true;
+            }
+          }
+          return false;
+        }, true);
+
         // SErialize/deserialize range objects
         // https://github.com/tildeio/range-serializer
         // https://www.npmjs.com/package/serialize-selection
@@ -1772,26 +1786,6 @@ define([
         const record = state.getHistoryItem('selections', index);
         let cellId, cell, selectionRecord, selections, code_mirror, currentSelections, active, selectionsUpdateThisFrame = false;
 
-        // If there were text selections in rendered markdown or rendered output during this frame, restore them first if we need to.
-        for (cellId of Object.keys(record.cellsSelections)) {
-          selectionRecord = record.cellsSelections[cellId];
-          selections = selectionRecord.selections;
-          active = selectionRecord.active;
-          cell = utils.findCellByCellId(cellId);
-          if (cell !== undefined) {
-            code_mirror = cell.code_mirror;
-            currentSelections = utils.cleanSelectionRecords(code_mirror.listSelections());
-            //console.log('cellId, selections, currentSelections:', cellId, selections, currentSelections);
-            if (!(_.isEqual(selections,currentSelections))) {
-              //console.log('updating selection, rec:', record, 'sel:', selections, 'cell:', cell);
-              console.log('updating code sels, selections:', selections, 'currentSelections:', currentSelections);
-              graffiti.graffitiCursor.hide();
-              code_mirror.setSelections(selections);
-              selectionsUpdateThisFrame = true;
-            }
-          }
-        }
-
         if (record.textSelection !== undefined && !selectionsUpdateThisFrame) {
           const cellId = record.textSelection.cellId;
           const cell = utils.findCellByCellId(cellId);
@@ -1808,8 +1802,30 @@ define([
               console.log('Selection restoring textSelection, currentSelection:', record.textSelection, currentSelection);
               record.textSelection.referenceNode = referenceNode;
               selectionSerializer.restore(record.textSelection);
-              selectionsUpdateThisFrame = true;
+            }
           }
+        }
+
+        // If there were text selections in rendered markdown or rendered output during this frame, restore them first if we need to.
+        for (cellId of Object.keys(record.cellsSelections)) {
+          selectionRecord = record.cellsSelections[cellId];
+          selections = selectionRecord.selections;
+          active = selectionRecord.active;
+          cell = utils.findCellByCellId(cellId);
+          if (cell !== undefined) {
+            code_mirror = cell.code_mirror;
+            currentSelections = utils.cleanSelectionRecords(code_mirror.listSelections());
+            //console.log('cellId, selections, currentSelections:', cellId, selections, currentSelections);
+            if (!(_.isEqual(selections,currentSelections))) {
+              //console.log('updating selection, rec:', record, 'sel:', selections, 'cell:', cell);
+              console.log('updating code sels, selections:', selections[0], 'currentSelections:', currentSelections[0]);
+              if ((selections[0].anchor.ch===35) && (selections[0].head.ch===45) && (currentSelections[0].anchor.ch===45) && (currentSelections[0].head.ch===45)) {
+                debugger;
+              }
+              graffiti.graffitiCursor.hide();
+              code_mirror.setSelections(selections);
+              selectionsUpdateThisFrame = true;
+            }
           }
         }
 

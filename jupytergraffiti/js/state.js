@@ -386,8 +386,8 @@ define([
       const cellsSelections = {};
       let cellId, cm, cell, selections, cellSelections, executed, output, outputs0, ourJs;
       for (let i = 0; i < cells.length; ++i) {
+        cell = cells[i];
         if (cell.cell_type === 'code') {
-          cell = cells[i];
           cellId = cell.metadata.cellId;
           cm = cell.code_mirror;
           selections = utils.cleanSelectionRecords(cm.listSelections());
@@ -718,7 +718,7 @@ define([
                 }
               }
             } else {
-              if (selections.active) {
+              if ((cell.cell_type === 'code') && (selections.active)) {
                 cell.code_mirror.focus();
               }
               console.log('setting selection to :', selections.selections);
