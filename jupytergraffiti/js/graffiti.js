@@ -44,6 +44,7 @@ define([
           graffiti.activateAudio();
         }
 
+        storage.ensureNotebookGetsGraffitiId();
         storage.loadManifest(currentAccessLevel).then(() => {
           graffiti.initInteractivity()
         }).catch(() => {
@@ -1094,11 +1095,13 @@ define([
                 parentNode = $(cell.element).find('.output_subarea');
               }
               if (parentNode.length > 0) {
-                const selectionSerialized = selectionSerializer.save(parentNode[0]);
-                selectionSerialized.cellType = cell.cell_type;
-                selectionSerialized.cellId = cellId;
-                state.setSelectionSerialized(selectionSerialized);
-                state.storeHistoryRecord('selections');
+                const selectionSerialized = selectionSerializer.get(parentNode[0]);
+                if (!selectionSerialized.empty) {
+                  selectionSerialized.cellType = cell.cell_type;
+                  selectionSerialized.cellId = cellId;
+                  state.setSelectionSerialized(selectionSerialized);
+                  state.storeHistoryRecord('selections');
+                }
               }
             }
           }
@@ -1780,7 +1783,8 @@ define([
             currentSelections = utils.cleanSelectionRecords(code_mirror.listSelections());
             //console.log('cellId, selections, currentSelections:', cellId, selections, currentSelections);
             if (!(_.isEqual(selections,currentSelections))) {
-              console.log('updating selection, rec:', record, 'sel:', selections, 'cell:', cell);
+              //console.log('updating selection, rec:', record, 'sel:', selections, 'cell:', cell);
+              console.log('updating code sels, selections:', selections, 'currentSelections:', currentSelections);
               graffiti.graffitiCursor.hide();
               code_mirror.setSelections(selections);
               selectionsUpdateThisFrame = true;
@@ -1795,13 +1799,17 @@ define([
           if (cell !== undefined) {
             // find the right reference node so we can highlight the correct text in either a markdown cell or a code cell output area
             if (cell.cell_type === 'markdown') {
-              record.textSelection.referenceNode = $(cell.element).find('.rendered_html')[0];
+              referenceNode = $(cell.element).find('.rendered_html')[0];
             } else {
-              record.textSelection.referenceNode = $(cell.element).find('.output_subarea')[0];
+              referenceNode = $(cell.element).find('.output_subarea')[0];
             }
-            console.log('restoring:', record.textSelection);
-            selectionSerializer.restore(record.textSelection);
-            selectionsUpdateThisFrame = true;
+            const currentSelection = selectionSerializer.get(referenceNode);
+            if (!(_.isEqual(currentSelection.state, record.textSelection.state))) {
+              console.log('Selection restoring textSelection, currentSelection:', record.textSelection, currentSelection);
+              record.textSelection.referenceNode = referenceNode;
+              selectionSerializer.restore(record.textSelection);
+              selectionsUpdateThisFrame = true;
+          }
           }
         }
 
