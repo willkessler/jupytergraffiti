@@ -4,7 +4,7 @@ define([], function() {
   // return the new selection object
   const selectionSerializer = {
     // serialize the current selection offsets using given node as a reference point
-    save: (referenceNode) => {
+    get: (referenceNode) => {
       referenceNode = referenceNode || document.body;
 
       const sel = window.getSelection();
