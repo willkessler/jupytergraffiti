@@ -119,6 +119,8 @@ define([
         if (currentAccessLevel !== 'create') {
           console.log('Graffiti: loadManifest is bailing early because we are not in "create" mode and this notebook has no graffitiId.');
           return Promise.reject();
+        } else {
+          storage.ensureNotebookGetsGraffitiId();
         }
       }
       const credentials = { credentials: 'include' };
