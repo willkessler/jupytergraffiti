@@ -29,6 +29,7 @@ define([
         graffiti.sitePanel = $('#site');
         graffiti.notebookPanel = $('#notebook');
         graffiti.notebookContainer = $('#notebook-container');
+        graffiti.notebookContainerPadding = parseInt(graffiti.notebookContainer.css('padding').replace('px',''));
 
         graffiti.storageInProcess = false;
         graffiti.highlightMarkText = undefined;
@@ -773,6 +774,7 @@ define([
           partsRecord = {
             buttonName: undefined,
             captionPic: '',
+            captionVideo: undefined,
             caption: ''
           };
           let parts;
@@ -784,6 +786,11 @@ define([
                 break;
               case '%%caption_pic':
                 partsRecord.captionPic = utils.renderMarkdown(parts[1]);
+                break;
+              case '%%caption_video_id':
+                partsRecord.captionVideo = 
+                  '<iframe width="100" height=80 src="https://www.youtube.com/embed/' + parts[1] + 
+                  '?rel=0&amp;controls=0&amp;showinfo=0" frameborder="0"></iframe>';
                 break;
               case '%%caption':
                 partsRecord.caption = parts[1];
@@ -850,6 +857,7 @@ define([
       },
 
       hideTip: (tip) => {
+        graffiti.notebookContainer.find('.graffiti-tip .headline').remove();
         graffiti.notebookContainer.find('.graffiti-tip').hide();
         state.clearPlayableMovie('tip');
       },
@@ -867,8 +875,9 @@ define([
             const hoverCell = utils.findCellByCellId(cellId);
             const hoverCellElement = hoverCell.element[0];
             const hoverCellElementPosition = $(hoverCellElement).position();
+            const hoverCellType = hoverCell.cell_type;
             let outerInputElement;
-            if (hoverCell.cell_type === 'markdown') {
+            if (hoverCellType === 'markdown') {
               outerInputElement = $(hoverCellElement).find('.inner_cell');
             } else {
               outerInputElement = $(hoverCellElement).find('.CodeMirror-lines');
@@ -883,7 +892,7 @@ define([
               state.setTipTimeout(() => {
                 const newPointerPosition = state.getPointerPosition();
                 const cursorDistanceSquared = (newPointerPosition.x - currentPointerPosition.x) * (newPointerPosition.x - currentPointerPosition.x) +
-                                                (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
+                                                 (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
 
                 //console.log('comparing currentPointerPosition, newPointerPosition:', currentPointerPosition,
                 //            newPointerPosition, cursorDistanceSquared);
@@ -898,7 +907,10 @@ define([
                   let headlineMarkdown = '';
                   if (tooltipCommands !== undefined) {
                     headlineMarkdown = '<div class="headline">' +
-                                       ' <div>' + tooltipCommands.captionPic + '</div><div>' + tooltipCommands.caption + '</div>' +
+                                       ' <div>' + tooltipCommands.captionPic + '</div>' +
+                                       ' <div>' + tooltipCommands.caption + '</div>' +
+                                       (tooltipCommands.captionVideo !== undefined ?
+                                        ' <div class="graffiti-video">' + tooltipCommands.captionVideo + '</div>' : '' ) +
                                        '</div>';
                   }
                   if (recording !== undefined) {
@@ -937,9 +949,19 @@ define([
                   });
                   const outerInputOffset = outerInputElement.offset();
                   const highlightElemOffset = highlightElem.offset();
+                  let tipLeft;
+                  if (hoverCellType === 'markdown') {
+                    const anchorElem = highlightElem.find('i');
+                    const anchorElemOffset = anchorElem.offset();
+                    const posCandidate1 = outerInputElement.width() - existingTip.width() + outerInputOffset.left - graffiti.notebookContainerPadding;
+                    const posCandidate2 = anchorElemOffset.left;
+                    tipLeft = parseInt(Math.min(posCandidate1, posCandidate2));
+                  } else {                    
+                    tipLeft = parseInt(Math.min(outerInputElement.width() - existingTip.width(),
+                                                Math.max(highlightElemOffset.left, outerInputOffset.left)));
+                  }
+
                   const existingTipHeight = existingTip.height();
-                  const tipLeft = parseInt(Math.min(outerInputElement.width() - existingTip.width(),
-                                                    Math.max(highlightElemOffset.left, outerInputOffset.left)));
                   const tipPosition = { left: tipLeft,
                                         top: parseInt(highlightElemOffset.top - outerInputOffset.top) - existingTipHeight - 20 };
                   //console.log('outerInputOffset:', outerInputOffset, 'highlightElemOffset:', highlightElemOffset, 'tipPosition:', tipPosition);
@@ -1260,7 +1282,7 @@ define([
           parts.push(contents.substring(recordingCellInfo.recordingRecord.range.start, recordingCellInfo.recordingRecord.range.end));
           parts.push(contents.substring(recordingCellInfo.recordingRecord.range.end));
           const spanOpenTag = '<span class="graffiti-highlight graffiti-' + 
-                              recordingCellInfo.recordingCellId + '-' + recordingCellInfo.recordingKey + '">';
+                              recordingCellInfo.recordingCellId + '-' + recordingCellInfo.recordingKey + '"><i></i>'; // empty italic helps us find its anchor for tooltip
           const newContents = parts[0] + spanOpenTag + parts[1] + '</span>' + parts[2];
           console.log('newContents:', newContents);
           recordingCell.set_text(newContents);
@@ -1289,12 +1311,12 @@ define([
         if (recordingCell.cell_type === 'markdown') {
           // If this Graffiti was in a markdown cell we need to remove the span tags from the markdown source
           const contents = recordingCell.get_text();
-          const spanRegex = RegExp('<span class="graffiti-highlight graffiti-' + recordingCellId + '-' + recordingKey + '">(.*?)</span>','g')
+          const spanRegex = RegExp('<span class="graffiti-highlight graffiti-' + recordingCellId + '-' + recordingKey + '"><i></i>(.*?)</span>','g')
           let results, foundContents = [];
           while ((results = spanRegex.exec(contents)) !== null) { foundContents.push(results) };
           if (foundContents.length > 0) {
             const innerContents = foundContents[0][1];
-            const sourceContents = '<span class="graffiti-highlight graffiti-' + recordingCellId + '-' + recordingKey + '">' + innerContents + '</span>';
+            const sourceContents = '<span class="graffiti-highlight graffiti-' + recordingCellId + '-' + recordingKey + '"><i></i>' + innerContents + '</span>';
             const cleanedContents = contents.replace(sourceContents, innerContents);
             console.log('cleanedContents of markdown:', cleanedContents);
             recordingCell.set_text(cleanedContents);
@@ -1791,14 +1813,19 @@ define([
           const cell = utils.findCellByCellId(cellId);
           let referenceNode;
           if (cell !== undefined) {
+            const cellType = cell.cell_type;
             // find the right reference node so we can highlight the correct text in either a markdown cell or a code cell output area
-            if (cell.cell_type === 'markdown') {
+            if (cellType === 'markdown') {
               referenceNode = $(cell.element).find('.rendered_html')[0];
             } else {
               referenceNode = $(cell.element).find('.output_subarea')[0];
             }
             const currentSelection = selectionSerializer.get(referenceNode);
             if (!(_.isEqual(currentSelection.state, record.textSelection.state))) {
+              if (cellType === 'markdown') {
+                console.log('focusing on markdown cell');
+                cell.focus_cell();
+              }
               console.log('Selection restoring textSelection, currentSelection:', record.textSelection, currentSelection);
               record.textSelection.referenceNode = referenceNode;
               selectionSerializer.restore(record.textSelection);
@@ -1819,9 +1846,9 @@ define([
             if (!(_.isEqual(selections,currentSelections))) {
               //console.log('updating selection, rec:', record, 'sel:', selections, 'cell:', cell);
               console.log('updating code sels, selections:', selections[0], 'currentSelections:', currentSelections[0]);
-              if ((selections[0].anchor.ch===35) && (selections[0].head.ch===45) && (currentSelections[0].anchor.ch===45) && (currentSelections[0].head.ch===45)) {
-                debugger;
-              }
+//              if ((selections[0].anchor.ch===35) && (selections[0].head.ch===45) && (currentSelections[0].anchor.ch===45) && (currentSelections[0].head.ch===45)) {
+//                debugger;
+//              }
               graffiti.graffitiCursor.hide();
               code_mirror.setSelections(selections);
               selectionsUpdateThisFrame = true;
