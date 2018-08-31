@@ -271,7 +271,7 @@ define([
                                           ids: ['graffiti-forward-btn','graffiti-rewind-btn'],
                                           event: 'click',
                                           fn: (e) => {
-                                            console.log('forward-btn/rewind-btn clicked');
+                                            console.log('Graffiti: forward-btn/rewind-btn clicked');
                                             let direction = 1;
                                             if (($(e.target).attr('id') === 'graffiti-rewind-btn') || ($(e.target).hasClass('fa-backward'))) {
                                               direction = -1;
@@ -303,6 +303,7 @@ define([
                                           event: 'mousedown',
                                           fn: (e) => {
                                             //console.log('slider:mousedown');
+                                            graffiti.previousPlayState = state.getActivity();
                                             graffiti.pausePlayback(); // stop playback if playing when you start to scrub
                                             graffiti.clearAllCanvases();
                                             graffiti.changeActivity('scrubbing');
@@ -313,7 +314,9 @@ define([
                                           event: 'mouseup',
                                           fn: (e) => {
                                             //console.log('slider:mouseup')
-                                            graffiti.changeActivity('playbackPaused');
+                                            if (graffiti.previousPlayState === 'playing') {
+                                              graffiti.startPlayback();
+                                            }
                                             graffiti.updateAllGraffitiDisplays();
                                           }
                                         },
@@ -1972,6 +1975,7 @@ define([
       //
 
       jumpPlayback: (direction) => {
+        const previousPlayState = state.getActivity();
         graffiti.pausePlayback();
         const timeElapsed = state.getPlaybackTimeElapsed();
         const t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction), state.getHistoryDuration() - 1 ));
@@ -1982,6 +1986,9 @@ define([
         graffiti.updateDisplay(frameIndexes);
         graffiti.updateSlider(t);
         graffiti.updateTimeDisplay(t);
+        if (previousPlayState === 'playing') {
+          graffiti.startPlayback();
+        }
         graffiti.updateAllGraffitiDisplays();
       },
 
