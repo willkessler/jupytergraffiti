@@ -788,9 +788,11 @@ define([
                 partsRecord.captionPic = utils.renderMarkdown(parts[1]);
                 break;
               case '%%caption_video_id':
-                partsRecord.captionVideo = 
-                  '<iframe width="100" height=80 src="https://www.youtube.com/embed/' + parts[1] + 
-                  '?rel=0&amp;controls=0&amp;showinfo=0" frameborder="0"></iframe>';
+                //                partsRecord.captionVideo = 
+                //                  '<iframe width="100" height=80 src="https://www.youtube.com/embed/' + parts[1] + 
+                //                  '?rel=0&amp;controls=0&amp;showinfo=0" frameborder="0"></iframe>';
+                partsRecord.captionVideo =
+                  '<video width="100" height="75" autoplay><source src="' + parts[1] + '" type="video/mp4"></video>';
                 break;
               case '%%caption':
                 partsRecord.caption = parts[1];
