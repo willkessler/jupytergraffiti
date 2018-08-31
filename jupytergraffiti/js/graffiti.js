@@ -226,7 +226,7 @@ define([
                                       '<div id="graffiti-narrator-info">' +
                                       '  <div id="graffiti-narrator-pic"></div>' +
                                       '  <div id="graffiti-narrator-details">' +
-                                      '    <div>Graffiti by:</div><div id="graffiti-narrator-name"></div>' +
+                                      '    <div>Presenter: </div><div id="graffiti-narrator-name"></div>' +
                                       '  </div>' + 
                                       '</div>' +
                                       '<div id="graffiti-playback-buttons">' +
