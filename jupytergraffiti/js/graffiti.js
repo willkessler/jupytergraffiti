@@ -223,6 +223,12 @@ define([
         );
 
         graffiti.setupOneControlPanel('graffiti-playback-controls', 
+                                      '<div id="graffiti-narrator-info">' +
+                                      '  <div id="graffiti-narrator-pic"></div>' +
+                                      '  <div id="graffiti-narrator-details">' +
+                                      '    <div>Graffiti by:</div><div id="graffiti-narrator-name"></div>' +
+                                      '  </div>' + 
+                                      '</div>' +
                                       '<div id="graffiti-playback-buttons">' +
                                       '  <button class="btn btn-default btn-play" id="graffiti-play-btn" title="Start playback">' +
                                       '    <i class="fa fa-play"></i>' +
@@ -253,8 +259,8 @@ define([
                                       '  </div>' +
                                       '  <div id="graffiti-time-display-playback">00:00</div>' +
                                       '</div>',
-                                      [
-                                        {
+                                        [
+                                          {
                                           ids: ['graffiti-play-btn', 'graffiti-pause-btn'],
                                           event: 'click',
                                           fn: (e) => {
@@ -484,6 +490,16 @@ define([
               graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-sound-on-btn').hide().parent().find('#graffiti-sound-off-btn').show();
             } else {
               graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-sound-off-btn').hide().parent().find('#graffiti-sound-on-btn').show();
+            }
+            graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-narrator-info').hide();
+            if ((graffiti.narratorName !== undefined) || (graffiti.narratorPic !== undefined)) {
+              graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-narrator-info').show();
+              if (graffiti.narratorPicture !== undefined) {
+                graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-narrator-pic').html('<img src="' + graffiti.narratorPicture + '" />');
+              }
+              if (graffiti.narratorName !== undefined) {
+                graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-narrator-name').html(graffiti.narratorName);
+              }              
             }
             graffiti.showControlPanels(['graffiti-playback-controls']);
             graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-pause-link">Pause</span> to interact w/Notebook, or</div>' +
@@ -775,7 +791,8 @@ define([
             buttonName: undefined,
             captionPic: '',
             captionVideo: undefined,
-            caption: ''
+            caption: '',
+            playback_pic: undefined
           };
           let parts;
           for (let i = 0; i < commandParts.length; ++i) {
@@ -788,11 +805,26 @@ define([
                 partsRecord.captionPic = utils.renderMarkdown(parts[1]);
                 break;
               case '%%caption_video_id':
-                //                partsRecord.captionVideo = 
-                //                  '<iframe width="100" height=80 src="https://www.youtube.com/embed/' + parts[1] + 
-                //                  '?rel=0&amp;controls=0&amp;showinfo=0" frameborder="0"></iframe>';
-                partsRecord.captionVideo =
-                  '<video width="100" height="75" autoplay><source src="' + parts[1] + '" type="video/mp4"></video>';
+                if (parts[1].indexOf('images/') === 0) {
+                  partsRecord.captionVideo =
+                    '<video width="100" height="75" autoplay><source src="' + parts[1] + '" type="video/mp4"></video>';
+                } else {
+                  partsRecord.captionVideo =
+                    '<iframe width="100" height=80 src="https://www.youtube.com/embed/' + parts[1] + 
+                    '?rel=0&amp;controls=0&amp;showinfo=0" frameborder="0"></iframe>';
+                }
+                break;
+              case '%%narrator_name':
+                graffiti.narratorName = undefined;
+                if (parts[1].length > 0) {
+                  graffiti.narratorName = parts[1];
+                }
+                break;
+              case '%%narrator_pic': // specify a picture to display in the control panel during playback
+                graffiti.narratorPicture = undefined;
+                if (parts[1].length > 0) {
+                  graffiti.narratorPicture = parts[1];
+                }
                 break;
               case '%%caption':
                 partsRecord.caption = parts[1];
@@ -2015,6 +2047,8 @@ define([
         graffiti.refreshGraffitiTips(); 
         graffiti.updateControlPanels();
         graffiti.highlightIntersectingGraffitiRange();
+        graffiti.narratorName = undefined;
+        graffiti.narratorPicture = undefined;
 
         if (opts.cancelAnimation) {
           graffiti.sitePanel.animate({ scrollTop: state.getScrollTop() }, 750);

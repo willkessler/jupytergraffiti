@@ -168,6 +168,23 @@
   margin-top:2px;
 }
 
+#graffiti-narrator-info {
+  display:flex;
+  margin:0 0 2px 2px;
+}
+
+#graffiti-narrator-details {
+  margin-left:2px;
+}
+
+#graffiti-narrator-details div:first-child {
+  font-weight:bold;
+}
+
+#graffiti-narrator-pic img {
+  max-width:50px;
+}
+
 #graffiti-access-api-btn {
   font-size:0.8em;
   padding:2px;
