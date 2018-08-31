@@ -84,9 +84,9 @@
   font-weight:bold;
 }
 
-.rendered_html .graffiti-highlight:hover {
+.rendered_html p .graffiti-highlight:hover {
   /* we do not want to bold on hover, on rendered markdown cells */
-  font-weight:normal !important;
+   font-weight:normal !important;
 }
 
 .graffiti-text-display {
