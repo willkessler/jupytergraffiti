@@ -58,6 +58,11 @@
   height:25px;
 }
 
+.graffiti-tip .headline .graffiti-video {
+  display:block;
+  margin-left:10px;
+}
+
 .graffiti-tip .info {
   flex-grow:2;
   width:100%;
