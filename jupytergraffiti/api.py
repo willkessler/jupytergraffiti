@@ -29,6 +29,9 @@ def stop_playback():
 def remove_all_annotations():
     run_js("window.Graffiti.removeAllGraffiti()", False)
 
+def show_creators_chooser():
+    run_js("window.Graffiti.showCreatorsChooser()", False)
+
 # Set your access level to Graffiti, one of either "create" or "view".
 def set_access_level(level):
     run_js("window.Graffiti.setAccessLevel('" + level + "')", False)
