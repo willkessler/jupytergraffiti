@@ -907,7 +907,10 @@ define([
         //console.log('tips:', tips);
         //console.log('refreshGraffitiTips: binding mousenter/mouseleave');
         tips.unbind('mouseenter mouseleave').bind('mouseenter mouseleave', (e) => {
-          const highlightElem = $(e.target);
+          let highlightElem = $(e.target);
+          if (!highlightElem.hasClass('graffiti-highlight')) {
+            highlightElem = highlightElem.parents('.graffiti-highlight');
+          }
           const idMatch = highlightElem.attr('class').match(/graffiti-(id_.[^\-]+)-(id_[^\s]+)/);
           if (idMatch !== null) {
             const cellId = idMatch[1];
@@ -1259,7 +1262,8 @@ define([
           // use whatever author put into this graffiti previously
           editableText = recordingRecord.markdown; 
         } else {
-          editableText = graffiti.selectedTokens.allTokensString;
+          editableText = "%% Below, type whatever you want displayed in the Graffiti tip (markdown), and then run this cell to save.\n" +
+                         graffiti.selectedTokens.allTokensString;
         }
 
         graffitiEditCell.set_text(editableText);
@@ -1269,8 +1273,7 @@ define([
         selectedCell.unselect();
         graffitiEditCell.select();
         graffitiEditCell.code_mirror.focus();
-        graffitiEditCell.code_mirror.execCommand('selectAll');
-
+        graffitiEditCell.code_mirror.setSelection( {line:1, ch:0},{line:10000, ch:10000} );
         graffiti.graffitiEditCellId = graffitiEditCell.metadata.cellId;
       },
 
