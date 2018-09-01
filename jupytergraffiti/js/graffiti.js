@@ -46,7 +46,7 @@ define([
         }
 
         storage.loadManifest(currentAccessLevel).then(() => {
-          graffiti.initInteractivity()
+          graffiti.initInteractivity();
         }).catch(() => {
           console.log('Graffiti: Not setting up Graffiti because this notebook has never had any authoring done yet (no recordingId).');
         });
@@ -366,10 +366,6 @@ define([
                                       ]
         );
 
-        graffiti.setupOneControlPanel('graffiti-hot-tip',
-                                      '<div id ="graffiti-hot-tip"><div>Hot Tip!</div></div>'
-        );
-
         graffiti.setupOneControlPanel('graffiti-access-api',
                                       '<button class="btn btn-default" id="graffiti-access-api-btn" title="Create Sample API Calls"></i>&nbsp; <span>Create Sample API Calls</span></button>',
                                       [
@@ -384,6 +380,43 @@ define([
                                       ]
         );
         
+        const creatorsTitle = 'creators'.split('').join('&nbsp;&nbsp;');
+        graffiti.setupOneControlPanel('graffiti-creators-chooser',
+                                      '<div id="graffiti-creators-chooser">' +
+                                      ' <div id="graffiti-creators-chooser-title">' + creatorsTitle + '</div>' +
+                                      ' <div class="graffiti-creator">' +
+                                      '    <div><img src="images/headshots/h1.jpeg"></div>' +
+                                      '    <div>Stacy M.</div>' +
+                                      ' </div>' +
+                                      ' <div class="graffiti-creator">' +
+                                      '    <div><img src="images/headshots/h2.jpeg"></div>' +
+                                      '    <div>Bobby P.</div>' +
+                                      ' </div>' +
+                                      ' <div class="graffiti-creator">' +
+                                      '    <div><img src="images/headshots/h3.jpeg"></div>' +
+                                      '    <div>Akarnam J.</div>' +
+                                      ' </div>' +
+                                      ' <div class="graffiti-creator">' +
+                                      '    <div><img src="images/headshots/h4.jpeg"></div>' +
+                                      '    <div>James R.</div>' +
+                                      ' </div>' +
+                                      ' <div class="graffiti-creator">' +
+                                      '    <div><img src="images/headshots/h5.jpeg"></div>' +
+                                      '    <div>Amanda M.</div>' +
+                                      ' </div>' +
+                                      ' <div class="graffiti-creator">' +
+                                      '    <div><img src="images/headshots/h6.jpeg"></div>' +
+                                      '    <div>Aimee E.</div>' +
+                                      ' </div>' +
+                                      ' <div class="graffiti-creator">' +
+                                      '    <div><img src="images/headshots/h7.jpeg"></div>' +
+                                      '    <div>Lena Y.</div>' +
+                                      ' </div>' +
+                                      ' <div id="graffiti-creators-chooser-show-all">' +
+                                      '  <input type="checkbox" id="chooser-show-all" /><label for="chooser-show-all">&nbsp;All Creator Graffitis</label>' +
+                                      ' </div>' +
+                                      '</div>'
+        );
 
       },
 
@@ -493,6 +526,7 @@ define([
                 }
               }
             }
+            visibleControlPanels.push('graffiti-creators-chooser');
             graffiti.showControlPanels(visibleControlPanels);
             break;
           case 'playing':
@@ -679,11 +713,19 @@ define([
         graffiti.refreshGraffitiTips();
         graffiti.setupControlPanels();
         graffiti.updateControlPanels();
+        //graffiti.setupGarnishScreen();
 
       },
 
       // Inspired by https://www.codicode.com/art/how_to_draw_on_a_html5_canvas_with_a_mouse.aspx
       // and : http://perfectionkills.com/exploring-canvas-drawing-techniques/
+
+      setupGarnishScreen: () => {
+        const graffitiGarnishScreen = $('<div id="graffiti-garnish-screen">screen</div>');
+        graffiti.garnishScreen = graffitiGarnishScreen.prependTo(graffiti.notebookContainer);
+        const notebookHeight = $('#notebook').outerHeight(true);
+        graffiti.garnishScreen.css({height: notebookHeight + 'px'});
+      },
 
       placeCanvas: (cellId, canvasType) => {
         if (graffiti.canvases[cellId] !== undefined) {
@@ -2215,7 +2257,7 @@ define([
                 }
               });
             }
-          }, 1000);
+          }, 2000); /// this is a flaky approach to this problem, the modal should really be called from audio.init if it fails
         }
       },
 
