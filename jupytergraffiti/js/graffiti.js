@@ -110,6 +110,7 @@ define([
       },
 
       setupControlPanels: () => {
+        let previousPlayState;
         const outerControlPanel = $('<div id="graffiti-outer-control-panel">' +
                                     '  <div class="graffiti-small-dot-pattern" id="graffiti-drag-handle">&nbsp;</div>' +
                                     '  <div id="graffiti-control-panels-shell"></div>' +
@@ -303,7 +304,7 @@ define([
                                           event: 'mousedown',
                                           fn: (e) => {
                                             //console.log('slider:mousedown');
-                                            graffiti.previousPlayState = state.getActivity();
+                                            previousPlayState = state.getActivity();
                                             graffiti.pausePlayback(); // stop playback if playing when you start to scrub
                                             graffiti.clearAllCanvases();
                                             graffiti.changeActivity('scrubbing');
@@ -314,7 +315,7 @@ define([
                                           event: 'mouseup',
                                           fn: (e) => {
                                             //console.log('slider:mouseup')
-                                            if (graffiti.previousPlayState === 'playing') {
+                                            if (previousPlayState === 'playing') {
                                               graffiti.startPlayback();
                                             }
                                             graffiti.updateAllGraffitiDisplays();
@@ -801,6 +802,8 @@ define([
           for (let i = 0; i < commandParts.length; ++i) {
             parts = commandParts[i].match(/^(\S+)\s(.*)/).slice(1);
             switch (parts[0].toLowerCase()) {
+              case '%%comment':
+                break; // we just ignore these. Used to instruct content creators how to use the editing tip cells.
               case '%%button_name':
                 partsRecord.buttonName = parts[1];
                 break;
@@ -1100,13 +1103,6 @@ define([
         $('body').keyup( (e) => {
           // any keyup turns off garnishing
           state.setGarnishing(false);
-        });
-
-        graffiti.sitePanel.on('click', (e) => {
-          //console.log('notebook panel click event:',e);
-          const target = $(e.target);
-          //graffiti.handleControlsClick(target);
-          return true;
         });
 
         window.onmousemove = (e) => {
@@ -1974,6 +1970,7 @@ define([
       // Playback functions
       //
 
+      // Skip around by X seconds forward or back.
       jumpPlayback: (direction) => {
         const previousPlayState = state.getActivity();
         graffiti.pausePlayback();
