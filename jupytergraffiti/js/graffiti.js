@@ -13,6 +13,7 @@ define([
 
       init: () => {
         console.log('Graffiti: Main constructor running.');
+        console.trace();
         
         utils.loadCss([
           'jupytergraffiti/css/graffiti.css'
@@ -111,16 +112,21 @@ define([
 
       setupControlPanels: () => {
         let previousPlayState;
-        const outerControlPanel = $('<div id="graffiti-outer-control-panel">' +
-                                    '  <div class="graffiti-small-dot-pattern" id="graffiti-drag-handle">&nbsp;</div>' +
-                                    '  <div id="graffiti-control-panels-shell"></div>' +
-                                    '</div>');
-        //const header = $('#header');
-        outerControlPanel.appendTo($('body'));
-        const graffitiCursor = $('<i id="graffiti-cursor" name="cursor" class="graffiti-cursor"><img src="jupytergraffiti/css/transparent_bullseye2.png"></i>');
-        graffitiCursor.appendTo(header);
-        graffiti.graffitiCursor = $('#graffiti-cursor');
+        // HACK: fix me
+        if ($('#graffiti-outer-control-panel').length == 0) {
+          const outerControlPanel = $('<div id="graffiti-outer-control-panel">' +
+                                      '  <div class="graffiti-small-dot-pattern" id="graffiti-drag-handle">&nbsp;</div>' +
+                                      '  <div id="graffiti-control-panels-shell"></div>' +
+                                      '</div>');
+          //const header = $('#header');
+          outerControlPanel.appendTo($('body'));
+          const graffitiCursor = $('<i id="graffiti-cursor" name="cursor" class="graffiti-cursor"><img src="jupytergraffiti/css/transparent_bullseye2.png"></i>');
+          graffitiCursor.appendTo(header);
+        } else {
+          console.log('Graffiti: big hack was just run.');
+        }
 
+        graffiti.graffitiCursor = $('#graffiti-cursor');
         graffiti.outerControlPanel = $('#graffiti-outer-control-panel');
         graffiti.outerControlPanel.hide();
         graffiti.controlPanelsShell = $('#graffiti-control-panels-shell');
@@ -380,7 +386,7 @@ define([
                                       ]
         );
         
-        const creatorsTitle = 'creators'.split('').join('&nbsp;&nbsp;');
+        const creatorsTitle = 'Graffitis by:'.split('').join('&nbsp;');
         graffiti.setupOneControlPanel('graffiti-creators-chooser',
                                       '<div id="graffiti-creators-chooser">' +
                                       ' <div id="graffiti-creators-chooser-title">' + creatorsTitle + '</div>' +
@@ -413,7 +419,7 @@ define([
                                       '    <div>Lena Y.</div>' +
                                       ' </div>' +
                                       ' <div id="graffiti-creators-chooser-show-all">' +
-                                      '  <input type="checkbox" id="chooser-show-all" /><label for="chooser-show-all">&nbsp;All Creator Graffitis</label>' +
+                                      '  <input type="checkbox" id="chooser-show-all" /><label for="chooser-show-all">&nbsp;Show All Graffitis</label>' +
                                       ' </div>' +
                                       '</div>'
         );
@@ -526,7 +532,6 @@ define([
                 }
               }
             }
-            visibleControlPanels.push('graffiti-creators-chooser');
             graffiti.showControlPanels(visibleControlPanels);
             break;
           case 'playing':
@@ -988,7 +993,7 @@ define([
               state.setTipTimeout(() => {
                 const newPointerPosition = state.getPointerPosition();
                 const cursorDistanceSquared = (newPointerPosition.x - currentPointerPosition.x) * (newPointerPosition.x - currentPointerPosition.x) +
-                                                 (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
+                                                  (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
 
                 //console.log('comparing currentPointerPosition, newPointerPosition:', currentPointerPosition,
                 //            newPointerPosition, cursorDistanceSquared);
@@ -1005,8 +1010,8 @@ define([
                     headlineMarkdown = '<div class="headline">' +
                                        ' <div>' + tooltipCommands.captionPic + '</div>' +
                                        ' <div>' + tooltipCommands.caption + '</div>' +
-                                       (tooltipCommands.captionVideo !== undefined ?
-                                        ' <div class="graffiti-video">' + tooltipCommands.captionVideo + '</div>' : '' ) +
+                                        (tooltipCommands.captionVideo !== undefined ?
+                                         ' <div class="graffiti-video">' + tooltipCommands.captionVideo + '</div>' : '' ) +
                                        '</div>';
                   }
                   if (recording !== undefined) {
@@ -1946,9 +1951,9 @@ define([
             if (!(_.isEqual(selections,currentSelections))) {
               //console.log('updating selection, rec:', record, 'sel:', selections, 'cell:', cell);
               console.log('Graffiti: updating code sels, selections:', selections[0], 'currentSelections:', currentSelections[0]);
-//              if ((selections[0].anchor.ch===35) && (selections[0].head.ch===45) && (currentSelections[0].anchor.ch===45) && (currentSelections[0].head.ch===45)) {
-//                debugger;
-//              }
+              //              if ((selections[0].anchor.ch===35) && (selections[0].head.ch===45) && (currentSelections[0].anchor.ch===45) && (currentSelections[0].head.ch===45)) {
+              //                debugger;
+              //              }
               graffiti.graffitiCursor.hide();
               code_mirror.setSelections(selections);
               selectionsUpdateThisFrame = true;
@@ -2278,6 +2283,12 @@ define([
         state.setAccessLevel(level); 
         graffiti.updateControlPanels();
       },
+
+      showCreatorsChooser: () => {
+        graffiti.setNotifier('You can filter this Notebook\'s Graffiti\'s by clicking on creators in the list below.');
+                             graffiti.showControlPanels(['graffiti-notifier','graffiti-creators-chooser']);
+      },
+
     };
 
     // Functions exposed externally to the Python API.
@@ -2288,6 +2299,7 @@ define([
       playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => { graffiti.playRecordingByIdWithPrompt(recordingFullId, promptMarkdown) },
       cancelPlayback: () => { graffiti.cancelPlayback({cancelAnimation:false}) },
       removeAllGraffitis: graffiti.removeAllGraffitisWithConfirmation,
+      showCreatorsChooser: graffiti.showCreatorsChooser,
       setAccessLevel: (level) => { graffiti.changeAccessLevel(level) },
       setAuthorId: (authorId) => { state.setAuthorId(authorId) },
       selectionSerializer: selectionSerializer
