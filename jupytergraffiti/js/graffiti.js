@@ -1481,7 +1481,15 @@ define([
       beginMovieRecordingProcess: () => {
         // Preserve the state of all cells and selections before we begin recording so we can restore when the recording is done.
         state.storeCellStates();
-        graffiti.editGraffiti('recordingLabelling');
+        if (graffiti.selectedTokens.isIntersecting) {
+          const recordingRecord = graffiti.storeRecordingInfoInCell();
+          if (recordingRecord.cellType === 'markdown') {
+            graffiti.selectedTokens.recordingCell.render();
+          }
+          graffiti.setPendingRecording();
+        } else {
+          graffiti.editGraffiti('recordingLabelling');
+        }
       },
 
       addCMEventsToSingleCell: (cell) => {
