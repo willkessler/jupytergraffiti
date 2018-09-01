@@ -269,6 +269,9 @@
   min-width:24px;
 }
 
+#graffiti-create-btn {
+  width:100%;
+}
 
 #graffiti-recording-pens-shell,
 #graffiti-recording-colors-shell {

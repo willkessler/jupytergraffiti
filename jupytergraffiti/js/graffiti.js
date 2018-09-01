@@ -436,20 +436,26 @@ define([
             console.log('Graffiti: graffiti.selectedTokens:', graffiti.selectedTokens);
             graffiti.highlightIntersectingGraffitiRange();
             let visibleControlPanels;
-            if (graffiti.selectedTokens.noTokensPresent) {
+            const isMarkdownCell = activeCell.cell_type === 'markdown';
+            if ((graffiti.selectedTokens.noTokensPresent) || (isMarkdownCell && activeCell.rendered)) {
               console.log('Graffiti: no tokens');
               visibleControlPanels = ['graffiti-notifier']; // hide all control panels if in view only mode and not play mode
-              if (activeCell.cell_type === 'markdown') {
-                graffiti.setNotifier('<div>Select some text to create or modify Graffiti\'s.</div>');
+              if (isMarkdownCell) {
+                if (!activeCell.rendered) {
+                  graffiti.setNotifier('<div>Select some text to add or modify Graffiti\'s.</div>');
+                } else {
+                  graffiti.setNotifier('<div>Edit this Markdown cell to add or modify Graffiti\'s in the cell.</div>');
+                }
               } else {
-                graffiti.setNotifier('<div>Click in any text in a code cell to create or modify Graffiti\'s.</div>');
+                graffiti.setNotifier('<div>Click in any text in this code cell to create or modify Graffiti\'s.</div>');
               }
             } else if (accessLevel === 'view') {
               console.log('Graffiti: view only');
               visibleControlPanels = ['graffiti-playback-controls']; // hide all control panels if in view only mode and not play mode
             } else {
               visibleControlPanels = ['graffiti-record-controls'];
-              graffiti.controlPanelIds['graffiti-record-controls'].find('#graffiti-begin-recording-btn').show().
+              graffiti.controlPanelIds['graffiti-record-controls'].
+                       find('#graffiti-begin-recording-btn').hide().
                        parent().find('#graffiti-begin-rerecording-btn').hide().
                        parent().find('#graffiti-remove-btn').hide();
               graffiti.controlPanelIds['graffiti-record-controls'].
@@ -461,6 +467,7 @@ define([
                 graffiti.controlPanelIds['graffiti-record-controls'].
                          find('#graffiti-create-btn').hide().
                          parent().find('#graffiti-edit-btn').show().
+                         parent().find('#graffiti-begin-recording-btn').show().
                          parent().find('#graffiti-remove-btn').show();
                 //console.log('selectedTokens:', graffiti.selectedTokens);
                 state.clearPlayableMovie('cursorActivity');
@@ -907,6 +914,10 @@ define([
         //console.log('tips:', tips);
         //console.log('refreshGraffitiTips: binding mousenter/mouseleave');
         tips.unbind('mouseenter mouseleave').bind('mouseenter mouseleave', (e) => {
+          const activity = state.getActivity();
+          if (activity === 'recording') {
+            return; // do not show tooltips while recording
+          }
           let highlightElem = $(e.target);
           if (!highlightElem.hasClass('graffiti-highlight')) {
             highlightElem = highlightElem.parents('.graffiti-highlight');
@@ -1261,7 +1272,8 @@ define([
           // use whatever author put into this graffiti previously
           editableText = recordingRecord.markdown; 
         } else {
-          editableText = "%% Below, type whatever you want displayed in the Graffiti tip (markdown), and then run this cell to save.\n" +
+          editableText = "%% Below, type whatever markdown you want displayed in the Graffiti tip (markdown).\n" +
+                         "%% Then run this cell to save it. You can then add an optional recording to your Graffiti.\n" +
                          graffiti.selectedTokens.allTokensString;
         }
 
@@ -1272,7 +1284,7 @@ define([
         selectedCell.unselect();
         graffitiEditCell.select();
         graffitiEditCell.code_mirror.focus();
-        graffitiEditCell.code_mirror.setSelection( {line:1, ch:0},{line:10000, ch:10000} );
+        graffitiEditCell.code_mirror.setSelection( { line:2, ch:0}, { line:10000, ch:10000} );
         graffiti.graffitiEditCellId = graffitiEditCell.metadata.cellId;
       },
 
@@ -1308,7 +1320,7 @@ define([
         }
         storage.storeManifest();
 
-        if ((recordingCell.cell_type === 'markdown') && (recordingCellInfo.newRecording)) {
+        if ((recordingCell.cell_type === 'markdown') && (recordingCellInfo.newRecording) && doSave) {
           // If we were adding a Graffiti to a markdown cell, we need to modify the markdown cell to include 
           // our Graffiti span tag around the selection.
           const contents = recordingCell.get_text();
@@ -1496,7 +1508,7 @@ define([
         graffiti.CMEvents[cell.metadata.cellId] = true;
         const cm = cell.code_mirror;
         cm.on('focus', (cm, e) => {
-          //console.log('Graffiti: CM focus:' , cm, e);
+          console.log('Graffiti: CM focus:' , cm, e);
           // Check to see if we jumped from another cell to this cell with the arrow keys. If we did and we're recording, we need to
           // create a focus history record because jupyter is not firing the select cell event in those cases.
           const activity = state.getActivity();
@@ -1578,6 +1590,7 @@ define([
           //console.log('select cell store selections');
           state.storeHistoryRecord('focus');
           graffiti.refreshGraffitiTips();
+          graffiti.updateControlPanels();
         });
 
         Jupyter.notebook.events.on('create.Cell', (e, results) => {
