@@ -9,6 +9,16 @@
   opacity: 0.5;
 }
 
+#graffiti-garnish-screen {
+  left:0px;
+  top:0px;
+  width:100%;
+  height:10px;
+  border:1px solid red;
+  position:absolute;
+  z-index:500;
+}
+
 .graffiti-recorder-button {
   color:#000;
 }
@@ -346,5 +356,52 @@ http://www.patternify.com/
 */
 .graffiti-small-dot-pattern { 
   background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAAF0lEQVQYV2NkYGD4z8DAwMgAI0AMDA4AI3EBBMY7CTgAAAAASUVORK5CYII=) repeat;
+}
+
+#graffiti-creators-chooser #graffiti-creators-chooser-title {
+  text-transform:uppercase;
+  font-color:#666;
+  font-weight:normal;
+  text-transform:uppercase;
+  text-align:center;
+  width:100%;
+  margin-top:0px;
+  margin-bottom:8px;
+  font-size:.8em;
+}
+
+#graffiti-creators-chooser {
+  width:140px;
+  height:200px;
+  overflow-y:scroll;
+}
+
+#graffiti-creators-chooser div {
+  text-align:center;
+  margin:2px;
+}
+
+#graffiti-creators-chooser #chooser-show-all {
+  cursor:pointer;
+  font-size:0.9em;
+}
+
+#graffiti-creators-chooser .graffiti-creator {
+  padding-top:2px;
+  cursor:pointer;
+}
+
+#graffiti-creators-chooser .graffiti-creator:hover {
+  background-color:#ddd;
+}
+
+#graffiti-creators-chooser div img {
+  width:30%
+}
+
+#graffiti-creators-chooser div div {
+  font-size:0.9em;
+  font-weight:bold;
+  color:#999;
 }
 
