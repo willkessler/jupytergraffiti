@@ -32,6 +32,7 @@ define([
         graffiti.notebookContainer = $('#notebook-container');
         graffiti.notebookContainerPadding = parseInt(graffiti.notebookContainer.css('padding').replace('px',''));
 
+        graffiti.recordingIntervalMs = 10; // In milliseconds, how frequently we sample the state of things while recording.
         graffiti.storageInProcess = false;
         graffiti.highlightMarkText = undefined;
         graffiti.cmLineHeight = 17.0001; // line height of code mirror lines as styled in Jupyter
@@ -312,7 +313,6 @@ define([
                                             //console.log('slider:mousedown');
                                             previousPlayState = state.getActivity();
                                             graffiti.pausePlayback(); // stop playback if playing when you start to scrub
-                                            graffiti.clearAllCanvases();
                                             graffiti.changeActivity('scrubbing');
                                           }
                                         },
@@ -809,9 +809,8 @@ define([
             ctx.beginPath();
             ctx.moveTo(ax, ay);
             ctx.lineTo(bx, by);
-            ctx.closePath();
             ctx.stroke();
-          }          
+          }
         }
       },
 
@@ -834,6 +833,20 @@ define([
             if (lastGarnishInfo.garnishing) {
               state.setLastGarnishInfo(bx, by, viewInfo.garnishing, viewInfo.garnishStyle, viewInfo.cellId);
             }
+          }
+        }
+      },
+
+      // Rerun all garnishes up to time t. Used after scrubbing.
+      redrawAllGarnishes: (targetTime) => {
+        graffiti.clearAllCanvases();
+        const lastIndex = state.getIndexUpToTime('view', targetTime);
+        if (lastIndex !== undefined) {
+          for (let viewIndex = 0; viewIndex < lastIndex; ++viewIndex) {
+            record = state.getHistoryItem('view', viewIndex);
+            // We must locate the cell in the notebook today (vs when the recording was made) before we can redraw garnish.
+            record.hoverCell = utils.findCellByCellId(record.cellId); 
+            graffiti.updatePointer(record);
           }
         }
       },
@@ -1766,7 +1779,7 @@ define([
               setInterval(() => {
                 //console.log('Moving time ahead.');
                 graffiti.updateTimeDisplay(state.getTimeRecordedSoFar());
-              }, 10)
+              }, graffiti.recordingIntervalMs)
             );
             graffiti.recordingIndicatorInterval = setInterval(() => {
               if (state.getTimeRecordedSoFar() % 2000 > 1000) {
@@ -1794,22 +1807,9 @@ define([
       // Movie playback code begins
       //
 
-      updateFocus: (index) => {
-        const focusRecord = state.getHistoryItem('focus', index);
-        const currentlySelectedCell = Jupyter.notebook.get_selected_cell();
-        if (currentlySelectedCell.metadata.hasOwnProperty('cellId') && currentlySelectedCell.metadata.cellId !== focusRecord.activeCellId) {
-          const activeCellIndex = utils.findCellIndexByCellId(focusRecord.activeCellId); // we should use a map to speed this up
-          Jupyter.notebook.select(activeCellIndex);
-          const activeCell = utils.findCellByCellId(focusRecord.activeCellId);
-          if (activeCell !== undefined) {
-            activeCell.code_mirror.focus();
-          }
-        }
-      },
-
-
       updatePointer: (record) => {
         if (record.hoverCell !== undefined) {
+          // console.log('update pointer, record:', record);
           const hoverCellElement = $(record.hoverCell.element[0]);
           const cellRect = hoverCellElement[0].getBoundingClientRect();
           const innerCell = hoverCellElement.find('.inner_cell')[0];
@@ -1950,7 +1950,7 @@ define([
             //console.log('cellId, selections, currentSelections:', cellId, selections, currentSelections);
             if (!(_.isEqual(selections,currentSelections))) {
               //console.log('updating selection, rec:', record, 'sel:', selections, 'cell:', cell);
-              console.log('Graffiti: updating code sels, selections:', selections[0], 'currentSelections:', currentSelections[0]);
+              //console.log('Graffiti: updating code sels, selections:', selections[0], 'currentSelections:', currentSelections[0]);
               //              if ((selections[0].anchor.ch===35) && (selections[0].head.ch===45) && (currentSelections[0].anchor.ch===45) && (currentSelections[0].head.ch===45)) {
               //                debugger;
               //              }
@@ -2055,6 +2055,7 @@ define([
         graffiti.updateDisplay(frameIndexes);
         graffiti.updateSlider(t);
         graffiti.updateTimeDisplay(t);
+        graffiti.redrawAllGarnishes(t);
         if (previousPlayState === 'playing') {
           graffiti.startPlayback();
         }
@@ -2074,6 +2075,7 @@ define([
         const frameIndexes = state.getHistoryRecordsAtTime(t);
         graffiti.updateDisplay(frameIndexes);
         graffiti.updateTimeDisplay(t);
+        graffiti.redrawAllGarnishes(t);
       },
 
       pausePlaybackNoVisualUpdates: () => {
@@ -2141,15 +2143,16 @@ define([
           state.setLastGarnishInfo(0,0,false, 'highlight'); // make sure we've turned off any garnishing flag from a previous interrupted playback
           state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.storeCellStates();
+          graffiti.clearAllCanvases();
         }
 
-        graffiti.clearAllCanvases();
         graffiti.clearHighlightMarkText();
         graffiti.graffitiCursor.show();
         graffiti.changeActivity('playing');
 
         if (state.resetOnNextPlay) {
-          console.log('Resetting for first play.');
+          console.log('Resetting for first/re play.');
+          graffiti.clearAllCanvases();
           state.resetPlayState();
         }
 
