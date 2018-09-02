@@ -656,6 +656,18 @@ define([
       return(indexes);
     },
 
+    // Get index of record just before or at the specified time. Used for scrubbing/redrawing garnishes.
+    getIndexUpToTime: (kind, t) => {
+      let i;
+      const historyArray = state.history[kind];
+      for (i = 0; i < historyArray.length; ++i) {
+        if (historyArray[i].startTime >= t) {
+          return i;
+        }
+      }
+      return undefined;
+    },
+
     getHistoryItem: (kind, index) => {
       return state.history[kind][index];
     },
