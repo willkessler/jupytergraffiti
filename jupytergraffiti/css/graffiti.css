@@ -298,6 +298,12 @@
 
 #graffiti-recording-pens-shell button {
   width:100%;
+  padding-top:6px;
+}
+
+#graffiti-recording-pens-shell button svg {
+  width:20px;
+  height:20px;
 }
 
 #graffiti-recording-colors-shell {
@@ -312,15 +318,6 @@
 
 #graffiti-recording-colors-shell div:hover {
   border:1px solid black;
-}
-
-#graffiti-recording-pens-shell button {
-  padding-top:6px;
-}
-
-#graffiti-recording-pens-shell button svg {
-  width:20px;
-  height:20px;
 }
 
 #graffiti-recording-color-red {
