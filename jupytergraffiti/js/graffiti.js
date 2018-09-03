@@ -346,11 +346,13 @@ define([
 
         graffiti.setupOneControlPanel('graffiti-recording-pen-controls', 
                                       '<div id="graffiti-recording-pens-shell">' +
-                                      ' <button class="btn btn-default" id="graffiti-select-highlight-pen" title="Highlighter tool">' +
+                                      ' <button class="btn btn-default" id="graffiti-highlight-pen" title="Highlighter tool">' +
                                       '<svg class="svg-inline--fa fa-highlighter fa-w-17" aria-hidden="true" data-prefix="fa" data-icon="highlighter" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 544 512" data-fa-i2svg=""><path fill="currentColor" d="M0 479.98L99.92 512l35.45-35.45-67.04-67.04L0 479.98zm124.61-240.01a36.592 36.592 0 0 0-10.79 38.1l13.05 42.83-50.93 50.94 96.23 96.23 50.86-50.86 42.74 13.08c13.73 4.2 28.65-.01 38.15-10.78l35.55-41.64-173.34-173.34-41.52 35.44zm403.31-160.7l-63.2-63.2c-20.49-20.49-53.38-21.52-75.12-2.35L190.55 183.68l169.77 169.78L530.27 154.4c19.18-21.74 18.15-54.63-2.35-75.13z"></path></svg>' +
                                       '</button>' +
-                                      ' <button class="btn btn-default" id="graffiti-select-marker-pen" title="Marker tool">' +
+                                      ' <button class="btn btn-default" id="graffiti-marker-pen" title="Marker tool">' +
                                       '<svg class="svg-inline--fa fa-pen-alt fa-w-16" aria-hidden="true" data-prefix="fa" data-icon="pen-alt" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" data-fa-i2svg=""><path fill="currentColor" d="M497.94 74.17l-60.11-60.11c-18.75-18.75-49.16-18.75-67.91 0l-56.55 56.55 128.02 128.02 56.55-56.55c18.75-18.75 18.75-49.15 0-67.91zm-246.8-20.53c-15.62-15.62-40.94-15.62-56.56 0L75.8 172.43c-6.25 6.25-6.25 16.38 0 22.62l22.63 22.63c6.25 6.25 16.38 6.25 22.63 0l101.82-101.82 22.63 22.62L93.95 290.03A327.038 327.038 0 0 0 .17 485.11l-.03.23c-1.7 15.28 11.21 28.2 26.49 26.51a327.02 327.02 0 0 0 195.34-93.8l196.79-196.79-82.77-82.77-84.85-84.85z"></path></svg>' +
+                                      ' <button class="btn btn-default" id="graffiti-eraser" title="Eraser tool">' +
+                                      '<svg aria-hidden="true" data-prefix="fas" data-icon="eraser" class="svg-inline--fa fa-eraser fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M497.941 273.941c18.745-18.745 18.745-49.137 0-67.882l-160-160c-18.745-18.745-49.136-18.746-67.883 0l-256 256c-18.745 18.745-18.745 49.137 0 67.882l96 96A48.004 48.004 0 0 0 144 480h356c6.627 0 12-5.373 12-12v-40c0-6.627-5.373-12-12-12H355.883l142.058-142.059zm-302.627-62.627l137.373 137.373L265.373 416H150.628l-80-80 124.686-124.686z"></path></svg>' +
                                       '</div>' +
                                       '<div id="graffiti-recording-colors-shell">' +
                                       '  <div id="graffiti-recording-color-yellow"></div>' +
@@ -363,7 +365,7 @@ define([
                                       '</div>',
                                       [
                                         {
-                                          ids: ['graffiti-select-highlight-pen'],
+                                          ids: ['graffiti-highlight-pen'],
                                           event: 'click',
                                           fn: (e) => {
                                             console.log('Graffiti: you picked highlighter');
@@ -1006,7 +1008,7 @@ define([
               state.setTipTimeout(() => {
                 const newPointerPosition = state.getPointerPosition();
                 const cursorDistanceSquared = (newPointerPosition.x - currentPointerPosition.x) * (newPointerPosition.x - currentPointerPosition.x) +
-                                                  (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
+                                                   (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
 
                 //console.log('comparing currentPointerPosition, newPointerPosition:', currentPointerPosition,
                 //            newPointerPosition, cursorDistanceSquared);
@@ -1023,8 +1025,8 @@ define([
                     headlineMarkdown = '<div class="headline">' +
                                        ' <div>' + tooltipCommands.captionPic + '</div>' +
                                        ' <div>' + tooltipCommands.caption + '</div>' +
-                                        (tooltipCommands.captionVideo !== undefined ?
-                                         ' <div class="graffiti-video">' + tooltipCommands.captionVideo + '</div>' : '' ) +
+                                         (tooltipCommands.captionVideo !== undefined ?
+                                          ' <div class="graffiti-video">' + tooltipCommands.captionVideo + '</div>' : '' ) +
                                        '</div>';
                   }
                   if (recording !== undefined) {
@@ -1932,7 +1934,6 @@ define([
             if (!(_.isEqual(currentSelection.state, record.textSelection.state))) {
               if (cellType === 'markdown') {
                 console.log('Graffiti: Focusing on markdown cell');
-//                cell.focus_cell();
                 utils.shrinkAllCMSelections(); // cancel all CM selections as they will prevent replaying selection changes in other dom elements
               }
               console.log('Graffiti: Selection restoring textSelection, currentSelection:', record.textSelection, currentSelection);
@@ -1952,10 +1953,6 @@ define([
               //console.log('cellId, selections, currentSelections:', cellId, selections, currentSelections);
               if (!(_.isEqual(selections,currentSelections))) {
                 //console.log('updating selection, rec:', record, 'sel:', selections, 'cell:', cell);
-                //console.log('Graffiti: updating code sels, selections:', selections[0], 'currentSelections:', currentSelections[0]);
-                //              if ((selections[0].anchor.ch===35) && (selections[0].head.ch===45) && (currentSelections[0].anchor.ch===45) && (currentSelections[0].head.ch===45)) {
-                //                debugger;
-                //              }
                 graffiti.graffitiCursor.hide();
                 code_mirror.setSelections(selections);
                 selectionsUpdateThisFrame = true;
