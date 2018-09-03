@@ -348,6 +348,11 @@
   background-color:black;
 }
 
+#graffiti-temporary-ink {
+  font-size:0.9em;
+  font-style:italic;
+}
+
 /* 
 http://www.patternify.com/
 */

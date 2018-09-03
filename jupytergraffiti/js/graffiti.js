@@ -362,6 +362,10 @@ define([
                                       '  <div id="graffiti-recording-color-purple"></div>' +
                                       '  <div id="graffiti-recording-color-brown"></div>' +
                                       '  <div id="graffiti-recording-color-black"></div>' +
+                                      '</div>' +
+                                      '<div id="graffiti-temporary-ink">' +
+                                      ' <input type="checkbox" id="graffiti-temporary-ink-control" />' +
+                                      ' <label for="graffiti-temporary-ink-control">Temporary Ink</label>' +
                                       '</div>',
                                       [
                                         {
