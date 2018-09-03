@@ -1229,18 +1229,19 @@ define([
             const viewInfo = state.getViewInfo();
             const cellId = viewInfo.cellId;
             if (cellId !== undefined) {
-              const cell = utils.findCellByCellId(cellId); // this is the cell we're hovering over
+              const hoverCell = utils.findCellByCellId(cellId);
               let parentNode;
-              if (cell.cell_type === 'markdown') {
-                parentNode = $(cell.element).find('.rendered_html');
+              if (hoverCell.cell_type === 'markdown') {
+                parentNode = $(hoverCell.element).find('.rendered_html');
               } else {
-                parentNode = $(cell.element).find('.output_subarea');
+                parentNode = $(hoverCell.element).find('.output_subarea');
               }
               if (parentNode.length > 0) {
                 const selectionSerialized = selectionSerializer.get(parentNode[0]);
                 if (!selectionSerialized.empty) {
-                  selectionSerialized.cellType = cell.cell_type;
+                  selectionSerialized.cellType = hoverCell.cell_type;
                   selectionSerialized.cellId = cellId;
+                  // utils.shrinkAllCMSelections(); // cancel all CM selections as they will prevent replaying selection changes in other dom elements
                   state.setSelectionSerialized(selectionSerialized);
                   state.storeHistoryRecord('selections');
                 }
@@ -1913,7 +1914,9 @@ define([
         const record = state.getHistoryItem('selections', index);
         let cellId, cell, selectionRecord, selections, code_mirror, currentSelections, active, selectionsUpdateThisFrame = false;
 
-        if (record.textSelection !== undefined && !selectionsUpdateThisFrame) {
+        // If there were text selections in rendered markdown or rendered output during this frame, restore them first if we need to.
+
+        if (record.textSelection !== undefined) {
           const cellId = record.textSelection.cellId;
           const cell = utils.findCellByCellId(cellId);
           let referenceNode;
@@ -1929,38 +1932,37 @@ define([
             if (!(_.isEqual(currentSelection.state, record.textSelection.state))) {
               if (cellType === 'markdown') {
                 console.log('Graffiti: Focusing on markdown cell');
-                cell.focus_cell();
+//                cell.focus_cell();
+                utils.shrinkAllCMSelections(); // cancel all CM selections as they will prevent replaying selection changes in other dom elements
               }
               console.log('Graffiti: Selection restoring textSelection, currentSelection:', record.textSelection, currentSelection);
               record.textSelection.referenceNode = referenceNode;
               selectionSerializer.restore(record.textSelection);
             }
           }
-        }
-
-        // If there were text selections in rendered markdown or rendered output during this frame, restore them first if we need to.
-        for (cellId of Object.keys(record.cellsSelections)) {
-          selectionRecord = record.cellsSelections[cellId];
-          selections = selectionRecord.selections;
-          active = selectionRecord.active;
-          cell = utils.findCellByCellId(cellId);
-          if (cell !== undefined) {
-            code_mirror = cell.code_mirror;
-            currentSelections = utils.cleanSelectionRecords(code_mirror.listSelections());
-            //console.log('cellId, selections, currentSelections:', cellId, selections, currentSelections);
-            if (!(_.isEqual(selections,currentSelections))) {
-              //console.log('updating selection, rec:', record, 'sel:', selections, 'cell:', cell);
-              //console.log('Graffiti: updating code sels, selections:', selections[0], 'currentSelections:', currentSelections[0]);
-              //              if ((selections[0].anchor.ch===35) && (selections[0].head.ch===45) && (currentSelections[0].anchor.ch===45) && (currentSelections[0].head.ch===45)) {
-              //                debugger;
-              //              }
-              graffiti.graffitiCursor.hide();
-              code_mirror.setSelections(selections);
-              selectionsUpdateThisFrame = true;
+        } else {
+          for (cellId of Object.keys(record.cellsSelections)) {
+            selectionRecord = record.cellsSelections[cellId];
+            selections = selectionRecord.selections;
+            active = selectionRecord.active;
+            cell = utils.findCellByCellId(cellId);
+            if (cell !== undefined) {
+              code_mirror = cell.code_mirror;
+              currentSelections = utils.cleanSelectionRecords(code_mirror.listSelections());
+              //console.log('cellId, selections, currentSelections:', cellId, selections, currentSelections);
+              if (!(_.isEqual(selections,currentSelections))) {
+                //console.log('updating selection, rec:', record, 'sel:', selections, 'cell:', cell);
+                //console.log('Graffiti: updating code sels, selections:', selections[0], 'currentSelections:', currentSelections[0]);
+                //              if ((selections[0].anchor.ch===35) && (selections[0].head.ch===45) && (currentSelections[0].anchor.ch===45) && (currentSelections[0].head.ch===45)) {
+                //                debugger;
+                //              }
+                graffiti.graffitiCursor.hide();
+                code_mirror.setSelections(selections);
+                selectionsUpdateThisFrame = true;
+              }
             }
           }
         }
-
 
         if (selectionsUpdateThisFrame) {
           // This code restores page position after a selection is made; updating selections causes Jupyter to scroll randomly, see above

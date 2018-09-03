@@ -117,20 +117,6 @@ define([
 
     },
 
-    getCellDimensions: () => {
-      const inputCells = Jupyter.notebook.get_cells();
-      let cell, cellDimensions = {}, elem;
-      for (cell of inputCells) {
-        elem = $(cell.element[0]);
-        cellDimensions[cell.metadata.cellId] = { 
-          position: elem.position(),
-          width:  elem.width(),
-          height: elem.height()
-        }
-      }
-      return cellDimensions;
-    },
-
     getActiveCellId: () => {
       const activeCell = Jupyter.notebook.get_selected_cell();
       return activeCell.metadata.cellId;
@@ -146,6 +132,26 @@ define([
 
     saveNotebook: () => {
       Jupyter.notebook.save_notebook().then( () => { console.log('Graffiti: Notebook saved.') });
+    },
+
+    shrinkAllCMSelections: () => {
+      const inputCells = Jupyter.notebook.get_cells();
+      let cell,cm,selections;
+      for (let i = 0; i < inputCells.length; ++i) {
+        cell = inputCells[i];       
+        if (cell.cell_type === 'code') {
+          cm = cell.code_mirror;
+          selections = cm.listSelections();
+          if (selections.length > 0) {
+            //console.log('Clearing selections before: selections:', selections);
+            for (let j = 0; j < selections.length; ++j) {
+              selections[j].head = $.extend({}, selections[j].anchor);
+            }
+            //console.log('Clearing selections after: selections:', selections);
+            cm.setSelections(selections);
+          }
+        }
+      }
     },
 
     collectTokenStrings: (allTokens, tokens) => {
