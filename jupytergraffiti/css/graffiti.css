@@ -328,7 +328,8 @@
 }
 
 .graffiti-recording-color-active {
-  border:2px solid magenta !important;
+  outline:1px dashed red !important;
+  outline-offset:1px;
 }
 
 #graffiti-recording-color-red {
