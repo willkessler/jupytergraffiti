@@ -7,6 +7,7 @@
   left:0;
   pointer-events:none;
   opacity: 0.5;
+  z-index:10000;
 }
 
 #graffiti-garnish-screen {
