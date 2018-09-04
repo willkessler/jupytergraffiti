@@ -31,6 +31,7 @@ define([
       state.cellsAffectedByActivity = {};
       state.garnishing = false;
       state.garnishStyle = 'highlight'; // one of: 'highlight' or 'line'
+      state.garnishColor = '000000';
       state.lastGarnishInfo = { garnishing: false };
       state.lastEditActivityTime = undefined;
       state.controlPanelDragging = false;
@@ -190,10 +191,11 @@ define([
       return state.lastGarnishInfo;
     },
 
-    setLastGarnishInfo: (x, y, garnishing, garnishStyle, garnishCellId) => {
+    setLastGarnishInfo: (x, y, garnishing, garnishStyle, garnishColor, garnishCellId) => {
       state.lastGarnishInfo = {
         garnishing: garnishing,
         garnishStyle: garnishStyle,
+        garnishColor: garnishColor,
         garnishCellId: garnishCellId,
         x: x,
         y: y
@@ -207,6 +209,15 @@ define([
     setGarnishStyle: (style) => {
       state.garnishStyle = style;
     },
+
+    getGarnishColor: () => {
+      return state.garnishColor;
+    },
+
+    setGarnishColor: (color) => {
+      state.garnishColor = color;
+    },
+
 
     getLastRecordingCursorPosition: () => {
       return { x: state.recordingCursorPosition.x, y: state.recordingCursorPosition.y }

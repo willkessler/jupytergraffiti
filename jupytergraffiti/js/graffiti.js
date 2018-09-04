@@ -13,7 +13,7 @@ define([
 
       init: () => {
         console.log('Graffiti: Main constructor running.');
-        console.trace();
+        //console.trace();
         
         utils.loadCss([
           'jupytergraffiti/css/graffiti.css'
@@ -31,6 +31,7 @@ define([
         graffiti.notebookPanel = $('#notebook');
         graffiti.notebookContainer = $('#notebook-container');
         graffiti.notebookContainerPadding = parseInt(graffiti.notebookContainer.css('padding').replace('px',''));
+        graffiti.penColor = '000000';
 
         graffiti.recordingIntervalMs = 10; // In milliseconds, how frequently we sample the state of things while recording.
         graffiti.storageInProcess = false;
@@ -346,22 +347,23 @@ define([
 
         graffiti.setupOneControlPanel('graffiti-recording-pen-controls', 
                                       '<div id="graffiti-recording-pens-shell">' +
+                                      ' <button class="btn btn-default" id="graffiti-line-pen" title="Line tool">' +
+                                      '<svg class="svg-inline--fa fa-pen-alt fa-w-16" aria-hidden="true" data-prefix="fa" data-icon="pen-alt" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" data-fa-i2svg=""><path fill="currentColor" d="M497.94 74.17l-60.11-60.11c-18.75-18.75-49.16-18.75-67.91 0l-56.55 56.55 128.02 128.02 56.55-56.55c18.75-18.75 18.75-49.15 0-67.91zm-246.8-20.53c-15.62-15.62-40.94-15.62-56.56 0L75.8 172.43c-6.25 6.25-6.25 16.38 0 22.62l22.63 22.63c6.25 6.25 16.38 6.25 22.63 0l101.82-101.82 22.63 22.62L93.95 290.03A327.038 327.038 0 0 0 .17 485.11l-.03.23c-1.7 15.28 11.21 28.2 26.49 26.51a327.02 327.02 0 0 0 195.34-93.8l196.79-196.79-82.77-82.77-84.85-84.85z"></path></svg>' +
                                       ' <button class="btn btn-default" id="graffiti-highlight-pen" title="Highlighter tool">' +
                                       '<svg class="svg-inline--fa fa-highlighter fa-w-17" aria-hidden="true" data-prefix="fa" data-icon="highlighter" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 544 512" data-fa-i2svg=""><path fill="currentColor" d="M0 479.98L99.92 512l35.45-35.45-67.04-67.04L0 479.98zm124.61-240.01a36.592 36.592 0 0 0-10.79 38.1l13.05 42.83-50.93 50.94 96.23 96.23 50.86-50.86 42.74 13.08c13.73 4.2 28.65-.01 38.15-10.78l35.55-41.64-173.34-173.34-41.52 35.44zm403.31-160.7l-63.2-63.2c-20.49-20.49-53.38-21.52-75.12-2.35L190.55 183.68l169.77 169.78L530.27 154.4c19.18-21.74 18.15-54.63-2.35-75.13z"></path></svg>' +
                                       '</button>' +
-                                      ' <button class="btn btn-default" id="graffiti-marker-pen" title="Marker tool">' +
-                                      '<svg class="svg-inline--fa fa-pen-alt fa-w-16" aria-hidden="true" data-prefix="fa" data-icon="pen-alt" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" data-fa-i2svg=""><path fill="currentColor" d="M497.94 74.17l-60.11-60.11c-18.75-18.75-49.16-18.75-67.91 0l-56.55 56.55 128.02 128.02 56.55-56.55c18.75-18.75 18.75-49.15 0-67.91zm-246.8-20.53c-15.62-15.62-40.94-15.62-56.56 0L75.8 172.43c-6.25 6.25-6.25 16.38 0 22.62l22.63 22.63c6.25 6.25 16.38 6.25 22.63 0l101.82-101.82 22.63 22.62L93.95 290.03A327.038 327.038 0 0 0 .17 485.11l-.03.23c-1.7 15.28 11.21 28.2 26.49 26.51a327.02 327.02 0 0 0 195.34-93.8l196.79-196.79-82.77-82.77-84.85-84.85z"></path></svg>' +
                                       ' <button class="btn btn-default" id="graffiti-eraser" title="Eraser tool">' +
                                       '<svg aria-hidden="true" data-prefix="fas" data-icon="eraser" class="svg-inline--fa fa-eraser fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M497.941 273.941c18.745-18.745 18.745-49.137 0-67.882l-160-160c-18.745-18.745-49.136-18.746-67.883 0l-256 256c-18.745 18.745-18.745 49.137 0 67.882l96 96A48.004 48.004 0 0 0 144 480h356c6.627 0 12-5.373 12-12v-40c0-6.627-5.373-12-12-12H355.883l142.058-142.059zm-302.627-62.627l137.373 137.373L265.373 416H150.628l-80-80 124.686-124.686z"></path></svg>' +
                                       '</div>' +
                                       '<div id="graffiti-recording-colors-shell">' +
-                                      '  <div id="graffiti-recording-color-yellow"></div>' +
-                                      '  <div id="graffiti-recording-color-green"></div>' +
-                                      '  <div id="graffiti-recording-color-red"></div>' +
-                                      '  <div id="graffiti-recording-color-blue"></div>' +
-                                      '  <div id="graffiti-recording-color-purple"></div>' +
-                                      '  <div id="graffiti-recording-color-brown"></div>' +
-                                      '  <div id="graffiti-recording-color-black"></div>' +
+                                      '  <div id="graffiti-recording-color-red" colorVal="ff0000"></div>' +
+                                      '  <div id="graffiti-recording-color-green" colorVal="00ff00"></div>' +
+                                      '  <div id="graffiti-recording-color-blue" colorVal="0000ff"></div>' +
+                                      '  <div id="graffiti-recording-color-yellow" colorVal="ffff00"></div>' +
+                                      '  <div id="graffiti-recording-color-orange" colorVal="ff9900"></div>' +
+                                      '  <div id="graffiti-recording-color-purple" colorVal="8a2be2"></div>' +
+                                      '  <div id="graffiti-recording-color-brown" colorVal="996600"></div>' +
+                                      '  <div id="graffiti-recording-color-black" colorVal="000000"></div>' +
                                       '</div>' +
                                       '<div id="graffiti-temporary-ink">' +
                                       ' <input type="checkbox" id="graffiti-temporary-ink-control" />' +
@@ -372,7 +374,46 @@ define([
                                           ids: ['graffiti-highlight-pen'],
                                           event: 'click',
                                           fn: (e) => {
-                                            console.log('Graffiti: you picked highlighter');
+                                            console.log('Graffiti: you picked highlighter tool.');
+                                            graffiti.toggleGraffitiPen('highlight', e, false);
+                                          }
+                                        },
+                                        {
+                                          ids: ['graffiti-line-pen'],
+                                          event: 'click',
+                                          fn: (e) => {
+                                            console.log('Graffiti: you picked line tool.');
+                                            graffiti.toggleGraffitiPen('line', e, false);
+                                          }
+                                        },
+                                        {
+                                          ids: ['graffiti-eraser'],
+                                          event: 'click',
+                                          fn: (e) => {
+                                            console.log('Graffiti: you picked eraser tool.');
+                                            graffiti.toggleGraffitiPen('eraser', e, false);
+                                          }
+                                        },
+                                        {
+                                          ids: [
+                                            'graffiti-recording-color-red',
+                                            'graffiti-recording-color-green',
+                                            'graffiti-recording-color-blue',
+                                            'graffiti-recording-color-yellow',
+                                            'graffiti-recording-color-orange',
+                                            'graffiti-recording-color-purple',
+                                            'graffiti-recording-color-brown',
+                                            'graffiti-recording-color-black'
+                                          ],
+                                          event: 'click',
+                                          fn: (e) => {
+                                            const target = $(e.target);
+                                            $('#graffiti-recording-colors-shell div').removeClass('graffiti-recording-color-active');
+                                            const colorVal = target.attr('colorVal');
+                                            target.addClass('graffiti-recording-color-active');
+                                            console.log('Graffiti: you clicked color:', colorVal);
+                                            state.setGarnishColor(colorVal);
+                                            graffiti.toggleGraffitiPen('line', e, true);                                          
                                           }
                                         }
                                       ]
@@ -724,18 +765,83 @@ define([
         graffiti.refreshGraffitiTips();
         graffiti.setupControlPanels();
         graffiti.updateControlPanels();
-        //graffiti.setupGarnishScreen();
+        graffiti.setupGarnishScreen();
 
+      },
+
+      toggleGraffitiPen: (penType, e, force) => {
+        // force param : if you choose a color we always switch you to the line tool, turned on
+        if (state.getActivity() !== 'recording') {
+          return; // Pens can only be used while recording
+        }
+        let penControl = $(e.currentTarget);
+        if (!(penControl.hasClass('btn'))) {
+          penControl = penControl.parents('.btn');
+        }
+        if ((graffiti.activePen !== undefined) && (graffiti.activePen === penType) && !force) {
+          // turn off the active pen
+          penControl.removeClass('graffiti-active-pen');
+          graffiti.activePen = undefined;
+          graffiti.hideGarnishScreen();
+        } else {
+          // set up a new active pen
+          graffiti.showGarnishScreen();
+          $('.graffiti-active-pen').removeClass('graffiti-active-pen');
+          graffiti.activePen = penType;
+          if (force) {
+            penControl = $('#graffiti-line-pen');
+          }
+          penControl.addClass('graffiti-active-pen');
+        }          
+      },
+
+      garnishScreenHandler: (e) => {
+        if (state.getActivity() === 'recording') {
+          if (e.type === 'mousedown') {
+            console.log('garnishScreenHandler: mousedown');
+            state.setGarnishing(true);
+            switch (graffiti.activePen) {
+              case 'highlight':
+                state.setGarnishStyle('highlight');
+                break;
+              case 'line':
+                state.setGarnishStyle('line');
+                break;
+              case 'eraser':
+                state.setGarnishStyle('erase');
+                break;
+            }
+          } else if ((e.type === 'mouseup') || (e.type === 'mouseleave')) {
+            console.log('garnishScreenHandler: mouseup');
+            state.setGarnishing(false);
+          }
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }
+      },
+
+      clearGarnishPen: () => {
+        $('.graffiti-active-pen').removeClass('graffiti-active-pen');
+        graffiti.activePen = undefined;
+      },
+
+      showGarnishScreen: () => {
+        graffiti.garnishScreen.show();
+      },
+
+      hideGarnishScreen: () => {
+        graffiti.garnishScreen.hide();
       },
 
       // Inspired by https://www.codicode.com/art/how_to_draw_on_a_html5_canvas_with_a_mouse.aspx
       // and : http://perfectionkills.com/exploring-canvas-drawing-techniques/
-
       setupGarnishScreen: () => {
         const graffitiGarnishScreen = $('<div id="graffiti-garnish-screen">screen</div>');
         graffiti.garnishScreen = graffitiGarnishScreen.prependTo(graffiti.notebookContainer);
         const notebookHeight = $('#notebook').outerHeight(true);
         graffiti.garnishScreen.css({height: notebookHeight + 'px'});
+        graffiti.garnishScreen.bind('mousedown mouseup mouseleave', (e) => { graffiti.garnishScreenHandler(e) });
       },
 
       placeCanvas: (cellId, canvasType) => {
@@ -773,7 +879,7 @@ define([
         };
       },
       
-      setCanvasStyle: (cellId, canvasType) => {
+      setCanvasStyle: (cellId, canvasType, canvasColor) => {
         const canvas = graffiti.canvases[cellId];
         const ctx = canvas.ctx;
         if (canvasType === 'highlight') {
@@ -783,10 +889,16 @@ define([
           ctx.shadowBlur = 35;
           ctx.globalAlpha = 0.5;
         } else { // lines are default although if erase activated, we will ignore this style and use clearRect
-          ctx.strokeStyle = 'rgb(0,0,0)';
-          ctx.shadowColor = 'rgb(0,0,0)';
+          if (canvasColor === undefined) {
+            canvasColor = '#000000'; // default to black lines if not set in older recordings before color was supported.
+          } else {
+            canvasColor = '#' + canvasColor;
+          }
+          console.log('canvas color:', canvasColor);
+          ctx.strokeStyle = canvasColor;
+          ctx.shadowColor = canvasColor;
           ctx.shadowBlur = 1;
-          ctx.lineWidth = 1.5;
+          ctx.lineWidth = 1.75;
           ctx.globalAlpha = 1.0;
         }
       },
@@ -825,7 +937,7 @@ define([
           const lastGarnishInfo = state.getLastGarnishInfo();
           if (viewInfo.garnishing) {
             graffiti.placeCanvas(viewInfo.cellId, viewInfo.garnishStyle);
-            graffiti.setCanvasStyle(viewInfo.cellId, viewInfo.garnishStyle);
+            graffiti.setCanvasStyle(viewInfo.cellId, viewInfo.garnishStyle, viewInfo.garnishColor);
             const cellRect = viewInfo.cellRect;
             graffiti.updateGarnishDisplay(viewInfo.cellId, 
                                           ax - cellRect.left,
@@ -1012,7 +1124,7 @@ define([
               state.setTipTimeout(() => {
                 const newPointerPosition = state.getPointerPosition();
                 const cursorDistanceSquared = (newPointerPosition.x - currentPointerPosition.x) * (newPointerPosition.x - currentPointerPosition.x) +
-                                                   (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
+                                                    (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
 
                 //console.log('comparing currentPointerPosition, newPointerPosition:', currentPointerPosition,
                 //            newPointerPosition, cursorDistanceSquared);
@@ -1029,8 +1141,8 @@ define([
                     headlineMarkdown = '<div class="headline">' +
                                        ' <div>' + tooltipCommands.captionPic + '</div>' +
                                        ' <div>' + tooltipCommands.caption + '</div>' +
-                                         (tooltipCommands.captionVideo !== undefined ?
-                                          ' <div class="graffiti-video">' + tooltipCommands.captionVideo + '</div>' : '' ) +
+                                          (tooltipCommands.captionVideo !== undefined ?
+                                           ' <div class="graffiti-video">' + tooltipCommands.captionVideo + '</div>' : '' ) +
                                        '</div>';
                   }
                   if (recording !== undefined) {
@@ -1114,7 +1226,8 @@ define([
                                                  graffiti.notebookPanel.height(),
                                                  graffiti.sitePanel.scrollTop(),
                                                  state.getGarnishing(),
-                                                 state.getGarnishStyle());
+                                                 state.getGarnishStyle(),
+                                                 state.getGarnishColor());
           state.storeViewInfo(viewInfo);
           state.storeHistoryRecord('scroll');
           if (state.getActivity() === 'playbackPaused') {
@@ -1196,7 +1309,8 @@ define([
                                                  graffiti.notebookPanel.height(), 
                                                  graffiti.sitePanel.scrollTop(),
                                                  state.getGarnishing(),
-                                                 state.getGarnishStyle());
+                                                 state.getGarnishStyle(),
+                                                 state.getGarnishColor());
           state.storeViewInfo(viewInfo);
           state.storeHistoryRecord('pointer');
           graffiti.updateGarnishDisplayIfRecording(previousPointerX, previousPointerY, e.clientX, e.clientY, viewInfo );
@@ -1631,7 +1745,8 @@ define([
                                                  graffiti.notebookPanel.height(), 
                                                  graffiti.sitePanel.scrollTop(),
                                                  state.getGarnishing(),
-                                                 state.getGarnishStyle());
+                                                 state.getGarnishStyle(),
+                                                 state.getGarnishColor());
           state.storeViewInfo(viewInfo);
           state.storeHistoryRecord('innerScroll');
         });
@@ -1717,6 +1832,7 @@ define([
       stopRecordingCore: (useCallback) => {
         audio.setExecuteCallback(useCallback);
         graffiti.clearAllCanvases();
+        graffiti.hideGarnishScreen();
         state.finalizeHistory();
         if (useCallback) {
           state.dumpHistory();
@@ -1739,6 +1855,7 @@ define([
 
       cancelRecording: () => {
         const currentActivity = state.getActivity();
+        console.log('Graffiti: canceling recording, current activity:', currentActivity);
         if (currentActivity === 'recording') {
           const recordingCellInfo = state.getRecordingCellInfo();
           if (recordingCellInfo.newRecording) {
@@ -1781,6 +1898,7 @@ define([
             audio.startRecording();
             state.setScrollTop(graffiti.sitePanel.scrollTop());
             state.setGarnishing(false);
+            graffiti.clearGarnishPen();
 
             state.setRecordingInterval(
               setInterval(() => {
@@ -1795,6 +1913,7 @@ define([
                 $('#graffiti-recording-flash-icon').css({background:'rgb(255,0,0)'});
               }
             }, 1000);
+
             console.log('Graffiti: Started recording');
           }
         }
@@ -1833,18 +1952,18 @@ define([
           if (record.garnishing) {
             //console.log('lastGarnishInfo:', lastGarnishInfo);
             graffiti.placeCanvas(record.cellId,record.garnishStyle);
-            graffiti.setCanvasStyle(record.cellId, record.garnishStyle);
+            graffiti.setCanvasStyle(record.cellId, record.garnishStyle, record.garnishColor);
             // We are currently garnishing, so draw next portion of garnish on canvas.
             //console.log('garnishing from:', lastGarnishInfo.x, lastGarnishInfo.y, '->', dxScaled, dyScaled);
             const garnishOffset = { x: dxScaled + (innerCellRect.left - cellRect.left), y: dyScaled + (innerCellRect.top - cellRect.top) };
             if (lastGarnishInfo.garnishing && lastGarnishInfo.garnishCellId == record.cellId) {
               graffiti.updateGarnishDisplay(record.cellId, lastGarnishInfo.x, lastGarnishInfo.y, garnishOffset.x + 0.5, garnishOffset.y + 0.5, record.garnishStyle);
             }
-            state.setLastGarnishInfo(garnishOffset.x, garnishOffset.y, record.garnishing, record.garnishStyle, record.cellId);
+            state.setLastGarnishInfo(garnishOffset.x, garnishOffset.y, record.garnishing, record.garnishStyle, record.garnishColor, record.cellId);
           } else {
             if (lastGarnishInfo.garnishing) {
               // garnish rendering just ended
-              state.setLastGarnishInfo(dxScaled, dyScaled, record.garnishing, record.garnishStyle, record.cellId);
+              state.setLastGarnishInfo(dxScaled, dyScaled, record.garnishing, record.garnishStyle, record.garnishColor, record.cellId);
             }
           }
           if ((offsetPosition.x !== lastPosition.x) || (offsetPosition.y !== lastPosition.y)) {
