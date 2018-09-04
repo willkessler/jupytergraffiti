@@ -821,6 +821,12 @@ define([
         }
       },
 
+      resetGarnishColor: () => {
+        $('#graffiti-recording-colors-shell div').removeClass('graffiti-recording-color-active');
+        $('#graffiti-recording-color-black').addClass('graffiti-recording-color-active');
+        state.setGarnishColor('000000');
+      },
+
       clearGarnishPen: () => {
         $('.graffiti-active-pen').removeClass('graffiti-active-pen');
         graffiti.activePen = undefined;
@@ -1833,6 +1839,7 @@ define([
         audio.setExecuteCallback(useCallback);
         graffiti.clearAllCanvases();
         graffiti.hideGarnishScreen();
+        graffiti.resetGarnishColor();
         state.finalizeHistory();
         if (useCallback) {
           state.dumpHistory();
