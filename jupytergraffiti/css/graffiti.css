@@ -10,11 +10,12 @@
 }
 
 #graffiti-garnish-screen {
+  display:none;
   left:0px;
   top:0px;
   width:100%;
   height:10px;
-  border:1px solid red;
+  border:1px dotted #ff0;
   position:absolute;
   z-index:500;
 }
@@ -301,6 +302,11 @@
   padding-top:6px;
 }
 
+#graffiti-recording-pens-shell .graffiti-active-pen {
+  color:white;
+  background:blue;
+}
+
 #graffiti-recording-pens-shell button svg {
   width:20px;
   height:20px;
@@ -314,38 +320,47 @@
   width:100%;
   height:16px;
   border:1px solid white;
+  margin:2px;
 }
 
 #graffiti-recording-colors-shell div:hover {
   border:1px solid black;
 }
 
+.graffiti-recording-color-active {
+  border:2px solid magenta !important;
+}
+
 #graffiti-recording-color-red {
-  background-color:red;
+  background-color:#ff0000;
 }
 
 #graffiti-recording-color-green {
-  background-color:green;
+  background-color:#00ff00;
 }
 
 #graffiti-recording-color-blue {
-  background-color:blue;
+  background-color:#0000ff;
+}
+
+#graffiti-recording-color-orange {
+  background-color:#ff9900;
 }
 
 #graffiti-recording-color-yellow {
-  background-color:yellow;
+  background-color:#ffff00;
 }
 
 #graffiti-recording-color-purple {
-  background-color:purple;
+  background-color:#8a2be2;
 }
 
 #graffiti-recording-color-brown {
-  background-color:brown;
+  background-color:#996600;
 }
 
 #graffiti-recording-color-black {
-  background-color:black;
+  background-color:#000000;
 }
 
 #graffiti-temporary-ink {
