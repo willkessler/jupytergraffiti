@@ -1004,7 +1004,7 @@ define([
               case '%%caption_video_id':
                 if (parts[1].indexOf('images/') === 0) {
                   partsRecord.captionVideo =
-                    '<video width="100" height="75" autoplay><source src="' + parts[1] + '" type="video/mp4"></video>';
+                    '<video width="150" height="75" autoplay><source src="' + parts[1] + '" type="video/mp4"></video>';
                 } else {
                   partsRecord.captionVideo =
                     '<iframe width="100" height=80 src="https://www.youtube.com/embed/' + parts[1] + 
