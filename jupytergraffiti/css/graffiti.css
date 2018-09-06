@@ -153,6 +153,8 @@
 }
 
 #graffiti-control-panel-title {
+  display:flex;
+  align-items:center;
   font-color:#666;
   text-transform:uppercase;
   text-align:center;
@@ -161,6 +163,15 @@
   margin-bottom:8px;
   font-size:.8em;
   cursor:pointer;
+}
+
+#graffiti-control-panel-title div {
+  margin-right:5px;
+}
+
+#graffiti-control-panel-title img {
+  width:22px;
+  padding:0 2px 0 2px;
 }
 
 #graffiti-playback-buttons,
@@ -296,6 +307,10 @@
   margin-top:10px;
   padding-top:10px;
   border-top:1px dotted grey;
+}
+
+#graffiti-recording-pen-controls #graffiti-eraser {
+  width:90px;
 }
 
 #graffiti-recording-pens-shell button {

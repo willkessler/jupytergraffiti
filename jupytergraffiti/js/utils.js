@@ -73,7 +73,7 @@ define([
       return marked(cleanedContents).replace(/(href=".*")>/g, "$1 target=\"_blank\">");
     },
 
-    collectViewInfo: (clientY, notebookPanelHeight, scrollTop, garnishing, garnishStyle, garnishColor) => {
+    collectViewInfo: (clientY, notebookPanelHeight, scrollTop, garnishing, garnishStyle, garnishColor, garnishPermanence) => {
       let cellElement, cellRect;
       const inputCells = Jupyter.notebook.get_cells();
       const selectedCell = Jupyter.notebook.get_selected_cell();
@@ -110,6 +110,7 @@ define([
             garnishing: garnishing,
             garnishStyle: garnishStyle,
             garnishColor: garnishColor,
+            garnishPermanence: garnishPermanence,
             scrollTop: scrollTop
           };
         }

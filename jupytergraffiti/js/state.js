@@ -32,6 +32,7 @@ define([
       state.garnishing = false;
       state.garnishStyle = 'highlight'; // one of: 'highlight' or 'line'
       state.garnishColor = '000000';
+      state.garnishPermanence = 'permanent'; // one of: 'permanent', 'temporary'
       state.lastGarnishInfo = { garnishing: false };
       state.lastEditActivityTime = undefined;
       state.controlPanelDragging = false;
@@ -218,6 +219,13 @@ define([
       state.garnishColor = color;
     },
 
+    getGarnishPermanence: () => {
+      return state.garnishPermanence;
+    },
+
+    setGarnishPermanence: (newValue) => {
+      state.garnishPermanence = newValue; // one of "permanent", "temporary"
+    },
 
     getLastRecordingCursorPosition: () => {
       return { x: state.recordingCursorPosition.x, y: state.recordingCursorPosition.y }
@@ -387,6 +395,7 @@ define([
         dy: (state.pointer.y - state.viewInfo.innerCellRect.top)   / state.viewInfo.innerCellRect.height,
         pointerUpdate: opts.pointerUpdate,
         focusUpdate: opts.focusUpdate,
+        clearTemporaryCanvases: opts.clearTemporaryCanvases,
         selectedCellId: state.selectedCellId
       });
     },
@@ -513,19 +522,23 @@ define([
       // Note: we override the type to throw together pointer moves, scroll innerScroll, and focus in one history record type
       switch (type) {
         case 'pointer':
-          record = state.createViewRecord({ pointerUpdate: true,  focusUpdate: false });
+          record = state.createViewRecord({ pointerUpdate: true,  focusUpdate: false, clearTemporaryCanvases: false });
           type = 'view';
           break;
         case 'scroll':
-          record = state.createViewRecord({ pointerUpdate: false, focusUpdate:false });
+          record = state.createViewRecord({ pointerUpdate: false, focusUpdate:false, clearTemporaryCanvases: false });
           type = 'view';
           break;
         case 'innerScroll':
-          record = state.createViewRecord({ pointerUpdate: false, focusUpdate:false });
+          record = state.createViewRecord({ pointerUpdate: false, focusUpdate:false, clearTemporaryCanvases: false });
           type = 'view';
           break;
         case 'focus':
-          record = state.createViewRecord({ pointerUpdate: false, focusUpdate:true });
+          record = state.createViewRecord({ pointerUpdate: false, focusUpdate:true, clearTemporaryCanvases: false });
+          type = 'view';
+          break;
+        case 'clearTemporaryCanvases':
+          record = state.createViewRecord({ pointerUpdate: false, focusUpdate:false, clearTemporaryCanvases: true });
           type = 'view';
           break;
         case 'selections':

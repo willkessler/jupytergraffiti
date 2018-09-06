@@ -39,7 +39,10 @@ define([
         graffiti.cmLineHeight = 17.0001; // line height of code mirror lines as styled in Jupyter
         graffiti.cmLineFudge = 8; // buffer between lines
         graffiti.tokenRanges = {};
-        graffiti.canvases = {};
+        graffiti.canvases = { 
+          permanent: {}, // these canvases persist drawings throughout the lifespan of the recordin
+          temporary: {}  // these canvases get wiped a couple seconds after the person stops drawing
+        };
         graffiti.lastUpdateControlsTime = utils.getNow();
         graffiti.notificationMsgs = {};
         graffiti.panelFadeTime = 350;
@@ -143,7 +146,8 @@ define([
         });
 
         const logoText = 'Graffiti'.split('').join('&nbsp;&nbsp;&nbsp;&nbsp;');
-        graffiti.setupOneControlPanel('graffiti-control-panel-title', logoText);
+        graffiti.setupOneControlPanel('graffiti-control-panel-title', 
+                                      '<div><img src="../images/udacity_tiny_logo.png" /></div><div>' + logoText + '</div>');
 
         const dragHandle = $('#graffiti-drag-handle,#graffiti-control-panel-title');
         dragHandle.on('mousedown', (e) => {
@@ -367,7 +371,7 @@ define([
                                       '</div>' +
                                       '<div id="graffiti-temporary-ink">' +
                                       ' <input type="checkbox" id="graffiti-temporary-ink-control" />' +
-                                      ' <label for="graffiti-temporary-ink-control">Temporary Ink</label>' +
+                                      ' <label id="graffiti-temporary-ink-label" for="graffiti-temporary-ink-control">Temporary Ink</label>' +
                                       '</div>',
                                       [
                                         {
@@ -413,7 +417,19 @@ define([
                                             target.addClass('graffiti-recording-color-active');
                                             console.log('Graffiti: you clicked color:', colorVal);
                                             state.setGarnishColor(colorVal);
-                                            graffiti.toggleGraffitiPen('line', e, true);                                          
+                                            graffiti.toggleGraffitiPen('line', e, true);
+                                          }
+                                        },
+                                        {
+                                          ids: [ 'graffiti-temporary-ink-control', 'graffiti-temporary-ink-label' ],
+                                          event: 'click',
+                                          fn: (e) => {
+                                            const temporaryInk = ($('#graffiti-temporary-ink-control').is(':checked') ? 'temporary' : 'permanent');
+                                            state.setGarnishPermanence(temporaryInk);
+                                            if (temporaryInk) {
+                                              graffiti.toggleGraffitiPen('line', e, true); // activating temporary ink selects line tool
+                                            }
+                                            console.log('You set temporary ink to:', temporaryInk);
                                           }
                                         }
                                       ]
@@ -627,7 +643,7 @@ define([
             }
             if (state.getSetupForReset()) {
               graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-restart-play-link">Play movie again</span>, or</div>' +
-                                   '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-link">Cancel</span> movie playback</div>',
+                                   '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-postreset-link">Cancel</span> movie playback</div>',
                                    [
                                      {
                                        ids: ['graffiti-restart-play-link'],
@@ -637,7 +653,7 @@ define([
                                        }
                                      },
                                      {
-                                       ids: ['graffiti-cancel-playback-link'],
+                                       ids: ['graffiti-cancel-playback-postreset-link'],
                                        event: 'click',
                                        fn: (e) => {
                                          graffiti.cancelPlayback({cancelAnimation:true});
@@ -646,7 +662,7 @@ define([
                                    ]);
             } else {
               graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-continue-play-link">Continue</span> movie playback, or</div>' +
-                                   '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-link">Cancel</span> movie playback</div>',
+                                   '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-prereset-link">Cancel</span> movie playback</div>',
                                    [
                                      {
                                        ids: ['graffiti-continue-play-link'],
@@ -656,7 +672,7 @@ define([
                                        }
                                      },
                                      {
-                                       ids: ['graffiti-cancel-playback-link'],
+                                       ids: ['graffiti-cancel-playback-prereset-link'],
                                        event: 'click',
                                        fn: (e) => {
                                          graffiti.cancelPlayback({cancelAnimation:true});
@@ -843,25 +859,23 @@ define([
       // Inspired by https://www.codicode.com/art/how_to_draw_on_a_html5_canvas_with_a_mouse.aspx
       // and : http://perfectionkills.com/exploring-canvas-drawing-techniques/
       setupGarnishScreen: () => {
-        const graffitiGarnishScreen = $('<div id="graffiti-garnish-screen">screen</div>');
+        const graffitiGarnishScreen = $('<div id="graffiti-garnish-screen"></div>');
         graffiti.garnishScreen = graffitiGarnishScreen.prependTo(graffiti.notebookContainer);
         const notebookHeight = $('#notebook').outerHeight(true);
         graffiti.garnishScreen.css({height: notebookHeight + 'px'});
         graffiti.garnishScreen.bind('mousedown mouseup mouseleave', (e) => { graffiti.garnishScreenHandler(e) });
       },
 
-      placeCanvas: (cellId, canvasType) => {
-        if (graffiti.canvases[cellId] !== undefined) {
-          //console.log('not adding ' + canvasType + ' canvas to this cell, already exists.');
+      placeCanvas: (cellId, garnishPermanence) => {
+        if (graffiti.canvases[garnishPermanence][cellId] !== undefined) {
+          //console.log('not adding ' + garnishPermanence + ' canvas to this cell, already exists.');
           return;
         }
         const cell = utils.findCellByCellId(cellId);
         const cellElement = $(cell.element[0]);
-        const canvasClass = 'graffiti-canvas-' + canvasType;
-        const existingCanvas = cellElement.find('.' + canvasClass);
         const cellRect = cellElement[0].getBoundingClientRect();
-        $('<div class="graffiti-canvas-outer"><canvas /></div>').appendTo(cellElement);
-        const newCellCanvasDiv = cellElement.find('.graffiti-canvas-outer:first');
+        $('<div class="graffiti-canvas-outer graffiti-canvas-type-' + garnishPermanence + '"><canvas /></div>').appendTo(cellElement);
+        const newCellCanvasDiv = cellElement.find('.graffiti-canvas-outer:last');
         const newCellCanvas = newCellCanvasDiv.find('canvas')[0];
         const ctx =  newCellCanvas.getContext("2d");
 
@@ -877,7 +891,7 @@ define([
         ctx.lineJoin = "round";
         ctx.lineCap = "round";
 
-        graffiti.canvases[cellId] = {
+        graffiti.canvases[garnishPermanence][cellId] = {
           div: newCellCanvasDiv,
           canvas: newCellCanvas,
           ctx: ctx,
@@ -885,10 +899,10 @@ define([
         };
       },
       
-      setCanvasStyle: (cellId, canvasType, canvasColor) => {
-        const canvas = graffiti.canvases[cellId];
+      setCanvasStyle: (cellId, penType, canvasColor, canvasPermanence) => {
+        const canvas = graffiti.canvases[canvasPermanence][cellId];
         const ctx = canvas.ctx;
-        if (canvasType === 'highlight') {
+        if (penType === 'highlight') {
           ctx.strokeStyle = 'rgb(255,255,0)';
           ctx.shadowColor = 'rgb(255,255,0)';
           ctx.lineWidth = 15;
@@ -900,7 +914,7 @@ define([
           } else {
             canvasColor = '#' + canvasColor;
           }
-          console.log('canvas color:', canvasColor);
+          // console.log('canvas color:', canvasColor);
           ctx.strokeStyle = canvasColor;
           ctx.shadowColor = canvasColor;
           ctx.shadowBlur = 1;
@@ -909,23 +923,50 @@ define([
         }
       },
 
-      clearCanvas: (cellId) => {
-        const canvas = graffiti.canvases[cellId];
+      clearCanvas: (garnishPermanence, cellId) => {
+        const canvas = graffiti.canvases[garnishPermanence][cellId];
         const ctx = canvas.ctx;
         const cellRect = canvas.cellRect;
         ctx.clearRect(0, 0, cellRect.width, cellRect.height);
       },
       
       clearAllCanvases: () => {
-        for (let cellId of Object.keys(graffiti.canvases)) {
-          graffiti.clearCanvas(cellId);
+        for (let garnishPermanence of Object.keys(graffiti.canvases)) {
+          for (let cellId of Object.keys(graffiti.canvases[garnishPermanence])) {
+            graffiti.clearCanvas(garnishPermanence, cellId);
+          }
         }
       },
 
-      updateGarnishDisplay: (cellId, ax, ay, bx, by, garnishStyle) => {
-        //console.log('updateGarnishDisplay');
-        if (graffiti.canvases.hasOwnProperty(cellId)) {
-          const ctx = graffiti.canvases[cellId].ctx;
+      clearTemporaryCanvases: () => {
+        for (let cellId of Object.keys(graffiti.canvases['temporary'])) {
+          graffiti.clearCanvas('temporary', cellId);
+        }
+      },
+
+      setTemporaryCanvasFutureWipe: (viewInfo) => {
+        if (viewInfo.garnishPermanence === 'temporary') {
+          if (graffiti.futureCanvasWipe !== undefined) {
+            console.log('clearing previous canvas wipe');
+            clearTimeout(graffiti.futureCanvasWipe); // remove any existing clearing action... we'll wait until they stop drawing for a bit
+            graffiti.futureCanvasWipe = undefined;
+          }
+          graffiti.futureCanvasWipe = 
+            setTimeout(() => {
+              graffiti.clearTemporaryCanvases();
+              // Create a history record to wipe all temporary canvases
+              state.storeHistoryRecord('clearTemporaryCanvases');
+            }, 2000);
+        }
+      },
+
+      updateGarnishDisplay: (cellId, ax, ay, bx, by, garnishStyle, garnishPermanence) => {
+        if (garnishPermanence === undefined) {
+          garnishPermanence = 'permanent'; // HACK: support for older recordings (adarsh's for instance)
+        }
+        console.log('updateGarnishDisplay, garnishPermanence:', garnishPermanence);
+        if (graffiti.canvases[garnishPermanence].hasOwnProperty(cellId)) {
+          const ctx = graffiti.canvases[garnishPermanence][cellId].ctx;
           if (garnishStyle === 'erase') {
             const eraseBuffer = 25;
             ctx.clearRect(ax - eraseBuffer / 2, ay - eraseBuffer / 2, eraseBuffer, eraseBuffer);
@@ -942,18 +983,20 @@ define([
         if (state.getActivity() === 'recording') {
           const lastGarnishInfo = state.getLastGarnishInfo();
           if (viewInfo.garnishing) {
-            graffiti.placeCanvas(viewInfo.cellId, viewInfo.garnishStyle);
-            graffiti.setCanvasStyle(viewInfo.cellId, viewInfo.garnishStyle, viewInfo.garnishColor);
+            graffiti.placeCanvas(viewInfo.cellId, viewInfo.garnishPermanence);
+            graffiti.setCanvasStyle(viewInfo.cellId, viewInfo.garnishStyle, viewInfo.garnishColor, viewInfo.garnishPermanence);
             const cellRect = viewInfo.cellRect;
             graffiti.updateGarnishDisplay(viewInfo.cellId, 
                                           ax - cellRect.left,
                                           ay - cellRect.top, 
                                           bx - cellRect.left,
                                           by - cellRect.top,
-                                          viewInfo.garnishStyle);
+                                          viewInfo.garnishStyle,
+                                          viewInfo.garnishPermanence);
             state.setLastGarnishInfo(bx, by, viewInfo.garnishing, viewInfo.garnishStyle, viewInfo.cellId);
+            graffiti.setTemporaryCanvasFutureWipe(viewInfo);
           } else {
-            // finished garnishing so set this garnish to fade out, if it's a highlighting garnish. line garnishes don't fade
+            // Finished garnishing, so set this garnish to fade out, if it's a temporary garnish.
             if (lastGarnishInfo.garnishing) {
               state.setLastGarnishInfo(bx, by, viewInfo.garnishing, viewInfo.garnishStyle, viewInfo.cellId);
             }
@@ -1233,7 +1276,8 @@ define([
                                                  graffiti.sitePanel.scrollTop(),
                                                  state.getGarnishing(),
                                                  state.getGarnishStyle(),
-                                                 state.getGarnishColor());
+                                                 state.getGarnishColor(),
+                                                 state.getGarnishPermanence());
           state.storeViewInfo(viewInfo);
           state.storeHistoryRecord('scroll');
           if (state.getActivity() === 'playbackPaused') {
@@ -1316,7 +1360,8 @@ define([
                                                  graffiti.sitePanel.scrollTop(),
                                                  state.getGarnishing(),
                                                  state.getGarnishStyle(),
-                                                 state.getGarnishColor());
+                                                 state.getGarnishColor(),
+                                                 state.getGarnishPermanence());
           state.storeViewInfo(viewInfo);
           state.storeHistoryRecord('pointer');
           graffiti.updateGarnishDisplayIfRecording(previousPointerX, previousPointerY, e.clientX, e.clientY, viewInfo );
@@ -1752,7 +1797,8 @@ define([
                                                  graffiti.sitePanel.scrollTop(),
                                                  state.getGarnishing(),
                                                  state.getGarnishStyle(),
-                                                 state.getGarnishColor());
+                                                 state.getGarnishColor(),
+                                                 state.getGarnishPermanence());
           state.storeViewInfo(viewInfo);
           state.storeHistoryRecord('innerScroll');
         });
@@ -1958,13 +2004,15 @@ define([
           const lastGarnishInfo = state.getLastGarnishInfo();
           if (record.garnishing) {
             //console.log('lastGarnishInfo:', lastGarnishInfo);
-            graffiti.placeCanvas(record.cellId,record.garnishStyle);
-            graffiti.setCanvasStyle(record.cellId, record.garnishStyle, record.garnishColor);
+            graffiti.placeCanvas(record.cellId,record.garnishPermanence);
+            graffiti.setCanvasStyle(record.cellId, record.garnishStyle, record.garnishColor, record.garnishPermanence);
             // We are currently garnishing, so draw next portion of garnish on canvas.
             //console.log('garnishing from:', lastGarnishInfo.x, lastGarnishInfo.y, '->', dxScaled, dyScaled);
             const garnishOffset = { x: dxScaled + (innerCellRect.left - cellRect.left), y: dyScaled + (innerCellRect.top - cellRect.top) };
             if (lastGarnishInfo.garnishing && lastGarnishInfo.garnishCellId == record.cellId) {
-              graffiti.updateGarnishDisplay(record.cellId, lastGarnishInfo.x, lastGarnishInfo.y, garnishOffset.x + 0.5, garnishOffset.y + 0.5, record.garnishStyle);
+              graffiti.updateGarnishDisplay(record.cellId, lastGarnishInfo.x, lastGarnishInfo.y, garnishOffset.x + 0.5, garnishOffset.y + 0.5, 
+                                            record.garnishStyle,
+                                            record.garnishPermanence);
             }
             state.setLastGarnishInfo(garnishOffset.x, garnishOffset.y, record.garnishing, record.garnishStyle, record.garnishColor, record.cellId);
           } else {
@@ -2002,6 +2050,8 @@ define([
           //console.log('pointerUpdate is true, record:', record);
           graffiti.graffitiCursor.show();
           graffiti.updatePointer(record);
+        } else if (record.clearTemporaryCanvases) {
+          graffiti.clearTemporaryCanvases();
         } else {
           graffiti.graffitiCursor.hide();
         }
