@@ -2031,17 +2031,19 @@ define([
           };
           const lastPosition = state.getLastRecordingCursorPosition();
           const lastGarnishInfo = state.getLastGarnishInfo();
+          let garnishPermanence;
           if (record.garnishing) {
             //console.log('lastGarnishInfo:', lastGarnishInfo);
-            graffiti.placeCanvas(record.cellId,record.garnishPermanence);
-            graffiti.setCanvasStyle(record.cellId, record.garnishStyle, record.garnishColor, record.garnishPermanence);
+            garnishPermanence = (record.garnishPermanence === undefined ? 'permanent' : record.garnishPermanence);
+            graffiti.placeCanvas(record.cellId,garnishPermanence);
+            graffiti.setCanvasStyle(record.cellId, record.garnishStyle, record.garnishColor, garnishPermanence);
             // We are currently garnishing, so draw next portion of garnish on canvas.
             //console.log('garnishing from:', lastGarnishInfo.x, lastGarnishInfo.y, '->', dxScaled, dyScaled);
             const garnishOffset = { x: dxScaled + (innerCellRect.left - cellRect.left), y: dyScaled + (innerCellRect.top - cellRect.top) };
             if (lastGarnishInfo.garnishing && lastGarnishInfo.garnishCellId == record.cellId) {
               graffiti.updateGarnishDisplay(record.cellId, lastGarnishInfo.x, lastGarnishInfo.y, garnishOffset.x + 0.5, garnishOffset.y + 0.5, 
                                             record.garnishStyle,
-                                            record.garnishPermanence);
+                                            garnishPermanence);
             }
             state.setLastGarnishInfo(garnishOffset.x, garnishOffset.y, record.garnishing, record.garnishStyle, record.garnishColor, record.cellId);
           } else {
