@@ -46,6 +46,7 @@ define([
         graffiti.lastUpdateControlsTime = utils.getNow();
         graffiti.notificationMsgs = {};
         graffiti.panelFadeTime = 350;
+        graffiti.garnishFadeDelay = 2000;
 
         if (state.getAccessLevel() === 'create') {
           graffiti.activateAudio();
@@ -946,27 +947,39 @@ define([
         }
       },
 
+      resetTemporaryCanvases: () => {
+        graffiti.clearCanvases('temporary');
+        $('.graffiti-canvas-type-temporary').css({opacity:0.5});
+        graffiti.futureCanvasWipe = undefined;
+      },
+
       clearTemporaryCanvases: () => {
         const activity = state.getActivity();
         if ((activity === 'recording') || (activity === 'playing')) {
-          const activity = state.getActivity();
-          state.storeHistoryRecord('clearTemporaryCanvases');
-          if ((graffiti.futureCanvasWipe !== undefined) && (typeof(graffiti.futureCanvasWipe) === 'object')) {
-            graffiti.futureCanvasWipe.stop();
-          }
-          graffiti.futureCanvasWipe = $('.graffiti-canvas-type-temporary').animate(
-            {
-              opacity: 0
-            },
-            {
-              duration:1000,
-              complete: () => { 
-                graffiti.clearCanvases('temporary');
-                $('.graffiti-canvas-type-temporary').css({opacity:0.5});
-              }
+          if (activity === 'recording') {
+            if ((graffiti.futureCanvasWipe !== undefined) && (typeof(graffiti.futureCanvasWipe) === 'object')) {
+              // while recording, if fading out is happening when you start drawing again, kill off the fade, wipe the previous canvases and start fresh
+              graffiti.futureCanvasWipe.stop();
+              graffiti.resetTemporaryCanvases();
             }
-          );
-        } else {
+          }
+
+          if ((activity === 'recording') || ((activity === 'playing') && graffiti.futureCanvasWipe === undefined)) {
+            // fade if recording, or if playing and no fade is already happening
+            // console.log('Kicking off fade');
+            graffiti.futureCanvasWipe = $('.graffiti-canvas-type-temporary').animate(
+              {
+                opacity: 0
+              },
+              {
+                duration:1000,
+                complete: () => { 
+                  graffiti.resetTemporaryCanvases();
+                }
+              }
+            );
+          }
+        } else { // scrubbing, just immediately wipe the canvas, don't do a fade
           graffiti.clearCanvases('temporary');
           graffiti.futureCanvasWipe = undefined;
         }
@@ -989,11 +1002,12 @@ define([
       setupTemporaryCanvasFutureWipe: () => {
         if (state.getGarnishPermanence() === 'temporary') {
           graffiti.cancelCanvasFutureWipe();
+          state.storeHistoryRecord('clearTemporaryCanvases');
           graffiti.futureCanvasWipe = 
             setTimeout(() => {
               graffiti.clearTemporaryCanvases();
               // Create a history record to wipe all temporary canvases
-            }, 2000);
+            }, graffiti.garnishFadeDelay);
         }
       },
 
@@ -1053,7 +1067,7 @@ define([
               record.hoverCell = utils.findCellByCellId(record.cellId); 
               graffiti.updatePointer(record);
             } else if (record.clearTemporaryCanvases) {
-              graffiti.clearTemporaryCanvases();
+              graffiti.clearCanvases('temporary');
             }
           }
         }
@@ -1214,7 +1228,7 @@ define([
               state.setTipTimeout(() => {
                 const newPointerPosition = state.getPointerPosition();
                 const cursorDistanceSquared = (newPointerPosition.x - currentPointerPosition.x) * (newPointerPosition.x - currentPointerPosition.x) +
-                                                    (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
+                                                     (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
 
                 //console.log('comparing currentPointerPosition, newPointerPosition:', currentPointerPosition,
                 //            newPointerPosition, cursorDistanceSquared);
@@ -1231,8 +1245,8 @@ define([
                     headlineMarkdown = '<div class="headline">' +
                                        ' <div>' + tooltipCommands.captionPic + '</div>' +
                                        ' <div>' + tooltipCommands.caption + '</div>' +
-                                          (tooltipCommands.captionVideo !== undefined ?
-                                           ' <div class="graffiti-video">' + tooltipCommands.captionVideo + '</div>' : '' ) +
+                                           (tooltipCommands.captionVideo !== undefined ?
+                                            ' <div class="graffiti-video">' + tooltipCommands.captionVideo + '</div>' : '' ) +
                                        '</div>';
                   }
                   if (recording !== undefined) {
@@ -2082,7 +2096,14 @@ define([
           graffiti.graffitiCursor.show();
           graffiti.updatePointer(record);
         } else if (record.clearTemporaryCanvases) {
-          graffiti.clearTemporaryCanvases();
+          if (state.getActivity() === 'playing') {
+            if (viewIndex > graffiti.lastTemporaryCanvasClearViewIndex) {
+              graffiti.lastTemporaryCanvasClearViewIndex = viewIndex;
+              setTimeout(() => {              
+                graffiti.clearTemporaryCanvases();
+              }, graffiti.garnishFadeDelay);
+            }            
+          }
         } else {
           graffiti.graffitiCursor.hide();
         }
@@ -2359,6 +2380,7 @@ define([
         graffiti.clearHighlightMarkText();
         graffiti.graffitiCursor.show();
         graffiti.changeActivity('playing');
+        graffiti.lastTemporaryCanvasClearViewIndex = -1;
 
         if (state.resetOnNextPlay) {
           console.log('Resetting for first/re play.');
