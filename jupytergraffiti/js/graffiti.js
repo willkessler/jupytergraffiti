@@ -397,6 +397,8 @@ define([
                                           fn: (e) => {
                                             console.log('Graffiti: you picked eraser tool.');
                                             graffiti.toggleGraffitiPen('eraser', e, false);
+                                            $('#graffiti-temporary-ink-control').attr({checked:false});
+                                            state.setGarnishPermanence('permanent');
                                           }
                                         },
                                         {
@@ -418,7 +420,7 @@ define([
                                             target.addClass('graffiti-recording-color-active');
                                             console.log('Graffiti: you clicked color:', colorVal);
                                             state.setGarnishColor(colorVal);
-                                            graffiti.toggleGraffitiPen('line', e, true);
+                                            graffiti.activateGraffitiLineToolIfNeeded();
                                           }
                                         },
                                         {
@@ -428,7 +430,7 @@ define([
                                             const temporaryInk = ($('#graffiti-temporary-ink-control').is(':checked') ? 'temporary' : 'permanent');
                                             state.setGarnishPermanence(temporaryInk);
                                             if (temporaryInk) {
-                                              graffiti.toggleGraffitiPen('line', e, true); // activating temporary ink selects line tool
+                                              graffiti.activateGraffitiLineToolIfNeeded();
                                             }
                                             console.log('You set temporary ink to:', temporaryInk);
                                           }
@@ -786,8 +788,7 @@ define([
 
       },
 
-      toggleGraffitiPen: (penType, e, force) => {
-        // force param : if you choose a color we always switch you to the line tool, turned on
+      toggleGraffitiPen: (penType, e) => {
         if (state.getActivity() !== 'recording') {
           return; // Pens can only be used while recording
         }
@@ -795,21 +796,26 @@ define([
         if (!(penControl.hasClass('btn'))) {
           penControl = penControl.parents('.btn');
         }
-        if ((graffiti.activePen !== undefined) && (graffiti.activePen === penType) && !force) {
+        if ((graffiti.activePen == undefined) || (graffiti.activePen !== penType)) {
+          // Activate a new active pen
+          graffiti.showGarnishScreen();
+          $('.graffiti-active-pen').removeClass('graffiti-active-pen');
+          graffiti.activePen = penType;
+          penControl.addClass('graffiti-active-pen');
+        } else {
           // turn off the active pen
           penControl.removeClass('graffiti-active-pen');
           graffiti.activePen = undefined;
           graffiti.hideGarnishScreen();
-        } else {
-          // set up a new active pen
-          graffiti.showGarnishScreen();
-          $('.graffiti-active-pen').removeClass('graffiti-active-pen');
-          graffiti.activePen = penType;
-          if (force) {
-            penControl = $('#graffiti-line-pen');
-          }
-          penControl.addClass('graffiti-active-pen');
         }          
+      },
+
+      activateGraffitiLineToolIfNeeded: () => {
+        if (graffiti.activePen === undefined) {
+          graffiti.activePen = 'line';
+          const penControl = $('#graffiti-line-pen');
+          penControl.addClass('graffiti-active-pen');
+        }
       },
 
       garnishScreenHandler: (e) => {
@@ -905,18 +911,19 @@ define([
       setCanvasStyle: (cellId, penType, canvasColor, canvasPermanence) => {
         const canvas = graffiti.canvases[canvasPermanence][cellId];
         const ctx = canvas.ctx;
+        if (canvasColor === undefined) {
+          canvasColor = '#000000'; // default to black lines if not set in older recordings before color was supported.
+        } else {
+          canvasColor = '#' + canvasColor;
+        }
         if (penType === 'highlight') {
-          ctx.strokeStyle = 'rgb(255,255,0)';
-          ctx.shadowColor = 'rgb(255,255,0)';
+          const highlightCanvasColor = (canvasColor === '#000000' ? '#FFFF00' : canvasColor);
+          ctx.strokeStyle = highlightCanvasColor;
+          ctx.shadowColor = highlightCanvasColor;
           ctx.lineWidth = 15;
           ctx.shadowBlur = 35;
           ctx.globalAlpha = 0.5;
         } else { // lines are default although if erase activated, we will ignore this style and use clearRect
-          if (canvasColor === undefined) {
-            canvasColor = '#000000'; // default to black lines if not set in older recordings before color was supported.
-          } else {
-            canvasColor = '#' + canvasColor;
-          }
           // console.log('canvas color:', canvasColor);
           ctx.strokeStyle = canvasColor;
           ctx.shadowColor = canvasColor;
@@ -1075,7 +1082,7 @@ define([
 
       // extract any tooltip commands
       extractTooltipCommands: (markdown) => {
-        const commandParts = markdown.match(/^%%(([^\s]*)\s(.*))$/mg);
+        const commandParts = markdown.match(/^%%(([^\s]*)\s(.*))$/mig);
         let partsRecord;
         if (commandParts === null)
           return undefined;
@@ -1123,6 +1130,12 @@ define([
                 break;
               case '%%caption':
                 partsRecord.caption = parts[1];
+                break;
+              case '%%hide_player_after_playback_complete':
+                state.setHidePlayerAfterPlayback(true);
+                break;
+              case '%%dont_restore_cell_contents_after_playback': // if the user hasn't changed cell contents, don't restore the cell contents when playback finishes
+                state.setDontRestoreCellContentsAfterPlayback(true);
                 break;
             }
           }
@@ -1239,6 +1252,7 @@ define([
                   // "below.\n\n Let's go to [**Udacity**](https://udacity.com).");
                   let contentMarkdown = '';
                   //console.log('markId:', markId, 'recordings:', hoverCell.metadata.recordings);
+                  state.setHidePlayerAfterPlayback(false); // default for any recording is not to hide player
                   const tooltipCommands = graffiti.extractTooltipCommands(recording.markdown);
                   let headlineMarkdown = '';
                   if (tooltipCommands !== undefined) {
@@ -2417,7 +2431,11 @@ define([
         const activity = state.getActivity();
         if (activity !== 'recording') {
           if (activity === 'playing') {
-            graffiti.pausePlayback();
+            if (state.getHidePlayerAfterPlayback() && state.getSetupForReset()) {
+              graffiti.cancelPlayback({ cancelAnimation: true});
+            } else {
+              graffiti.pausePlayback();
+            }
           } else {
             graffiti.startPlayback();
           }

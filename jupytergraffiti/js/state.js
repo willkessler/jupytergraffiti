@@ -39,6 +39,7 @@ define([
       state.controlPanelDragOffset = { x: 0, y: 0 };
       state.playableMovies = {};
       state.selectionSerialized = undefined;
+      state.hidePlayerAfterPlayback = false;
       state.cellStates = {
         contents: {},
         changedCells: {},
@@ -366,6 +367,14 @@ define([
 
     setStorageInProcess: (status) => {
       state.storageInProcess = status;
+    },
+
+    getHidePlayerAfterPlayback: () => {
+      return state.hidePlayerAfterPlayback;
+    },
+
+    setHidePlayerAfterPlayback: (status) => {
+      state.hidePlayerAfterPlayback = status;
     },
 
     // In any history:
