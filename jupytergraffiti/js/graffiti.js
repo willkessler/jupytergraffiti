@@ -1283,6 +1283,7 @@ define([
                       if (e.type === 'mouseenter') {
                         state.clearTipTimeout();
                       } else {
+                        //console.log('hiding tip');
                         graffiti.hideTip();
                       }
                     });
@@ -1290,11 +1291,46 @@ define([
                     existingTip.find('#graffiti-movie-play-btn').unbind('click');
                     existingTip.html(tooltipContents);
                   }
+
+                  // Set up the call back for the play button on the tooltip that will actually play the movie.
                   existingTip.find('#graffiti-movie-play-btn').click((e) => {
                     //console.log('click in tip');
                     state.clearTipTimeout();
                     e.stopPropagation(); // for reasons unknown even still propogates to the codemirror editing area undeneath
-                    graffiti.loadAndPlayMovie('tip');
+                    const playableMovie = state.getPlayableMovie('tip');
+                    //console.log('playableMovie', playableMovie);
+                    if (state.getDontRestoreCellContentsAfterPlayback()) {
+                      // If this movie is set to NOT restore cell contents, give the user a chance to opt-out of playback.
+                      const dialogContent = 'This Graffiti movie may replace the contents of code cells. After this movie plays, do you want to...';
+                      const confirmModal = dialog.modal({
+                        title: 'Are you sure you want to play this Graffiti?',
+                        body: dialogContent,
+                        sanitize:false,
+                        buttons: {
+                          'Restore Cell Contents After Playback Ends': {
+                            click: (e) => {
+                              console.log('Graffiti: you want to preserve cell contents after playback.');
+                              // Must restore playable movie values because jupyter dialog causes the tip to hide, which clears the playableMovie
+                              state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey);
+                              state.setDontRestoreCellContentsAfterPlayback(false);
+                              graffiti.loadAndPlayMovie('tip');
+                            }
+                          },
+                          'Let this Movie Permanently Set Cell Contents': { 
+                            click: (e) => { 
+                              // Must restore playable movie values because jupyter dialog causes the tip to hide, which clears the playableMovie
+                              state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey);
+                              graffiti.loadAndPlayMovie('tip'); 
+                            }
+                          }
+                        }
+                      });
+                      confirmModal.on('hidden.bs.modal', (e) => { 
+                        console.log('Graffiti: escaped the dontRestoreCellContents modal.');
+                      });
+                    } else {
+                      graffiti.loadAndPlayMovie('tip');
+                    }
                     return false;
                   });
                   const outerInputOffset = outerInputElement.offset();
@@ -2347,13 +2383,19 @@ define([
       },
 
       cancelPlaybackNoVisualUpdates: () => {
+        const accessLevel = state.getAccessLevel();
         graffiti.pausePlaybackNoVisualUpdates();
         state.setGarnishing(false);
         state.resetPlayState();
         graffiti.changeActivity('idle');
-        state.restoreCellStates('contents');
-        utils.saveNotebook();
-        state.restoreCellStates('selections');
+        if ((accessLevel === 'view') && (state.getDontRestoreCellContentsAfterPlayback())) {
+          console.log('Graffiti: not restoring cell contents since this recording specifies not to.');
+          utils.saveNotebook();
+        } else {
+          state.restoreCellStates('contents');
+          utils.saveNotebook();
+          state.restoreCellStates('selections');
+        }
       },
 
       cancelPlayback: (opts) => {
@@ -2364,6 +2406,7 @@ define([
 
         console.log('Graffiti: Cancelling playback');
         graffiti.cancelPlaybackNoVisualUpdates();
+        state.setDontRestoreCellContentsAfterPlayback(false);
         graffiti.graffitiCursor.hide();
         graffiti.clearCanvases('all');
         graffiti.refreshAllGraffitiHighlights();
