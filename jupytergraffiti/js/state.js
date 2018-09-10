@@ -40,6 +40,7 @@ define([
       state.playableMovies = {};
       state.selectionSerialized = undefined;
       state.hidePlayerAfterPlayback = false;
+      state.dontRestoreCellContentsAfterPlayback = false;
       state.cellStates = {
         contents: {},
         changedCells: {},
@@ -376,6 +377,15 @@ define([
     setHidePlayerAfterPlayback: (status) => {
       state.hidePlayerAfterPlayback = status;
     },
+
+    getDontRestoreCellContentsAfterPlayback: () => {
+      return state.hidePlayerAfterPlayback;
+    },
+
+    setDontRestoreCellContentsAfterPlayback: (status) => {
+      state.dontRestoreCellContentsAfterPlayback = status;
+    },
+
 
     // In any history:
     //
@@ -725,7 +735,7 @@ define([
       state.cellStates = {
         contents: {},
         changedCells: {},
-        selections: state.createSelectionsRecord(),
+        selections: state.createSelectionsRecord()
       };
       for (let cell of cells) {
         if (cell.cell_type === 'code') {
