@@ -4,7 +4,7 @@ define([
 
   const audio = {
 
-    init: (state) => {
+    init: (cbs) => {
       console.log('Graffiti audio constructor.');
       audio.executeCallback = true; // by default always execute the storage callback
 
@@ -14,7 +14,6 @@ define([
                                  navigator.webkitGetUserMedia ||
                                  navigator.mozGetUserMedia ||
                                  navigator.msGetUserMedia);
-
       if (navigator.getUserMedia) {
         //console.log('getUserMedia supported.');
         navigator.getUserMedia (
@@ -26,11 +25,13 @@ define([
             const mediaRecorder = new MediaRecorder(stream);
       	    mediaRecorder.ondataavailable = audio.saveRecordedAudio;
             audio.storeMediaRecorder(mediaRecorder);
+            cbs.succeed();
           },
 
           // Error callback
           function(err) {
             console.log('Graffiti: The following getUserMedia error occured: ' + err);
+            cbs.fail();
           }
         )
       } else {

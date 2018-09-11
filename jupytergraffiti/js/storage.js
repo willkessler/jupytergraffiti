@@ -33,6 +33,8 @@ define([
       if (!notebook.metadata.hasOwnProperty('graffitiId')) {
         notebook.metadata['graffitiId'] = utils.generateUniqueId();
       }
+      utils.assignCellIds();
+      utils.refreshCellMaps();
     },
 
     constructBasePath: () => {

@@ -454,6 +454,12 @@ define([
               };
               executed = true;
             }
+          } else {
+            // if this code cell has no output at time of recording, record that fact for playback
+            output = {
+              empty: true
+            };
+            executed = false;
           }
           cellSelections = {
             index: i,
