@@ -519,12 +519,42 @@ define([
     createContentsRecord: () => {
       const cells = Jupyter.notebook.get_cells();
       const cellsContent = {};
-      let cellId, cell, contents, outputs, contentsBackRefRecord, outputsBackRefRecord;
+      let cellId, cell, contents, outputs, outputs0, outputs1, contentsBackRefRecord, outputsBackRefRecord, capturedText;
       for (let i = 0; i < cells.length; ++i) {
         cell = cells[i];
         cellId = cell.metadata.cellId;
         contents = cell.get_text();
-        outputs = (cell.cell_type === 'code' ? _.compact(cell.output_area.outputs) : undefined);
+        outputs = undefined;
+        if (cell.cell_type === 'code') {
+          // note that jupyter's cell outputs is not an array but it acts like one.
+          if (cell.output_area.outputs.length === 0) {
+            outputs = [ {
+              output_type: "clear"
+            } ]
+          } else {
+            outputs0 = cell.output_area.outputs[0]; 
+            if (outputs0 !== undefined) { // regular code results output
+              outputs = [ { 
+                output_type: outputs0.output_type,
+                text: outputs0.text,
+                name: outputs0.name
+              } ]
+              outputs1 = cell.output_area.outputs[1]; // error output
+              if (outputs1 !== undefined) {
+                outputs.push( {
+                  output_type: outputs1.output_type,
+                  ename: outputs1.ename,
+                  evalue: outputs1.evalue,
+                  traceback: _.clone(outputs1.traceback)
+                });
+              }
+            }
+          }
+        }
+        if (i === 0) {
+          console.log('Going to try to record these data:', outputs);
+        }
+
         contentsBackRefRecord = state.createBackRefRecord(contents, 'contents', state.history.cellContentsTracking, cellId);
         outputsBackRefRecord =  state.createBackRefRecord(outputs,  'outputs',  state.history.cellOutputsTracking,  cellId);
         // console.log('createContentsRecord, outputs:', outputs);

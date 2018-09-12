@@ -497,7 +497,7 @@ define([
 
       showControlPanels: (panels) => {
         graffiti.controlPanelsShell.children().hide();
-        graffiti.controlPanelIds['graffiti-control-panel-title'].show(); // the title bar is always shown
+        graffiti.controlPanelIds['graffiti-control-panel-title'].css({display:'flex'}); // the title bar is always shown
         for (controlPanelId of panels) {
           // console.log('Graffiti: showing panel:', controlPanelId);
           graffiti.controlPanelIds[controlPanelId].show();
@@ -1938,6 +1938,15 @@ define([
           state.storeHistoryRecord('contents');
         });
 
+        Jupyter.notebook.events.on('set_dirty.Notebook', (e, results) => {
+          // console.log('Graffiti: set_dirty.Notebook, e, results:',e, results);
+          utils.refreshCellMaps();
+          graffiti.runOnceOnNextRecordingTick = () => {
+            state.storeHistoryRecord('contents');
+          };
+        });
+
+        
         Jupyter.notebook.events.on('rendered.MarkdownCell', (e, results) => {
           const activity = state.getActivity();
           if (((activity === 'graffiting') || (activity === 'recordingLabelling')) &&
@@ -2044,9 +2053,14 @@ define([
             state.setRecordingInterval(
               setInterval(() => {
                 //console.log('Moving time ahead.');
+                if (graffiti.runOnceOnNextRecordingTick !== undefined) {
+                  graffiti.runOnceOnNextRecordingTick();
+                  graffiti.runOnceOnNextRecordingTick = undefined;
+                }
                 graffiti.updateTimeDisplay(state.getTimeRecordedSoFar());
               }, graffiti.recordingIntervalMs)
             );
+            // Flash a red recording bullet while recording is ongoing, every second. 
             graffiti.recordingIndicatorInterval = setInterval(() => {
               if (state.getTimeRecordedSoFar() % 2000 > 1000) {
                 $('#graffiti-recording-flash-icon').css({background:'rgb(245,245,245)'});
@@ -2248,6 +2262,22 @@ define([
         }
       },
 
+      processContentOutputs: (cell, frameOutputs, index) => {
+        if (frameOutputs[index] === undefined) {
+          return;
+        }
+        let output_type = frameOutputs[index].output_type;
+        if (output_type !== 'clear') {
+          if ((output_type === 'display_data' || output_type === 'stream') || (output_type === 'error')) {
+            if ((output_type === 'stream') ||
+                (output_type === 'error') ||
+                (frameOutputs[0].hasOwnProperty('data') && !frameOutputs[index].data.hasOwnProperty('application/javascript'))) {
+              cell.output_area.handle_output({header: { msg_type: frameOutputs[index].output_type }, content: frameOutputs[index]});
+            }
+          }
+        }
+      },
+
       updateContents: (index) => {
         const contentsRecord = state.getHistoryItem('contents', index);
         const cells = Jupyter.notebook.get_cells();
@@ -2265,14 +2295,8 @@ define([
               frameOutputs = state.extractDataFromContentRecord(contentsRecord.cellsContent[cellId].outputsRecord, cellId);
               if (frameOutputs !== undefined && frameOutputs.length > 0 && (!(_.isEqual(outputs, frameOutputs)))) {
                 cell.clear_output();
-                const output_type = frameOutputs[0].output_type;
-                if ((output_type === 'display_data' || output_type === 'stream') || (output_type === 'error')) {
-                  if ((output_type === 'stream') ||
-                      (output_type === 'error') ||
-                      (frameOutputs[0].hasOwnProperty('data') && !frameOutputs[0].data.hasOwnProperty('application/javascript'))) {
-                    cell.output_area.handle_output({header: { msg_type: frameOutputs[0].output_type }, content: frameOutputs[0]});
-                  }
-                }
+                graffiti.processContentOutputs(cell, frameOutputs, 0);
+                graffiti.processContentOutputs(cell, frameOutputs, 1);
               }
             }
           }
