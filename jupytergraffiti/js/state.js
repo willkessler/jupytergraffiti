@@ -516,7 +516,7 @@ define([
       }
     },
 
-    createContentsRecord: () => {
+    createContentsRecord: (forceStore) => {
       const cells = Jupyter.notebook.get_cells();
       const cellsContent = {};
       let cellId, cell, contents, outputs, outputs0, outputs1, contentsBackRefRecord, outputsBackRefRecord, capturedText;
@@ -555,8 +555,15 @@ define([
           console.log('Going to try to record these data:', outputs);
         }
 
-        contentsBackRefRecord = state.createBackRefRecord(contents, 'contents', state.history.cellContentsTracking, cellId);
-        outputsBackRefRecord =  state.createBackRefRecord(outputs,  'outputs',  state.history.cellOutputsTracking,  cellId);
+        if (forceStore) {
+          // If forceStore is true then we are always going to create new contents records, and never use the backrefs. This is used to store
+          // the jupyter notebook's states for later restoration after playback.
+          contentsBackRefRecord = state.createBackRefRecord(contents, 'contents', {}, cellId);
+          outputsBackRefRecord =  state.createBackRefRecord(outputs,  'outputs',  {},  cellId);
+        } else {
+          contentsBackRefRecord = state.createBackRefRecord(contents, 'contents', state.history.cellContentsTracking, cellId);
+          outputsBackRefRecord =  state.createBackRefRecord(outputs,  'outputs',  state.history.cellOutputsTracking,  cellId);
+        }
         // console.log('createContentsRecord, outputs:', outputs);
         let cellContent = {
           index: i,
@@ -600,7 +607,7 @@ define([
           record = state.createSelectionsRecord();
           break;
         case 'contents':
-          record = state.createContentsRecord();
+          record = state.createContentsRecord(false);
           break;
       }
       record.startTime = (time !== undefined ? time : state.utils.getNow());
@@ -769,16 +776,10 @@ define([
       const cells = Jupyter.notebook.get_cells();
       let cellId;
       state.cellStates = {
-        contents: {},
-        changedCells: {},
-        selections: state.createSelectionsRecord()
+        contents: state.createContentsRecord(true),
+        selections: state.createSelectionsRecord(),
+        changedCells: {}
       };
-      for (let cell of cells) {
-        if (cell.cell_type === 'code') {
-          cellId = cell.metadata.cellId;
-          state.cellStates.contents[cellId] = cell.get_text();
-        }
-      }
     },
 
     storeCellIdAffectedByActivity: (cellId) => {
@@ -790,23 +791,42 @@ define([
       state.cellStates.changedCells[cellId] = true;
     },
 
+    restoreCellOutputs: (cell, frameOutputs, index) => {
+      if (frameOutputs[index] === undefined) {
+        return;
+      }
+      let output_type = frameOutputs[index].output_type;
+      if (output_type !== 'clear') {
+        if ((output_type === 'display_data' || output_type === 'stream') || (output_type === 'error')) {
+          if ((output_type === 'stream') ||
+              (output_type === 'error') ||
+              (frameOutputs[0].hasOwnProperty('data') && !frameOutputs[index].data.hasOwnProperty('application/javascript'))) {
+            cell.output_area.handle_output({header: { msg_type: frameOutputs[index].output_type }, content: frameOutputs[index]});
+          }
+        }
+      }
+    },
+
     restoreCellStates: (which) => {
       const affectedIds = Object.keys(state.cellStates.changedCells);
-      let selections;
+      let selections,cellContents,cellOutputs;
       if (affectedIds.length > 0) {
         let cell, cellState;
-        for (let id of affectedIds) {
-          console.log('affectedid:', id);
-          cell = utils.findCellByCellId(id);
+        for (let cellId of affectedIds) {
+          console.log('affectedid:', cellId);
+          cell = utils.findCellByCellId(cellId);
           if (cell !== undefined) {
-            selections = state.cellStates.selections.cellsSelections[id];
+            selections = state.cellStates.selections.cellsSelections[cellId];
             if (which === 'contents') {
-              if (state.cellStates.contents && state.cellStates.contents.hasOwnProperty(id)) { // making this more defensive
-                cell.set_text(state.cellStates.contents[id]);
-                cell.clear_output();
-                if (selections.executed) {
-                  cell.output_area.handle_output(selections.output);
-                }
+              cellContents = state.extractDataFromContentRecord(state.cellStates.contents.cellsContent[cellId].contentsRecord, cellId);
+              if (cellContents !== undefined) {
+                cell.set_text(state.cellStates.contents.cellsContent[cellId].contentsRecord.data);
+              }
+              cell.clear_output();
+              cellOutputs = state.extractDataFromContentRecord(state.cellStates.contents.cellsContent[cellId].outputsRecord, cellId);
+              if ((cellOutputs !== undefined) && (cellOutputs.length > 0)) {
+                state.restoreCellOutputs(cell, cellOutputs, 0);
+                state.restoreCellOutputs(cell, cellOutputs, 1);
               }
             } else {
               if ((cell.cell_type === 'code') && (selections.active)) {
