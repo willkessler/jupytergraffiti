@@ -500,7 +500,8 @@ define([
           data = undefined;
         }
       }
-      // Store as-yet-unseen contents or outputs for later backref. Delete the backRefKind value to avoid confusion.
+      // Store as-yet-unseen contents or outputs for later backref. Delete the backRefKind value to avoid confusion, *unless* we are not bothering 
+      // with backref storage (because we're using this function from storeCellStates() via createContentsRecord().
       if (data !== undefined) {
         backRefKind = undefined;
         backRefArray[cellId] = {
@@ -511,12 +512,12 @@ define([
       }
       return {
         data: data,
-        backRef: backRef,
-        backRefKind: backRefKind
+        backRefKind: backRefKind,
+        backRef: backRef
       }
     },
 
-    createContentsRecord: (forceStore) => {
+    createContentsRecord: (doBackRefStore) => {
       const cells = Jupyter.notebook.get_cells();
       const cellsContent = {};
       let cellId, cell, contents, outputs, outputs0, outputs1, contentsBackRefRecord, outputsBackRefRecord, capturedText;
@@ -555,15 +556,14 @@ define([
           console.log('Going to try to record these data:', outputs);
         }
 
-        if (forceStore) {
-          // If forceStore is true then we are always going to create new contents records, and never use the backrefs. This is used to store
-          // the jupyter notebook's states for later restoration after playback.
-          contentsBackRefRecord = state.createBackRefRecord(contents, 'contents', {}, cellId);
-          outputsBackRefRecord =  state.createBackRefRecord(outputs,  'outputs',  {},  cellId);
-        } else {
+        if (doBackRefStore) {
           contentsBackRefRecord = state.createBackRefRecord(contents, 'contents', state.history.cellContentsTracking, cellId);
           outputsBackRefRecord =  state.createBackRefRecord(outputs,  'outputs',  state.history.cellOutputsTracking,  cellId);
+        } else {
+          contentsBackRefRecord = { data: contents, backRefKind: 'contents', backRef: undefined };
+          outputsBackRefRecord =  { data: outputs,  backRefKind: 'outputs',  backRef: undefined  };
         }
+
         // console.log('createContentsRecord, outputs:', outputs);
         let cellContent = {
           index: i,
@@ -607,7 +607,7 @@ define([
           record = state.createSelectionsRecord();
           break;
         case 'contents':
-          record = state.createContentsRecord(false);
+          record = state.createContentsRecord(true);
           break;
       }
       record.startTime = (time !== undefined ? time : state.utils.getNow());
@@ -776,7 +776,7 @@ define([
       const cells = Jupyter.notebook.get_cells();
       let cellId;
       state.cellStates = {
-        contents: state.createContentsRecord(true),
+        contents: state.createContentsRecord(false),
         selections: state.createSelectionsRecord(),
         changedCells: {}
       };

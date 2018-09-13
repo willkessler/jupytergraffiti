@@ -122,8 +122,10 @@ define([
         // HACK: fix me
         if ($('#graffiti-outer-control-panel').length == 0) {
           const outerControlPanel = $('<div id="graffiti-outer-control-panel">' +
-                                      '  <div class="graffiti-small-dot-pattern" id="graffiti-drag-handle">&nbsp;</div>' +
-                                      '  <div id="graffiti-control-panels-shell"></div>' +
+                                      '  <div id="graffiti-inner-control-panel">' +
+                                      '    <div class="graffiti-small-dot-pattern" id="graffiti-drag-handle">&nbsp;</div>' +
+                                      '    <div id="graffiti-control-panels-shell"></div>' +
+                                      '  </div>' +
                                       '</div>');
           //const header = $('#header');
           outerControlPanel.appendTo($('body'));
@@ -1274,7 +1276,7 @@ define([
                     existingTip = $('<div class="graffiti-tip" id="graffiti-tip">' + tooltipContents + '</div>')
                       .prependTo(graffiti.notebookContainer);
                     existingTip.bind('mouseenter mouseleave', (e) => {
-                      //console.log(e.type === 'mouseenter' ? 'entering tooltip' : 'leaving tooltip');
+                      console.log(e.type === 'mouseenter' ? 'entering tooltip' : 'leaving tooltip');
                       if (e.type === 'mouseenter') {
                         state.clearTipTimeout();
                       } else {
@@ -2167,11 +2169,10 @@ define([
           graffiti.graffitiCursor.hide();
         }
 
-        // Update innerScroll if required
         if (record.hoverCell) {
           const cm = record.hoverCell.code_mirror;
+          // Update innerScroll if required
           cm.scrollTo(record.innerScroll.left, record.innerScroll.top);
-
 
           // Compute mapped scrollTop for this timeframe
           const currentNotebookPanelHeight = graffiti.notebookPanel.height();
@@ -2184,14 +2185,19 @@ define([
           const mappedTop = (record.cellPositionTop / record.notebookPanelHeight) * currentNotebookPanelHeight;
           const positionDifference = hoverCellTop - mappedTop;
 
+          // need to subtract mapped (difference btwn original cell position and starting cell position when playback begins)
+
           // Compute difference in cell sizes of the history hoverCell size to current cell size, and subtract half of that difference
           // in order to offset cell size changes
           const mappedHeight = record.innerCellRect.height * (record.notebookPanelHeight / currentNotebookPanelHeight);
           const heightDiff = $(hoverCellElement.find('.inner_cell')[0]).height() - mappedHeight;
-          const heightDiffAdjustment = -0.5 * heightDiff;
+          const heightDiffAdjustment = 0.5 * heightDiff;
 
           // Now the updated scrollTop is computed by adding all three values together.
+          //console.log('mappedScrollTop, positionDifference, heightDiffAdjustment:', mappedScrollTop, positionDifference, heightDiffAdjustment);
+
           const scrollTop = parseInt(mappedScrollTop + positionDifference + heightDiffAdjustment);
+          //const scrollTop = parseInt(mappedScrollTop + hoverCellTop + heightDiffAdjustment);
 
           const currentScrollTop = graffiti.sitePanel.scrollTop();
           if (currentScrollTop !== scrollTop) {
