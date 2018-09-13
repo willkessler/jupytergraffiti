@@ -2295,8 +2295,8 @@ define([
               frameOutputs = state.extractDataFromContentRecord(contentsRecord.cellsContent[cellId].outputsRecord, cellId);
               if (frameOutputs !== undefined && frameOutputs.length > 0 && (!(_.isEqual(outputs, frameOutputs)))) {
                 cell.clear_output();
-                graffiti.processContentOutputs(cell, frameOutputs, 0);
-                graffiti.processContentOutputs(cell, frameOutputs, 1);
+                state.restoreCellOutputs(cell, frameOutputs, 0);
+                state.restoreCellOutputs(cell, frameOutputs, 1);
               }
             }
           }
