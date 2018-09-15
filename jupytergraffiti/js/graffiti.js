@@ -2098,8 +2098,20 @@ define([
           const innerCell = hoverCellElement.find('.inner_cell')[0];
           const innerCellRect = innerCell.getBoundingClientRect();
           //console.log('hoverCellId:', record.hoverCell.metadata.cellId, 'rect:', innerCellRect);
-          const dxScaled = parseInt(innerCellRect.width * record.dx);
-          const dyScaled = parseInt(innerCellRect.height * record.dy);
+          let dxScaled, dyScaled;
+          if (record.hoverCell.cell_type === 'code') {
+            if (record.innerCellRectWidth !== undefined) {
+              dxScaled = parseInt(record.innerCellRectWidth * record.dx);
+              dyScaled = parseInt(record.innerCellRectHeight * record.dy);
+            } else {
+              const codeCellWidth = $('.code_cell:first').width();
+              dxScaled = parseInt(codeCellWidth * record.dx);
+              dyScaled = parseInt(innerCellRect.height * record.dy);
+            }
+          } else {
+            dxScaled = parseInt(innerCellRect.width * record.dx);
+            dyScaled = parseInt(innerCellRect.height * record.dy);
+          }
           const offsetPosition = {
             x : innerCellRect.left + dxScaled,
             y : innerCellRect.top + dyScaled
@@ -2292,15 +2304,14 @@ define([
           if (cell.cell_type === 'code') {
             cellId = cell.metadata.cellId;
             contents = cell.get_text();
-            outputs = cell.output_area.outputs;
             if (contentsRecord.cellsContent.hasOwnProperty(cellId)) {
               frameContents = state.extractDataFromContentRecord(contentsRecord.cellsContent[cellId].contentsRecord, cellId);
               if (frameContents !== undefined && frameContents !== contents) {
+                console.log('setting text to', frameContents);
                 cell.set_text(frameContents);
               }
               frameOutputs = state.extractDataFromContentRecord(contentsRecord.cellsContent[cellId].outputsRecord, cellId);
-              if (frameOutputs !== undefined && frameOutputs.length > 0 && (!(_.isEqual(outputs, frameOutputs)))) {
-                cell.clear_output();
+              if ((frameOutputs !== undefined) && (frameOutputs.length > 0)) {
                 state.restoreCellOutputs(cell, frameOutputs, 0);
                 state.restoreCellOutputs(cell, frameOutputs, 1);
               }
@@ -2456,6 +2467,7 @@ define([
           state.setLastGarnishInfo(0,0,false, 'highlight'); // make sure we've turned off any garnishing flag from a previous interrupted playback
           state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.storeCellStates();
+          state.clearCellOutputsSent();
           graffiti.clearCanvases('all');
         }
 

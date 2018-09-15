@@ -46,6 +46,7 @@ define([
         changedCells: {},
         selections: {}
       };
+      state.cellOutputsSent = {};
 
       utils.refreshCellMaps();
 
@@ -386,6 +387,9 @@ define([
       state.dontRestoreCellContentsAfterPlayback = status;
     },
 
+    clearCellOutputsSent: () => {
+      state.cellOutputsSent = {};
+    },
 
     // In any history:
     //
@@ -412,6 +416,8 @@ define([
       return $.extend({}, state.viewInfo, {
         dx: (state.pointer.x - state.viewInfo.innerCellRect.left)  / state.viewInfo.innerCellRect.width,
         dy: (state.pointer.y - state.viewInfo.innerCellRect.top)   / state.viewInfo.innerCellRect.height,
+        innerCellRectWidth: state.viewInfo.innerCellRect.width,
+        innerCellRectHeight: state.viewInfo.innerCellRect.height,
         pointerUpdate: opts.pointerUpdate,
         focusUpdate: opts.focusUpdate,
         clearTemporaryCanvases: opts.clearTemporaryCanvases,
@@ -535,11 +541,12 @@ define([
           } else {
             outputs0 = cell.output_area.outputs[0]; 
             if (outputs0 !== undefined) { // regular code results output
+              console.log(cell.output_area.outputs[0]);
               outputs = [ { 
                 output_type: outputs0.output_type,
                 text: outputs0.text,
                 name: outputs0.name
-              } ]
+              } ];
               outputs1 = cell.output_area.outputs[1]; // error output
               if (outputs1 !== undefined) {
                 outputs.push( {
@@ -774,7 +781,6 @@ define([
     storeCellStates: () => {
       state.cellsAffectedByActivity = {};
       const cells = Jupyter.notebook.get_cells();
-      let cellId;
       state.cellStates = {
         contents: state.createContentsRecord(false),
         selections: state.createSelectionsRecord(),
@@ -792,16 +798,25 @@ define([
     },
 
     restoreCellOutputs: (cell, frameOutputs, index) => {
-      if (frameOutputs[index] === undefined) {
+      if (frameOutputs[index] === undefined || true) {
         return;
       }
       let output_type = frameOutputs[index].output_type;
-      if (output_type !== 'clear') {
-        if ((output_type === 'display_data' || output_type === 'stream') || (output_type === 'error')) {
-          if ((output_type === 'stream') ||
-              (output_type === 'error') ||
-              (frameOutputs[0].hasOwnProperty('data') && !frameOutputs[index].data.hasOwnProperty('application/javascript'))) {
-            cell.output_area.handle_output({header: { msg_type: frameOutputs[index].output_type }, content: frameOutputs[index]});
+      if ((output_type === 'display_data' || output_type === 'stream') || (output_type === 'error') || (output_type === 'clear')) {
+        if (!frameOutputs[index].data.hasOwnProperty('application/javascript')) {
+          const cellId = cell.metadata.cellId;
+          if (state.cellOutputsSent[cellId] === undefined) {
+            state.cellOutputsSent[cellId] = [];
+          }
+          if ((state.cellOutputsSent[cellId][index] === undefined) || (!(_.isEqual(state.cellOutputsSent[cellId][index], frameOutputs[index])))) {
+            if (output_type === 'clear') {
+              console.log('Clearing output:', index, frameOutputs[index]);
+              cell.clear_output();
+            } else {
+              console.log('Restoring output:', index, frameOutputs[index]);
+              cell.output_area.handle_output({header: { msg_type: frameOutputs[index].output_type }, content: frameOutputs[index]});
+              state.cellOutputsSent[cellId][index] = $.extend({}, frameOutputs[index]);
+            }
           }
         }
       }
