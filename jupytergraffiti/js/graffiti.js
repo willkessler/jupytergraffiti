@@ -2311,10 +2311,7 @@ define([
                 cell.set_text(frameContents);
               }
               frameOutputs = state.extractDataFromContentRecord(contentsRecord.cellsContent[cellId].outputsRecord, cellId);
-              if ((frameOutputs !== undefined) && (frameOutputs.length > 0)) {
-                state.restoreCellOutputs(cell, frameOutputs, 0);
-                state.restoreCellOutputs(cell, frameOutputs, 1);
-              }
+              state.restoreCellOutputs(cell, frameOutputs);
             }
           }
         }
