@@ -40,13 +40,13 @@ define([
       state.playableMovies = {};
       state.selectionSerialized = undefined;
       state.hidePlayerAfterPlayback = false;
-      state.dontRestoreCellContentsAfterPlayback = false;
+      state.dontRestoreCellContentsAfterPlayback = false; // this is something the author can decide with an API call.
+      state.cellOutputsSent = {};
       state.cellStates = {
         contents: {},
         changedCells: {},
         selections: {}
       };
-      state.cellOutputsSent = {};
 
       utils.refreshCellMaps();
 
@@ -524,43 +524,19 @@ define([
     },
 
     createContentsRecord: (doBackRefStore) => {
+      let cellId, cell, contents, outputs, contentsBackRefRecord, outputsBackRefRecord;
       const cells = Jupyter.notebook.get_cells();
-      const cellsContent = {};
-      let cellId, cell, contents, outputs, outputs0, outputs1, contentsBackRefRecord, outputsBackRefRecord, capturedText;
+      let cellsContent = {};
       for (let i = 0; i < cells.length; ++i) {
         cell = cells[i];
         cellId = cell.metadata.cellId;
         contents = cell.get_text();
         outputs = undefined;
-        if (cell.cell_type === 'code') {
-          // note that jupyter's cell outputs is not an array but it acts like one.
-          if (cell.output_area.outputs.length === 0) {
-            outputs = [ {
-              output_type: "clear"
-            } ]
-          } else {
-            outputs0 = cell.output_area.outputs[0]; 
-            if (outputs0 !== undefined) { // regular code results output
-              console.log(cell.output_area.outputs[0]);
-              outputs = [ { 
-                output_type: outputs0.output_type,
-                text: outputs0.text,
-                name: outputs0.name
-              } ];
-              outputs1 = cell.output_area.outputs[1]; // error output
-              if (outputs1 !== undefined) {
-                outputs.push( {
-                  output_type: outputs1.output_type,
-                  ename: outputs1.ename,
-                  evalue: outputs1.evalue,
-                  traceback: _.clone(outputs1.traceback)
-                });
-              }
-            }
-          }
-        }
-        if (i === 0) {
-          console.log('Going to try to record these data:', outputs);
+        // Store the DOM contents of the code cells for rerendering.
+        const cellDom = $(cell.element);
+        const outputArea = cellDom.find('.output');
+        if (outputArea.length > 0) {
+          outputs = outputArea.html();
         }
 
         if (doBackRefStore) {
@@ -797,29 +773,21 @@ define([
       state.cellStates.changedCells[cellId] = true;
     },
 
-    restoreCellOutputs: (cell, frameOutputs, index) => {
-      if (frameOutputs[index] === undefined || true) {
-        return;
-      }
-      let output_type = frameOutputs[index].output_type;
-      if ((output_type === 'display_data' || output_type === 'stream') || (output_type === 'error') || (output_type === 'clear')) {
-        if (!frameOutputs[index].data.hasOwnProperty('application/javascript')) {
-          const cellId = cell.metadata.cellId;
-          if (state.cellOutputsSent[cellId] === undefined) {
-            state.cellOutputsSent[cellId] = [];
-          }
-          if ((state.cellOutputsSent[cellId][index] === undefined) || (!(_.isEqual(state.cellOutputsSent[cellId][index], frameOutputs[index])))) {
-            if (output_type === 'clear') {
-              console.log('Clearing output:', index, frameOutputs[index]);
-              cell.clear_output();
-            } else {
-              console.log('Restoring output:', index, frameOutputs[index]);
-              cell.output_area.handle_output({header: { msg_type: frameOutputs[index].output_type }, content: frameOutputs[index]});
-              state.cellOutputsSent[cellId][index] = $.extend({}, frameOutputs[index]);
-            }
-          }
+    restoreCellOutputs: (cell, frameOutputs) => {
+      const cellId = cell.metadata.cellId;
+      if (frameOutputs === undefined)
+        return; // no output found, so don't update DOM (e.g. markdown cell)
+      if (state.cellOutputsSent[cellId] !== undefined) {
+        if (state.cellOutputsSent[cellId] === frameOutputs) {
+          // no change to cell output, so don't rerender
+          return;
         }
       }
+      const cellDom = $(cell.element);
+      const outputArea = cellDom.find('.output');
+      //console.log('Sending this output to cellid:', cellId, frameOutputs);
+      outputArea.html(frameOutputs).show();
+      state.cellOutputsSent[cellId] = frameOutputs;
     },
 
     restoreCellStates: (which) => {
@@ -839,10 +807,7 @@ define([
               }
               cell.clear_output();
               cellOutputs = state.extractDataFromContentRecord(state.cellStates.contents.cellsContent[cellId].outputsRecord, cellId);
-              if ((cellOutputs !== undefined) && (cellOutputs.length > 0)) {
-                state.restoreCellOutputs(cell, cellOutputs, 0);
-                state.restoreCellOutputs(cell, cellOutputs, 1);
-              }
+              state.restoreCellOutputs(cell, cellOutputs);
             } else {
               if ((cell.cell_type === 'code') && (selections.active)) {
                 cell.code_mirror.focus();
