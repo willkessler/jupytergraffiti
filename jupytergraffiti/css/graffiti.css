@@ -89,15 +89,11 @@
 }
 
 .graffiti-highlight {
-  border-bottom:2px dashed rgb(67,127,127);
+/*  border-bottom:2px dotted rgb(67,127,127);*/
+  border-bottom:2px dashed rgb(47,147,107);
 }
 
 .graffiti-selected {
-/*
-  border-top:3px dotted rgb(67,127,127);
-  border-bottom:3px dotted rgb(67,127,127);
-  border-color:red;
-*/
   background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAAHUlEQVQYV2NkcP+/mWEnoy8DAwMDI4iACUA4UAEAoMMH/eJADr4AAAAASUVORK5CYII=) repeat;
 }
 
