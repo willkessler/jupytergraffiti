@@ -156,10 +156,13 @@ define([
       }
     },
 
+// Legacy
+/*
     collectTokenStrings: (allTokens, tokens) => {
       const subTokens = allTokens.slice(tokens.firstTokenOffset, tokens.firstTokenOffset + tokens.extraTokens + 1);
       return subTokens.reduce( (tokensString, token) => { tokensString + token.string } )
     },
+*/
 
     // Find out whether the current selection intersections with any graffiti token ranges, or which tokens are in the selection if not.
     findSelectionTokens: (recordingCell,  tokenRanges, state) => {
@@ -264,7 +267,6 @@ define([
                 results = {
                   isIntersecting: true,
                   noTokensPresent: false,
-                  range: range,
                   recordingCell: recordingCell,
                   recordingCellId: recordingCellId,
                   recordingKey: recordingKey, 
@@ -364,7 +366,9 @@ define([
                   allTokensString: tokensString,
                   range: {
                     start: cm.indexFromPos({line:startToken.line, ch: startToken.ch}),
-                    end:   cm.indexFromPos({line:endToken.line, ch: endToken.ch})
+                    end:   cm.indexFromPos({line:endToken.line, ch: endToken.ch}),
+                    selectionStart: startPos,
+                    selectionEnd: endPos
                   }
                 }
               }

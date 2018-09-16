@@ -547,17 +547,20 @@ define([
             graffiti.highlightIntersectingGraffitiRange();
             let visibleControlPanels;
             const isMarkdownCell = activeCell.cell_type === 'markdown';
-            if ((graffiti.selectedTokens.noTokensPresent) || (isMarkdownCell && activeCell.rendered)) {
-              console.log('Graffiti: no tokens');
+            if ((graffiti.selectedTokens.noTokensPresent) ||
+                (!isMarkdownCell && (graffiti.selectedTokens.range.selectionStart === graffiti.selectedTokens.range.selectionEnd) && 
+                 (!graffiti.selectedTokens.isIntersecting)) ||
+                (isMarkdownCell && activeCell.rendered)) {
+              console.log('Graffiti: no tokens present, or no text selected.');
               visibleControlPanels = ['graffiti-notifier']; // hide all control panels if in view only mode and not play mode
               if (isMarkdownCell) {
                 if (!activeCell.rendered) {
-                  graffiti.setNotifier('<div>Select some text to add or modify Graffiti\'s.</div>');
+                  graffiti.setNotifier('<div>Select some text in this Markdown cell to add or modify Graffiti\'s, or click inside any existing Graffiti text to modify it.</div>');
                 } else {
                   graffiti.setNotifier('<div>Edit this Markdown cell to add or modify Graffiti\'s in the cell.</div>');
                 }
               } else {
-                graffiti.setNotifier('<div>Click in any text in this code cell to create or modify Graffiti\'s.</div>');
+                graffiti.setNotifier('<div>Select some text in this code cell to create or modify Graffiti\'s, or click inside any existing Graffiti text to modify it.</div>');
               }
             } else if (accessLevel === 'view') {
               console.log('Graffiti: view only');
