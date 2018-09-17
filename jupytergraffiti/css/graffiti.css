@@ -11,6 +11,7 @@
 }
 
 #graffiti-garnish-screen {
+  cursor:cell;
   display:none;
   left:0px;
   top:0px;
