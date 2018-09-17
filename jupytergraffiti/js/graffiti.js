@@ -2627,6 +2627,7 @@ define([
     return {
       init: graffiti.init,
       graffiti:graffiti, // remove me
+      state: state, // remove me
       playRecordingById: (recordingFullId) => { graffiti.playRecordingById(recordingFullId) },
       playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => { graffiti.playRecordingByIdWithPrompt(recordingFullId, promptMarkdown) },
       cancelPlayback: () => { graffiti.cancelPlayback({cancelAnimation:false}) },
@@ -2634,6 +2635,7 @@ define([
       showCreatorsChooser: graffiti.showCreatorsChooser,
       setAccessLevel: (level) => { graffiti.changeAccessLevel(level) },
       setAuthorId: (authorId) => { state.setAuthorId(authorId) },
+      transferGraffitis: () => storage.transferGraffitis,
       selectionSerializer: selectionSerializer
     }
 

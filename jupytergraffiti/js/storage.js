@@ -248,7 +248,46 @@ define([
 
     },
 
-  }
+    transferGraffitis: () => {
+      const notebook = Jupyter.notebook;
+      let originalGraffitiId;
+      if (notebook.metadata.hasOwnProperty('graffitiId')) {
+        originalGraffitiId = notebook.metadata.graffitiId;
+        delete(notebook.metadata[graffitiId]);
+      }
+      storage.ensureNotebookGetsGraffitiId();
+      utils.saveNotebook();
+      const newGraffitiId = notebook.metadata.graffitiId;
+      const notebookPath = "jupytergraffiti_data/notebooks/";
+      const sourceTree = notebookPath + originalGraffitiId;
+      const destTree = notebookPath + newGraffitiId;
+      const copyPython = "import shutil\nshutil.copytree(" + sourceTree + "," + destTree + ")\n";
+      console.log('Graffiti: transferGraffitis will run:', copyPython);
+
+      this.Jupyter.notebook.kernel.execute(copyPython,
+                                           undefined,
+                                           {
+                                             silent: false,
+                                             store_history: false,
+                                             stop_on_error : true
+                                           });
+      dialog.modal({
+        title: 'Transfer Complete',
+        body: 'Your Notebook\'s Graffitis have now been copied over from the original notebook. ' +
+              'You can now modify them, or add/remove Graffitis without affecting the original notebook\'s Graffitis',
+        sanitize:false,
+        buttons: {
+          'OK': {
+            click: (e) => {
+              console.log('Graffiti: You clicked ok');
+            }
+          }
+        }
+
+
+      },
+
+    }
 
   return(storage);
 });
