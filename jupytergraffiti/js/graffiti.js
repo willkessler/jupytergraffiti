@@ -2621,6 +2621,24 @@ define([
                              graffiti.showControlPanels(['graffiti-notifier','graffiti-creators-chooser']);
       },
 
+      transferGraffitis: () => {
+        storage.transferGraffitis().then(() => {
+          dialog.modal({
+            title: 'Transfer Complete',
+            body: 'Your Notebook\'s Graffitis have been copied over from the original notebook. ' +
+                  'Now you can modify them (or add and remove Graffitis to this notebook),  without affecting the original notebook\'s Graffitis.',
+            sanitize:false,
+            buttons: {
+              'OK': {
+                click: (e) => {
+                  console.log('Graffiti: You clicked ok');
+                }
+              }
+            }
+          });
+        });
+      },
+
     };
 
     // Functions exposed externally to the Python API.
@@ -2635,7 +2653,7 @@ define([
       showCreatorsChooser: graffiti.showCreatorsChooser,
       setAccessLevel: (level) => { graffiti.changeAccessLevel(level) },
       setAuthorId: (authorId) => { state.setAuthorId(authorId) },
-      transferGraffitis: () => storage.transferGraffitis,
+      transferGraffitis: () => { graffiti.transferGraffitis() },
       selectionSerializer: selectionSerializer
     }
 

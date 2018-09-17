@@ -25,7 +25,7 @@ def play_recording_with_prompt(recording_id, prompt_markdown):
 # You must call this function after "Make a copy". This will assign a new graffiti id to the notebook, and copy the previous graffitis to a directory with
 # the new graffiti id in the directory name.
 def transfer_graffitis():
-    run_js("window.Graffiti.transferGraffitis", False)
+    run_js("window.Graffiti.transferGraffitis()", False)
 
 # Stop playback of any movie recording currently playing.
 def stop_playback():
