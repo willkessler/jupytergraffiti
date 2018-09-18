@@ -388,6 +388,10 @@ define([
       state.hotspot = { cellId: hotspot.cellId, pointerPosition: $.extend({}, hotspot.pointerPosition) };
     },
 
+    nudgeHotspot: (nudgeAmount) => {
+      state.hotspot.pointerPosition.y += nudgeAmount;
+    },
+
     setHotspotFromHistory: () => {
       if (state.history !== undefined) {
         if (state.history.hotspot !== undefined) {
