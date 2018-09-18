@@ -73,13 +73,13 @@ define([
       return marked(cleanedContents).replace(/(href=".*")>/g, "$1 target=\"_blank\">");
     },
 
-    collectViewInfo: (clientY, notebookPanelHeight, scrollTop, garnishing, garnishStyle, garnishColor, garnishPermanence) => {
+    collectViewInfo: (clientX, clientY, notebookPanelHeight, scrollTop, garnishing, garnishStyle, garnishColor, garnishPermanence) => {
       let cellElement, cellRect;
       const inputCells = Jupyter.notebook.get_cells();
       const selectedCell = Jupyter.notebook.get_selected_cell();
       const selectedCellId = selectedCell.metadata.cellId;
       // handle case where pointer is above all cells or below all cells
-      let cellIndex, cellIndexStr, cell, innerCell, innerCellRect, innerCellRectRaw, cellPosition, cm;
+      let cellIndex, cellIndexStr, cell, innerCell, innerCellRect, innerCellRectRaw, pointerPosition, cellPosition, cm;
       for (cellIndexStr in inputCells) {
         cellIndex = parseInt(cellIndexStr);
         cell = inputCells[cellIndex];
@@ -99,11 +99,14 @@ define([
           };
           cellPosition = $(cellElement).position();
           cm = cell.code_mirror;
+          // Compute the position of the cursor relative to the hover cell.
+          pointerPosition = { x: parseInt(clientX - innerCellRect.left), y: parseInt(clientY - innerCellRect.top) };
           return {
             cellId: cell.metadata.cellId, // The id of cell that the pointer is hovering over right now
             cellRect: cellRect,           // The bounding rect for that cell.
             innerCellRect: innerCellRect,
             innerScroll: cm.getScrollInfo(),
+            pointerPosition: pointerPosition,
             cellPositionTop: cellPosition.top,
             selectedCellId: selectedCellId,
             notebookPanelHeight: notebookPanelHeight,
@@ -115,7 +118,7 @@ define([
           };
         }
       }
-      return { cellId: undefined, cellRectTop: undefined, cellRectBottom: undefined };
+      return { cellId: undefined, cellRectTop: undefined, cellRectBottom: undefined, relativePointerPosition: undefined };
 
     },
 

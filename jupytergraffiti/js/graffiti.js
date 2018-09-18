@@ -47,6 +47,8 @@ define([
         graffiti.notificationMsgs = {};
         graffiti.panelFadeTime = 350;
         graffiti.garnishFadeDelay = 2000;
+        graffiti.scrollNudgeIncrements = 10;
+        graffiti.scrollNudge = undefined;
 
         if (currentAccessLevel === 'create') {
           storage.ensureNotebookGetsGraffitiId();
@@ -1376,7 +1378,8 @@ define([
 
         graffiti.sitePanel.on('scroll', (e) => {
           const notebookPanelHeight = graffiti.notebookPanel.height();
-          const viewInfo = utils.collectViewInfo(state.getPointerPosition().y,
+          const viewInfo = utils.collectViewInfo(state.getPointerPosition().x,
+                                                 state.getPointerPosition().y,
                                                  graffiti.notebookPanel.height(),
                                                  graffiti.sitePanel.scrollTop(),
                                                  state.getGarnishing(),
@@ -1448,7 +1451,8 @@ define([
           const previousPointerX = previousPointerPosition.x;
           const previousPointerY = previousPointerPosition.y;
           state.storePointerPosition( e.clientX, e.clientY ); // keep track of current pointer position at all times
-          const viewInfo = utils.collectViewInfo(e.clientY, 
+          const viewInfo = utils.collectViewInfo(e.clientX, 
+                                                 e.clientY, 
                                                  graffiti.notebookPanel.height(), 
                                                  graffiti.sitePanel.scrollTop(),
                                                  state.getGarnishing(),
@@ -1885,7 +1889,8 @@ define([
 
         cm.on('scroll', (cm, e) => {
           const pointerPosition = state.getPointerPosition();
-          const viewInfo = utils.collectViewInfo(pointerPosition.y, 
+          const viewInfo = utils.collectViewInfo(pointerPosition.x,
+                                                 pointerPosition.y, 
                                                  graffiti.notebookPanel.height(), 
                                                  graffiti.sitePanel.scrollTop(),
                                                  state.getGarnishing(),
@@ -2093,6 +2098,24 @@ define([
       // Movie playback code begins
       //
 
+      computeDistanceFromHotspot: (cellRect, position) => {
+        const hotspot = state.getHotspot();
+        const hotspotHoverCell = utils.findCellByCellId(hotspot.cellId);
+        const hotspotCellElement = hotspotHoverCell.element[0];
+        const hotspotInnerCell = $(hotspotCellElement).find('.inner_cell')[0];
+        const hotspotCellRect = hotspotInnerCell.getBoundingClientRect();
+        
+        const cellsDistance = { x: cellRect.left - hotspotCellRect.left, y: cellRect.top - hotspotCellRect.top };
+        const pointerPosition = { x: hotspot.pointerPosition.x + hotspotCellRect.left, y: hotspot.pointerPosition.y + hotspotCellRect.top };
+        const offset = { x: (position.x + cellsDistance.x) - pointerPosition.x, y: (position.y + cellsDistance.y) - pointerPosition.y };
+        const clientHeight = document.documentElement.clientHeight;
+        const acceptableDistance = 0.75 * clientHeight;
+        if ((offset.y > acceptableDistance) && (graffiti.scrollNudge === undefined)) {
+          console.log('Excessive distance from hotspot:', offset.y, acceptableDistance, ' setting scrollnudge');
+          graffiti.scrollNudge = { counter: graffiti.scrollNudgeIncrements, amount: (offset.y - acceptableDistance) / graffiti.scrollNudgeIncrements };
+        }
+      },
+
       updatePointer: (record) => {
         if (record.hoverCell !== undefined) {
           // console.log('update pointer, record:', record);
@@ -2119,6 +2142,7 @@ define([
             x : innerCellRect.left + dxScaled,
             y : innerCellRect.top + dyScaled
           };
+          graffiti.computeDistanceFromHotspot(innerCellRect, offsetPosition);
           const lastPosition = state.getLastRecordingCursorPosition();
           const lastGarnishInfo = state.getLastGarnishInfo();
           let garnishPermanence;
@@ -2167,6 +2191,7 @@ define([
           }
         }
 
+        // Handle pointer updates and canvas updates
         if (record.pointerUpdate) {
           //console.log('pointerUpdate is true, record:', record);
           graffiti.graffitiCursor.show();
@@ -2213,6 +2238,17 @@ define([
 
           const scrollTop = parseInt(mappedScrollTop + positionDifference + heightDiffAdjustment);
           //const scrollTop = parseInt(mappedScrollTop + hoverCellTop + heightDiffAdjustment);
+
+          let scrollNudgeAmount = 0;
+          if (graffiti.scrollNudge !== undefined) {
+            graffiti.scrollNudge.counter--;
+            if (graffiti.scrollNudge.counter > 0) {
+              scrollNudgeAmount = graffiti.scrollNudge.amount;
+              console.log('Going to nudge scroll by:', scrollNudgeAmount, 'counter:', graffiti.scrollNudge.counter);
+            } else {
+              graffiti.scrollNudge = undefined; // stop nudging
+            }
+          }
 
           const currentScrollTop = graffiti.sitePanel.scrollTop();
           if (currentScrollTop !== scrollTop) {
@@ -2469,6 +2505,7 @@ define([
           state.storeCellStates();
           state.clearCellOutputsSent();
           graffiti.clearCanvases('all');
+          state.setHotspotFromHistory();
         }
 
         graffiti.clearHighlightMarkText();
