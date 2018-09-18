@@ -38,6 +38,7 @@ define([
       state.controlPanelDragging = false;
       state.controlPanelDragOffset = { x: 0, y: 0 };
       state.playableMovies = {};
+      state.hotspot = {};
       state.selectionSerialized = undefined;
       state.hidePlayerAfterPlayback = false;
       state.dontRestoreCellContentsAfterPlayback = false; // this is something the author can decide with an API call.
@@ -379,6 +380,22 @@ define([
       state.hidePlayerAfterPlayback = status;
     },
 
+    getHotspot: () => {
+      return state.hotspot;
+    },
+
+    setHotspot: (hotspot) => {
+      state.hotspot = { cellId: hotspot.cellId, pointerPosition: $.extend({}, hotspot.pointerPosition) };
+    },
+
+    setHotspotFromHistory: () => {
+      if (state.history !== undefined) {
+        if (state.history.hotspot !== undefined) {
+          state.setHotspot(state.history.hotspot);
+        }
+      }
+    },
+
     getDontRestoreCellContentsAfterPlayback: () => {
       return state.hidePlayerAfterPlayback;
     },
@@ -603,6 +620,12 @@ define([
         storageCellId: initialValues.storageCellId,
         recordingStartTime: now,
 
+        // This is the hotspot where the recording began, ie where the author first clicked to begin recording
+        hotspot: {
+          cellId: state.viewInfo.cellId,
+          pointerPosition: { x: state.viewInfo.pointerPosition.x, y: state.viewInfo.pointerPosition.y }
+        },
+        
         // Time tracks: all pointer positions, cell selections and contents over the time of the recording.
         view:        [],                          // pointer move, vertical scroll or innerscroll (scroll inside cell)
         selections:  [],                          // cell selections
