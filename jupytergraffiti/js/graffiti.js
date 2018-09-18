@@ -2109,10 +2109,14 @@ define([
         const pointerPosition = { x: hotspot.pointerPosition.x + hotspotCellRect.left, y: hotspot.pointerPosition.y + hotspotCellRect.top };
         const offset = { x: (position.x + cellsDistance.x) - pointerPosition.x, y: (position.y + cellsDistance.y) - pointerPosition.y };
         const clientHeight = document.documentElement.clientHeight;
-        const acceptableDistance = 0.75 * clientHeight;
-        if ((offset.y > acceptableDistance) && (graffiti.scrollNudge === undefined)) {
-          console.log('Excessive distance from hotspot:', offset.y, acceptableDistance, ' setting scrollnudge');
-          graffiti.scrollNudge = { counter: graffiti.scrollNudgeIncrements, amount: (offset.y - acceptableDistance) / graffiti.scrollNudgeIncrements };
+        const acceptableDistance = 0.5 * clientHeight;
+        const topbarHeight = $('#header').height();
+        if (graffiti.scrollNudge === undefined) {
+          if ((Math.abs(offset.y) > acceptableDistance) ||
+              (pointerPosition.y < topbarHeight)) {
+            console.log('Excessive distance from hotspot:', offset.y, acceptableDistance, ' setting scrollnudge');
+            graffiti.scrollNudge = { counter: graffiti.scrollNudgeIncrements, amount: (offset.y - acceptableDistance) / graffiti.scrollNudgeIncrements };
+          }
         }
       },
 
@@ -2239,21 +2243,26 @@ define([
           const scrollTop = parseInt(mappedScrollTop + positionDifference + heightDiffAdjustment);
           //const scrollTop = parseInt(mappedScrollTop + hoverCellTop + heightDiffAdjustment);
 
+          const currentScrollTop = graffiti.sitePanel.scrollTop();
+
           let scrollNudgeAmount = 0;
           if (graffiti.scrollNudge !== undefined) {
             graffiti.scrollNudge.counter--;
             if (graffiti.scrollNudge.counter > 0) {
               scrollNudgeAmount = graffiti.scrollNudge.amount;
               console.log('Going to nudge scroll by:', scrollNudgeAmount, 'counter:', graffiti.scrollNudge.counter);
+              const newScrollTop = currentScrollTop + scrollNudgeAmount;
+              graffiti.sitePanel.scrollTop(newScrollTop);
+              state.nudgeHotspot(scrollNudgeAmount);
             } else {
               graffiti.scrollNudge = undefined; // stop nudging
             }
           }
 
-          const currentScrollTop = graffiti.sitePanel.scrollTop();
-          if (currentScrollTop !== scrollTop) {
-            graffiti.sitePanel.scrollTop(scrollTop);
-          }
+          //          if (currentScrollTop !== scrollTop) {
+          //            graffiti.sitePanel.scrollTop(scrollTop);
+          //          }
+
         }
       },
 
@@ -2517,6 +2526,7 @@ define([
           console.log('Resetting for first/re play.');
           graffiti.clearCanvases('all');
           state.resetPlayState();
+          state.setHotspotFromHistory();
         }
 
         state.setPlaybackStartTime(new Date().getTime() - state.getPlaybackTimeElapsed());
