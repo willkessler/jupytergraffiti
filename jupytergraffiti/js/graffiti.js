@@ -47,7 +47,7 @@ define([
         graffiti.notificationMsgs = {};
         graffiti.panelFadeTime = 350;
         graffiti.garnishFadeDelay = 2000;
-        graffiti.scrollNudgeIncrements = 10;
+        graffiti.scrollNudgeIncrements = 6;
         graffiti.scrollNudge = undefined;
 
         if (currentAccessLevel === 'create') {
@@ -1381,15 +1381,18 @@ define([
           const viewInfo = utils.collectViewInfo(state.getPointerPosition().x,
                                                  state.getPointerPosition().y,
                                                  graffiti.notebookPanel.height(),
-                                                 graffiti.sitePanel.scrollTop(),
+                                                 graffiti.sitePanel.scrollTop() - state.getScrollTop(),
                                                  state.getGarnishing(),
                                                  state.getGarnishStyle(),
                                                  state.getGarnishColor(),
                                                  state.getGarnishPermanence());
+          state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.storeViewInfo(viewInfo);
           state.storeHistoryRecord('scroll');
           if (state.getActivity() === 'playbackPaused') {
             graffiti.graffitiCursor.hide();            
+          } else if (state.getActivity() === 'recording') {
+            
           }
           return true;
         });
@@ -1454,11 +1457,12 @@ define([
           const viewInfo = utils.collectViewInfo(e.clientX, 
                                                  e.clientY, 
                                                  graffiti.notebookPanel.height(), 
-                                                 graffiti.sitePanel.scrollTop(),
+                                                 graffiti.sitePanel.scrollTop() - state.getScrollTop(),
                                                  state.getGarnishing(),
                                                  state.getGarnishStyle(),
                                                  state.getGarnishColor(),
                                                  state.getGarnishPermanence());
+          state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.storeViewInfo(viewInfo);
           state.storeHistoryRecord('pointer');
           graffiti.updateGarnishDisplayIfRecording(previousPointerX, previousPointerY, e.clientX, e.clientY, viewInfo );
@@ -1892,11 +1896,12 @@ define([
           const viewInfo = utils.collectViewInfo(pointerPosition.x,
                                                  pointerPosition.y, 
                                                  graffiti.notebookPanel.height(), 
-                                                 graffiti.sitePanel.scrollTop(),
+                                                 graffiti.sitePanel.scrollTop() - state.getScrollTop(),
                                                  state.getGarnishing(),
                                                  state.getGarnishStyle(),
                                                  state.getGarnishColor(),
                                                  state.getGarnishPermanence());
+          state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.storeViewInfo(viewInfo);
           state.storeHistoryRecord('innerScroll');
         });
@@ -2007,7 +2012,7 @@ define([
         console.log('Graffiti: stopRecordingCore is refreshing.');
         state.restoreCellStates('contents');
         graffiti.updateAllGraffitiDisplays();
-        graffiti.sitePanel.animate({ scrollTop: state.getScrollTop() }, 750);
+        graffiti.sitePanel.animate({ scrollTop: graffiti.preRecordingScrollTop }, 750);
         state.restoreCellStates('selections');
         state.deleteTrackingArrays();
         graffiti.changeActivity('idle');
@@ -2057,6 +2062,7 @@ define([
 
             audio.startRecording();
             state.setScrollTop(graffiti.sitePanel.scrollTop());
+            graffiti.preRecordingScrollTop = state.getScrollTop();
             state.setGarnishing(false);
             graffiti.clearGarnishPen();
 
@@ -2098,24 +2104,52 @@ define([
       // Movie playback code begins
       //
 
-      computeDistanceFromHotspot: (cellRect, position) => {
-        const hotspot = state.getHotspot();
-        const hotspotHoverCell = utils.findCellByCellId(hotspot.cellId);
-        const hotspotCellElement = hotspotHoverCell.element[0];
-        const hotspotInnerCell = $(hotspotCellElement).find('.inner_cell')[0];
-        const hotspotCellRect = hotspotInnerCell.getBoundingClientRect();
-        
-        const cellsDistance = { x: cellRect.left - hotspotCellRect.left, y: cellRect.top - hotspotCellRect.top };
-        const pointerPosition = { x: hotspot.pointerPosition.x + hotspotCellRect.left, y: hotspot.pointerPosition.y + hotspotCellRect.top };
-        const offset = { x: (position.x + cellsDistance.x) - pointerPosition.x, y: (position.y + cellsDistance.y) - pointerPosition.y };
+      applyScrollNudge: (position, record) => {
         const clientHeight = document.documentElement.clientHeight;
-        const acceptableDistance = 0.5 * clientHeight;
         const topbarHeight = $('#header').height();
-        if (graffiti.scrollNudge === undefined) {
-          if ((Math.abs(offset.y) > acceptableDistance) ||
-              (pointerPosition.y < topbarHeight)) {
-            console.log('Excessive distance from hotspot:', offset.y, acceptableDistance, ' setting scrollnudge');
-            graffiti.scrollNudge = { counter: graffiti.scrollNudgeIncrements, amount: (offset.y - acceptableDistance) / graffiti.scrollNudgeIncrements };
+        const bufferY = clientHeight / 8;
+        const minAllowedCursorY = topbarHeight;
+        const maxAllowedCursorY = clientHeight;
+        const cursorScreenY = position.y;
+        
+        // Watch trailing average of cursor. If the average over twenty samples is in a nudge zone, then nudge
+        const trailingAverageSize = 10;
+        if (graffiti.scrollNudgeAverages.length > 0) {
+          if ((graffiti.scrollNudgeAverages[graffiti.scrollNudgeAverages.length-1].y === cursorScreenY) ||
+              (graffiti.scrollNudgeAverages[graffiti.scrollNudgeAverages.length-1].t === record.startTime)) {
+            return;
+          }
+        }
+        graffiti.scrollNudgeAverages.push({t:record.startTime, y:cursorScreenY});
+        if (graffiti.scrollNudgeAverages.length > trailingAverageSize) {
+          graffiti.scrollNudgeAverages.shift();
+          let velocities = [];
+          for (let i = 1; i < graffiti.scrollNudgeAverages.length; ++i) {
+            velocities.push(
+              ((graffiti.scrollNudgeAverages[i].y - graffiti.scrollNudgeAverages[i-1].y) /
+                (graffiti.scrollNudgeAverages[i].t - graffiti.scrollNudgeAverages[i-1].t))
+            );
+          }
+          const averageVelocity = Math.abs(utils.computeArrayAverage(velocities));
+//          console.log('averageVelocity:', averageVelocity, velocities, graffiti.scrollNudgeAverages);
+          if (averageVelocity < 0.1) {
+            let nudging = false, nudgeAmount;
+            if (cursorScreenY < minAllowedCursorY) {
+              nudgeAmount = (cursorScreenY - minAllowedCursorY) / graffiti.scrollNudgeIncrements;
+              nudging = true;
+            } else if (cursorScreenY > maxAllowedCursorY) {
+              nudgeAmount = (cursorScreenY - maxAllowedCursorY) / graffiti.scrollNudgeIncrements;
+              nudging = true;
+            }
+            if (nudging) {
+              console.log('Graffiti: nudgeAmount', nudgeAmount, 'cursorScreenY', cursorScreenY, 
+                          'minAllowedCursorY',minAllowedCursorY, 'maxAllowedCursorY', maxAllowedCursorY, 
+                          'bufferY', bufferY);
+              graffiti.scrollNudge = { 
+                counter: graffiti.scrollNudgeIncrements,
+                amount: nudgeAmount
+              };
+            }
           }
         }
       },
@@ -2146,7 +2180,7 @@ define([
             x : innerCellRect.left + dxScaled,
             y : innerCellRect.top + dyScaled
           };
-          graffiti.computeDistanceFromHotspot(innerCellRect, offsetPosition);
+          graffiti.applyScrollNudge(offsetPosition, record);
           const lastPosition = state.getLastRecordingCursorPosition();
           const lastGarnishInfo = state.getLastGarnishInfo();
           let garnishPermanence;
@@ -2227,6 +2261,9 @@ define([
           const hoverCellElement = $(record.hoverCell.element[0]);
           const hoverCellTop = hoverCellElement.position().top;
           const mappedTop = (record.cellPositionTop / record.notebookPanelHeight) * currentNotebookPanelHeight;
+
+          const mappedScrollDiff = (record.scrollDiff / record.notebookPanelHeight) * currentNotebookPanelHeight;
+
           const positionDifference = hoverCellTop - mappedTop;
 
           // need to subtract mapped (difference btwn original cell position and starting cell position when playback begins)
@@ -2245,19 +2282,24 @@ define([
 
           const currentScrollTop = graffiti.sitePanel.scrollTop();
 
-          let scrollNudgeAmount = 0;
+          let newScrollTop;
           if (graffiti.scrollNudge !== undefined) {
+            let scrollNudgeAmount = 0;
             graffiti.scrollNudge.counter--;
             if (graffiti.scrollNudge.counter > 0) {
               scrollNudgeAmount = graffiti.scrollNudge.amount;
-              console.log('Going to nudge scroll by:', scrollNudgeAmount, 'counter:', graffiti.scrollNudge.counter);
-              const newScrollTop = currentScrollTop + scrollNudgeAmount;
-              graffiti.sitePanel.scrollTop(newScrollTop);
-              state.nudgeHotspot(scrollNudgeAmount);
+              // console.log('Going to nudge scroll by:', scrollNudgeAmount, 'counter:', graffiti.scrollNudge.counter);
+              newScrollTop = currentScrollTop + scrollNudgeAmount + mappedScrollDiff;
             } else {
+              newScrollTop = currentScrollTop + mappedScrollDiff;
               graffiti.scrollNudge = undefined; // stop nudging
             }
-          }
+          } else {
+            newScrollTop = currentScrollTop + mappedScrollDiff;
+            console.log('jumping to newScrollTop:', newScrollTop, mappedScrollDiff);
+          }            
+          graffiti.sitePanel.scrollTop(newScrollTop);
+
 
           //          if (currentScrollTop !== scrollTop) {
           //            graffiti.sitePanel.scrollTop(scrollTop);
@@ -2498,7 +2540,7 @@ define([
         graffiti.narratorPicture = undefined;
 
         if (opts.cancelAnimation) {
-          graffiti.sitePanel.animate({ scrollTop: state.getScrollTop() }, 750);
+          graffiti.sitePanel.animate({ scrollTop: graffiti.prePlaybackScrolltop }, 750);
         }
       },
 
@@ -2511,10 +2553,11 @@ define([
           utils.saveNotebook();
           state.setLastGarnishInfo(0,0,false, 'highlight'); // make sure we've turned off any garnishing flag from a previous interrupted playback
           state.setScrollTop(graffiti.sitePanel.scrollTop());
+          graffiti.prePlaybackScrolltop = state.getScrollTop();
           state.storeCellStates();
           state.clearCellOutputsSent();
           graffiti.clearCanvases('all');
-          state.setHotspotFromHistory();
+          graffiti.scrollNudgeAverages = [];
         }
 
         graffiti.clearHighlightMarkText();
@@ -2522,11 +2565,11 @@ define([
         graffiti.changeActivity('playing');
         graffiti.lastTemporaryCanvasClearViewIndex = -1;
 
-        if (state.resetOnNextPlay) {
+        if (state.getResetOnNextPlay()) {
           console.log('Resetting for first/re play.');
+          debugger;
           graffiti.clearCanvases('all');
           state.resetPlayState();
-          state.setHotspotFromHistory();
         }
 
         state.setPlaybackStartTime(new Date().getTime() - state.getPlaybackTimeElapsed());

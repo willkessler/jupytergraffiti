@@ -287,6 +287,10 @@ define([
       state.resetOnNextPlay = true;
     },
 
+    getResetOnNextPlay: () => {
+      return state.resetOnNextPlay;
+    },
+
     // Set the index back to the beginning
     resetPlayState: () => {
       state.resetOnNextPlay = false;
@@ -437,6 +441,7 @@ define([
       return $.extend({}, state.viewInfo, {
         dx: (state.pointer.x - state.viewInfo.innerCellRect.left)  / state.viewInfo.innerCellRect.width,
         dy: (state.pointer.y - state.viewInfo.innerCellRect.top)   / state.viewInfo.innerCellRect.height,
+        scrollDiff: state.viewInfo.scrollDiff,
         innerCellRectWidth: state.viewInfo.innerCellRect.width,
         innerCellRectHeight: state.viewInfo.innerCellRect.height,
         pointerUpdate: opts.pointerUpdate,
@@ -765,7 +770,10 @@ define([
     },
 
     getHistoryItem: (kind, index) => {
-      return state.history[kind][index];
+      if ((index < state.history[kind].length) && (index >= 0)) {
+        return state.history[kind][index];
+      }
+      return undefined;
     },
 
     storeWholeHistory: (history) => {
@@ -854,7 +862,6 @@ define([
     setScrollTop: (scrollTop) => {
       state.scrollTop = scrollTop;
     },
-
 
   }
 

@@ -13,6 +13,15 @@ define([
       return new Date().getTime();
     },
 
+    computeArrayAverage: (array) => {
+      let average = 0;
+      for (let i = 0; i < array.length;++i) {
+        average += array[i];
+      }
+      average = average / array.length;
+      return average;      
+    },
+
     // Assign cellIds to any cells that don't have them yet.
     assignCellIds: () => {
       const cells = Jupyter.notebook.get_cells();
@@ -73,7 +82,7 @@ define([
       return marked(cleanedContents).replace(/(href=".*")>/g, "$1 target=\"_blank\">");
     },
 
-    collectViewInfo: (clientX, clientY, notebookPanelHeight, scrollTop, garnishing, garnishStyle, garnishColor, garnishPermanence) => {
+    collectViewInfo: (clientX, clientY, notebookPanelHeight, scrollDiff, garnishing, garnishStyle, garnishColor, garnishPermanence) => {
       let cellElement, cellRect;
       const inputCells = Jupyter.notebook.get_cells();
       const selectedCell = Jupyter.notebook.get_selected_cell();
@@ -114,7 +123,7 @@ define([
             garnishStyle: garnishStyle,
             garnishColor: garnishColor,
             garnishPermanence: garnishPermanence,
-            scrollTop: scrollTop
+            scrollDiff: scrollDiff
           };
         }
       }
