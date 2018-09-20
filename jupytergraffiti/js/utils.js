@@ -76,6 +76,19 @@ define([
       return undefined;
     },
     
+    getCellRects: (cell) => {
+      const cellElement = $(cell.element[0]);
+      const cellRect = cellElement[0].getBoundingClientRect();
+      const innerCell = cellElement.find('.inner_cell')[0];
+      const innerCellRect = innerCell.getBoundingClientRect();
+
+      return {
+        cellRect: cellRect,
+        innerCell: innerCell,
+        innerCellRect: innerCellRect
+      }
+    },
+
     renderMarkdown: (contents) => {
       // Strip out special commands eg. headline commands and make all hrefs pop new tabs
       const cleanedContents = contents.replace(/^%%(.*)$/mg, '');
