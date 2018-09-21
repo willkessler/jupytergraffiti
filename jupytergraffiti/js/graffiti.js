@@ -2114,7 +2114,7 @@ define([
       applyScrollNudge: (position, record, useTrailingVelocity) => {
         const clientHeight = document.documentElement.clientHeight;
         const topbarHeight = $('#header').height();
-        const bufferY = clientHeight / 8;
+        const bufferY = clientHeight / 10;
         const minAllowedCursorY = topbarHeight + bufferY;
         const maxAllowedCursorY = clientHeight - bufferY;
         let mustNudgeCheck = !useTrailingVelocity;
@@ -2161,9 +2161,11 @@ define([
             nudging = true;
           }
           if (nudging) {
+/*
              console.log('Graffiti: nudgeAmount', nudgeAmount, 'position', position.x, position.y,
              'minAllowedCursorY',minAllowedCursorY, 'maxAllowedCursorY', maxAllowedCursorY, 
              'nudgeIncrements', nudgeIncrements, 'bufferY', bufferY, 'useTrailingVelocity', useTrailingVelocity);
+*/
             graffiti.scrollNudge = { 
               counter: nudgeIncrements,
               amount: nudgeAmount
@@ -2232,7 +2234,7 @@ define([
       },
 
       updateView: (viewIndex) => {
-        console.log('updateView, viewIndex:', viewIndex);
+        // console.log('updateView, viewIndex:', viewIndex);
         let record = state.getHistoryItem('view', viewIndex);
         record.hoverCell = utils.findCellByCellId(record.cellId);
 
@@ -2307,14 +2309,14 @@ define([
               graffiti.scrollNudge = undefined; // stop nudging
             }
           }
-          console.log('Now applying mappedScrollDiff:', mappedScrollDiff);
+          // console.log('Now applying mappedScrollDiff:', mappedScrollDiff);
           let skipMappedScrollDiff = (graffiti.lastScrollViewId !== undefined && graffiti.lastScrollViewId === viewIndex);
           if (!skipMappedScrollDiff) {
             newScrollTop += mappedScrollDiff;
             graffiti.lastScrollViewId = viewIndex;
           }
 
-          console.log('Setting sitepanel finally to scrolltop:', newScrollTop);
+          // console.log('Setting sitepanel finally to scrolltop:', newScrollTop);
           graffiti.sitePanel.scrollTop(newScrollTop);
 
         }
@@ -2376,7 +2378,7 @@ define([
                   x: cellRects.innerCellRect.left, 
                   y: cellOffsetY + cellRects.innerCellRect.top
                 }
-                console.log('selections[0]', selections[0], 'offsetPosition:', offsetPosition, 'cellId', cellId);
+                // console.log('selections[0]', selections[0], 'offsetPosition:', offsetPosition, 'cellId', cellId);
                 graffiti.applyScrollNudge(offsetPosition, record, false);
                 graffiti.graffitiCursor.hide();
               }

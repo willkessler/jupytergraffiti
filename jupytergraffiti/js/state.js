@@ -831,7 +831,7 @@ define([
       if (affectedIds.length > 0) {
         let cell, cellState;
         for (let cellId of affectedIds) {
-          console.log('affectedid:', cellId);
+          // console.log('affectedid:', cellId);
           cell = utils.findCellByCellId(cellId);
           if (cell !== undefined) {
             selections = state.cellStates.selections.cellsSelections[cellId];
@@ -847,7 +847,7 @@ define([
               if ((cell.cell_type === 'code') && (selections.active)) {
                 cell.code_mirror.focus();
               }
-              console.log('setting selection to :', selections.selections);
+              // console.log('setting selection to :', selections.selections);
               cell.code_mirror.setSelections(selections.selections);
             }
           }
