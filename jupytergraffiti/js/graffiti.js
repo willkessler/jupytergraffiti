@@ -46,7 +46,7 @@ define([
         graffiti.notificationMsgs = {};
         graffiti.panelFadeTime = 350;
         graffiti.garnishFadeDelay = 2000;
-        graffiti.scrollNudgeSmoothIncrements = 8;
+        graffiti.scrollNudgeSmoothIncrements = 6;
         graffiti.scrollNudgeQuickIncrements = 4;
         graffiti.scrollNudge = undefined;
 
@@ -2161,9 +2161,9 @@ define([
             nudging = true;
           }
           if (nudging) {
-            // console.log('Graffiti: nudgeAmount', nudgeAmount, 'position', position.x, position.y,
-            // 'minAllowedCursorY',minAllowedCursorY, 'maxAllowedCursorY', maxAllowedCursorY, 
-            // 'nudgeIncrements', nudgeIncrements, 'bufferY', bufferY, 'useTrailingVelocity', useTrailingVelocity);
+             console.log('Graffiti: nudgeAmount', nudgeAmount, 'position', position.x, position.y,
+             'minAllowedCursorY',minAllowedCursorY, 'maxAllowedCursorY', maxAllowedCursorY, 
+             'nudgeIncrements', nudgeIncrements, 'bufferY', bufferY, 'useTrailingVelocity', useTrailingVelocity);
             graffiti.scrollNudge = { 
               counter: nudgeIncrements,
               amount: nudgeAmount
@@ -2232,6 +2232,7 @@ define([
       },
 
       updateView: (viewIndex) => {
+        console.log('updateView, viewIndex:', viewIndex);
         let record = state.getHistoryItem('view', viewIndex);
         record.hoverCell = utils.findCellByCellId(record.cellId);
 
@@ -2275,8 +2276,6 @@ define([
           const hoverCellTop = hoverCellElement.position().top;
           const mappedTop = (record.cellPositionTop / record.notebookPanelHeight) * currentNotebookPanelHeight;
 
-          const mappedScrollDiff = (record.scrollDiff / record.notebookPanelHeight) * currentNotebookPanelHeight;
-
           const positionDifference = hoverCellTop - mappedTop;
 
           // need to subtract mapped (difference btwn original cell position and starting cell position when playback begins)
@@ -2293,29 +2292,30 @@ define([
           const scrollTop = parseInt(mappedScrollTop + positionDifference + heightDiffAdjustment);
           //const scrollTop = parseInt(mappedScrollTop + hoverCellTop + heightDiffAdjustment);
 
+          const mappedScrollDiff = (record.scrollDiff / record.notebookPanelHeight) * currentNotebookPanelHeight;
           const currentScrollTop = graffiti.sitePanel.scrollTop();
 
-          let newScrollTop;
+          let newScrollTop = currentScrollTop;
           if (graffiti.scrollNudge !== undefined) {
             let scrollNudgeAmount = 0;
             graffiti.scrollNudge.counter--;
             if (graffiti.scrollNudge.counter > 0) {
               scrollNudgeAmount = graffiti.scrollNudge.amount;
               // console.log('Going to nudge scroll by:', scrollNudgeAmount, 'counter:', graffiti.scrollNudge.counter);
-              newScrollTop = currentScrollTop + scrollNudgeAmount + mappedScrollDiff;
+              newScrollTop = currentScrollTop + scrollNudgeAmount;
             } else {
-              newScrollTop = currentScrollTop + mappedScrollDiff;
               graffiti.scrollNudge = undefined; // stop nudging
             }
-          } else {
-            newScrollTop = currentScrollTop + mappedScrollDiff;
-          }            
+          }
+          console.log('Now applying mappedScrollDiff:', mappedScrollDiff);
+          let skipMappedScrollDiff = (graffiti.lastScrollViewId !== undefined && graffiti.lastScrollViewId === viewIndex);
+          if (!skipMappedScrollDiff) {
+            newScrollTop += mappedScrollDiff;
+            graffiti.lastScrollViewId = viewIndex;
+          }
+
+          console.log('Setting sitepanel finally to scrolltop:', newScrollTop);
           graffiti.sitePanel.scrollTop(newScrollTop);
-
-
-          //          if (currentScrollTop !== scrollTop) {
-          //            graffiti.sitePanel.scrollTop(scrollTop);
-          //          }
 
         }
       },
@@ -2371,11 +2371,12 @@ define([
                 // offset position of the *head* of the selection where the action is.
                 // console.log('setting selections with selections:', selections);
                 const cellRects = utils.getCellRects(cell);
-                const cellOffsetY = selections[0].head.line * graffiti.cmLineHeight;
+                const cellOffsetY = selections[0].head.line * (graffiti.cmLineHeight + graffiti.cmLineFudge);
                 const offsetPosition = {
                   x: cellRects.innerCellRect.left, 
                   y: cellOffsetY + cellRects.innerCellRect.top
                 }
+                console.log('selections[0]', selections[0], 'offsetPosition:', offsetPosition, 'cellId', cellId);
                 graffiti.applyScrollNudge(offsetPosition, record, false);
                 graffiti.graffitiCursor.hide();
               }
@@ -2495,7 +2496,7 @@ define([
         // Now we need to set the time we are going to start with if we play from here.
         state.setPlaybackTimeElapsed(t);
         const frameIndexes = state.getHistoryRecordsAtTime(t);
-        graffiti.updateDisplay(frameIndexes);
+        graffiti.updateDisplay(frameIndexes); // can replay scroll diffs, and in playback use cumulative scroll diff
         graffiti.updateTimeDisplay(t);
         graffiti.redrawAllGarnishes(t);
       },
@@ -2572,6 +2573,7 @@ define([
           state.setLastGarnishInfo(0,0,false, 'highlight'); // make sure we've turned off any garnishing flag from a previous interrupted playback
           state.setScrollTop(graffiti.sitePanel.scrollTop());
           graffiti.prePlaybackScrolltop = state.getScrollTop();
+          graffiti.lastScrollViewId = undefined;
           state.storeCellStates();
           state.clearCellOutputsSent();
           graffiti.clearCanvases('all');
