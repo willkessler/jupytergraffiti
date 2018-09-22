@@ -1147,10 +1147,6 @@ define([
 
       // Refresh the markDoc calls for any particular cell based on recording data
 
-      // ******************************************************************************************************************************************
-      // we should store the ranges we get back for the recordings so we can tell if the cursor is in any of them on cursorActivity
-      // ******************************************************************************************************************************************
-
       refreshGraffitiHighlights: (params) => {
         if (params.cell.cell_type !== 'code') {
           return; // We don't refresh highlights in markdown cells because markdown cells do their highlights with plain html markup.
@@ -1581,6 +1577,15 @@ define([
         }
       },
 
+      selectIntersectingGraffitiRange: () => {
+        const recordingCellInfo = state.getRecordingCellInfo();
+        const recordingCell = recordingCellInfo.recordingCell;
+        const cm = cell.code_mirror;
+        const startLoc = cm.posFromIndex(graffiti.selectedTokens.range.start);
+        const endLoc = cm.posFromIndex(graffiti.selectedTokens.range.end);
+        cm.setSelection();        
+      },
+
       highlightIntersectingGraffitiRange: () => {
         graffiti.clearHighlightMarkText();
         if (state.getAccessLevel() === 'view') { // we never do this in view mode
@@ -1831,6 +1836,7 @@ define([
       beginMovieRecordingProcess: () => {
         // Preserve the state of all cells and selections before we begin recording so we can restore when the recording is done.
         state.storeCellStates();
+        graffiti.preRecordingScrollTop = state.getScrollTop();
         if (graffiti.selectedTokens.isIntersecting) {
           const recordingRecord = graffiti.storeRecordingInfoInCell();
           if (recordingRecord.cellType === 'markdown') {
@@ -2021,6 +2027,7 @@ define([
         graffiti.updateAllGraffitiDisplays();
         graffiti.sitePanel.animate({ scrollTop: graffiti.preRecordingScrollTop }, 750);
         state.restoreCellStates('selections');
+        //graffiti.selectRecordingToken();
         state.deleteTrackingArrays();
         graffiti.changeActivity('idle');
       },
@@ -2069,7 +2076,6 @@ define([
 
             audio.startRecording();
             state.setScrollTop(graffiti.sitePanel.scrollTop());
-            graffiti.preRecordingScrollTop = state.getScrollTop();
             state.setGarnishing(false);
             graffiti.clearGarnishPen();
 

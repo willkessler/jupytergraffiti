@@ -6,7 +6,7 @@ define([
     cellMaps: {},
 
     generateUniqueId: () => {
-      return 'id_' + Math.random().toString(36).substr(2, 6);
+      return 'id_' + Math.random().toString(36).substr(2, 7);
     },
 
     getNow: () => {
