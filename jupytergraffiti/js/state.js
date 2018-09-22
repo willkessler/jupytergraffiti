@@ -32,7 +32,7 @@ define([
       state.garnishing = false;
       state.garnishStyle = 'highlight'; // one of: 'highlight' or 'line'
       state.garnishColor = '000000';
-      state.garnishPermanence = 'permanent'; // one of: 'permanent', 'temporary'
+      state.garnishPermanence = 'temporary'; // one of: 'permanent', 'temporary'
       state.lastGarnishInfo = { garnishing: false };
       state.lastEditActivityTime = undefined;
       state.controlPanelDragging = false;
