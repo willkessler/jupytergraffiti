@@ -46,6 +46,7 @@ define([
         graffiti.notificationMsgs = {};
         graffiti.panelFadeTime = 350;
         graffiti.garnishFadeDelay = 2000;
+        graffiti.garnishFadeOutTime = 4000;
         graffiti.scrollNudgeSmoothIncrements = 6;
         graffiti.scrollNudgeQuickIncrements = 4;
         graffiti.scrollNudge = undefined;
@@ -983,13 +984,13 @@ define([
 
           if ((activity === 'recording') || ((activity === 'playing') && graffiti.futureCanvasWipe === undefined)) {
             // fade if recording, or if playing and no fade is already happening
-            // console.log('Kicking off fade');
+            console.log('Kicking off fade');
             graffiti.futureCanvasWipe = $('.graffiti-canvas-type-temporary').animate(
               {
                 opacity: 0
               },
               {
-                duration:1000,
+                duration:graffiti.garnishFadeOutTime,
                 complete: () => { 
                   graffiti.resetTemporaryCanvases();
                 }
@@ -1004,6 +1005,7 @@ define([
 
       cancelCanvasFutureWipe: () => {
         if (graffiti.futureCanvasWipe !== undefined) {
+          console.log('canceling futureCanvasWipe');
           if (typeof(graffiti.futureCanvasWipe === 'number')) {
             console.log('clearing previous canvas wipe');
             clearTimeout(graffiti.futureCanvasWipe); // remove any existing clearing action... we'll wait until they stop drawing for a bit
@@ -2158,7 +2160,7 @@ define([
               velocities.push(distance / timeDiff );
             }
             const averageVelocity = Math.abs(utils.computeArrayAverage(velocities));
-            mustNudgeCheck = mustNudgeCheck || (averageVelocity < 0.1);
+            mustNudgeCheck = mustNudgeCheck || (averageVelocity < 0.3);
           }
         }
 
@@ -2240,6 +2242,8 @@ define([
           if ((offsetPosition.x !== lastPosition.x) || (offsetPosition.y !== lastPosition.y)) {
             // Show cursor whenever it's moved by user
             //console.log('Showing cursor:', offsetPosition, lastPosition);
+            console.log('canceling canvas future wipe');
+            graffiti.cancelCanvasFutureWipe();
             graffiti.undimGraffitiCursor();
             const offsetPositionPx = { left: offsetPosition.x + 'px', top: offsetPosition.y + 'px'};
             graffiti.graffitiCursor.css(offsetPositionPx);
@@ -2268,7 +2272,8 @@ define([
           if (state.getActivity() === 'playing') {
             if (viewIndex > graffiti.lastTemporaryCanvasClearViewIndex) {
               graffiti.lastTemporaryCanvasClearViewIndex = viewIndex;
-              setTimeout(() => {              
+              graffiti.cancelCanvasFutureWipe();
+              graffiti.futureCanvasWipe = setTimeout(() => {              
                 graffiti.clearTemporaryCanvases();
               }, graffiti.garnishFadeDelay);
             }            
@@ -2308,7 +2313,7 @@ define([
           const scrollTop = parseInt(mappedScrollTop + positionDifference + heightDiffAdjustment);
           //const scrollTop = parseInt(mappedScrollTop + hoverCellTop + heightDiffAdjustment);
 
-          const mappedScrollDiff = (record.scrollDiff / record.notebookPanelHeight) * currentNotebookPanelHeight;
+          const mappedScrollDiff = ((record.scrollDiff === undefined ? 0 : record.scrollDiff) / record.notebookPanelHeight) * currentNotebookPanelHeight;
           const currentScrollTop = graffiti.sitePanel.scrollTop();
 
           let newScrollTop = currentScrollTop;
@@ -2439,12 +2444,13 @@ define([
       },
 
       updateDisplay: (frameIndexes) => {
-        // console.log('before updateContents, scrollTop:', graffiti.sitePanel.scrollTop());
+        //console.log('before updateContents, scrollTop:', graffiti.sitePanel.scrollTop());
         graffiti.updateContents(frameIndexes.contents, graffiti.sitePanel.scrollTop());
         // console.log('before updateSelections, scrollTop:', graffiti.sitePanel.scrollTop());
         graffiti.updateSelections(frameIndexes.selections, graffiti.sitePanel.scrollTop());
-        // console.log('before updateView, scrollTop:', graffiti.sitePanel.scrollTop());
+        //console.log('before updateView, scrollTop:', graffiti.sitePanel.scrollTop());
         graffiti.updateView(frameIndexes.view);
+        //console.log('after updateView, scrollTop:', graffiti.sitePanel.scrollTop());
       },
 
       // update the timer display for play or recording
