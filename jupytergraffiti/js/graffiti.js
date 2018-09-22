@@ -376,7 +376,7 @@ define([
                                       '  <div id="graffiti-recording-color-black" colorVal="000000"></div>' +
                                       '</div>' +
                                       '<div id="graffiti-temporary-ink">' +
-                                      ' <input type="checkbox" id="graffiti-temporary-ink-control" />' +
+                                      ' <input type="checkbox" id="graffiti-temporary-ink-control" checked />' +
                                       ' <label id="graffiti-temporary-ink-label" for="graffiti-temporary-ink-control">Temporary Ink</label>' +
                                       '</div>',
                                       [
@@ -818,6 +818,14 @@ define([
           graffiti.activePen = undefined;
           graffiti.hideGarnishScreen();
         }          
+      },
+
+      dimGraffitiCursor: () => {
+        graffiti.graffitiCursor.css({opacity:0.1});
+      },
+
+      undimGraffitiCursor: () => {
+        graffiti.graffitiCursor.show().css({opacity:1.0});
       },
 
       garnishScreenHandler: (e) => {
@@ -1386,7 +1394,7 @@ define([
           state.storeViewInfo(viewInfo);
           state.storeHistoryRecord('scroll');
           if (state.getActivity() === 'playbackPaused') {
-            graffiti.graffitiCursor.hide();            
+            graffiti.undimGraffitiCursor();            
           }
           return true;
         });
@@ -2232,6 +2240,7 @@ define([
           if ((offsetPosition.x !== lastPosition.x) || (offsetPosition.y !== lastPosition.y)) {
             // Show cursor whenever it's moved by user
             //console.log('Showing cursor:', offsetPosition, lastPosition);
+            graffiti.undimGraffitiCursor();
             const offsetPositionPx = { left: offsetPosition.x + 'px', top: offsetPosition.y + 'px'};
             graffiti.graffitiCursor.css(offsetPositionPx);
           }            
@@ -2254,7 +2263,6 @@ define([
         // Handle pointer updates and canvas updates
         if (record.pointerUpdate) {
           //console.log('pointerUpdate is true, record:', record);
-          graffiti.graffitiCursor.show();
           graffiti.updatePointer(record);
         } else if (record.clearTemporaryCanvases) {
           if (state.getActivity() === 'playing') {
@@ -2266,7 +2274,7 @@ define([
             }            
           }
         } else {
-          graffiti.graffitiCursor.hide();
+          graffiti.dimGraffitiCursor();
         }
 
         if (record.hoverCell) {
@@ -2370,7 +2378,7 @@ define([
               //console.log('cellId, selections, currentSelections:', cellId, selections, currentSelections);
               if (!(_.isEqual(selections,currentSelections))) {
                 //console.log('updating selection, rec:', record, 'sel:', selections, 'cell:', cell);
-                graffiti.graffitiCursor.hide();
+                graffiti.dimGraffitiCursor();
                 code_mirror.setSelections(selections);
                 if (!code_mirror.state.focused) {
                   code_mirror.focus();
@@ -2386,7 +2394,6 @@ define([
                 }
                 // console.log('selections[0]', selections[0], 'offsetPosition:', offsetPosition, 'cellId', cellId);
                 graffiti.applyScrollNudge(offsetPosition, record, false);
-                graffiti.graffitiCursor.hide();
               }
             }
           }
@@ -2499,7 +2506,7 @@ define([
         const timeLocation = target.val() / 1000;
         //console.log('slider value:', timeLocation);
         state.clearSetupForReset();
-        graffiti.graffitiCursor.show();
+        graffiti.undimGraffitiCursor();
         const t = Math.min(state.getHistoryDuration() * timeLocation, state.getHistoryDuration() - 1);
         // Now we need to set the time we are going to start with if we play from here.
         state.setPlaybackTimeElapsed(t);
@@ -2589,7 +2596,7 @@ define([
         }
 
         graffiti.clearHighlightMarkText();
-        graffiti.graffitiCursor.show();
+        graffiti.undimGraffitiCursor();
         graffiti.changeActivity('playing');
         graffiti.lastTemporaryCanvasClearViewIndex = -1;
 
