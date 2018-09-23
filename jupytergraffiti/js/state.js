@@ -33,6 +33,9 @@ define([
       state.garnishStyle = 'highlight'; // one of: 'highlight' or 'line'
       state.garnishColor = '000000';
       state.garnishPermanence = 'temporary'; // one of: 'permanent', 'temporary'
+      state.garnishFadeCounter = 0;
+      state.garnishFadeDelayCount = 50;
+      state.garnishFadeSteps = 30;
       state.lastGarnishInfo = { garnishing: false };
       state.lastEditActivityTime = undefined;
       state.controlPanelDragging = false;
@@ -229,6 +232,39 @@ define([
 
     setGarnishPermanence: (newValue) => {
       state.garnishPermanence = newValue; // one of "permanent", "temporary"
+    },
+
+    getGarnishFadeCounter: () => {
+      return state.garnishFadeCounter;
+    },
+
+    temporaryCanvasesShouldClear: () => {
+      return (state.garnishFadeCount > state.garnishFadeDelayCount + state.garnishFadeSteps);
+    },
+
+    getTemporaryInkOpacity: () => {
+      // console.log('garnishFadeCounter', state.garnishFadeCounter);
+      const maxOpacity = 0.5;
+      if (state.garnishFadeCounter < state.garnishFadeDelayCount) {
+        return maxOpacity;
+      }
+      if (state.garnishFadeCounter < state.garnishFadeDelayCount + state.garnishFadeSteps) {
+        const opacity = (((state.garnishFadeSteps + state.garnishFadeDelayCount) - state.garnishFadeCounter) / state.garnishFadeSteps) / (1.0 / maxOpacity);
+        // console.log('opacity:', opacity);
+        return opacity;
+      }
+      return 0;
+    },
+
+    incrementGarnishFadeCounter: () => {
+      console.log('garnishFadeCounter', state.garnishFadeCounter);
+      state.garnishFadeCounter++;
+      return (state.garnishFadeCounter === state.garnishFadeDelayCount + state.garnishFadeSteps);
+    },
+
+    resetGarnishFadeCounter: () => {
+      console.log('resetGarnishFadeCounter');
+      state.garnishFadeCounter = 0;
     },
 
     getLastRecordingCursorPosition: () => {
