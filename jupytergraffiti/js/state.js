@@ -18,7 +18,7 @@ define([
       state.resetOnNextPlay = false;
       state.recordedAudioString = '';
       state.audioStorageCallback = undefined;
-      state.frameArrays = ['view', 'selections', 'contents'];
+      state.frameArrays = ['view', 'selections', 'contents', 'opacity'];
       state.scrollTop = undefined;
       state.selectedCellId = undefined;
       state.mute = false;
@@ -33,15 +33,17 @@ define([
       state.garnishStyle = 'highlight'; // one of: 'highlight' or 'line'
       state.garnishColor = '000000';
       state.garnishPermanence = 'temporary'; // one of: 'permanent', 'temporary'
-      state.garnishFadeCounter = 0;
-      state.garnishFadeDelayCount = 50;
-      state.garnishFadeSteps = 30;
+      state.garnishFadeAllowed = true;
+      state.garnishFadeStart;
+      state.garnishFadeDuration = 1000;
+      state.garnishFadePreFadeDelay = 1000;
+      state.totalGarnishFadeDuration = state.garnishFadePreFadeDelay + state.garnishFadeDuration;
+      state.temporaryInkOpacity = 1.0;
       state.lastGarnishInfo = { garnishing: false };
       state.lastEditActivityTime = undefined;
       state.controlPanelDragging = false;
       state.controlPanelDragOffset = { x: 0, y: 0 };
       state.playableMovies = {};
-      state.hotspot = {};
       state.selectionSerialized = undefined;
       state.hidePlayerAfterPlayback = false;
       state.dontRestoreCellContentsAfterPlayback = false; // this is something the author can decide with an API call.
@@ -234,37 +236,41 @@ define([
       state.garnishPermanence = newValue; // one of "permanent", "temporary"
     },
 
-    getGarnishFadeCounter: () => {
-      return state.garnishFadeCounter;
-    },
-
-    temporaryCanvasesShouldClear: () => {
-      return (state.garnishFadeCount > state.garnishFadeDelayCount + state.garnishFadeSteps);
+    getGarnishFadeTimeSoFar: () => {
+      return utils.getNow() - state.garnishFadeStart;
     },
 
     getTemporaryInkOpacity: () => {
+      return state.temporaryInkOpacity;
+    },
+
+    setTemporaryInkOpacity: (opacity) => {
+      state.temporaryInkOpacity = opacity;
+    },
+
+    calculateTemporaryInkOpacity: () => {
       // console.log('garnishFadeCounter', state.garnishFadeCounter);
+      const timeSoFar = state.getGarnishFadeTimeSoFar();
       const maxOpacity = 0.5;
-      if (state.garnishFadeCounter < state.garnishFadeDelayCount) {
+      if (!state.garnishFadeAllowed || timeSoFar < state.garnishFadePreFadeDelay) {
         return maxOpacity;
       }
-      if (state.garnishFadeCounter < state.garnishFadeDelayCount + state.garnishFadeSteps) {
-        const opacity = (((state.garnishFadeSteps + state.garnishFadeDelayCount) - state.garnishFadeCounter) / state.garnishFadeSteps) / (1.0 / maxOpacity);
-        // console.log('opacity:', opacity);
+      if (timeSoFar < state.totalGarnishFadeDuration) {
+        const opacity = ((state.totalGarnishFadeDuration - timeSoFar) / state.garnishFadeDuration) * maxOpacity;
+        console.log('calculateTemporaryInkOpacity:', opacity);
         return opacity;
       }
       return 0;
     },
 
-    incrementGarnishFadeCounter: () => {
-      console.log('garnishFadeCounter', state.garnishFadeCounter);
-      state.garnishFadeCounter++;
-      return (state.garnishFadeCounter === state.garnishFadeDelayCount + state.garnishFadeSteps);
+    disableGarnishFade: () => {
+      state.garnishFadeAllowed = false; // not allowed while drawing a garnish
     },
 
-    resetGarnishFadeCounter: () => {
-      console.log('resetGarnishFadeCounter');
-      state.garnishFadeCounter = 0;
+    startGarnishFadeClock: () => {
+      console.log('startGarnishFadeClock');
+      state.garnishFadeStart = utils.getNow();
+      state.garnishFadeAllowed = true;
     },
 
     getLastRecordingCursorPosition: () => {
@@ -420,26 +426,6 @@ define([
       state.hidePlayerAfterPlayback = status;
     },
 
-    getHotspot: () => {
-      return state.hotspot;
-    },
-
-    setHotspot: (hotspot) => {
-      state.hotspot = { cellId: hotspot.cellId, pointerPosition: $.extend({}, hotspot.pointerPosition) };
-    },
-
-    nudgeHotspot: (nudgeAmount) => {
-      state.hotspot.pointerPosition.y += nudgeAmount;
-    },
-
-    setHotspotFromHistory: () => {
-      if (state.history !== undefined) {
-        if (state.history.hotspot !== undefined) {
-          state.setHotspot(state.history.hotspot);
-        }
-      }
-    },
-
     getDontRestoreCellContentsAfterPlayback: () => {
       return state.hidePlayerAfterPlayback;
     },
@@ -482,9 +468,14 @@ define([
         innerCellRectHeight: state.viewInfo.innerCellRect.height,
         pointerUpdate: opts.pointerUpdate,
         focusUpdate: opts.focusUpdate,
-        clearTemporaryCanvases: opts.clearTemporaryCanvases,
         selectedCellId: state.selectedCellId
       });
+    },
+
+    createOpacityRecord: () => {
+      return {
+        opacity: state.temporaryInkOpacity
+      }
     },
 
     createSelectionsRecord: () => {
@@ -629,24 +620,24 @@ define([
       // Note: we override the type to throw together pointer moves, scroll innerScroll, and focus in one history record type
       switch (type) {
         case 'pointer':
-          record = state.createViewRecord({ pointerUpdate: true,  focusUpdate: false, clearTemporaryCanvases: false });
+          record = state.createViewRecord({ pointerUpdate: true,  focusUpdate: false });
           type = 'view';
           break;
         case 'scroll':
-          record = state.createViewRecord({ pointerUpdate: false, focusUpdate:false, clearTemporaryCanvases: false });
+          record = state.createViewRecord({ pointerUpdate: false, focusUpdate:false });
           type = 'view';
           break;
         case 'innerScroll':
-          record = state.createViewRecord({ pointerUpdate: false, focusUpdate:false, clearTemporaryCanvases: false });
+          record = state.createViewRecord({ pointerUpdate: false, focusUpdate:false });
           type = 'view';
           break;
         case 'focus':
-          record = state.createViewRecord({ pointerUpdate: false, focusUpdate:true, clearTemporaryCanvases: false });
+          record = state.createViewRecord({ pointerUpdate: false, focusUpdate:true });
           type = 'view';
           break;
-        case 'clearTemporaryCanvases':
-          record = state.createViewRecord({ pointerUpdate: false, focusUpdate:false, clearTemporaryCanvases: true });
-          type = 'view';
+        case 'opacity':
+          record = state.createOpacityRecord();
+          type = 'opacity';
           break;
         case 'selections':
           record = state.createSelectionsRecord();
@@ -665,22 +656,18 @@ define([
         storageCellId: initialValues.storageCellId,
         recordingStartTime: now,
 
-        // This is the hotspot where the recording began, ie where the author first clicked to begin recording
-        hotspot: {
-          cellId: state.viewInfo.cellId,
-          pointerPosition: { x: state.viewInfo.pointerPosition.x, y: state.viewInfo.pointerPosition.y }
-        },
-        
         // Time tracks: all pointer positions, cell selections and contents over the time of the recording.
         view:        [],                          // pointer move, vertical scroll or innerscroll (scroll inside cell)
         selections:  [],                          // cell selections
         contents:    [],                          // contents state: what cells present, and what their contents are, and cell outputs
+        opacity:     [],                          // current opacity of the temporary ink canvases (e.g. in the middle of a fadeout?)
 
         // Where we are in each track, during playback.
         lastVisited: {
-          view: 0,
+          view:       0,
           selections: 0,
-          contents: 0
+          contents:   0,
+          opacity:    0,
         },
 
         cellContentsTracking: {},                  // this enables back-referencing to reduce storage costs on content recording
@@ -693,6 +680,7 @@ define([
       state.storeHistoryRecord('focus',      now);
       state.storeHistoryRecord('selections', now);
       state.storeHistoryRecord('contents',   now);
+      state.storeHistoryRecord('opacity',    now);
     },
 
     finalizeHistory: () => {
