@@ -31,6 +31,7 @@ define([
         graffiti.notebookContainer = $('#notebook-container');
         graffiti.notebookContainerPadding = parseInt(graffiti.notebookContainer.css('padding').replace('px',''));
         graffiti.penColor = '000000';
+        graffiti.lastDrawIndex = undefined;
         graffiti.lastGarnishEraseIndex = undefined;
 
         graffiti.recordingIntervalMs = 10; // In milliseconds, how frequently we sample the state of things while recording.
@@ -968,7 +969,6 @@ define([
       },
 
       updateGarnishOpacity: (opts) => {
-
         if (opts.recording) {
           // Recording ongoing, so store opacity records and handle resets when mouse goes down
           if (opts.reset) {
@@ -1004,16 +1004,16 @@ define([
         } else {
           // Playback ongoing, so process records
           const opacityRecord = state.getHistoryItem('opacity',opts.opacityIndex);
-          console.log('opacityRecord:', opacityRecord);
+          //console.log('opacityRecord:', opacityRecord);
           if (opacityRecord !== undefined) {
             if (opacityRecord.reset) {
               if ((graffiti.lastGarnishEraseIndex === undefined) ||
                   (graffiti.lastGarnishEraseIndex !== opts.opacityIndex)) {
                 console.log('Erasing canvases');
                 graffiti.clearCanvases('temporary');
-                state.resetGarnishOpacity();
                 graffiti.lastGarnishEraseIndex = opts.opacityIndex;
               }
+              state.resetGarnishOpacity(); // if latest record was a reset, make sure you reset
             } else {
               state.setGarnishOpacity(opacityRecord.opacity);
             }
@@ -1037,6 +1037,7 @@ define([
             ctx.beginPath();
             ctx.moveTo(ax, ay);
             ctx.lineTo(bx, by);
+            ctx.closePath();
             ctx.stroke();
           }
         }
@@ -1064,9 +1065,23 @@ define([
       // Rerun all garnishes up to time t. Used after scrubbing.
       redrawAllGarnishes: (targetTime) => {
         graffiti.clearCanvases('all');
-        const lastIndex = state.getIndexUpToTime('view', targetTime);
-        if (lastIndex !== undefined) {
-          for (let viewIndex = 0; viewIndex < lastIndex; ++viewIndex) {
+        // First, final last opacity reset before the target time. We will start redrawing garnishes from this point forward.
+        let lastOpacityIndex = state.getIndexUpToTime('opacity', targetTime);
+        let firstViewIndex = 0;
+        if (lastOpacityIndex !== undefined) {
+          for (let opacityIndex = 0; opacityIndex < lastOpacityIndex; ++opacityIndex) {
+            record = state.getHistoryItem('opacity', opacityIndex);
+            if (record.reset) {
+              firstViewIndex = state.getIndexUpToTime('view', record.startTime);
+            }
+          }
+        }
+
+        
+        const lastViewIndex = state.getIndexUpToTime('view', targetTime);
+        if (lastViewIndex !== undefined) {
+          console.log('firstViewIndex:', firstViewIndex, 'lastViewIndex:', lastViewIndex);
+          for (let viewIndex = firstViewIndex; viewIndex < lastViewIndex; ++viewIndex) {
             record = state.getHistoryItem('view', viewIndex);
             // We must locate the cell in the notebook today (vs when the recording was made) before we can redraw garnish.
             if (record.pointerUpdate) {
@@ -1075,6 +1090,11 @@ define([
               graffiti.updatePointer(record);
             }
           }
+        }
+        state.resetGarnishOpacity();
+        opacityIndex = state.getIndexUpToTime('opacity', targetTime);
+        if (opacityIndex !== undefined) {
+          graffiti.updateGarnishOpacity({recording:false, reset:false, opacityIndex: opacityIndex});          
         }
       },
 
@@ -1235,7 +1255,7 @@ define([
               state.setTipTimeout(() => {
                 const newPointerPosition = state.getPointerPosition();
                 const cursorDistanceSquared = (newPointerPosition.x - currentPointerPosition.x) * (newPointerPosition.x - currentPointerPosition.x) +
-                                                      (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
+                                                        (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
 
                 //console.log('comparing currentPointerPosition, newPointerPosition:', currentPointerPosition,
                 //            newPointerPosition, cursorDistanceSquared);
@@ -1253,8 +1273,8 @@ define([
                     headlineMarkdown = '<div class="headline">' +
                                        ' <div>' + tooltipCommands.captionPic + '</div>' +
                                        ' <div>' + tooltipCommands.caption + '</div>' +
-                                            (tooltipCommands.captionVideo !== undefined ?
-                                             ' <div class="graffiti-video">' + tooltipCommands.captionVideo + '</div>' : '' ) +
+                                              (tooltipCommands.captionVideo !== undefined ?
+                                               ' <div class="graffiti-video">' + tooltipCommands.captionVideo + '</div>' : '' ) +
                                        '</div>';
                   }
                   if (recording !== undefined) {
@@ -2250,6 +2270,11 @@ define([
       },
 
       updateView: (viewIndex) => {
+        if ((state.getActivity() === 'playing') && (graffiti.lastDrawIndex !== undefined) && (graffiti.lastDrawIndex === viewIndex) ) {
+          return; // don't process this view process, already processed (avoids double drawing)
+        }
+        graffiti.lastDrawIndex = viewIndex;
+
         // console.log('updateView, viewIndex:', viewIndex);
         let record = state.getHistoryItem('view', viewIndex);
         record.hoverCell = utils.findCellByCellId(record.cellId);
@@ -2583,6 +2608,7 @@ define([
           state.setScrollTop(graffiti.sitePanel.scrollTop());
           graffiti.prePlaybackScrolltop = state.getScrollTop();
           graffiti.lastScrollViewId = undefined;
+          graffiti.lastDrawIndex = undefined;
           graffiti.lastGarnishEraseIndex = undefined;
           state.storeCellStates();
           state.clearCellOutputsSent();
