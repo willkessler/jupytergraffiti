@@ -2369,7 +2369,8 @@ define([
             if (!(_.isEqual(currentSelection.state, record.textSelection.state))) {
               if (cellType === 'markdown') {
                 // console.log('Graffiti: Focusing on markdown cell');
-                utils.shrinkAllCMSelections(); // cancel all CM selections as they will prevent replaying selection changes in other dom elements
+                cell.focus_cell();
+                // we don't need to shrink if we focus the cell
                 graffiti.sitePanel.scrollTop(currentScrollTop); // restore scrollTop because changing selections messes with it
               }
               // console.log('Graffiti: Selection restoring textSelection, currentSelection:', record.textSelection, currentSelection);
@@ -2390,6 +2391,7 @@ define([
               if (!(_.isEqual(selections,currentSelections))) {
                 //console.log('updating selection, rec:', record, 'sel:', selections, 'cell:', cell);
                 graffiti.dimGraffitiCursor();
+                cell.focus_cell();
                 code_mirror.setSelections(selections);
                 if (!code_mirror.state.focused) {
                   code_mirror.focus();
