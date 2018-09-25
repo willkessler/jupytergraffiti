@@ -49,6 +49,7 @@ define([
       state.selectionSerialized = undefined;
       state.hidePlayerAfterPlayback = false;
       state.dontRestoreCellContentsAfterPlayback = false; // this is something the author can decide with an API call.
+      state.lastDisplayIndexes = undefined;
       state.cellOutputsSent = {};
       state.cellStates = {
         contents: {},
@@ -190,6 +191,28 @@ define([
     setMute: (muteState) => {
       state.mute = muteState;
     },
+
+    initializeLastDisplayIndexes: () => {
+      state.lastDisplayIndexes = {
+        'view':       -1,
+        'selections': -1,
+        'contents':   -1,
+        'drawings':   -1,
+        'opacity':    -1
+      }
+    },
+
+    shouldUpdateDisplay: (kind, index) => {
+      if (state.activity !== 'playing') {
+        return true;
+      }
+      if (state.lastDisplayIndexes[kind] === index) {
+        return false; // we've already run this record
+      }
+      state.lastDisplayIndexes[kind] = index;
+      return true;
+    },
+
 
     getGarnishing: () => {
       return state.garnishing;
