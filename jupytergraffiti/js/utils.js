@@ -161,6 +161,7 @@ define([
       Jupyter.notebook.save_notebook().then( () => { console.log('Graffiti: Notebook saved.') });
     },
 
+    // You can delete this, it's no longer needed now that we call cell.focus_cell() when we change selections
     shrinkAllCMSelections: () => {
       const inputCells = Jupyter.notebook.get_cells();
       let cell,cm,selections;
@@ -170,11 +171,11 @@ define([
           cm = cell.code_mirror;
           selections = cm.listSelections();
           if (selections.length > 0) {
-            //console.log('Clearing selections before: selections:', selections);
+            console.log('Clearing selections before: selections:', selections);
             for (let j = 0; j < selections.length; ++j) {
               selections[j].head = $.extend({}, selections[j].anchor);
             }
-            //console.log('Clearing selections after: selections:', selections);
+            console.log('Clearing selections after: selections:', selections);
             cm.setSelections(selections);
           }
         }
