@@ -834,8 +834,7 @@ define([
           if (e.type === 'mousedown') {
             console.log('garnishScreenHandler: mousedown');
             state.setGarnishing(true);
-            state.disableGarnishFade();
-            graffiti.updateGarnishOpacity(true);
+            graffiti.updateGarnishOpacity({recording:true, reset:true});
             switch (graffiti.activePen) {
               case 'highlight':
                 state.setGarnishStyle('highlight');
@@ -966,33 +965,55 @@ define([
             graffiti.clearCanvas(canvasType, cellId);
           }
         }
-        graffiti.updateGarnishOpacity(true); // reset temporary canvas opacity after they get cleared so next thing drawn will show up
       },
 
-      clearTemporaryCanvasesOnFadeout: (opacity) => {
+      processGarnishFadeout: () => {
+        opacity = state.calculateGarnishOpacity();
         const firstCanvas = $('.graffiti-canvas-type-temporary:first');
         if (firstCanvas.length > 0) {
           const currentOpacity = firstCanvas.css('opacity') + 0.0;
-          if ((currentOpacity > 0) && (currentOpacity < 0.5) && (opacity === 0.0)) {
+          if ((currentOpacity > 0) && (currentOpacity < state.getMaxGarnishOpacity()) && (opacity / state.getMaxGarnishOpacity() <= 0.025)) {
             console.log('clearing temp canvases because they faded out', currentOpacity, opacity);
             graffiti.clearCanvases('temporary');
-            return true;
+            state.setGarnishOpacity(state.getMaxGarnishOpacity());
+            state.storeHistoryRecord('opacity');            
+            return state.getMaxGarnishOpacity();
           }
         }
-        return false;
+        return opacity;
       },
       
-      updateGarnishOpacity: (reset) => {
-        if (reset) {
-          $('.graffiti-canvas-type-temporary').css({opacity:0.5});
+      updateGarnishOpacity: (opts) => {
+        let opacity = state.getGarnishOpacity();
+        if (opts.recording) {
+          if (opts.reset) {
+            if (opacity < state.getMaxGarnishOpacity()) {
+              graffiti.clearCanvases('temporary'); // clear the canvases only if we were in the middle of a fade. 
+              state.resetGarnishOpacity();
+            }
+            state.disableGarnishFade();
+          } else {
+            opacity = graffiti.processGarnishFadeout(opacity);
+          }
+          if ((opacity >= 0) && opacity < state.getMaxGarnishOpacity()) {
+            console.log('storing in updateGarnishOpacity:opacity =', opacity);
+            state.setGarnishOpacity(opacity);
+            state.storeHistoryRecord('opacity');
+          }
         } else {
-          const opacity = state.calculateTemporaryInkOpacity();
-          if (!graffiti.clearTemporaryCanvasesOnFadeout(opacity)) {
-            $('.graffiti-canvas-type-temporary').css({opacity:opacity});
+          const opacityRecord = state.getHistoryItem('opacity',opts.opacityIndex);
+          console.log('opacityRecord:', opacityRecord);
+          if (opacityRecord !== undefined) {
+            opacity = opacityRecord.opacity;
           }
         }
-      },
-      
+        $('.graffiti-canvas-type-temporary').css({opacity:opacity});
+        if (opacity === 0.0) {
+          state.resetGarnishOpacity();
+        } else {
+          state.setGarnishOpacity(opacity);
+        }
+      },      
 
       updateGarnishDisplay: (cellId, ax, ay, bx, by, garnishStyle, garnishPermanence) => {
         if (garnishPermanence === undefined) {
@@ -2044,6 +2065,7 @@ define([
             audio.startRecording();
             state.setScrollTop(graffiti.sitePanel.scrollTop());
             state.setGarnishing(false);
+            state.resetGarnishOpacity();
             graffiti.clearGarnishPen();
 
             state.setRecordingInterval(
@@ -2054,7 +2076,7 @@ define([
                   graffiti.runOnceOnNextRecordingTick = undefined;
                 }
                 graffiti.updateTimeDisplay(state.getTimeRecordedSoFar());
-                graffiti.updateGarnishOpacity(false);
+                graffiti.updateGarnishOpacity({recording:true, reset: false});
               }, graffiti.recordingIntervalMs)
             );
             // Flash a red recording bullet while recording is ongoing, every second. 
@@ -2213,6 +2235,11 @@ define([
         }
       },
 
+      updateOpacity: (opacityIndex) => {
+        // Update the garnish canvases' opacity
+        graffiti.updateGarnishOpacity({recording:false, reset:false, opacityIndex: opacityIndex});
+      },
+
       updateView: (viewIndex) => {
         // console.log('updateView, viewIndex:', viewIndex);
         let record = state.getHistoryItem('view', viewIndex);
@@ -2232,9 +2259,6 @@ define([
         } else {
           graffiti.dimGraffitiCursor();
         }
-
-        // If we were not garnishing right now, handle updating the garnish canvases' opacities
-        graffiti.updateGarnishOpacity(false);
 
         if (record.hoverCell) {
           const cm = record.hoverCell.code_mirror;
@@ -2405,6 +2429,7 @@ define([
         //console.log('before updateView, scrollTop:', graffiti.sitePanel.scrollTop());
         graffiti.updateView(frameIndexes.view);
         //console.log('after updateView, scrollTop:', graffiti.sitePanel.scrollTop());
+        graffiti.updateOpacity(frameIndexes.opacity);
       },
 
       // update the timer display for play or recording

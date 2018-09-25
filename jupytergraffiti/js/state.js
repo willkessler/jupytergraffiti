@@ -37,8 +37,9 @@ define([
       state.garnishFadeStart;
       state.garnishFadeDuration = 1000;
       state.garnishFadePreFadeDelay = 1000;
+      state.maxGarnishOpacity = 0.5;
+      state.garnishOpacity = state.maxGarnishOpacity;
       state.totalGarnishFadeDuration = state.garnishFadePreFadeDelay + state.garnishFadeDuration;
-      state.temporaryInkOpacity = 1.0;
       state.lastGarnishInfo = { garnishing: false };
       state.lastEditActivityTime = undefined;
       state.controlPanelDragging = false;
@@ -240,27 +241,34 @@ define([
       return utils.getNow() - state.garnishFadeStart;
     },
 
-    getTemporaryInkOpacity: () => {
-      return state.temporaryInkOpacity;
+    getGarnishOpacity: () => {
+      return state.garnishOpacity;
     },
 
-    setTemporaryInkOpacity: (opacity) => {
-      state.temporaryInkOpacity = opacity;
+    setGarnishOpacity: (opacity) => {
+      state.garnishOpacity = opacity;
     },
 
-    calculateTemporaryInkOpacity: () => {
+    getMaxGarnishOpacity: () => {
+      return state.maxGarnishOpacity;
+    },
+
+    resetGarnishOpacity: () => {
+      state.garnishOpacity = state.maxGarnishOpacity;
+    },
+
+    calculateGarnishOpacity: () => {
       // console.log('garnishFadeCounter', state.garnishFadeCounter);
       const timeSoFar = state.getGarnishFadeTimeSoFar();
-      const maxOpacity = 0.5;
+      let opacity = state.maxGarnishOpacity;
       if (!state.garnishFadeAllowed || timeSoFar < state.garnishFadePreFadeDelay) {
-        return maxOpacity;
+        return state.maxGarnishOpacity;
       }
       if (timeSoFar < state.totalGarnishFadeDuration) {
-        const opacity = ((state.totalGarnishFadeDuration - timeSoFar) / state.garnishFadeDuration) * maxOpacity;
-        console.log('calculateTemporaryInkOpacity:', opacity);
-        return opacity;
+        opacity = ((state.totalGarnishFadeDuration - timeSoFar) / state.garnishFadeDuration) * state.maxGarnishOpacity;
+        console.log('calculateGarnishOpacity:', opacity);
       }
-      return 0;
+      return opacity;
     },
 
     disableGarnishFade: () => {
@@ -474,7 +482,7 @@ define([
 
     createOpacityRecord: () => {
       return {
-        opacity: state.temporaryInkOpacity
+        opacity: state.garnishOpacity
       }
     },
 
