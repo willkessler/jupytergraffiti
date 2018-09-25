@@ -38,6 +38,7 @@ define([
       state.garnishFadeDuration = 1000;
       state.garnishFadePreFadeDelay = 1000;
       state.maxGarnishOpacity = 0.5;
+      state.garnishOpacityReset = false;
       state.garnishOpacity = state.maxGarnishOpacity;
       state.totalGarnishFadeDuration = state.garnishFadePreFadeDelay + state.garnishFadeDuration;
       state.lastGarnishInfo = { garnishing: false };
@@ -249,6 +250,14 @@ define([
       state.garnishOpacity = opacity;
     },
 
+    clearGarnishOpacityReset: () => {
+      state.garnishOpacityReset = false;
+    },
+
+    setupGarnishOpacityReset: () => {
+      state.garnishOpacityReset = true;
+    },
+
     getMaxGarnishOpacity: () => {
       return state.maxGarnishOpacity;
     },
@@ -257,18 +266,23 @@ define([
       state.garnishOpacity = state.maxGarnishOpacity;
     },
 
+    garnishFadeInProgress: () => {
+      return state.garnishOpacity < state.maxGarnishOpacity;
+    },
+
     calculateGarnishOpacity: () => {
       // console.log('garnishFadeCounter', state.garnishFadeCounter);
       const timeSoFar = state.getGarnishFadeTimeSoFar();
       let opacity = state.maxGarnishOpacity;
       if (!state.garnishFadeAllowed || timeSoFar < state.garnishFadePreFadeDelay) {
-        return state.maxGarnishOpacity;
+        return { status: 'max', opacity: state.maxGarnishOpacity };
       }
       if (timeSoFar < state.totalGarnishFadeDuration) {
         opacity = ((state.totalGarnishFadeDuration - timeSoFar) / state.garnishFadeDuration) * state.maxGarnishOpacity;
         console.log('calculateGarnishOpacity:', opacity);
+        return { status: 'fade', opacity: opacity };
       }
-      return opacity;
+      return { status: 'fadeDone', opacity: 0 };
     },
 
     disableGarnishFade: () => {
@@ -481,8 +495,11 @@ define([
     },
 
     createOpacityRecord: () => {
+      const reset = state.garnishOpacityReset;
+      state.clearGarnishOpacityReset();
       return {
-        opacity: state.garnishOpacity
+        opacity: state.garnishOpacity,
+        reset: reset
       }
     },
 
