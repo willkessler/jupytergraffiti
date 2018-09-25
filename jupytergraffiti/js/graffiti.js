@@ -31,8 +31,7 @@ define([
         graffiti.notebookContainer = $('#notebook-container');
         graffiti.notebookContainerPadding = parseInt(graffiti.notebookContainer.css('padding').replace('px',''));
         graffiti.penColor = '000000';
-        graffiti.lastDrawIndex = undefined;
-        graffiti.lastGarnishEraseIndex = undefined;
+        graffiti.lastDisplayIndexes = {};
 
         graffiti.recordingIntervalMs = 10; // In milliseconds, how frequently we sample the state of things while recording.
         graffiti.storageInProcess = false;
@@ -2270,11 +2269,6 @@ define([
       },
 
       updateView: (viewIndex) => {
-        if ((state.getActivity() === 'playing') && (graffiti.lastDrawIndex !== undefined) && (graffiti.lastDrawIndex === viewIndex) ) {
-          return; // don't process this view process, already processed (avoids double drawing)
-        }
-        graffiti.lastDrawIndex = viewIndex;
-
         // console.log('updateView, viewIndex:', viewIndex);
         let record = state.getHistoryItem('view', viewIndex);
         record.hoverCell = utils.findCellByCellId(record.cellId);
@@ -2457,13 +2451,21 @@ define([
 
       updateDisplay: (frameIndexes) => {
         //console.log('before updateContents, scrollTop:', graffiti.sitePanel.scrollTop());
-        graffiti.updateContents(frameIndexes.contents, graffiti.sitePanel.scrollTop());
+        if (state.shouldUpdateDisplay('contents', frameIndexes.contents)) {
+          graffiti.updateContents(frameIndexes.contents, graffiti.sitePanel.scrollTop());
+        }
         // console.log('before updateSelections, scrollTop:', graffiti.sitePanel.scrollTop());
-        graffiti.updateSelections(frameIndexes.selections, graffiti.sitePanel.scrollTop());
+        if (state.shouldUpdateDisplay('selections', frameIndexes.selections)) {
+          graffiti.updateSelections(frameIndexes.selections, graffiti.sitePanel.scrollTop());
+        }
         //console.log('before updateView, scrollTop:', graffiti.sitePanel.scrollTop());
-        graffiti.updateView(frameIndexes.view);
+        if (state.shouldUpdateDisplay('view', frameIndexes.view)) {
+          graffiti.updateView(frameIndexes.view);
+        }
         //console.log('after updateView, scrollTop:', graffiti.sitePanel.scrollTop());
-        graffiti.updateOpacity(frameIndexes.opacity);
+        if (state.shouldUpdateDisplay('opacity', frameIndexes.opacity)) {
+          graffiti.updateOpacity(frameIndexes.opacity);
+        }
       },
 
       // update the timer display for play or recording
@@ -2612,6 +2614,7 @@ define([
           graffiti.lastGarnishEraseIndex = undefined;
           state.storeCellStates();
           state.clearCellOutputsSent();
+          state.initializeLastDisplayIndexes();
           graffiti.clearCanvases('all');
           graffiti.scrollNudgeAverages = [];
         }
