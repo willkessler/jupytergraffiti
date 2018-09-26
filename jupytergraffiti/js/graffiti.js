@@ -1083,7 +1083,7 @@ define([
           for (let viewIndex = firstViewIndex; viewIndex < lastViewIndex; ++viewIndex) {
             record = state.getHistoryItem('view', viewIndex);
             // We must locate the cell in the notebook today (vs when the recording was made) before we can redraw garnish.
-            if (record.pointerUpdate) {
+            if (record.subType === 'pointer') {
               //console.log('pointerUpdate is true, record:', record);
               record.hoverCell = utils.findCellByCellId(record.cellId); 
               graffiti.updatePointer(record);
@@ -2206,19 +2206,20 @@ define([
           const cellRects = utils.getCellRects(record.hoverCell);
 
           //console.log('hoverCellId:', record.hoverCell.metadata.cellId, 'rect:', innerCellRect);
-          let dxScaled, dyScaled;
+          const dx = record.x / record.innerCellRect.width;
+          const dy = record.y / record.innerCellRect.height;
           if (record.hoverCell.cell_type === 'code') {
             if (record.innerCellRect.width !== undefined) {
-              dxScaled = parseInt(record.innerCellRect.width * record.dx);
-              dyScaled = parseInt(record.innerCellRect.height * record.dy);
+              dxScaled = parseInt(record.innerCellRect.width * dx);
+              dyScaled = parseInt(record.innerCellRect.height * dy);
             } else {
               const codeCellWidth = $('.code_cell:first').width();
-              dxScaled = parseInt(codeCellWidth * record.dx);
-              dyScaled = parseInt(cellRects.innerCellRect.height * record.dy);
+              dxScaled = parseInt(codeCellWidth * dx);
+              dyScaled = parseInt(cellRects.innerCellRect.height * dy);
             }
           } else {
-            dxScaled = parseInt(cellRects.innerCellRect.width * record.dx);
-            dyScaled = parseInt(cellRects.innerCellRect.height * record.dy);
+            dxScaled = parseInt(cellRects.innerCellRect.width * dx);
+            dyScaled = parseInt(cellRects.innerCellRect.height * dy);
           }
           const offsetPosition = {
             x : cellRects.innerCellRect.left + dxScaled,
@@ -2283,7 +2284,7 @@ define([
         }
 
         // Handle pointer updates and canvas updates
-        if (record.pointerUpdate) {
+        if (record.subType === 'pointer') {
           //console.log('pointerUpdate is true, record:', record);
           graffiti.updatePointer(record);
         } else {
