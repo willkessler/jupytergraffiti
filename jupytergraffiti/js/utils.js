@@ -121,12 +121,12 @@ define([
           };
           cellPosition = $(cellElement).position();
           cm = cell.code_mirror;
+          const innerScrollInfo = cm.getScrollInfo();
+          const innerScroll = { left: innerScrollInfo.left, top: innerScrollInfo.top };
           return {
             cellId: cell.metadata.cellId, // The id of cell that the pointer is hovering over right now
-            cellRect: cellRect,           // The bounding rect for that cell.
             innerCellRect: innerCellRect,
-            innerScroll: cm.getScrollInfo(),
-            cellPositionTop: cellPosition.top,
+            innerScroll: innerScroll,
             selectedCellId: selectedCellId,
             notebookPanelHeight: notebookPanelHeight,
             garnishing: garnishing,

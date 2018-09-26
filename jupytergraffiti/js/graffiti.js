@@ -889,13 +889,13 @@ define([
       },
 
       placeCanvas: (cellId, garnishPermanence) => {
-        if (graffiti.canvases[garnishPermanence][cellId] !== undefined) {
-          //console.log('not adding ' + garnishPermanence + ' canvas to this cell, already exists.');
-          return;
-        }
         const cell = utils.findCellByCellId(cellId);
         const cellElement = $(cell.element[0]);
         const cellRect = cellElement[0].getBoundingClientRect();
+        if (graffiti.canvases[garnishPermanence][cellId] !== undefined) {
+          //console.log('not adding ' + garnishPermanence + ' canvas to this cell, already exists.');
+          return cellRect;
+        }
         $('<div class="graffiti-canvas-outer graffiti-canvas-type-' + garnishPermanence + '"><canvas /></div>').appendTo(cellElement);
         const newCellCanvasDiv = cellElement.find('.graffiti-canvas-outer:last');
         const newCellCanvas = newCellCanvasDiv.find('canvas')[0];
@@ -919,6 +919,7 @@ define([
           ctx: ctx,
           cellRect: cellRect
         };
+        return cellRect;
       },
       
       setCanvasStyle: (cellId, penType, canvasColor, canvasPermanence) => {
@@ -1046,9 +1047,8 @@ define([
       updateGarnishDisplayIfRecording: (ax, ay, bx, by, viewInfo) => {
         if (state.getActivity() === 'recording') {
           if (viewInfo.garnishing) {
-            graffiti.placeCanvas(viewInfo.cellId, viewInfo.garnishPermanence);
+            const cellRect = graffiti.placeCanvas(viewInfo.cellId, viewInfo.garnishPermanence);
             graffiti.setCanvasStyle(viewInfo.cellId, viewInfo.garnishStyle, viewInfo.garnishColor, viewInfo.garnishPermanence);
-            const cellRect = viewInfo.cellRect;
             graffiti.updateGarnishDisplay(viewInfo.cellId, 
                                           ax - cellRect.left,
                                           ay - cellRect.top, 
@@ -2208,9 +2208,9 @@ define([
           //console.log('hoverCellId:', record.hoverCell.metadata.cellId, 'rect:', innerCellRect);
           let dxScaled, dyScaled;
           if (record.hoverCell.cell_type === 'code') {
-            if (record.innerCellRectWidth !== undefined) {
-              dxScaled = parseInt(record.innerCellRectWidth * record.dx);
-              dyScaled = parseInt(record.innerCellRectHeight * record.dy);
+            if (record.innerCellRect.width !== undefined) {
+              dxScaled = parseInt(record.innerCellRect.width * record.dx);
+              dyScaled = parseInt(record.innerCellRect.height * record.dy);
             } else {
               const codeCellWidth = $('.code_cell:first').width();
               dxScaled = parseInt(codeCellWidth * record.dx);
@@ -2295,32 +2295,7 @@ define([
           // Update innerScroll if required
           cm.scrollTo(record.innerScroll.left, record.innerScroll.top);
 
-          // Compute mapped scrollTop for this timeframe
           const currentNotebookPanelHeight = graffiti.notebookPanel.height();
-          const scrollRatio = record.scrollTop / record.notebookPanelHeight;
-          const mappedScrollTop = scrollRatio * currentNotebookPanelHeight;
-
-          // Compute offset to hoverCell from history value mapped to current panel height, to current cell position
-          const hoverCellElement = $(record.hoverCell.element[0]);
-          const hoverCellTop = hoverCellElement.position().top;
-          const mappedTop = (record.cellPositionTop / record.notebookPanelHeight) * currentNotebookPanelHeight;
-
-          const positionDifference = hoverCellTop - mappedTop;
-
-          // need to subtract mapped (difference btwn original cell position and starting cell position when playback begins)
-
-          // Compute difference in cell sizes of the history hoverCell size to current cell size, and subtract half of that difference
-          // in order to offset cell size changes
-          const mappedHeight = record.innerCellRect.height * (record.notebookPanelHeight / currentNotebookPanelHeight);
-          const heightDiff = $(hoverCellElement.find('.inner_cell')[0]).height() - mappedHeight;
-          const heightDiffAdjustment = 0.5 * heightDiff;
-
-          // Now the updated scrollTop is computed by adding all three values together.
-          //console.log('mappedScrollTop, positionDifference, heightDiffAdjustment:', mappedScrollTop, positionDifference, heightDiffAdjustment);
-
-          const scrollTop = parseInt(mappedScrollTop + positionDifference + heightDiffAdjustment);
-          //const scrollTop = parseInt(mappedScrollTop + hoverCellTop + heightDiffAdjustment);
-
           const mappedScrollDiff = ((record.scrollDiff === undefined ? 0 : record.scrollDiff) / record.notebookPanelHeight) * currentNotebookPanelHeight;
           const currentScrollTop = graffiti.sitePanel.scrollTop();
 
