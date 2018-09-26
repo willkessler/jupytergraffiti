@@ -509,8 +509,6 @@ define([
         dx: (state.pointer.x - state.viewInfo.innerCellRect.left)  / state.viewInfo.innerCellRect.width,
         dy: (state.pointer.y - state.viewInfo.innerCellRect.top)   / state.viewInfo.innerCellRect.height,
         scrollDiff: state.viewInfo.scrollDiff,
-        innerCellRectWidth: state.viewInfo.innerCellRect.width,
-        innerCellRectHeight: state.viewInfo.innerCellRect.height,
         pointerUpdate: opts.pointerUpdate,
         focusUpdate: opts.focusUpdate,
         selectedCellId: state.selectedCellId
