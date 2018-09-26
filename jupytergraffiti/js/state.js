@@ -504,13 +504,12 @@ define([
       console.log("=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-");
     },
 
-    createViewRecord: (opts) => {
+    createViewRecord: (subType) => {
       return $.extend({}, state.viewInfo, {
-        dx: (state.pointer.x - state.viewInfo.innerCellRect.left)  / state.viewInfo.innerCellRect.width,
-        dy: (state.pointer.y - state.viewInfo.innerCellRect.top)   / state.viewInfo.innerCellRect.height,
+        x: state.pointer.x - parseInt(state.viewInfo.innerCellRect.left),
+        y: state.pointer.y - parseInt(state.viewInfo.innerCellRect.top),
+        subType: subType,
         scrollDiff: state.viewInfo.scrollDiff,
-        pointerUpdate: opts.pointerUpdate,
-        focusUpdate: opts.focusUpdate,
         selectedCellId: state.selectedCellId
       });
     },
@@ -666,19 +665,19 @@ define([
       // Note: we override the type to throw together pointer moves, scroll innerScroll, and focus in one history record type
       switch (type) {
         case 'pointer':
-          record = state.createViewRecord({ pointerUpdate: true,  focusUpdate: false });
+          record = state.createViewRecord('pointer');
           type = 'view';
           break;
         case 'scroll':
-          record = state.createViewRecord({ pointerUpdate: false, focusUpdate:false });
+          record = state.createViewRecord('scroll');
           type = 'view';
           break;
         case 'innerScroll':
-          record = state.createViewRecord({ pointerUpdate: false, focusUpdate:false });
+          record = state.createViewRecord('innerScroll');
           type = 'view';
           break;
         case 'focus':
-          record = state.createViewRecord({ pointerUpdate: false, focusUpdate:true });
+          record = state.createViewRecord('focus');
           type = 'view';
           break;
         case 'opacity':
