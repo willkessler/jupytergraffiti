@@ -1592,15 +1592,6 @@ define([
         }
       },
 
-      selectIntersectingGraffitiRange: () => {
-        const recordingCellInfo = state.getRecordingCellInfo();
-        const recordingCell = recordingCellInfo.recordingCell;
-        const cm = cell.code_mirror;
-        const startLoc = cm.posFromIndex(graffiti.selectedTokens.range.start);
-        const endLoc = cm.posFromIndex(graffiti.selectedTokens.range.end);
-        cm.setSelection();        
-      },
-
       highlightIntersectingGraffitiRange: () => {
         graffiti.clearHighlightMarkText();
         if (state.getAccessLevel() === 'view') { // we never do this in view mode
@@ -1613,6 +1604,17 @@ define([
           const endLoc = cm.posFromIndex(graffiti.selectedTokens.range.end);
           graffiti.highlightMarkText = cm.markText(startLoc, endLoc, { className: 'graffiti-selected' });
         }
+      },
+
+      selectIntersectingGraffitiRange: () => {
+        const recordingCellInfo = state.getRecordingCellInfo();
+        const recordingCell = recordingCellInfo.recordingCell;
+        const cm = recordingCell.code_mirror;
+        const startLoc = cm.posFromIndex(graffiti.selectedTokens.range.start);
+        const endLoc = cm.posFromIndex(graffiti.selectedTokens.range.end);
+        cm.setSelections([ { anchor: startLoc, head: endLoc } ]);        
+        graffiti.selectedTokens = utils.findSelectionTokens(recordingCell, graffiti.tokenRanges, state);
+        graffiti.highlightIntersectingGraffitiRange();
       },
 
       editGraffiti: (newActivity) => {
@@ -2042,7 +2044,7 @@ define([
         graffiti.updateAllGraffitiDisplays();
         graffiti.sitePanel.animate({ scrollTop: graffiti.preRecordingScrollTop }, 750);
         state.restoreCellStates('selections');
-        //graffiti.selectRecordingToken();
+        graffiti.selectIntersectingGraffitiRange();
         state.deleteTrackingArrays();
         graffiti.changeActivity('idle');
       },
@@ -2480,15 +2482,6 @@ define([
           recorderTimeDisplay = $('#graffiti-time-display-playback');
         }
         recorderTimeDisplay.text(timeDisplay);
-        /*
-           // Update recording flasher icon. Restore this someday maybe...
-           const now = utils.getNow();
-           if (now % 1000 < 500) {
-           $('#recorder-flasher').hide();
-           } else {
-           $('#recorder-flasher').show();
-           }
-         */
       },
 
       updateSlider: (playedSoFar) => {

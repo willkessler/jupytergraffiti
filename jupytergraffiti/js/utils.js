@@ -282,7 +282,7 @@ define([
             endRange = cm.indexFromPos(range.end);
             console.log('startPos:', startPos, 'endPos:', endPos, '| startRange:', startRange, 'endRange:', endRange, 'range:', range);
             if ((startPos <= startRange && endPos >= endRange) || // selection surrounds or equals the range
-                ((startPos >= startRange && startPos <= endRange) || (endPos >= startRange && endPos <= endRange))) { // selection is inside the range
+                ((startPos >= startRange && startPos < endRange) || (endPos > startRange && endPos <= endRange))) { // selection is inside the range
               if (startRange < minStartRange) {
                 minStartRange = startRange;
                 recording = state.getManifestSingleRecording(recordingCellId, recordingKey);
