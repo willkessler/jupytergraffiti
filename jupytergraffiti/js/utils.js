@@ -121,14 +121,11 @@ define([
           };
           cellPosition = $(cellElement).position();
           cm = cell.code_mirror;
-          // Compute the position of the cursor relative to the hover cell.
-          pointerPosition = { x: parseInt(clientX - innerCellRect.left), y: parseInt(clientY - innerCellRect.top) };
           return {
             cellId: cell.metadata.cellId, // The id of cell that the pointer is hovering over right now
             cellRect: cellRect,           // The bounding rect for that cell.
             innerCellRect: innerCellRect,
             innerScroll: cm.getScrollInfo(),
-            pointerPosition: pointerPosition,
             cellPositionTop: cellPosition.top,
             selectedCellId: selectedCellId,
             notebookPanelHeight: notebookPanelHeight,
