@@ -18,7 +18,7 @@ define([
       state.resetOnNextPlay = false;
       state.recordedAudioString = '';
       state.audioStorageCallback = undefined;
-      state.frameArrays = ['view', 'selections', 'contents', 'opacity'];
+      state.frameArrays = ['view', 'selections', 'contents', 'drawings'];
       state.scrollTop = undefined;
       state.selectedCellId = undefined;
       state.mute = false;
@@ -49,7 +49,6 @@ define([
       state.selectionSerialized = undefined;
       state.hidePlayerAfterPlayback = false;
       state.dontRestoreCellContentsAfterPlayback = false; // this is something the author can decide with an API call.
-      state.lastDisplayIndexes = undefined;
       state.cellOutputsSent = {};
       state.cellStates = {
         contents: {},
@@ -57,6 +56,20 @@ define([
         selections: {}
       };
 
+      // Set up a default version of the drawing state object. This gets updated during drawing activity.
+      state.drawingState = {
+        action:'disabled', // default, is not enabled. Could be one of 'draw', 'fade', 'wipe'
+        cellId: undefined,
+        position: { x: 0, y: 0 },
+        pen: {
+          isDown: false, // becomes true when the pen is down, ie user has clicked and held the mouse button
+          isPermanent: true, // if false, ink disappears after a second of inactivity
+          type: 'line', // one of 'line', 'highlight', 'eraser'
+          color: '000000',
+        },
+        opacity: state.maxGarnishOpacity
+      };
+        
       utils.refreshCellMaps();
 
     },
@@ -192,27 +205,76 @@ define([
       state.mute = muteState;
     },
 
-    initializeLastDisplayIndexes: () => {
-      state.lastDisplayIndexes = {
-        'view':       -1,
-        'selections': -1,
-        'contents':   -1,
-        'drawings':   -1,
-        'opacity':    -1
-      }
-    },
-
     shouldUpdateDisplay: (kind, index) => {
-      if (state.activity !== 'playing') {
-        return true;
+      if ((state.activity === 'playing') && (state.history.lastVisited[kind] === index)) {
+        debugger;
+        return false; // we've already processed this record during playback, so don't reprocess
       }
-      if (state.lastDisplayIndexes[kind] === index) {
-        return false; // we've already run this record
-      }
-      state.lastDisplayIndexes[kind] = index;
       return true;
     },
 
+    //
+    // Garnish utility fns
+    //
+    isDrawingPenDown: () => {
+      return state.drawingState.pen.isDown;
+    },
+
+    setDrawingPenDown: (status) => {
+      state.drawingState.pen.isDown = status;
+    },
+
+    isDrawingPenPermanent: () => {
+      return state.drawingState.pen.isPermanent;
+    },
+
+    setDrawingPenPermanence: (status) => {
+      state.drawingState.pen.isPermanent = status;
+    },
+
+    updateDrawingState: (changeSets) => {
+      for (let changeSet of changeSets) {
+        const change = changeSet.change;
+        state.drawingState.wipe = false; // default, we don't register a wipe state
+        switch (change) {
+          case 'action':
+            state.drawingState.action = changeSet.data.action;
+            state.drawingState.cellId = changeSet.data.cellId;
+            break;
+          case 'draw':
+            state.drawingState.position = { x: changeSet.data.position.x, y: changeSet.data.position.y };
+            state.drawingState.pen.type = 'pen';
+            break;
+          case 'erase':
+            state.drawingState.position = { x: changeSet.data.position.x, y: changeSet.data.position.y };
+            state.drawingState.pen.type = 'eraser';
+            break;
+          case 'color':
+            state.drawingState.pen.color = changeSet.data;
+            break;
+          case 'penType':
+            state.drawingState.pen.type = changeSet.data;  // one of 'line', 'highlight'
+            break;
+          case 'permanence':
+            state.drawingState.pen.isPermanent = changeSet.data;
+            break;
+          case 'opacity':
+            state.drawingState.opacity = changeSet.data.opacity;
+            break;
+          case 'wipe':
+            state.drawingState.wipe = true;
+            break;
+        }
+      }
+    },
+
+    resetDrawingOpacity: () => {
+      state.drawingState.opacity = state.maxGarnishOpacity;
+    },
+
+    getActivePenType: () => {
+      return state.drawingState.pen.type;
+    },
 
     getGarnishing: () => {
       return state.garnishing;
@@ -261,10 +323,6 @@ define([
       state.garnishPermanence = newValue; // one of "permanent", "temporary"
     },
 
-    getGarnishFadeTimeSoFar: () => {
-      return utils.getNow() - state.garnishFadeStart;
-    },
-
     getGarnishOpacity: () => {
       return state.garnishOpacity;
     },
@@ -291,6 +349,10 @@ define([
 
     garnishFadeInProgress: () => {
       return state.garnishOpacity < state.maxGarnishOpacity;
+    },
+
+    getGarnishFadeTimeSoFar: () => {
+      return utils.getNow() - state.garnishFadeStart;
     },
 
     calculateGarnishOpacity: () => {
@@ -514,13 +576,12 @@ define([
       });
     },
 
-    createOpacityRecord: () => {
-      const reset = state.garnishOpacityReset;
-      state.clearGarnishOpacityReset();
-      return {
-        opacity: state.garnishOpacity,
-        reset: reset
-      }
+    createDrawingRecord: () => {
+      let record = $.extend({}, state.drawingState);
+      // Remove statuses that are not needed in history records
+      delete(record.pen.isPermanent);
+      delete(record.pen.isDown);
+      return record;
     },
 
     createSelectionsRecord: () => {
@@ -666,23 +727,22 @@ define([
       switch (type) {
         case 'pointer':
           record = state.createViewRecord('pointer');
-          type = 'view';
+          type = 'view'; // override passed-in type: pointer is a view type
           break;
         case 'scroll':
           record = state.createViewRecord('scroll');
-          type = 'view';
+          type = 'view'; // override passed-in type: scroll is a view type
           break;
         case 'innerScroll':
           record = state.createViewRecord('innerScroll');
-          type = 'view';
+          type = 'view'; // override passed-in type: innerScroll is a view type
           break;
         case 'focus':
           record = state.createViewRecord('focus');
-          type = 'view';
+          type = 'view'; // override passed-in type: focus is a view type
           break;
-        case 'opacity':
-          record = state.createOpacityRecord();
-          type = 'opacity';
+        case 'drawings':
+          record = state.createDrawingRecord();
           break;
         case 'selections':
           record = state.createSelectionsRecord();
@@ -705,14 +765,14 @@ define([
         view:        [],                          // pointer move, vertical scroll or innerscroll (scroll inside cell)
         selections:  [],                          // cell selections
         contents:    [],                          // contents state: what cells present, and what their contents are, and cell outputs
-        opacity:     [],                          // current opacity of the temporary ink canvases (e.g. in the middle of a fadeout?)
+        drawings:    [],                          // drawing record, of type: ['draw', 'fade', 'wipe']
 
         // Where we are in each track, during playback.
         lastVisited: {
           view:       0,
           selections: 0,
           contents:   0,
-          opacity:    0,
+          drawings:   0
         },
 
         cellContentsTracking: {},                  // this enables back-referencing to reduce storage costs on content recording
@@ -725,7 +785,7 @@ define([
       state.storeHistoryRecord('focus',      now);
       state.storeHistoryRecord('selections', now);
       state.storeHistoryRecord('contents',   now);
-      state.storeHistoryRecord('opacity',    now);
+      state.storeHistoryRecord('drawings',   now);
     },
 
     finalizeHistory: () => {
