@@ -33,7 +33,7 @@ define([
       state.garnishStyle = 'highlight'; // one of: 'highlight' or 'line'
       state.garnishColor = '000000';
       state.garnishPermanence = 'temporary'; // one of: 'permanent', 'temporary'
-      state.garnishFadeAllowed = true;
+      state.garnishFadeClockAllowed = true;
       state.garnishFadeStart;
       state.garnishFadeDuration = 1000;
       state.garnishFadePreFadeDelay = 1000;
@@ -223,6 +223,10 @@ define([
       return state.drawingState.pen[attr];
     },
 
+    getDrawingState: () => {
+      return state.drawingState;
+    },
+    
     updateDrawingState: (changeSets) => {
       for (let changeSet of changeSets) {
         const change = changeSet.change;
@@ -327,14 +331,6 @@ define([
       state.drawingState.garnishOpacity = opacity;
     },
 
-    clearGarnishOpacityReset: () => {
-      state.garnishOpacityReset = false;
-    },
-
-    setupGarnishOpacityReset: () => {
-      state.garnishOpacityReset = true;
-    },
-
     getMaxGarnishOpacity: () => {
       return state.maxGarnishOpacity;
     },
@@ -351,7 +347,7 @@ define([
       // console.log('garnishFadeCounter', state.garnishFadeCounter);
       const timeSoFar = state.getGarnishFadeTimeSoFar();
       let opacity = state.maxGarnishOpacity;
-      if (!state.garnishFadeAllowed || timeSoFar < state.garnishFadePreFadeDelay) {
+      if (!state.garnishFadeClockAllowed || timeSoFar < state.garnishFadePreFadeDelay) {
         return { status: 'max', opacity: state.maxGarnishOpacity };
       }
       if (timeSoFar < state.totalGarnishFadeDuration) {
@@ -362,14 +358,14 @@ define([
       return { status: 'fadeDone', opacity: 0 };
     },
 
-    disableGarnishFade: () => {
-      state.garnishFadeAllowed = false; // not allowed while drawing a garnish
+    disableGarnishFadeClock: () => {
+      state.garnishFadeClockAllowed = false; // not allowed while drawing a garnish
     },
 
     startGarnishFadeClock: () => {
       console.log('startGarnishFadeClock');
       state.garnishFadeStart = utils.getNow();
-      state.garnishFadeAllowed = true;
+      state.garnishFadeClockAllowed = true;
     },
 
     getLastRecordingCursorPosition: () => {
@@ -569,7 +565,7 @@ define([
     },
 
     createDrawingRecord: () => {
-      let record = $.extend({}, state.drawingState);
+      let record = $.extend(true, {}, state.drawingState);
       // Remove statuses that are not needed in history records
       delete(record.pen.drawingMode);
       delete(record.pen.isDown);
