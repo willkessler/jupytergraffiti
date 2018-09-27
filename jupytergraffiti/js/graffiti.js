@@ -843,6 +843,8 @@ define([
         if (state.getActivity() === 'recording') {
           if (e.type === 'mousedown') {
             console.log('garnishScreenHandler: mousedown');
+            graffiti.resetTemporaryCanvases();
+            state.disableGarnishFadeClock();
             state.updateDrawingState( [ 
               { change: 'drawingModeActivated', data: true }, 
               { change: 'isDown',  data: true }, 
@@ -970,37 +972,45 @@ define([
         }
       },
 
+      resetTemporaryCanvases: () => {
+        const drawingState = state.getDrawingState();
+        const maxOpacity = state.getMaxGarnishOpacity();
+        if (drawingState.opacity < maxOpacity) {
+          console.log('Clearing temp canvases because fade completed');
+          graffiti.clearCanvases('temporary');
+          state.updateDrawingState( [ { change: 'wipe' } ]);
+          state.storeHistoryRecord('drawings');
+          state.updateDrawingState( [ { change: 'opacity', data: maxOpacity } ]);
+          $('.graffiti-canvas-type-temporary').css({opacity: maxOpacity });
+          state.disableGarnishFadeClock();
+        }
+      },
+
       updateGarnishOpacity: (opts) => {
+        const maxOpacity = state.getMaxGarnishOpacity();
         if (opts.recording) {
           // Recording ongoing, so store opacity records and handle resets when mouse goes down
           if (opts.reset) {
             // Forced reset of (possibly fading) canvases
             if (state.garnishFadeInProgress()) {
               graffiti.clearCanvases('temporary'); // clear the canvases only if we were in the middle of a fade. 
-              state.updateDrawingState( [ { change: 'opacity', data: state.getMaxGarnishOpacity() } ]);
+              state.updateDrawingState( [ { change: 'opacity', data: maxOpacity } ]);
             }
-            state.disableGarnishFade();
+            state.disableGarnishFadeClock();
           } else {
             // Check for fadeouts
             const opacityInfo = state.calculateGarnishOpacity();
             switch (opacityInfo.status) {
               case 'max':
-                state.updateDrawingState( [ { change: 'opacity', data: state.getMaxGarnishOpacity() } ] );
+                state.updateDrawingState( [ { change: 'opacity', data: maxOpacity } ] );
                 break;
               case 'fade':
                 state.updateDrawingState( [ { change: 'opacity', data: opacityInfo.opacity } ] );
                 state.storeHistoryRecord('drawings');
+                $('.graffiti-canvas-type-temporary').css({opacity:opacityInfo.opacity});
                 break;
               case 'fadeDone':
-                if (state.getGarnishOpacity() < state.getMaxGarnishOpacity()) {
-                  console.log('Clearing temp canvases because fade completed');
-                  graffiti.clearCanvases('temporary');
-                  state.setupGarnishOpacityReset();
-                  state.updateDrawingState( [ { change: 'wipe' } ]);
-                  state.storeHistoryRecord('drawings');
-                  state.updateDrawingState( [ { change: 'opacity', data: state.getMaxGarnishOpacity() } ]);
-                  state.disableGarnishFade();
-                }
+                graffiti.resetTemporaryCanvases();
                 break;
             }
           }
@@ -1022,18 +1032,19 @@ define([
             }
           }
         }
-        const opacity = state.getGarnishOpacity();
-        $('.graffiti-canvas-type-temporary').css({opacity:opacity});
+        //const opacity = state.getGarnishOpacity();
+        //$('.graffiti-canvas-type-temporary').css({opacity:opacity});
       },      
 
       updateGarnishDisplay: (cellId, ax, ay, bx, by, garnishPenType, garnishPermanence ) => {
-        // console.log('updateGarnishDisplay, garnishPermanence:', garnishPermanence);
+        //console.log('updateGarnishDisplay, garnishPermanence:', garnishPermanence);
         if (graffiti.canvases[garnishPermanence].hasOwnProperty(cellId)) {
           const ctx = graffiti.canvases[garnishPermanence][cellId].ctx;
           if (garnishPenType === 'eraser') {
             const eraseBuffer = 25;
             ctx.clearRect(ax - eraseBuffer / 2, ay - eraseBuffer / 2, eraseBuffer, eraseBuffer);
           } else {
+            console.log('updateGarnishDisplay:', ax, ay, bx, by);
             ctx.beginPath();
             ctx.moveTo(ax, ay);
             ctx.lineTo(bx, by);
@@ -1047,9 +1058,9 @@ define([
       updateGarnishDisplayIfRecording: (ax, ay, bx, by, viewInfo) => {
         if (state.getActivity() === 'recording') {
           if (state.getDrawingPenAttribute('isDown')) {
+            const garnishPermanence = (state.getDrawingPenAttribute('isPermanent') ? 'permanent' : 'temporary');
             const garnishPenType = state.getDrawingPenAttribute('type');
             const garnishPenColor = state.getDrawingPenAttribute('color');
-            const garnishPermanence = (state.getDrawingPenAttribute('isPermanent') ? 'permanent' : 'temporary');
             const cellRect = graffiti.placeCanvas(viewInfo.cellId, garnishPermanence);
             graffiti.setCanvasStyle(viewInfo.cellId, garnishPenType, garnishPenColor, garnishPermanence);
             graffiti.updateGarnishDisplay(viewInfo.cellId, 
@@ -1072,7 +1083,9 @@ define([
                 data: viewInfo.cellId
               }
             ]);
+            console.log('here3', state.getDrawingPenAttribute('isDown'));
             state.storeHistoryRecord('drawings');
+            console.log('here4', state.getDrawingPenAttribute('isDown'));
           }
           state.setLastGarnishInfo(bx, by, viewInfo.garnishing, viewInfo.garnishStyle, viewInfo.cellId);
         }
@@ -2115,7 +2128,7 @@ define([
                                        { change: 'penType', data: undefined },
                                        { change: 'opacity', data: state.getMaxGarnishOpacity() } ]);
             graffiti.resetGarnishPen();
-            state.disableGarnishFade(); // initially, we don't fade since nothing drawn yet
+            state.disableGarnishFadeClock(); // initially, we don't fade since nothing drawn yet
 
             state.setRecordingInterval(
               setInterval(() => {
@@ -2268,7 +2281,7 @@ define([
           }
           if (record.garnishing && !lastGarnishInfo.garnishing) { 
             // we weren't garnishing and we started, so simulate pen down
-            state.disableGarnishFade();
+            state.disableGarnishFadeClock();
           } else if (!record.garnishing && lastGarnishInfo.garnishing) {
             // we were garnishing and we stopped, so simulate pen up
             state.startGarnishFadeClock();
