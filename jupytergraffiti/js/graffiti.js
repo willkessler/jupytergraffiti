@@ -404,9 +404,10 @@ define([
                                             console.log('Graffiti: you picked eraser tool.');
                                             graffiti.toggleGraffitiPen('eraser');
                                             $('#graffiti-temporary-ink-control').attr({checked:false});
-                                            state.updateDrawingState([ { change: 'action', data: 'enabled' }, 
-                                                                       { change: 'penType', data: 'eraser' },
-                                                                       { change: 'permanence', data: true } ]);
+                                            state.updateDrawingState([ { change: 'drawingModeActivated', data: true }, 
+                                                                       { change: 'isPermanent', data: true },
+                                                                       { change: 'drawingActivity', data: 'draw' }, 
+                                                                       { change: 'penType', data: 'eraser' }  ]);
                                           }
                                         },
                                         {
@@ -428,9 +429,8 @@ define([
                                             target.addClass('graffiti-recording-color-active');
                                             console.log('Graffiti: you clicked color:', colorVal);
                                             state.updateDrawingState([ { change: 'color', data: colorVal } ]);
-                                            if (graffiti.activePen === undefined) {
-                                              graffiti.toggleGraffitiPen('line');
-                                            }
+                                            // Turn on the pen/highlighter if you change pen color.
+                                            graffiti.toggleGraffitiPen(state.getDrawingPenAttribute('type'));
                                           }
                                         },
                                         {
@@ -438,11 +438,10 @@ define([
                                           event: 'click',
                                           fn: (e) => {
                                             const temporaryInk = ($('#graffiti-temporary-ink-control').is(':checked') ? 'temporary' : 'permanent');
-                                            state.updateDrawingState([ { change: 'permanence', data: false } ]);
-                                            if ((temporaryInk) && (graffiti.activePen === undefined)) {
-                                              graffiti.toggleGraffitiPen('line');
-                                            }
                                             console.log('You set temporary ink to:', temporaryInk);
+                                            state.updateDrawingState([ { change: 'isPermanent', data: temporaryInk } ]);
+                                            // Turn on the pen/highlighter if you switch temporary ink status.
+                                            graffiti.toggleGraffitiPen(state.getDrawingPenAttribute('type')); 
                                           }
                                         }
                                       ]
@@ -801,27 +800,33 @@ define([
 
       },
 
-      toggleGraffitiPen: (penType) => {
+      toggleGraffitiPen: (penType, deactivate) => {
         if (!(state.getActivity() == 'recording')) {
           return; // Pens can only be used while recording
         }
-        const penControl = $('#graffiti-' + penType + '-pen');
-        if (!(penControl.hasClass('btn'))) {
+        let penControl = $('#graffiti-' + penType + '-pen');
+        if (penControl.length > 0 && !(penControl.hasClass('btn'))) {
           penControl = penControl.parents('.btn');
         }
-        const activePenType = state.getDrawingPenType();
-        if (activePenType !== penType) {
+        const activePenType = state.getDrawingPenAttribute('type');
+        if ((activePenType !== penType) && !deactivate) {
           // Activate a new active pen
           graffiti.showGarnishScreen();
           $('.graffiti-active-pen').removeClass('graffiti-active-pen');
           penControl.addClass('graffiti-active-pen');
           // Turn on drawing (if it's not already on), and activate this pen type
-          state.updateDrawingState([ { change: 'action', data: 'enabled' }, { change: 'penType', data: penType } ]);
+          state.updateDrawingState([ 
+            { change: 'drawingModeActivated', data: true}, 
+            { change: 'penType', data: penType } 
+          ]);
         } else {
           // turn off the active pen and drawing
-          penControl.removeClass('graffiti-active-pen');
+          $('.graffiti-active-pen').removeClass('graffiti-active-pen');
           // Disable drawing
-          state.updateDrawingState([ { change: 'action', data: 'disabled' }, { change: 'penType', data: undefined } ]);
+          state.updateDrawingState([ 
+            { change: 'drawingModeActivated', data: false },
+            { change: 'penType', data: undefined } 
+          ]);
           graffiti.hideGarnishScreen();
         }          
       },
@@ -838,26 +843,15 @@ define([
         if (state.getActivity() === 'recording') {
           if (e.type === 'mousedown') {
             console.log('garnishScreenHandler: mousedown');
-            state.setDrawingPenDown(true);
-            state.resetDrawingOpacity();
-/*
-            graffiti.updateGarnishOpacity({recording:true, reset:true});
-            switch (graffiti.activePen) {
-              case 'highlight':
-                state.setGarnishStyle('highlight');
-                break;
-              case 'line':
-                state.setGarnishStyle('line');
-                break;
-              case 'eraser':
-                state.setGarnishStyle('erase');
-                break;
-            }
-*/
+            state.updateDrawingState( [ 
+              { change: 'drawingModeActivated', data: true }, 
+              { change: 'isDown',  data: true }, 
+              { change: 'opacity', data: state.getMaxGarnishOpacity() } 
+            ]);
           } else if ((e.type === 'mouseup') || (e.type === 'mouseleave')) {
             console.log('garnishScreenHandler: ', e.type);
-            if (state.isDrawingPenDown()) {
-              state.setDrawingPenDown(false);
+            if (state.getDrawingPenAttribute('isDown')) {
+              state.updateDrawingState( [ { change: 'isDown',  data: false } ]);
               state.startGarnishFadeClock();
             }
           }
@@ -870,12 +864,12 @@ define([
       resetGarnishColor: () => {
         $('#graffiti-recording-colors-shell div').removeClass('graffiti-recording-color-active');
         $('#graffiti-recording-color-black').addClass('graffiti-recording-color-active');
-        state.setGarnishColor('000000');
+        state.updateDrawingState([ { change: 'color', data: '000000' }] );
       },
 
-      clearGarnishPen: () => {
+      resetGarnishPen: () => {
         $('.graffiti-active-pen').removeClass('graffiti-active-pen');
-        graffiti.activePen = undefined;
+        graffiti.toggleGraffitiPen(undefined, true); // turn off the active pen
       },
 
       showGarnishScreen: () => {
@@ -983,27 +977,28 @@ define([
             // Forced reset of (possibly fading) canvases
             if (state.garnishFadeInProgress()) {
               graffiti.clearCanvases('temporary'); // clear the canvases only if we were in the middle of a fade. 
-              state.resetGarnishOpacity();
+              state.updateDrawingState( [ { change: 'opacity', data: state.getMaxGarnishOpacity() } ]);
             }
             state.disableGarnishFade();
           } else {
             // Check for fadeouts
             const opacityInfo = state.calculateGarnishOpacity();
-            state.setGarnishOpacity(opacityInfo.opacity);
             switch (opacityInfo.status) {
               case 'max':
-                state.resetGarnishOpacity();
+                state.updateDrawingState( [ { change: 'opacity', data: state.getMaxGarnishOpacity() } ] );
                 break;
               case 'fade':
-                state.storeHistoryRecord('opacity');
+                state.updateDrawingState( [ { change: 'opacity', data: opacityInfo.opacity } ] );
+                state.storeHistoryRecord('drawings');
                 break;
               case 'fadeDone':
-                if (state.garnishFadeInProgress()) {
+                if (state.getGarnishOpacity() < state.getMaxGarnishOpacity()) {
                   console.log('Clearing temp canvases because fade completed');
                   graffiti.clearCanvases('temporary');
                   state.setupGarnishOpacityReset();
-                  state.storeHistoryRecord('opacity');
-                  state.resetGarnishOpacity();
+                  state.updateDrawingState( [ { change: 'wipe' } ]);
+                  state.storeHistoryRecord('drawings');
+                  state.updateDrawingState( [ { change: 'opacity', data: state.getMaxGarnishOpacity() } ]);
                   state.disableGarnishFade();
                 }
                 break;
@@ -1031,14 +1026,11 @@ define([
         $('.graffiti-canvas-type-temporary').css({opacity:opacity});
       },      
 
-      updateGarnishDisplay: (cellId, ax, ay, bx, by, garnishStyle, garnishPermanence) => {
-        if (garnishPermanence === undefined) {
-          garnishPermanence = 'permanent'; // HACK: support for older recordings (adarsh's for instance)
-        }
+      updateGarnishDisplay: (cellId, ax, ay, bx, by, garnishPenType, garnishPermanence ) => {
         // console.log('updateGarnishDisplay, garnishPermanence:', garnishPermanence);
         if (graffiti.canvases[garnishPermanence].hasOwnProperty(cellId)) {
           const ctx = graffiti.canvases[garnishPermanence][cellId].ctx;
-          if (garnishStyle === 'erase') {
+          if (garnishPenType === 'eraser') {
             const eraseBuffer = 25;
             ctx.clearRect(ax - eraseBuffer / 2, ay - eraseBuffer / 2, eraseBuffer, eraseBuffer);
           } else {
@@ -1054,16 +1046,33 @@ define([
       // This fn is called on mousemove, which means fade counts always reset, and we clear the temporary ink completely if it was part way through a fade
       updateGarnishDisplayIfRecording: (ax, ay, bx, by, viewInfo) => {
         if (state.getActivity() === 'recording') {
-          if (state.isDrawingPenDown()) {
-            const cellRect = graffiti.placeCanvas(viewInfo.cellId, viewInfo.garnishPermanence);
-            graffiti.setCanvasStyle(viewInfo.cellId, viewInfo.garnishStyle, viewInfo.garnishColor, viewInfo.garnishPermanence);
+          if (state.getDrawingPenAttribute('isDown')) {
+            const garnishPenType = state.getDrawingPenAttribute('type');
+            const garnishPenColor = state.getDrawingPenAttribute('color');
+            const garnishPermanence = (state.getDrawingPenAttribute('isPermanent') ? 'permanent' : 'temporary');
+            const cellRect = graffiti.placeCanvas(viewInfo.cellId, garnishPermanence);
+            graffiti.setCanvasStyle(viewInfo.cellId, garnishPenType, garnishPenColor, garnishPermanence);
             graffiti.updateGarnishDisplay(viewInfo.cellId, 
                                           ax - cellRect.left,
                                           ay - cellRect.top, 
                                           bx - cellRect.left,
                                           by - cellRect.top,
-                                          viewInfo.garnishStyle,
-                                          viewInfo.garnishPermanence);
+                                          garnishPenType,
+                                          garnishPermanence);
+            state.updateDrawingState([
+              { change:'positions', 
+                data: { 
+                  positions: {
+                    start: { x: ax, y: ay },
+                    end:   { x: bx, y: by }
+                  }
+                }
+              },
+              { change: 'cellId',
+                data: viewInfo.cellId
+              }
+            ]);
+            state.storeHistoryRecord('drawings');
           }
           state.setLastGarnishInfo(bx, by, viewInfo.garnishing, viewInfo.garnishStyle, viewInfo.cellId);
         }
@@ -1262,7 +1271,7 @@ define([
               state.setTipTimeout(() => {
                 const newPointerPosition = state.getPointerPosition();
                 const cursorDistanceSquared = (newPointerPosition.x - currentPointerPosition.x) * (newPointerPosition.x - currentPointerPosition.x) +
-                                                        (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
+                                                         (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
 
                 //console.log('comparing currentPointerPosition, newPointerPosition:', currentPointerPosition,
                 //            newPointerPosition, cursorDistanceSquared);
@@ -1280,8 +1289,8 @@ define([
                     headlineMarkdown = '<div class="headline">' +
                                        ' <div>' + tooltipCommands.captionPic + '</div>' +
                                        ' <div>' + tooltipCommands.caption + '</div>' +
-                                              (tooltipCommands.captionVideo !== undefined ?
-                                               ' <div class="graffiti-video">' + tooltipCommands.captionVideo + '</div>' : '' ) +
+                                               (tooltipCommands.captionVideo !== undefined ?
+                                                ' <div class="graffiti-video">' + tooltipCommands.captionVideo + '</div>' : '' ) +
                                        '</div>';
                   }
                   if (recording !== undefined) {
@@ -2101,10 +2110,12 @@ define([
 
             audio.startRecording();
             state.setScrollTop(graffiti.sitePanel.scrollTop());
-            state.setGarnishing(false);
-            state.resetGarnishOpacity();
+            state.updateDrawingState([ { change: 'drawingModeActivated', data: false },
+                                       { change: 'drawingActivity', data: 'idle' },
+                                       { change: 'penType', data: undefined },
+                                       { change: 'opacity', data: state.getMaxGarnishOpacity() } ]);
+            graffiti.resetGarnishPen();
             state.disableGarnishFade(); // initially, we don't fade since nothing drawn yet
-            graffiti.clearGarnishPen();
 
             state.setRecordingInterval(
               setInterval(() => {
@@ -2447,9 +2458,11 @@ define([
         if (state.shouldUpdateDisplay('view', frameIndexes.view)) {
           graffiti.updateView(frameIndexes.view);
         }
+/*
         if (state.shouldUpdateDisplay('drawing', frameIndexes.drawings)) {
           graffiti.updateDrawings(frameIndexes.drawings);
         }
+*/
       },
 
       // update the timer display for play or recording
