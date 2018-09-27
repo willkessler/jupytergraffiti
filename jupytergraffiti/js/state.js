@@ -58,12 +58,16 @@ define([
 
       // Set up a default version of the drawing state object. This gets updated during drawing activity.
       state.drawingState = {
-        action:'disabled', // default, is not enabled. Could be one of 'draw', 'fade', 'wipe'
+        drawingModeActivated: false,     // when true a drawing tool is selected
+        drawingActivity: 'draw',         // One of 'draw', 'fade', 'wipe'. Note that 'drawing activity' includes using the eraser tool
         cellId: undefined,
-        position: { x: 0, y: 0 },
+        positions: {
+          start: { x: 0, y: 0 },
+          end: { x: 0, y: 0 }
+        },
         pen: {
           isDown: false, // becomes true when the pen is down, ie user has clicked and held the mouse button
-          isPermanent: true, // if false, ink disappears after a second of inactivity
+          isPermanent: false, // if false, ink disappears after a second of inactivity
           type: 'line', // one of 'line', 'highlight', 'eraser'
           color: '000000',
         },
@@ -207,7 +211,6 @@ define([
 
     shouldUpdateDisplay: (kind, index) => {
       if ((state.activity === 'playing') && (state.history.lastVisited[kind] === index)) {
-        debugger;
         return false; // we've already processed this record during playback, so don't reprocess
       }
       return true;
@@ -216,53 +219,46 @@ define([
     //
     // Garnish utility fns
     //
-    isDrawingPenDown: () => {
-      return state.drawingState.pen.isDown;
-    },
-
-    setDrawingPenDown: (status) => {
-      state.drawingState.pen.isDown = status;
-    },
-
-    isDrawingPenPermanent: () => {
-      return state.drawingState.pen.isPermanent;
-    },
-
-    setDrawingPenPermanence: (status) => {
-      state.drawingState.pen.isPermanent = status;
+    getDrawingPenAttribute: (attr) => {
+      return state.drawingState.pen[attr];
     },
 
     updateDrawingState: (changeSets) => {
       for (let changeSet of changeSets) {
         const change = changeSet.change;
-        state.drawingState.wipe = false; // default, we don't register a wipe state
+        const data = changeSet.data;
+        const drawingState = state.drawingState;
+        drawingState.wipe = false; // default, we don't register a wipe state
         switch (change) {
-          case 'action':
-            state.drawingState.action = changeSet.data.action;
-            state.drawingState.cellId = changeSet.data.cellId;
+          case 'drawingModeActivated':
+            drawingState.drawingModeActivated = data; // a drawing tool is activated.
             break;
-          case 'draw':
-            state.drawingState.position = { x: changeSet.data.position.x, y: changeSet.data.position.y };
-            state.drawingState.pen.type = 'pen';
+          case 'drawingActivity':
+            drawingState.drawingActivity = data; // the drawing mode (mouse is down) : one of 'draw', 'fade', 'wipe' (mutually exclusive)
             break;
-          case 'erase':
-            state.drawingState.position = { x: changeSet.data.position.x, y: changeSet.data.position.y };
-            state.drawingState.pen.type = 'eraser';
+          case 'cellId':
+            drawingState.cellId = data;
+            break;
+          case 'isDown':
+            drawingState.pen.isDown = data;
+            break;
+          case 'isPermanent':
+            drawingState.pen.isPermanent = data;
+            break;
+          case 'positions':
+            drawingState.positions = { start: { x: data.positions.start.x, y: data.positions.start.y }, end: { x: data.positions.end.x, y: data.positions.end.y } };
             break;
           case 'color':
-            state.drawingState.pen.color = changeSet.data;
+            drawingState.pen.color = data;
             break;
           case 'penType':
-            state.drawingState.pen.type = changeSet.data;  // one of 'line', 'highlight'
-            break;
-          case 'permanence':
-            state.drawingState.pen.isPermanent = changeSet.data;
+            drawingState.pen.type = data;  // one of 'line', 'highlight', 'eraser'
             break;
           case 'opacity':
-            state.drawingState.opacity = changeSet.data.opacity;
+            drawingState.opacity = data;
             break;
           case 'wipe':
-            state.drawingState.wipe = true;
+            drawingState.wipe = true;
             break;
         }
       }
@@ -328,7 +324,7 @@ define([
     },
 
     setGarnishOpacity: (opacity) => {
-      state.garnishOpacity = opacity;
+      state.drawingState.garnishOpacity = opacity;
     },
 
     clearGarnishOpacityReset: () => {
@@ -344,11 +340,7 @@ define([
     },
 
     resetGarnishOpacity: () => {
-      state.garnishOpacity = state.maxGarnishOpacity;
-    },
-
-    garnishFadeInProgress: () => {
-      return state.garnishOpacity < state.maxGarnishOpacity;
+      state.drawingState.garnishOpacity = state.maxGarnishOpacity;
     },
 
     getGarnishFadeTimeSoFar: () => {
@@ -579,8 +571,9 @@ define([
     createDrawingRecord: () => {
       let record = $.extend({}, state.drawingState);
       // Remove statuses that are not needed in history records
-      delete(record.pen.isPermanent);
+      delete(record.pen.drawingMode);
       delete(record.pen.isDown);
+      delete(record.pen.isPermanent);
       return record;
     },
 
