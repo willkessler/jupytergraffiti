@@ -210,9 +210,10 @@ define([
     },
 
     shouldUpdateDisplay: (kind, index) => {
-      if ((state.activity === 'playing') && (state.history.lastVisited[kind] === index)) {
-        return false; // we've already processed this record during playback, so don't reprocess
+      if (state.history.processed[kind] === index) {
+        return false; // during playback, we've already processed this record so don't reprocess it.
       }
+      state.history.processed[kind] = index;
       return true;
     },
 
@@ -715,7 +716,7 @@ define([
     },
 
     storeHistoryRecord: (type, time) => {
-      if (state.getActivity() !== 'recording')
+      if (state.activity !== 'recording')
         return;
 
       let record;
@@ -771,6 +772,14 @@ define([
           drawings:   0
         },
 
+        // What was the latest record processed during playback (so we don't process a record twice)
+        processed: {
+          view:       undefined,
+          selections: undefined,
+          contents:   undefined,
+          drawings:   undefined
+        },
+        
         cellContentsTracking: {},                  // this enables back-referencing to reduce storage costs on content recording
         cellOutputsTracking:  {},                  // this enables back-referencing to reduce storage costs on output recording
       }
@@ -787,6 +796,14 @@ define([
       state.setHistoryDuration();
       state.normalizeTimeframes();
       state.setupForReset();
+    },
+
+    analyzeHistory: () => {
+      for (i = 0; i < state.history['view'].length - 1; ++i) {
+        const t1 = state.history['view'][i].startTime
+        const t2 = state.history['view'][i +1].startTime;
+        console.log(t1,t2, 'duration:', t2-t1);
+      }
     },
 
     deleteTrackingArrays: () => {
@@ -832,52 +849,61 @@ define([
       }
     },
 
-    // Get all history record frame types straddling a given time.
+    // Get all history record frame types straddling a given time. If given time < time of first record or > time of last record, return null
     getHistoryRecordsAtTime: (t) => {
-      let indexes = {}, frame, historyArray, arrName, scanPtr, scanDir, currentFrameIndex, numRecords;
+      let indexes = {}, frame, historyArray, arrName, scanPtr, scanDir, currentFrameIndex, numRecords, skipped = {};
+      const historyDuration = state.getHistoryDuration();
+      const halfHistory = historyDuration / 2;
       for (arrName of state.frameArrays) {
+        skipped[arrName] = 0;
         historyArray = state.history[arrName];
         numRecords = historyArray.length;
         currentFrameIndex = state.history.lastVisited[arrName];
         indexes[arrName] = null;
         if (historyArray.length > 0) {
-          frame = historyArray[currentFrameIndex];
-          if ((t >= frame.startTime) && (t < frame.endTime)) {
-            // We're already in the right frame so just return that
-            indexes[arrName] = currentFrameIndex;
-          } else {
-            // if the distance between the start time of the current frame and t is
-            // < 10% of the total duration, start scanning up or
-            // down from the current frame until you find the right frame.
-            const tDist = t - frame.startTime;
-            const tDistAbs = Math.abs(tDist);
-            if ((tDistAbs / state.getHistoryDuration()) < 0.1) {
-              scanDir = Math.sign(tDist);
-              scanPtr = currentFrameIndex + scanDir;
+          // Only do a scan if the time is within the band of recorded history. E.g. there may only be drawing
+          // history in the middle of all recorded time so don't look for records if you're outside that band.
+          if ((t >= historyArray[0].startTime) || (t <= historyArray[historyArray.length - 1].endTime)) {
+            frame = historyArray[currentFrameIndex];
+            if ((t >= frame.startTime) && (t < frame.endTime)) {
+              // We're already in the right frame so just return that
+              indexes[arrName] = currentFrameIndex;
             } else {
-              // Scan to find the frame:
-              //  from the beginning of the recording if the time is in the first half of the recording,
-              //  otherwise scan backwards from the end
-              if (t < state.getHistoryDuration() / 2) {
-                scanPtr = 0;
-                scanDir = 1;
+              // if the distance between the start time of the current frame and t is
+              // < 10% of the total duration, start scanning up or
+              // down from the current frame until you find the right frame.
+              const tDist = t - frame.startTime;
+              const tDistAbs = Math.abs(tDist);
+              if ((tDistAbs / historyDuration) < 0.1) {
+                scanDir = Math.sign(tDist);
+                scanPtr = currentFrameIndex + scanDir;
               } else {
-                scanPtr = numRecords - 1;
-                scanDir = -1;
+                // Scan to find the frame:
+                //  from the beginning of the recording if the time is in the first half of the recording,
+                //  otherwise scan backwards from the end
+                if (t < halfHistory) {
+                  scanPtr = 0;
+                  scanDir = 1;
+                } else {
+                  scanPtr = numRecords - 1;
+                  scanDir = -1;
+                }
               }
-            }
-            while ((scanPtr >= 0) && (scanPtr < numRecords)) {
-              frame = historyArray[scanPtr];
-              if ((t >= frame.startTime) && (t < frame.endTime)) {
-                indexes[arrName] = scanPtr;
-                state.history.lastVisited[arrName] = scanPtr;
-                break;
+              while ((scanPtr >= 0) && (scanPtr < numRecords)) {
+                frame = historyArray[scanPtr];
+                if ((t >= frame.startTime) && (t < frame.endTime)) {
+                  indexes[arrName] = scanPtr;
+                  state.history.lastVisited[arrName] = scanPtr;
+                  break;
+                }
+                scanPtr += scanDir;
+                skipped[arrName]++;
               }
-              scanPtr += scanDir;
             }
           }
         }
       }
+      console.log('getHistoryRecordsAtTime:, t=', t, 'records skipped:', skipped, 'indexes[view]:', indexes['view']);
       return(indexes);
     },
 
@@ -924,8 +950,7 @@ define([
     },
 
     storeCellIdAffectedByActivity: (cellId) => {
-      const activity = state.getActivity();
-      if (activity !== 'playing' && activity !== 'recording')
+      if (state.activity !== 'playing' && state.activity !== 'recording')
         return;
 
       //console.log('storeCellIdAffectedByActivity, logging cell: ' + cellId);

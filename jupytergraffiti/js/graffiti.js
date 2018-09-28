@@ -971,6 +971,7 @@ define([
             graffiti.clearCanvas(canvasType, cellId);
           }
         }
+        $('.graffiti-canvas-type-temporary').css({opacity: state.getMaxGarnishOpacity() });
       },
 
       resetTemporaryCanvases: () => {
@@ -983,7 +984,6 @@ define([
           state.updateDrawingState( [ { change: 'drawingActivity', data: 'wipe' } ]);
           state.storeHistoryRecord('drawings');
           state.updateDrawingState( [ { change: 'opacity', data: maxOpacity } ]);
-          $('.graffiti-canvas-type-temporary').css({opacity: maxOpacity });
           state.disableGarnishFadeClock();
         }
       },
@@ -1046,7 +1046,7 @@ define([
             const eraseBuffer = 25;
             ctx.clearRect(ax - eraseBuffer / 2, ay - eraseBuffer / 2, eraseBuffer, eraseBuffer);
           } else {
-            console.log('updateGarnishDisplay:', ax, ay, bx, by);
+            //console.log('updateGarnishDisplay:', ax, ay, bx, by);
             ctx.beginPath();
             ctx.moveTo(ax, ay);
             ctx.lineTo(bx, by);
@@ -2134,7 +2134,7 @@ define([
 
             state.setRecordingInterval(
               setInterval(() => {
-                //console.log('Moving time ahead.');
+                //console.log('Moving recording time ahead');
                 if (graffiti.runOnceOnNextRecordingTick !== undefined) {
                   graffiti.runOnceOnNextRecordingTick();
                   graffiti.runOnceOnNextRecordingTick = undefined;
@@ -2287,7 +2287,7 @@ define([
                                           record.pen.permanence);
             break;
           case 'fade':
-            $('.graffiti-canvas-type-temporary').css({opacity: record.opacity });            
+            $('.graffiti-canvas-type-temporary').css({opacity: record.opacity });
             break;
           case 'wipe':
             graffiti.clearCanvases('temporary');            
@@ -2477,14 +2477,17 @@ define([
         if (state.shouldUpdateDisplay('selections', frameIndexes.selections)) {
           graffiti.updateSelections(frameIndexes.selections, graffiti.sitePanel.scrollTop());
         }
-        if (true || state.shouldUpdateDisplay('view', frameIndexes.view)) {
+        if (state.shouldUpdateDisplay('drawing', frameIndexes.drawings)) {
+          graffiti.updateDrawings(frameIndexes.drawings);
+        }
+        if (state.shouldUpdateDisplay('view', frameIndexes.view)) {
           graffiti.updateView(frameIndexes.view);
         }
 
-        if (true || state.shouldUpdateDisplay('drawing', frameIndexes.drawings)) {
-          graffiti.updateDrawings(frameIndexes.drawings);
-        }
+      },
 
+      analyzeHistory: () => {
+        state.analyzeHistory();
       },
 
       // update the timer display for play or recording
@@ -2648,7 +2651,7 @@ define([
         // Set up main playback loop on a 10ms interval
         state.setPlaybackInterval(
           setInterval(() => {
-            //console.log('Moving time ahead.');
+            console.log('Moving playback time ahead.');
             const playedSoFar = state.getTimePlayedSoFar();
             if (playedSoFar >= state.getHistoryDuration()) {
               // reached end of recording naturally, so set up for restart on next press of play button
@@ -2659,6 +2662,7 @@ define([
               graffiti.updateTimeDisplay(playedSoFar);
               const frameIndexes = state.getHistoryRecordsAtTime(playedSoFar);
               graffiti.updateDisplay(frameIndexes);
+              //console.log('play interval, now=', utils.getNow());
             }
           }, 10)
         );
