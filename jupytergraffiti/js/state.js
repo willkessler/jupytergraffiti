@@ -22,7 +22,7 @@ define([
       state.scrollTop = undefined;
       state.selectedCellId = undefined;
       state.mute = false;
-      state.recordingCursorPosition = { x: -1000, y: -1000 };
+      state.recordedCursorPosition = { x: -1000, y: -1000 };
       state.viewInfo = undefined;
       state.recordingCellInfo = {};
       state.storageInProcess = false;
@@ -67,7 +67,7 @@ define([
         },
         pen: {
           isDown: false, // becomes true when the pen is down, ie user has clicked and held the mouse button
-          isPermanent: false, // if false, ink disappears after a second of inactivity
+          permanence: 'temporary', // default: ink disappears after a second of inactivity
           type: 'line', // one of 'line', 'highlight', 'eraser'
           color: '000000',
         },
@@ -246,8 +246,8 @@ define([
           case 'isDown':
             drawingState.pen.isDown = data;
             break;
-          case 'isPermanent':
-            drawingState.pen.isPermanent = data;
+          case 'permanence':
+            drawingState.pen.permanence = data;
             break;
           case 'positions':
             drawingState.positions = { start: { x: data.positions.start.x, y: data.positions.start.y }, end: { x: data.positions.end.x, y: data.positions.end.y } };
@@ -368,12 +368,12 @@ define([
       state.garnishFadeClockAllowed = true;
     },
 
-    getLastRecordingCursorPosition: () => {
-      return { x: state.recordingCursorPosition.x, y: state.recordingCursorPosition.y }
+    getLastRecordedCursorPosition: () => {
+      return { x: state.recordedCursorPosition.x, y: state.recordedCursorPosition.y }
     },
 
-    setLastRecordingCursorPosition: (pos) => {
-      state.recordingCursorPosition = { x: pos.x, y: pos.y }
+    setLastRecordedCursorPosition: (pos) => {
+      state.recordedCursorPosition = { x: pos.x, y: pos.y }
     },
 
     getPlaybackStartTime: () => {
@@ -565,11 +565,18 @@ define([
     },
 
     createDrawingRecord: () => {
-      let record = $.extend(true, {}, state.drawingState);
+      let record = $.extend(true, {}, 
+                            {
+                              innerCellRect: { 
+                                left: state.viewInfo.innerCellRect.left, 
+                                top: state.viewInfo.innerCellRect.top,
+                                width: state.viewInfo.innerCellRect.width,
+                                height: state.viewInfo.innerCellRect.height
+                              }
+                            }, state.drawingState);
       // Remove statuses that are not needed in history records
       delete(record.pen.drawingMode);
       delete(record.pen.isDown);
-      delete(record.pen.isPermanent);
       return record;
     },
 
@@ -774,7 +781,6 @@ define([
       state.storeHistoryRecord('focus',      now);
       state.storeHistoryRecord('selections', now);
       state.storeHistoryRecord('contents',   now);
-      state.storeHistoryRecord('drawings',   now);
     },
 
     finalizeHistory: () => {
