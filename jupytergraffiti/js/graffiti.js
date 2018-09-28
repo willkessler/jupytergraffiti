@@ -2266,32 +2266,40 @@ define([
         return offsetPosition;
       },
 
-      updateDrawings: (drawingIndex) => {
-        if (drawingIndex === null) {
+      updateDrawings: (drawingFrameIndex) => {
+        if (drawingFrameIndex === undefined) {
           return; // no drawings yet at this index
         }
-        let record = state.getHistoryItem('drawings', drawingIndex);
-        record.hoverCell = utils.findCellByCellId(record.cellId);
-        const cellRects = utils.getCellRects(record.hoverCell);
-        switch (record.drawingActivity) {
-          case 'draw':
-            graffiti.placeCanvas(record.cellId, record.pen.permanence);
-            graffiti.setCanvasStyle(record.cellId, record.pen.type, record.pen.color, record.pen.permanence);
-            const offsetPosition = graffiti.computeOffsetPosition(record, false);
-            graffiti.updateGarnishDisplay(record.cellId, 
-                                          record.positions.start.x, 
-                                          record.positions.start.y,
-                                          record.positions.end.x, 
-                                          record.positions.end.y,
-                                          record.pen.type,
-                                          record.pen.permanence);
-            break;
-          case 'fade':
-            $('.graffiti-canvas-type-temporary').css({opacity: record.opacity });
-            break;
-          case 'wipe':
-            graffiti.clearCanvases('temporary');            
-            break;
+
+        let index, record;
+        // Need to process a range of records if that's required.
+        const startIndex = ((drawingFrameIndex.rangeStart == undefined) ? drawingFrameIndex.index : drawingFrameIndex.rangeStart);
+        const endIndex = drawingFrameIndex.index;
+
+        for (index = startIndex; index <= endIndex; ++index) {
+          record = state.getHistoryItem('drawings', index);
+          record.hoverCell = utils.findCellByCellId(record.cellId);
+          const cellRects = utils.getCellRects(record.hoverCell);
+          switch (record.drawingActivity) {
+            case 'draw':
+              graffiti.placeCanvas(record.cellId, record.pen.permanence);
+              graffiti.setCanvasStyle(record.cellId, record.pen.type, record.pen.color, record.pen.permanence);
+              const offsetPosition = graffiti.computeOffsetPosition(record, false);
+              graffiti.updateGarnishDisplay(record.cellId, 
+                                            record.positions.start.x, 
+                                            record.positions.start.y,
+                                            record.positions.end.x, 
+                                            record.positions.end.y,
+                                            record.pen.type,
+                                            record.pen.permanence);
+              break;
+            case 'fade':
+              $('.graffiti-canvas-type-temporary').css({opacity: record.opacity });
+              break;
+            case 'wipe':
+              graffiti.clearCanvases('temporary');            
+              break;
+          }
         }
       },
 
@@ -2472,16 +2480,16 @@ define([
 
       updateDisplay: (frameIndexes) => {
         if (state.shouldUpdateDisplay('contents', frameIndexes.contents)) {
-          graffiti.updateContents(frameIndexes.contents, graffiti.sitePanel.scrollTop());
+          graffiti.updateContents(frameIndexes.contents.index, graffiti.sitePanel.scrollTop());
         }
         if (state.shouldUpdateDisplay('selections', frameIndexes.selections)) {
-          graffiti.updateSelections(frameIndexes.selections, graffiti.sitePanel.scrollTop());
+          graffiti.updateSelections(frameIndexes.selections.index, graffiti.sitePanel.scrollTop());
         }
         if (state.shouldUpdateDisplay('drawing', frameIndexes.drawings)) {
           graffiti.updateDrawings(frameIndexes.drawings);
         }
         if (state.shouldUpdateDisplay('view', frameIndexes.view)) {
-          graffiti.updateView(frameIndexes.view);
+          graffiti.updateView(frameIndexes.view.index);
         }
 
       },
