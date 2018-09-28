@@ -13,6 +13,10 @@ define([
       return new Date().getTime();
     },
 
+    createPermanentStringFromFlag: (flag) => {
+      return flag ? 'permanent': 'temporary';
+    },
+
     computeArrayAverage: (array) => {
       let average = 0;
       for (let i = 0; i < array.length;++i) {
