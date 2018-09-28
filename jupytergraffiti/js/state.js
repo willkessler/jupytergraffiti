@@ -209,11 +209,14 @@ define([
       state.mute = muteState;
     },
 
-    shouldUpdateDisplay: (kind, index) => {
-      if (state.history.processed[kind] === index) {
+    shouldUpdateDisplay: (kind, frameIndex) => {
+      if (frameIndex === undefined) {
+        return false;
+      }
+      if (state.history.processed[kind] === frameIndex.index) {
         return false; // during playback, we've already processed this record so don't reprocess it.
       }
-      state.history.processed[kind] = index;
+      state.history.processed[kind] = frameIndex.index;
       return true;
     },
 
@@ -849,25 +852,26 @@ define([
       }
     },
 
-    // Get all history record frame types straddling a given time. If given time < time of first record or > time of last record, return null
+    // Get all history record frame types straddling a given time. If given time < time of first record or > time of last record, return undefined.
     getHistoryRecordsAtTime: (t) => {
-      let indexes = {}, frame, historyArray, arrName, scanPtr, scanDir, currentFrameIndex, numRecords, skipped = {};
+      let indexes = {}, frame, historyArray, arrName, scanPtr, scanDir, currentFrameIndex, previousFrameIndex, numRecords, skipped = {};
       const historyDuration = state.getHistoryDuration();
       const halfHistory = historyDuration / 2;
       for (arrName of state.frameArrays) {
-        skipped[arrName] = 0;
+        skipped[arrName] = -1;
         historyArray = state.history[arrName];
         numRecords = historyArray.length;
         currentFrameIndex = state.history.lastVisited[arrName];
-        indexes[arrName] = null;
+        indexes[arrName] = undefined;
         if (historyArray.length > 0) {
           // Only do a scan if the time is within the band of recorded history. E.g. there may only be drawing
           // history in the middle of all recorded time so don't look for records if you're outside that band.
           if ((t >= historyArray[0].startTime) || (t <= historyArray[historyArray.length - 1].endTime)) {
+            previousFrameIndex = currentFrameIndex;
             frame = historyArray[currentFrameIndex];
             if ((t >= frame.startTime) && (t < frame.endTime)) {
               // We're already in the right frame so just return that
-              indexes[arrName] = currentFrameIndex;
+              indexes[arrName] = { index: currentFrameIndex, rangeStart: undefined };
             } else {
               // if the distance between the start time of the current frame and t is
               // < 10% of the total duration, start scanning up or
@@ -889,21 +893,29 @@ define([
                   scanDir = -1;
                 }
               }
+              // Now scan to find the right frame by looking for t within the time frame.
               while ((scanPtr >= 0) && (scanPtr < numRecords)) {
                 frame = historyArray[scanPtr];
                 if ((t >= frame.startTime) && (t < frame.endTime)) {
-                  indexes[arrName] = scanPtr;
+                  indexes[arrName] = { index: scanPtr, rangeStart: undefined };
                   state.history.lastVisited[arrName] = scanPtr;
                   break;
                 }
                 scanPtr += scanDir;
                 skipped[arrName]++;
               }
+              if ((indexes[arrName] !== undefined) && (indexes[arrName].index !== previousFrameIndex) && (indexes[arrName].index > previousFrameIndex)) {
+                // If we skipped forward a bunch of records to catch up with real time, remember how far we skipped. 
+                // This is needed to make sure we (re)draw everything we recorded during the time that was skipped over.
+                // Time skipping happens because browser setInterval timing isn't that reliable, so to avoid desynching
+                // with the audio track, we sometimes need to skip records.
+                indexes[arrName].rangeStart = previousFrameIndex + 1;
+              }                
             }
           }
         }
       }
-      console.log('getHistoryRecordsAtTime:, t=', t, 'records skipped:', skipped, 'indexes[view]:', indexes['view']);
+      console.log('getHistoryRecordsAtTime:, t=', t, 'records skipped:', skipped, 'indexes[drawings]:', indexes['drawings']);
       return(indexes);
     },
 
