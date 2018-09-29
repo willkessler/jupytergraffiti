@@ -385,7 +385,9 @@
   background-color:#000000;
 }
 
-#graffiti-temporary-ink {
+#graffiti-line-style-controls {
+  display:flex;
+  align-items:center;
   font-size:0.9em;
   font-style:italic;
 }
