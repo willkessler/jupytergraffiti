@@ -29,19 +29,18 @@ define([
       state.tipTimeout = undefined;
       state.movieRecordingStarted = false;
       state.cellsAffectedByActivity = {};
-      state.garnishing = false;
-      state.garnishStyle = 'highlight'; // one of: 'highlight' or 'line'
-      state.garnishColor = '000000';
-      state.garnishPermanence = 'temporary'; // one of: 'permanent', 'temporary'
-      state.garnishFadeClockAllowed = true;
-      state.garnishFadeStart;
-      state.garnishFadeDuration = 1000;
-      state.garnishFadePreFadeDelay = 2000;
-      state.maxGarnishOpacity = 0.5;
-      state.garnishOpacityReset = false;
-      state.garnishOpacity = state.maxGarnishOpacity;
-      state.totalGarnishFadeDuration = state.garnishFadePreFadeDelay + state.garnishFadeDuration;
-      state.lastGarnishInfo = { garnishing: false };
+      state.drawingStyle = 'highlight'; // one of: 'highlight' or 'line'
+      state.drawingColor = '000000';
+      state.drawingPermanence = 'temporary'; // one of: 'permanent', 'temporary'
+      state.drawingFadeClockAllowed = true;
+      state.drawingFadeStart;
+      state.drawingFadeDuration = 1000;
+      state.drawingFadePreFadeDelay = 2000;
+      state.maxDrawingOpacity = 0.5;
+      state.drawingOpacityReset = false;
+      state.drawingOpacity = state.maxDrawingOpacity;
+      state.totalDrawingFadeDuration = state.drawingFadePreFadeDelay + state.drawingFadeDuration;
+      state.lastDrawingInfo = { drawinging: false };
       state.lastEditActivityTime = undefined;
       state.controlPanelDragging = false;
       state.controlPanelDragOffset = { x: 0, y: 0 };
@@ -72,7 +71,7 @@ define([
           color: '000000',
           dash: 'solid' // one of 'solid', 'dashed'
         },
-        opacity: state.maxGarnishOpacity
+        opacity: state.maxDrawingOpacity
       };
         
       utils.refreshCellMaps();
@@ -222,7 +221,7 @@ define([
     },
 
     //
-    // Garnish utility fns
+    // Drawing utility fns
     //
     getDrawingPenAttribute: (attr) => {
       return state.drawingState.pen[attr];
@@ -277,56 +276,56 @@ define([
     },
 
     resetDrawingOpacity: () => {
-      state.drawingState.opacity = state.maxGarnishOpacity;
+      state.drawingState.opacity = state.maxDrawingOpacity;
     },
 
     getActivePenType: () => {
       return state.drawingState.pen.type;
     },
 
-    getGarnishOpacity: () => {
-      return state.garnishOpacity;
+    getDrawingOpacity: () => {
+      return state.drawingOpacity;
     },
 
-    setGarnishOpacity: (opacity) => {
-      state.drawingState.garnishOpacity = opacity;
+    setDrawingOpacity: (opacity) => {
+      state.drawingState.drawingOpacity = opacity;
     },
 
-    getMaxGarnishOpacity: () => {
-      return state.maxGarnishOpacity;
+    getMaxDrawingOpacity: () => {
+      return state.maxDrawingOpacity;
     },
 
-    resetGarnishOpacity: () => {
-      state.drawingState.garnishOpacity = state.maxGarnishOpacity;
+    resetDrawingOpacity: () => {
+      state.drawingState.drawingOpacity = state.maxDrawingOpacity;
     },
 
-    getGarnishFadeTimeSoFar: () => {
-      return utils.getNow() - state.garnishFadeStart;
+    getDrawingFadeTimeSoFar: () => {
+      return utils.getNow() - state.drawingFadeStart;
     },
 
-    calculateGarnishOpacity: () => {
-      // console.log('garnishFadeCounter', state.garnishFadeCounter);
-      const timeSoFar = state.getGarnishFadeTimeSoFar();
-      let opacity = state.maxGarnishOpacity;
-      if (!state.garnishFadeClockAllowed || timeSoFar < state.garnishFadePreFadeDelay) {
-        return { status: 'max', opacity: state.maxGarnishOpacity };
+    calculateDrawingOpacity: () => {
+      // console.log('drawingFadeCounter', state.drawingFadeCounter);
+      const timeSoFar = state.getDrawingFadeTimeSoFar();
+      let opacity = state.maxDrawingOpacity;
+      if (!state.drawingFadeClockAllowed || timeSoFar < state.drawingFadePreFadeDelay) {
+        return { status: 'max', opacity: state.maxDrawingOpacity };
       }
-      if (timeSoFar < state.totalGarnishFadeDuration) {
-        opacity = ((state.totalGarnishFadeDuration - timeSoFar) / state.garnishFadeDuration) * state.maxGarnishOpacity;
-        //console.log('calculateGarnishOpacity:', opacity);
+      if (timeSoFar < state.totalDrawingFadeDuration) {
+        opacity = ((state.totalDrawingFadeDuration - timeSoFar) / state.drawingFadeDuration) * state.maxDrawingOpacity;
+        //console.log('calculateDrawingOpacity:', opacity);
         return { status: 'fade', opacity: opacity };
       }
       return { status: 'fadeDone', opacity: 0 };
     },
 
-    disableGarnishFadeClock: () => {
-      state.garnishFadeClockAllowed = false; // not allowed while drawing a garnish
+    disableDrawingFadeClock: () => {
+      state.drawingFadeClockAllowed = false; // not allowed while drawing a drawing
     },
 
-    startGarnishFadeClock: () => {
-      console.log('startGarnishFadeClock');
-      state.garnishFadeStart = utils.getNow();
-      state.garnishFadeClockAllowed = true;
+    startDrawingFadeClock: () => {
+      console.log('startDrawingFadeClock');
+      state.drawingFadeStart = utils.getNow();
+      state.drawingFadeClockAllowed = true;
     },
 
     getLastRecordedCursorPosition: () => {
@@ -876,7 +875,7 @@ define([
       return(indexes);
     },
 
-    // Get index of record just before or at the specified time. Used for scrubbing/redrawing garnishes.
+    // Get index of record just before or at the specified time. Used for scrubbing/redrawing drawings.
     getIndexUpToTime: (kind, t) => {
       let i;
       const historyArray = state.history[kind];
