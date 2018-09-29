@@ -81,7 +81,7 @@ define([
 
       const notebook = Jupyter.notebook;
       const jsonHistory = state.getJSONHistory();
-      console.log(jsonHistory);
+      //console.log(jsonHistory);
       const base64CompressedHistory = LZString.compressToBase64(jsonHistory);
       const encodedAudio = audio.getRecordedAudio();
 
@@ -102,7 +102,7 @@ define([
       bashScript += "    f.write('" + base64CompressedHistory + "')\n";
       bashScript += "with open('" + graffitiPath + "meta.json', 'w') as f:\n";
       bashScript += "    f.write('" + jsonMeta + "')\n";
-      console.log(bashScript);
+      //console.log(bashScript);
       Jupyter.notebook.kernel.execute(bashScript,
                                       undefined,
                                       {
@@ -158,7 +158,7 @@ define([
       bashScript += 'os.system("mkdir -p ' + manifestInfo.path + '")' + "\n";
       bashScript += "with open('" + manifestFullFilePath + "', 'w') as f:\n";
       bashScript += "    f.write('" + base64CompressedManifest + "')\n";
-      console.log(bashScript);
+      //console.log(bashScript);
       Jupyter.notebook.kernel.execute(bashScript,
                                       undefined,
                                       {
