@@ -29,15 +29,11 @@ define([
       state.tipTimeout = undefined;
       state.movieRecordingStarted = false;
       state.cellsAffectedByActivity = {};
-      state.drawingStyle = 'highlight'; // one of: 'highlight' or 'line'
-      state.drawingColor = '000000';
-      state.drawingPermanence = 'temporary'; // one of: 'permanent', 'temporary'
       state.drawingFadeClockAllowed = true;
       state.drawingFadeStart;
       state.drawingFadeDuration = 1000;
       state.drawingFadePreFadeDelay = 2000;
       state.maxDrawingOpacity = 0.5;
-      state.drawingOpacityReset = false;
       state.drawingOpacity = state.maxDrawingOpacity;
       state.totalDrawingFadeDuration = state.drawingFadePreFadeDelay + state.drawingFadeDuration;
       state.lastDrawingInfo = { drawinging: false };
@@ -323,7 +319,7 @@ define([
     },
 
     startDrawingFadeClock: () => {
-      console.log('startDrawingFadeClock');
+      // console.log('startDrawingFadeClock');
       state.drawingFadeStart = utils.getNow();
       state.drawingFadeClockAllowed = true;
     },
@@ -418,7 +414,7 @@ define([
 
     storeViewInfo: (viewInfo) => {
       // console.log('storeViewInfo, hover cellId:', viewInfo.cellId);
-      if (viewInfo.cellId !== undefined) {
+      if (viewInfo.cellId !== undefined) { // may not be set if cursor is btwn cells
         state.viewInfo = $.extend({}, viewInfo);
       }
     },
@@ -535,7 +531,7 @@ define([
                               }
                             }, state.drawingState);
       // Remove statuses that are not needed in history records
-      delete(record.pen.drawingMode);
+      delete(record.drawingModeActivated);
       delete(record.pen.isDown);
       return record;
     },
@@ -544,14 +540,13 @@ define([
       const activeCell = Jupyter.notebook.get_selected_cell();
       const cells = Jupyter.notebook.get_cells();
       const cellsSelections = {};
-      let cellId, cm, cell, selections, cellSelections, executed, output, outputs0, ourJs;
+      let cellId, cm, cell, selections, cellSelections, output, outputs0, ourJs;
       for (let i = 0; i < cells.length; ++i) {
         cell = cells[i];
         if (cell.cell_type === 'code') {
           cellId = cell.metadata.cellId;
           cm = cell.code_mirror;
           selections = utils.cleanSelectionRecords(cm.listSelections());
-          executed = false;
           output = null;
           ourJs = false; 
           if (cell.output_area.outputs.length > 0) {
@@ -573,20 +568,17 @@ define([
                 header: { msg_type: output_type },
                 content: outputs0
               };
-              executed = true;
             }
           } else {
             // if this code cell has no output at time of recording, record that fact for playback
             output = {
               empty: true
             };
-            executed = false;
           }
           cellSelections = {
             index: i,
             active: cellId === activeCell.metadata.cellId,
             selections: selections,
-            executed: executed,
             output: output
           }
           cellsSelections[cellId] = cellSelections;
@@ -757,16 +749,8 @@ define([
       state.setupForReset();
     },
 
-    analyzeHistory: () => {
-      for (i = 0; i < state.history['view'].length - 1; ++i) {
-        const t1 = state.history['view'][i].startTime
-        const t2 = state.history['view'][i +1].startTime;
-        console.log(t1,t2, 'duration:', t2-t1);
-      }
-    },
-
     deleteTrackingArrays: () => {
-      console.log('finalizeHistory: deleting Tracking arrays');
+      // console.log('finalizeHistory: deleting Tracking arrays');
       delete(state.history.cellContentsTracking);
       delete(state.history.cellOutputsTracking);
     },

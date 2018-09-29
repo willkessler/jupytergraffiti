@@ -31,7 +31,6 @@ define([
         graffiti.notebookContainer = $('#notebook-container');
         graffiti.notebookContainerPadding = parseInt(graffiti.notebookContainer.css('padding').replace('px',''));
         graffiti.penColor = '000000';
-        graffiti.lastDisplayIndexes = {};
 
         graffiti.recordingIntervalMs = 10; // In milliseconds, how frequently we sample the state of things while recording.
         graffiti.storageInProcess = false;
@@ -392,6 +391,9 @@ define([
                                           event: 'click',
                                           fn: (e) => {
                                             console.log('Graffiti: you picked highlighter tool.');
+                                            const colorVal = 'ffff00';
+                                            graffiti.setGraffitiPenColor(colorVal);
+                                            $('#graffiti-recording-color-yellow').addClass('graffiti-recording-color-active');
                                             graffiti.toggleGraffitiPen('highlight');
                                           }
                                         },
@@ -429,13 +431,9 @@ define([
                                           event: 'click',
                                           fn: (e) => {
                                             const target = $(e.target);
-                                            $('#graffiti-recording-colors-shell div').removeClass('graffiti-recording-color-active');
                                             const colorVal = target.attr('colorVal');
+                                            graffiti.setGraffitiPenColor(colorVal);
                                             target.addClass('graffiti-recording-color-active');
-                                            console.log('Graffiti: you clicked color:', colorVal);
-                                            state.updateDrawingState([ { change: 'color', data: colorVal } ]);
-                                            // Turn on the pen/highlighter if you change pen color.
-                                            graffiti.activateGraffitiPen(state.getDrawingPenAttribute('type')); 
                                           }
                                         },
                                         {
@@ -646,7 +644,7 @@ define([
               }              
             }
             graffiti.showControlPanels(['graffiti-playback-controls']);
-            graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-pause-link">Pause</span> to interact w/Notebook, or</div>' +
+            graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-pause-link">Pause</span> (or scroll the page) to interact with this Notebook, or</div>' +
                                  '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-link">Cancel</span> movie playback</div>',
                                  [
                                    {
@@ -814,6 +812,14 @@ define([
         graffiti.updateControlPanels();
         graffiti.setupDrawingScreen();
 
+      },
+
+      setGraffitiPenColor: (colorVal) => {
+        $('#graffiti-recording-colors-shell div').removeClass('graffiti-recording-color-active');
+        console.log('Graffiti: you clicked color:', colorVal);
+        state.updateDrawingState([ { change: 'color', data: colorVal } ]);
+        // Turn on the pen/highlighter if you change pen color.
+        graffiti.activateGraffitiPen(state.getDrawingPenAttribute('type')); 
       },
 
       activateGraffitiPen: (penType) => {
@@ -2486,10 +2492,6 @@ define([
           graffiti.updateView(frameIndexes.view.index);
         }
 
-      },
-
-      analyzeHistory: () => {
-        state.analyzeHistory();
       },
 
       // update the timer display for play or recording
