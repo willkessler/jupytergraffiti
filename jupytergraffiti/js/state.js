@@ -70,6 +70,7 @@ define([
           permanence: 'temporary', // default: ink disappears after a second of inactivity
           type: 'line', // one of 'line', 'highlight', 'eraser'
           color: '000000',
+          dash: 'solid' // one of 'solid', 'dashed'
         },
         opacity: state.maxGarnishOpacity
       };
@@ -250,8 +251,11 @@ define([
           case 'isDown':
             drawingState.pen.isDown = data;
             break;
+          case 'penType':
+            drawingState.pen.type = data;  // one of 'line', 'highlight', 'eraser'
+            break;
           case 'permanence':
-            drawingState.pen.permanence = data;
+            drawingState.pen.permanence = data; // one of 'permanent', 'temporary'
             break;
           case 'positions':
             drawingState.positions = { start: { x: data.positions.start.x, y: data.positions.start.y }, end: { x: data.positions.end.x, y: data.positions.end.y } };
@@ -259,14 +263,14 @@ define([
           case 'color':
             drawingState.pen.color = data;
             break;
-          case 'penType':
-            drawingState.pen.type = data;  // one of 'line', 'highlight', 'eraser'
+          case 'dash':
+            drawingState.pen.dash = data; // one of 'solid', 'dashed'
             break;
           case 'opacity':
-            drawingState.opacity = data;
+            drawingState.opacity = data; // set during fades of temporary ink
             break;
           case 'wipe':
-            drawingState.wipe = true;
+            drawingState.wipe = true; // after fades are done, this record wipes the temporary canvases clean
             break;
         }
       }
@@ -278,53 +282,6 @@ define([
 
     getActivePenType: () => {
       return state.drawingState.pen.type;
-    },
-
-    getGarnishing: () => {
-      return state.garnishing;
-    },
-
-    setGarnishing: (status) => {
-      state.garnishing = status;
-    },
-
-    getLastGarnishInfo: () => {
-      return state.lastGarnishInfo;
-    },
-
-    setLastGarnishInfo: (x, y, garnishing, garnishStyle, garnishColor, garnishCellId) => {
-      state.lastGarnishInfo = {
-        garnishing: garnishing,
-        garnishStyle: garnishStyle,
-        garnishColor: garnishColor,
-        garnishCellId: garnishCellId,
-        x: x,
-        y: y
-      }
-    },
-
-    getGarnishStyle: () => {
-      return state.garnishStyle;
-    },
-
-    setGarnishStyle: (style) => {
-      state.garnishStyle = style;
-    },
-
-    getGarnishColor: () => {
-      return state.garnishColor;
-    },
-
-    setGarnishColor: (color) => {
-      state.garnishColor = color;
-    },
-
-    getGarnishPermanence: () => {
-      return state.garnishPermanence;
-    },
-
-    setGarnishPermanence: (newValue) => {
-      state.garnishPermanence = newValue; // one of "permanent", "temporary"
     },
 
     getGarnishOpacity: () => {
@@ -356,7 +313,7 @@ define([
       }
       if (timeSoFar < state.totalGarnishFadeDuration) {
         opacity = ((state.totalGarnishFadeDuration - timeSoFar) / state.garnishFadeDuration) * state.maxGarnishOpacity;
-        console.log('calculateGarnishOpacity:', opacity);
+        //console.log('calculateGarnishOpacity:', opacity);
         return { status: 'fade', opacity: opacity };
       }
       return { status: 'fadeDone', opacity: 0 };

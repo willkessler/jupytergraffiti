@@ -376,9 +376,15 @@ define([
                                       '  <div id="graffiti-recording-color-brown" colorVal="996600"></div>' +
                                       '  <div id="graffiti-recording-color-black" colorVal="000000"></div>' +
                                       '</div>' +
-                                      '<div id="graffiti-temporary-ink">' +
-                                      ' <input type="checkbox" id="graffiti-temporary-ink-control" checked />' +
-                                      ' <label id="graffiti-temporary-ink-label" for="graffiti-temporary-ink-control">Temporary Ink</label>' +
+                                      '<div id="graffiti-line-style-controls">' +
+                                      '  <div id="graffiti-temporary-ink">' +
+                                      '   <input type="checkbox" id="graffiti-temporary-ink-control" checked />' +
+                                      '   <label id="graffiti-temporary-ink-label" for="graffiti-temporary-ink-control">Temporary Ink</label>' +
+                                      '  </div>' +
+                                      '  <div id="graffiti-dashed-line">' +
+                                      '   <input type="checkbox" id="graffiti-dashed-line-control" />' +
+                                      '   <label id="graffiti-dashed-line-label" for="graffiti-dashed-line-control">Dashed lines</label>' +
+                                      '  </div>' +
                                       '</div>',
                                       [
                                         {
@@ -429,7 +435,7 @@ define([
                                             console.log('Graffiti: you clicked color:', colorVal);
                                             state.updateDrawingState([ { change: 'color', data: colorVal } ]);
                                             // Turn on the pen/highlighter if you change pen color.
-                                            graffiti.toggleGraffitiPen(state.getDrawingPenAttribute('type'));
+                                            graffiti.toggleGraffitiPen(state.getDrawingPenAttribute('type'), 'activate');
                                           }
                                         },
                                         {
@@ -440,7 +446,18 @@ define([
                                             console.log('You set temporary ink to:', permanence);
                                             state.updateDrawingState([ { change: 'permanence', data: permanence } ]);
                                             // Turn on the pen/highlighter if you switch temporary ink status.
-                                            graffiti.toggleGraffitiPen(state.getDrawingPenAttribute('type')); 
+                                            graffiti.toggleGraffitiPen(state.getDrawingPenAttribute('type'),'activate'); 
+                                          }
+                                        },
+                                        {
+                                          ids: [ 'graffiti-dashed-line-control', 'graffiti-dashed-line-label' ],
+                                          event: 'click',
+                                          fn: (e) => {
+                                            const dashedLine = ($('#graffiti-dashed-line-control').is(':checked') ? 'dashed' : 'solid');
+                                            console.log('You set dashed line to:', dashedLine);
+                                            state.updateDrawingState([ { change: 'dash', data: dashedLine } ]);
+                                            // Turn on the pen/highlighter if you switch temporary ink status.
+                                            graffiti.toggleGraffitiPen(state.getDrawingPenAttribute('type'),'activate'); 
                                           }
                                         }
                                       ]
@@ -799,7 +816,7 @@ define([
 
       },
 
-      toggleGraffitiPen: (penType, deactivate) => {
+      toggleGraffitiPen: (penType, force) => {
         if (!(state.getActivity() == 'recording')) {
           return; // Pens can only be used while recording
         }
@@ -808,7 +825,7 @@ define([
           penControl = penControl.parents('.btn');
         }
         const activePenType = state.getDrawingPenAttribute('type');
-        if ((activePenType !== penType) && !deactivate) {
+        if (((activePenType !== penType) && (force !== 'deactivate')) || force === 'activate') {
           // Activate a new active pen
           graffiti.showGarnishScreen();
           $('.graffiti-active-pen').removeClass('graffiti-active-pen');
@@ -818,7 +835,8 @@ define([
             { change: 'drawingModeActivated', data: true}, 
             { change: 'penType', data: penType } 
           ]);
-        } else {
+        }
+        if (((activePenType === penType) && (force !== 'activate')) || force === 'deactivate') {
           // turn off the active pen and drawing
           $('.graffiti-active-pen').removeClass('graffiti-active-pen');
           // Disable drawing
@@ -871,7 +889,7 @@ define([
 
       resetGarnishPen: () => {
         $('.graffiti-active-pen').removeClass('graffiti-active-pen');
-        graffiti.toggleGraffitiPen(undefined, true); // turn off the active pen
+        graffiti.toggleGraffitiPen(undefined, 'deactivate'); // turn off the active pen
       },
 
       showGarnishScreen: () => {
@@ -926,7 +944,7 @@ define([
         return cellRect;
       },
       
-      setCanvasStyle: (cellId, penType, canvasColor, canvasPermanence) => {
+      setCanvasStyle: (cellId, penType, penDashStyle, canvasColor, canvasPermanence) => {
         const canvas = graffiti.canvases[canvasPermanence][cellId];
         const ctx = canvas.ctx;
         if (canvasColor === undefined) {
@@ -948,6 +966,12 @@ define([
           ctx.shadowBlur = 1;
           ctx.lineWidth = 1.75;
           ctx.globalAlpha = 1.0;
+          if (penDashStyle === 'dashed') {
+            ctx.setLineDash([2,10]); /* first parm = dash, second parm = spaces btwn */
+            ctx.lineDashOffset = 2;
+          } else {
+            ctx.setLineDash([]);
+          }
         }
       },
 
@@ -1034,8 +1058,6 @@ define([
             }
           }
         }
-        //const opacity = state.getGarnishOpacity();
-        //$('.graffiti-canvas-type-temporary').css({opacity:opacity});
       },      
 
       updateGarnishDisplay: (cellId, ax, ay, bx, by, garnishPenType, garnishPermanence ) => {
@@ -1062,9 +1084,10 @@ define([
           if (state.getDrawingPenAttribute('isDown')) {
             const garnishPermanence = state.getDrawingPenAttribute('permanence');
             const garnishPenType = state.getDrawingPenAttribute('type');
+            const garnishPenDash = state.getDrawingPenAttribute('dash');
             const garnishPenColor = state.getDrawingPenAttribute('color');
             const cellRect = graffiti.placeCanvas(viewInfo.cellId, garnishPermanence);
-            graffiti.setCanvasStyle(viewInfo.cellId, garnishPenType, garnishPenColor, garnishPermanence);
+            graffiti.setCanvasStyle(viewInfo.cellId, garnishPenType, garnishPenDash, garnishPenColor, garnishPermanence);
             graffiti.updateGarnishDisplay(viewInfo.cellId, 
                                           ax - cellRect.left,
                                           ay - cellRect.top, 
@@ -1085,11 +1108,8 @@ define([
                 data: viewInfo.cellId
               }
             ]);
-            console.log('here3', state.getDrawingPenAttribute('isDown'));
             state.storeHistoryRecord('drawings');
-            console.log('here4', state.getDrawingPenAttribute('isDown'));
           }
-          state.setLastGarnishInfo(bx, by, viewInfo.garnishing, viewInfo.garnishStyle, viewInfo.cellId);
         }
       },
 
@@ -1424,11 +1444,7 @@ define([
           const viewInfo = utils.collectViewInfo(state.getPointerPosition().x,
                                                  state.getPointerPosition().y,
                                                  graffiti.notebookPanel.height(),
-                                                 graffiti.sitePanel.scrollTop() - state.getScrollTop(),
-                                                 state.getGarnishing(),
-                                                 state.getGarnishStyle(),
-                                                 state.getGarnishColor(),
-                                                 state.getGarnishPermanence());
+                                                 graffiti.sitePanel.scrollTop() - state.getScrollTop());
           state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.storeViewInfo(viewInfo);
           state.storeHistoryRecord('scroll');
@@ -1490,11 +1506,6 @@ define([
           return true;
         });
 
-        $('body').keyup( (e) => {
-          // any keyup turns off garnishing
-          state.setGarnishing(false);
-        });
-
         window.onmousemove = (e) => {
           //console.log('cursorPosition:[',e.clientX, e.clientY, ']');
           //console.log('mouse_e:', e.pageX, e.pageY);
@@ -1505,11 +1516,7 @@ define([
           const viewInfo = utils.collectViewInfo(e.clientX, 
                                                  e.clientY, 
                                                  graffiti.notebookPanel.height(), 
-                                                 graffiti.sitePanel.scrollTop() - state.getScrollTop(),
-                                                 state.getGarnishing(),
-                                                 state.getGarnishStyle(),
-                                                 state.getGarnishColor(),
-                                                 state.getGarnishPermanence());
+                                                 graffiti.sitePanel.scrollTop() - state.getScrollTop());
           state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.storeViewInfo(viewInfo);
           state.storeHistoryRecord('pointer');
@@ -1956,11 +1963,8 @@ define([
           const viewInfo = utils.collectViewInfo(pointerPosition.x,
                                                  pointerPosition.y, 
                                                  graffiti.notebookPanel.height(), 
-                                                 graffiti.sitePanel.scrollTop() - state.getScrollTop(),
-                                                 state.getGarnishing(),
-                                                 state.getGarnishStyle(),
-                                                 state.getGarnishColor(),
-                                                 state.getGarnishPermanence());
+                                                 graffiti.sitePanel.scrollTop() - state.getScrollTop());
+
           state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.storeViewInfo(viewInfo);
           state.storeHistoryRecord('innerScroll');
@@ -2283,7 +2287,7 @@ define([
           switch (record.drawingActivity) {
             case 'draw':
               graffiti.placeCanvas(record.cellId, record.pen.permanence);
-              graffiti.setCanvasStyle(record.cellId, record.pen.type, record.pen.color, record.pen.permanence);
+              graffiti.setCanvasStyle(record.cellId, record.pen.type, record.pen.dash, record.pen.color, record.pen.permanence);
               const offsetPosition = graffiti.computeOffsetPosition(record, false);
               graffiti.updateGarnishDisplay(record.cellId, 
                                             record.positions.start.x, 
@@ -2584,7 +2588,6 @@ define([
       cancelPlaybackNoVisualUpdates: () => {
         const accessLevel = state.getAccessLevel();
         graffiti.pausePlaybackNoVisualUpdates();
-        state.setGarnishing(false);
         state.resetPlayState();
         graffiti.changeActivity('idle');
         if ((accessLevel === 'view') && (state.getDontRestoreCellContentsAfterPlayback())) {
@@ -2627,7 +2630,6 @@ define([
         if ((activity === 'idle') || (activity === 'notifying')) {
           // If just starting to play back, store all cells current contents so we can restore them when you cancel playback.
           utils.saveNotebook();
-          state.setLastGarnishInfo(0,0,false, 'highlight'); // make sure we've turned off any garnishing flag from a previous interrupted playback
           state.setScrollTop(graffiti.sitePanel.scrollTop());
           graffiti.prePlaybackScrolltop = state.getScrollTop();
           graffiti.lastScrollViewId = undefined;
