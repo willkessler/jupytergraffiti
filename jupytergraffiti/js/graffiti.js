@@ -435,7 +435,7 @@ define([
                                             console.log('Graffiti: you clicked color:', colorVal);
                                             state.updateDrawingState([ { change: 'color', data: colorVal } ]);
                                             // Turn on the pen/highlighter if you change pen color.
-                                            graffiti.toggleGraffitiPen(state.getDrawingPenAttribute('type'), 'activate');
+                                            graffiti.activateGraffitiPen(state.getDrawingPenAttribute('type')); 
                                           }
                                         },
                                         {
@@ -446,7 +446,7 @@ define([
                                             console.log('You set temporary ink to:', permanence);
                                             state.updateDrawingState([ { change: 'permanence', data: permanence } ]);
                                             // Turn on the pen/highlighter if you switch temporary ink status.
-                                            graffiti.toggleGraffitiPen(state.getDrawingPenAttribute('type'),'activate'); 
+                                            graffiti.activateGraffitiPen(state.getDrawingPenAttribute('type')); 
                                           }
                                         },
                                         {
@@ -457,7 +457,7 @@ define([
                                             console.log('You set dashed line to:', dashedLine);
                                             state.updateDrawingState([ { change: 'dash', data: dashedLine } ]);
                                             // Turn on the pen/highlighter if you switch temporary ink status.
-                                            graffiti.toggleGraffitiPen(state.getDrawingPenAttribute('type'),'activate'); 
+                                            graffiti.activateGraffitiPen(state.getDrawingPenAttribute('type')); 
                                           }
                                         }
                                       ]
@@ -816,27 +816,36 @@ define([
 
       },
 
-      toggleGraffitiPen: (penType, force) => {
+      activateGraffitiPen: (penType) => {
+        if (penType === undefined) {
+          penType = 'line';
+        }
         if (!(state.getActivity() == 'recording')) {
           return; // Pens can only be used while recording
         }
+        graffiti.showGarnishScreen();
+        $('.graffiti-active-pen').removeClass('graffiti-active-pen');
         let penControl = $('#graffiti-' + penType + '-pen');
         if (penControl.length > 0 && !(penControl.hasClass('btn'))) {
           penControl = penControl.parents('.btn');
         }
-        const activePenType = state.getDrawingPenAttribute('type');
-        if (((activePenType !== penType) && (force !== 'deactivate')) || force === 'activate') {
-          // Activate a new active pen
-          graffiti.showGarnishScreen();
-          $('.graffiti-active-pen').removeClass('graffiti-active-pen');
-          penControl.addClass('graffiti-active-pen');
-          // Turn on drawing (if it's not already on), and activate this pen type
-          state.updateDrawingState([ 
-            { change: 'drawingModeActivated', data: true}, 
-            { change: 'penType', data: penType } 
-          ]);
+        penControl.addClass('graffiti-active-pen');
+        // Turn on drawing (if it's not already on), and activate this pen type
+        state.updateDrawingState([ 
+          { change: 'drawingModeActivated', data: true}, 
+          { change: 'penType', data: penType } 
+        ]);
+      },
+
+      toggleGraffitiPen: (penType) => {
+        if (!(state.getActivity() == 'recording')) {
+          return; // Pens can only be used while recording
         }
-        if (((activePenType === penType) && (force !== 'activate')) || force === 'deactivate') {
+        const activePenType = state.getDrawingPenAttribute('type');
+        if (activePenType !== penType) {
+          // Activate a new active pen, unless this pen is already active, in which case, deactivate it
+          graffiti.activateGraffitiPen(penType);
+        } else {
           // turn off the active pen and drawing
           $('.graffiti-active-pen').removeClass('graffiti-active-pen');
           // Disable drawing
@@ -966,11 +975,12 @@ define([
           ctx.shadowBlur = 1;
           ctx.lineWidth = 1.75;
           ctx.globalAlpha = 1.0;
+            ctx.setLineDash([]);
           if (penDashStyle === 'dashed') {
             ctx.setLineDash([2,10]); /* first parm = dash, second parm = spaces btwn */
             ctx.lineDashOffset = 2;
-          } else {
-            ctx.setLineDash([]);
+            ctx.lineWidth = 3;
+            ctx.globalAlpha = 0.5;
           }
         }
       },
