@@ -36,7 +36,7 @@ define([
       state.garnishFadeClockAllowed = true;
       state.garnishFadeStart;
       state.garnishFadeDuration = 1000;
-      state.garnishFadePreFadeDelay = 1000;
+      state.garnishFadePreFadeDelay = 2000;
       state.maxGarnishOpacity = 0.5;
       state.garnishOpacityReset = false;
       state.garnishOpacity = state.maxGarnishOpacity;
