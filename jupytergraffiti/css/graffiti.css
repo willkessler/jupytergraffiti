@@ -328,9 +328,27 @@
   background:blue;
 }
 
+#graffiti-activate-button button {
+  display:flex;
+}
+
+#graffiti-activate-button button div {
+  margin-left:5px;
+  font-weight:bold;
+  color:#666;
+}
+
+#graffiti-activate-button button svg {
+  width:20px;
+  height:16px;
+}
+
 #graffiti-recording-pens-shell button svg {
   width:20px;
   height:20px;
+}
+
+#graffiti-recording-pens-shell button div {
 }
 
 #graffiti-recording-colors-shell {

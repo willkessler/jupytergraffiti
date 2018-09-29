@@ -14,19 +14,6 @@ define([
       require(['jupytergraffiti/js/loader.js']);
       utils.saveNotebook();
     });
-
-    const action = {
-      icon: 'fa-pencil', // a font-awesome class used on buttons, etc
-      help    : 'Activate Graffiti',
-      help_index : 'zz',
-      handler : Graffiti.graffiti.firstTimeSetup
-    };
-    const prefix = 'activate_graffiti';
-    const action_name = 'activate_graffiti';
-
-    const full_action_name = Jupyter.actions.register(action, action_name, prefix);
-    Jupyter.toolbar.add_buttons_group([full_action_name]);
-
   }
 
   return {
