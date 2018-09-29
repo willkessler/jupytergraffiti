@@ -2800,6 +2800,30 @@ define([
         });
       },
 
+      firstTimeSetup: () => {
+        dialog.modal({
+          title: 'Activate Graffiti On This Notebook?',
+          body: 'Enable Graffiti on this Notebook, so you can begin using Graffiti for the first time?<br>' +
+                'If you click Cancel, we will not change the notebook in any way.' +
+                '<br><br><i>(This process merely adds some metadata to the cells, but does not otherwise change the Notebook\'s contents.)</i>',
+          sanitize:false,
+          buttons: {
+            'OK': {
+              click: (e) => {
+                console.log('Graffiti: You clicked ok');
+                storage.ensureNotebookGetsGraffitiId();
+                utils.saveNotebook();
+              }
+            },
+            'Cancel': {
+              click: (e) => {
+                console.log('Graffiti: Not adding Graffiti.');
+              }
+            }
+          }
+        });
+      },
+
     };
 
     // Functions exposed externally to the Python API.
