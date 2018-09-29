@@ -1,5 +1,5 @@
 
-/* canvas for garnishes */
+/* canvas for drawings */
 
 .graffiti-canvas-outer {
   position:absolute;
@@ -10,7 +10,7 @@
   z-index:10000;
 }
 
-#graffiti-garnish-screen {
+#graffiti-drawing-screen {
   cursor:cell;
   display:none;
   left:0px;

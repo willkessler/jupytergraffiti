@@ -812,7 +812,7 @@ define([
         graffiti.refreshGraffitiTips();
         graffiti.setupControlPanels();
         graffiti.updateControlPanels();
-        graffiti.setupGarnishScreen();
+        graffiti.setupDrawingScreen();
 
       },
 
@@ -823,7 +823,7 @@ define([
         if (!(state.getActivity() == 'recording')) {
           return; // Pens can only be used while recording
         }
-        graffiti.showGarnishScreen();
+        graffiti.showDrawingScreen();
         $('.graffiti-active-pen').removeClass('graffiti-active-pen');
         let penControl = $('#graffiti-' + penType + '-pen');
         if (penControl.length > 0 && !(penControl.hasClass('btn'))) {
@@ -853,7 +853,7 @@ define([
             { change: 'drawingModeActivated', data: false },
             { change: 'penType', data: undefined } 
           ]);
-          graffiti.hideGarnishScreen();
+          graffiti.hideDrawingScreen();
         }          
       },
 
@@ -865,23 +865,23 @@ define([
         graffiti.graffitiCursor.show().css({opacity:1.0});
       },
 
-      garnishScreenHandler: (e) => {
+      drawingScreenHandler: (e) => {
         if (state.getActivity() === 'recording') {
           if (e.type === 'mousedown') {
-            console.log('garnishScreenHandler: mousedown');
+            console.log('drawingScreenHandler: mousedown');
             graffiti.resetTemporaryCanvases();
-            state.disableGarnishFadeClock();
+            state.disableDrawingFadeClock();
             state.updateDrawingState( [ 
               { change: 'drawingModeActivated', data: true }, 
               { change: 'isDown',  data: true }, 
               { change: 'drawingActivity', data: 'draw' },
-              { change: 'opacity', data: state.getMaxGarnishOpacity() } 
+              { change: 'opacity', data: state.getMaxDrawingOpacity() } 
             ]);
           } else if ((e.type === 'mouseup') || (e.type === 'mouseleave')) {
-            console.log('garnishScreenHandler: ', e.type);
+            console.log('drawingScreenHandler: ', e.type);
             if (state.getDrawingPenAttribute('isDown')) {
               state.updateDrawingState( [ { change: 'isDown',  data: false } ]);
-              state.startGarnishFadeClock();
+              state.startDrawingFadeClock();
             }
           }
           e.preventDefault();
@@ -890,44 +890,44 @@ define([
         }
       },
 
-      resetGarnishColor: () => {
+      resetDrawingColor: () => {
         $('#graffiti-recording-colors-shell div').removeClass('graffiti-recording-color-active');
         $('#graffiti-recording-color-black').addClass('graffiti-recording-color-active');
         state.updateDrawingState([ { change: 'color', data: '000000' }] );
       },
 
-      resetGarnishPen: () => {
+      resetDrawingPen: () => {
         $('.graffiti-active-pen').removeClass('graffiti-active-pen');
         graffiti.toggleGraffitiPen(undefined, 'deactivate'); // turn off the active pen
       },
 
-      showGarnishScreen: () => {
-        graffiti.garnishScreen.show();
+      showDrawingScreen: () => {
+        graffiti.drawingScreen.show();
       },
 
-      hideGarnishScreen: () => {
-        graffiti.garnishScreen.hide();
+      hideDrawingScreen: () => {
+        graffiti.drawingScreen.hide();
       },
 
       // Inspired by https://www.codicode.com/art/how_to_draw_on_a_html5_canvas_with_a_mouse.aspx
       // and : http://perfectionkills.com/exploring-canvas-drawing-techniques/
-      setupGarnishScreen: () => {
-        const graffitiGarnishScreen = $('<div id="graffiti-garnish-screen"></div>');
-        graffiti.garnishScreen = graffitiGarnishScreen.prependTo(graffiti.notebookContainer);
+      setupDrawingScreen: () => {
+        const graffitiDrawingScreen = $('<div id="graffiti-drawing-screen"></div>');
+        graffiti.drawingScreen = graffitiDrawingScreen.prependTo(graffiti.notebookContainer);
         const notebookHeight = $('#notebook').outerHeight(true);
-        graffiti.garnishScreen.css({height: notebookHeight + 'px'});
-        graffiti.garnishScreen.bind('mousedown mouseup mouseleave', (e) => { graffiti.garnishScreenHandler(e) });
+        graffiti.drawingScreen.css({height: notebookHeight + 'px'});
+        graffiti.drawingScreen.bind('mousedown mouseup mouseleave', (e) => { graffiti.drawingScreenHandler(e) });
       },
 
-      placeCanvas: (cellId, garnishPermanence) => {
+      placeCanvas: (cellId, drawingPermanence) => {
         const cell = utils.findCellByCellId(cellId);
         const cellElement = $(cell.element[0]);
         const cellRect = cellElement[0].getBoundingClientRect();
-        if (graffiti.canvases[garnishPermanence][cellId] !== undefined) {
-          //console.log('not adding ' + garnishPermanence + ' canvas to this cell, already exists.');
+        if (graffiti.canvases[drawingPermanence][cellId] !== undefined) {
+          //console.log('not adding ' + drawingPermanence + ' canvas to this cell, already exists.');
           return cellRect;
         }
-        $('<div class="graffiti-canvas-outer graffiti-canvas-type-' + garnishPermanence + '"><canvas /></div>').appendTo(cellElement);
+        $('<div class="graffiti-canvas-outer graffiti-canvas-type-' + drawingPermanence + '"><canvas /></div>').appendTo(cellElement);
         const newCellCanvasDiv = cellElement.find('.graffiti-canvas-outer:last');
         const newCellCanvas = newCellCanvasDiv.find('canvas')[0];
         const ctx =  newCellCanvas.getContext("2d");
@@ -944,7 +944,7 @@ define([
         ctx.lineJoin = "round";
         ctx.lineCap = "round";
 
-        graffiti.canvases[garnishPermanence][cellId] = {
+        graffiti.canvases[drawingPermanence][cellId] = {
           div: newCellCanvasDiv,
           canvas: newCellCanvas,
           ctx: ctx,
@@ -1005,37 +1005,37 @@ define([
             graffiti.clearCanvas(canvasType, cellId);
           }
         }
-        $('.graffiti-canvas-type-temporary').css({opacity: state.getMaxGarnishOpacity() });
+        $('.graffiti-canvas-type-temporary').css({opacity: state.getMaxDrawingOpacity() });
       },
 
       resetTemporaryCanvases: () => {
         console.log('resetTemporaryCanvases');
         const drawingState = state.getDrawingState();
-        const maxOpacity = state.getMaxGarnishOpacity();
+        const maxOpacity = state.getMaxDrawingOpacity();
         if (drawingState.opacity < maxOpacity) {
           console.log('Clearing temp canvases because fade completed');
           graffiti.clearCanvases('temporary');
           state.updateDrawingState( [ { change: 'drawingActivity', data: 'wipe' } ]);
           state.storeHistoryRecord('drawings');
           state.updateDrawingState( [ { change: 'opacity', data: maxOpacity } ]);
-          state.disableGarnishFadeClock();
+          state.disableDrawingFadeClock();
         }
       },
 
-      updateGarnishOpacity: (opts) => {
-        const maxOpacity = state.getMaxGarnishOpacity();
+      updateDrawingOpacity: (opts) => {
+        const maxOpacity = state.getMaxDrawingOpacity();
         if (opts.recording) {
           // Recording ongoing, so store opacity records and handle resets when mouse goes down
           if (opts.reset) {
             // Forced reset of (possibly fading) canvases
-            if (state.garnishFadeInProgress()) {
+            if (state.drawingFadeInProgress()) {
               graffiti.clearCanvases('temporary'); // clear the canvases only if we were in the middle of a fade. 
               state.updateDrawingState( [ { change: 'opacity', data: maxOpacity } ]);
             }
-            state.disableGarnishFadeClock();
+            state.disableDrawingFadeClock();
           } else {
             // Check for fadeouts
-            const opacityInfo = state.calculateGarnishOpacity();
+            const opacityInfo = state.calculateDrawingOpacity();
             switch (opacityInfo.status) {
               case 'max':
                 state.updateDrawingState( [ { change: 'drawingActivity', data: 'draw' }, { change: 'opacity', data: maxOpacity } ] );
@@ -1056,29 +1056,29 @@ define([
           //console.log('opacityRecord:', opacityRecord);
           if (opacityRecord !== undefined) {
             if (opacityRecord.reset) {
-              if ((graffiti.lastGarnishEraseIndex === undefined) ||
-                  (graffiti.lastGarnishEraseIndex !== opts.opacityIndex)) {
+              if ((graffiti.lastDrawingEraseIndex === undefined) ||
+                  (graffiti.lastDrawingEraseIndex !== opts.opacityIndex)) {
                 console.log('Erasing canvases');
                 graffiti.clearCanvases('temporary');
-                graffiti.lastGarnishEraseIndex = opts.opacityIndex;
+                graffiti.lastDrawingEraseIndex = opts.opacityIndex;
               }
-              state.resetGarnishOpacity(); // if latest record was a reset, make sure you reset
+              state.resetDrawingOpacity(); // if latest record was a reset, make sure you reset
             } else {
-              state.setGarnishOpacity(opacityRecord.opacity);
+              state.setDrawingOpacity(opacityRecord.opacity);
             }
           }
         }
       },      
 
-      updateGarnishDisplay: (cellId, ax, ay, bx, by, garnishPenType, garnishPermanence ) => {
-        //console.log('updateGarnishDisplay, garnishPermanence:', garnishPermanence);
-        if (graffiti.canvases[garnishPermanence].hasOwnProperty(cellId)) {
-          const ctx = graffiti.canvases[garnishPermanence][cellId].ctx;
-          if (garnishPenType === 'eraser') {
+      updateDrawingDisplay: (cellId, ax, ay, bx, by, drawingPenType, drawingPermanence ) => {
+        //console.log('updateDrawingDisplay, drawingPermanence:', drawingPermanence);
+        if (graffiti.canvases[drawingPermanence].hasOwnProperty(cellId)) {
+          const ctx = graffiti.canvases[drawingPermanence][cellId].ctx;
+          if (drawingPenType === 'eraser') {
             const eraseBuffer = 25;
             ctx.clearRect(ax - eraseBuffer / 2, ay - eraseBuffer / 2, eraseBuffer, eraseBuffer);
           } else {
-            //console.log('updateGarnishDisplay:', ax, ay, bx, by);
+            //console.log('updateDrawingDisplay:', ax, ay, bx, by);
             ctx.beginPath();
             ctx.moveTo(ax, ay);
             ctx.lineTo(bx, by);
@@ -1089,22 +1089,22 @@ define([
       },
 
       // This fn is called on mousemove, which means fade counts always reset, and we clear the temporary ink completely if it was part way through a fade
-      updateGarnishDisplayWhenRecording: (ax, ay, bx, by, viewInfo) => {
+      updateDrawingDisplayWhenRecording: (ax, ay, bx, by, viewInfo) => {
         if (state.getActivity() === 'recording') {
           if (state.getDrawingPenAttribute('isDown')) {
-            const garnishPermanence = state.getDrawingPenAttribute('permanence');
-            const garnishPenType = state.getDrawingPenAttribute('type');
-            const garnishPenDash = state.getDrawingPenAttribute('dash');
-            const garnishPenColor = state.getDrawingPenAttribute('color');
-            const cellRect = graffiti.placeCanvas(viewInfo.cellId, garnishPermanence);
-            graffiti.setCanvasStyle(viewInfo.cellId, garnishPenType, garnishPenDash, garnishPenColor, garnishPermanence);
-            graffiti.updateGarnishDisplay(viewInfo.cellId, 
+            const drawingPermanence = state.getDrawingPenAttribute('permanence');
+            const drawingPenType = state.getDrawingPenAttribute('type');
+            const drawingPenDash = state.getDrawingPenAttribute('dash');
+            const drawingPenColor = state.getDrawingPenAttribute('color');
+            const cellRect = graffiti.placeCanvas(viewInfo.cellId, drawingPermanence);
+            graffiti.setCanvasStyle(viewInfo.cellId, drawingPenType, drawingPenDash, drawingPenColor, drawingPermanence);
+            graffiti.updateDrawingDisplay(viewInfo.cellId, 
                                           ax - cellRect.left,
                                           ay - cellRect.top, 
                                           bx - cellRect.left,
                                           by - cellRect.top,
-                                          garnishPenType,
-                                          garnishPermanence);
+                                          drawingPenType,
+                                          drawingPermanence);
             state.updateDrawingState([
               { change:'positions', 
                 data: { 
@@ -1123,12 +1123,12 @@ define([
         }
       },
 
-      // Rerun all garnishes up to time t. Used after scrubbing.
-      redrawAllGarnishes: (targetTime) => {
+      // Rerun all drawings up to time t. Used after scrubbing.
+      redrawAllDrawings: (targetTime) => {
         graffiti.clearCanvases('all');
         const lastDrawFrameIndex = state.getIndexUpToTime('drawings', targetTime);
         if (lastDrawFrameIndex !== undefined) {
-          // First, final last opacity reset before the target time. We will start redrawing garnishes from this point forward.
+          // First, final last opacity reset before the target time. We will start redrawing drawings from this point forward.
           for (let index = 0; index < lastDrawFrameIndex; ++index) {
             record = state.getHistoryItem('drawings', index);
             graffiti.updateDrawingCore(record);
@@ -1507,7 +1507,7 @@ define([
           state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.storeViewInfo(viewInfo);
           state.storeHistoryRecord('pointer');
-          graffiti.updateGarnishDisplayWhenRecording(previousPointerX, previousPointerY, e.clientX, e.clientY, viewInfo );
+          graffiti.updateDrawingDisplayWhenRecording(previousPointerX, previousPointerY, e.clientX, e.clientY, viewInfo );
           graffiti.updateControlPanelPosition();
           return true;
         };
@@ -2049,8 +2049,8 @@ define([
       stopRecordingCore: (useCallback) => {
         audio.setExecuteCallback(useCallback);
         graffiti.clearCanvases('all');
-        graffiti.hideGarnishScreen();
-        graffiti.resetGarnishColor();
+        graffiti.hideDrawingScreen();
+        graffiti.resetDrawingColor();
         state.finalizeHistory();
         if (useCallback) {
           state.dumpHistory();
@@ -2119,9 +2119,9 @@ define([
             state.updateDrawingState([ { change: 'drawingModeActivated', data: false },
                                        { change: 'drawingActivity', data: 'idle' },
                                        { change: 'penType', data: undefined },
-                                       { change: 'opacity', data: state.getMaxGarnishOpacity() } ]);
-            graffiti.resetGarnishPen();
-            state.disableGarnishFadeClock(); // initially, we don't fade since nothing drawn yet
+                                       { change: 'opacity', data: state.getMaxDrawingOpacity() } ]);
+            graffiti.resetDrawingPen();
+            state.disableDrawingFadeClock(); // initially, we don't fade since nothing drawn yet
 
             state.setRecordingInterval(
               setInterval(() => {
@@ -2131,7 +2131,7 @@ define([
                   graffiti.runOnceOnNextRecordingTick = undefined;
                 }
                 graffiti.updateTimeDisplay(state.getTimeRecordedSoFar());
-                graffiti.updateGarnishOpacity({recording:true, reset: false});
+                graffiti.updateDrawingOpacity({recording:true, reset: false});
               }, graffiti.recordingIntervalMs)
             );
             // Flash a red recording bullet while recording is ongoing, every second. 
@@ -2265,7 +2265,7 @@ define([
             graffiti.placeCanvas(record.cellId, record.pen.permanence);
             graffiti.setCanvasStyle(record.cellId, record.pen.type, record.pen.dash, record.pen.color, record.pen.permanence);
             const offsetPosition = graffiti.computeOffsetPosition(record, false);
-            graffiti.updateGarnishDisplay(record.cellId, 
+            graffiti.updateDrawingDisplay(record.cellId, 
                                           record.positions.start.x, 
                                           record.positions.start.y,
                                           record.positions.end.x, 
@@ -2529,7 +2529,7 @@ define([
         graffiti.updateDisplay(frameIndexes);
         graffiti.updateSlider(t);
         graffiti.updateTimeDisplay(t);
-        graffiti.redrawAllGarnishes(t);
+        graffiti.redrawAllDrawings(t);
         if (previousPlayState === 'playing') {
           graffiti.startPlayback();
         }
@@ -2549,7 +2549,7 @@ define([
         const frameIndexes = state.getHistoryRecordsAtTime(t);
         graffiti.updateDisplay(frameIndexes); // can replay scroll diffs, and in playback use cumulative scroll diff
         graffiti.updateTimeDisplay(t);
-        graffiti.redrawAllGarnishes(t);
+        graffiti.redrawAllDrawings(t);
       },
 
       pausePlaybackNoVisualUpdates: () => {
@@ -2624,7 +2624,7 @@ define([
           graffiti.prePlaybackScrolltop = state.getScrollTop();
           graffiti.lastScrollViewId = undefined;
           graffiti.lastDrawIndex = undefined;
-          graffiti.lastGarnishEraseIndex = undefined;
+          graffiti.lastDrawingEraseIndex = undefined;
           state.storeCellStates();
           state.clearCellOutputsSent();
           graffiti.clearCanvases('all');
