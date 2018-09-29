@@ -983,7 +983,7 @@ define([
       },
       
       clearCanvases: (canvasType) => {
-        console.log('clearCanvases');
+        //console.log('clearCanvases');
         if (canvasType === 'all') {
           for (let canvasType of Object.keys(graffiti.canvases)) {
             for (let cellId of Object.keys(graffiti.canvases[canvasType])) {
@@ -1116,36 +1116,13 @@ define([
       // Rerun all garnishes up to time t. Used after scrubbing.
       redrawAllGarnishes: (targetTime) => {
         graffiti.clearCanvases('all');
-        // First, final last opacity reset before the target time. We will start redrawing garnishes from this point forward.
-        let lastOpacityIndex = state.getIndexUpToTime('opacity', targetTime);
-        let firstViewIndex = 0;
-        if (lastOpacityIndex !== undefined) {
-          for (let opacityIndex = 0; opacityIndex < lastOpacityIndex; ++opacityIndex) {
-            record = state.getHistoryItem('opacity', opacityIndex);
-            if (record.reset) {
-              firstViewIndex = state.getIndexUpToTime('view', record.startTime);
-            }
+        const lastDrawFrameIndex = state.getIndexUpToTime('drawings', targetTime);
+        if (lastDrawFrameIndex !== undefined) {
+          // First, final last opacity reset before the target time. We will start redrawing garnishes from this point forward.
+          for (let index = 0; index < lastDrawFrameIndex; ++index) {
+            record = state.getHistoryItem('drawings', index);
+            graffiti.updateDrawingCore(record);
           }
-        }
-
-        
-        const lastViewIndex = state.getIndexUpToTime('view', targetTime);
-        if (lastViewIndex !== undefined) {
-          console.log('firstViewIndex:', firstViewIndex, 'lastViewIndex:', lastViewIndex);
-          for (let viewIndex = firstViewIndex; viewIndex < lastViewIndex; ++viewIndex) {
-            record = state.getHistoryItem('view', viewIndex);
-            // We must locate the cell in the notebook today (vs when the recording was made) before we can redraw garnish.
-            if (record.subType === 'pointer') {
-              //console.log('pointerUpdate is true, record:', record);
-              record.hoverCell = utils.findCellByCellId(record.cellId); 
-              graffiti.updatePointer(record);
-            }
-          }
-        }
-        state.resetGarnishOpacity();
-        opacityIndex = state.getIndexUpToTime('opacity', targetTime);
-        if (opacityIndex !== undefined) {
-          graffiti.updateGarnishOpacity({recording:false, reset:false, opacityIndex: opacityIndex});          
         }
       },
 
@@ -2270,40 +2247,43 @@ define([
         return offsetPosition;
       },
 
+      updateDrawingCore: (record) => {
+        record.hoverCell = utils.findCellByCellId(record.cellId);
+        const cellRects = utils.getCellRects(record.hoverCell);
+        switch (record.drawingActivity) {
+          case 'draw':
+            graffiti.placeCanvas(record.cellId, record.pen.permanence);
+            graffiti.setCanvasStyle(record.cellId, record.pen.type, record.pen.dash, record.pen.color, record.pen.permanence);
+            const offsetPosition = graffiti.computeOffsetPosition(record, false);
+            graffiti.updateGarnishDisplay(record.cellId, 
+                                          record.positions.start.x, 
+                                          record.positions.start.y,
+                                          record.positions.end.x, 
+                                          record.positions.end.y,
+                                          record.pen.type,
+                                          record.pen.permanence);
+            break;
+          case 'fade':
+            $('.graffiti-canvas-type-temporary').css({opacity: record.opacity });
+            break;
+          case 'wipe':
+            graffiti.clearCanvases('temporary');            
+            break;
+        }
+      },
+
       updateDrawings: (drawingFrameIndex) => {
         if (drawingFrameIndex === undefined) {
           return; // no drawings yet at this index
         }
 
-        let index, record;
         // Need to process a range of records if that's required.
         const startIndex = ((drawingFrameIndex.rangeStart == undefined) ? drawingFrameIndex.index : drawingFrameIndex.rangeStart);
         const endIndex = drawingFrameIndex.index;
-
+        let index, record;
         for (index = startIndex; index <= endIndex; ++index) {
           record = state.getHistoryItem('drawings', index);
-          record.hoverCell = utils.findCellByCellId(record.cellId);
-          const cellRects = utils.getCellRects(record.hoverCell);
-          switch (record.drawingActivity) {
-            case 'draw':
-              graffiti.placeCanvas(record.cellId, record.pen.permanence);
-              graffiti.setCanvasStyle(record.cellId, record.pen.type, record.pen.dash, record.pen.color, record.pen.permanence);
-              const offsetPosition = graffiti.computeOffsetPosition(record, false);
-              graffiti.updateGarnishDisplay(record.cellId, 
-                                            record.positions.start.x, 
-                                            record.positions.start.y,
-                                            record.positions.end.x, 
-                                            record.positions.end.y,
-                                            record.pen.type,
-                                            record.pen.permanence);
-              break;
-            case 'fade':
-              $('.graffiti-canvas-type-temporary').css({opacity: record.opacity });
-              break;
-            case 'wipe':
-              graffiti.clearCanvases('temporary');            
-              break;
-          }
+          graffiti.updateDrawingCore(record);
         }
       },
 
@@ -2661,7 +2641,7 @@ define([
         // Set up main playback loop on a 10ms interval
         state.setPlaybackInterval(
           setInterval(() => {
-            console.log('Moving playback time ahead.');
+            //console.log('Moving playback time ahead.');
             const playedSoFar = state.getTimePlayedSoFar();
             if (playedSoFar >= state.getHistoryDuration()) {
               // reached end of recording naturally, so set up for restart on next press of play button
