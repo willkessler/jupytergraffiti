@@ -1,3 +1,6 @@
+// Mark Graffiti as about to load, so that the python library won't try to reload things in a race condition scenario.
+window.Graffiti = null; 
+
 define([
   'base/js/namespace',
   '/nbextensions/graffiti_extension/js/graffiti.js',
