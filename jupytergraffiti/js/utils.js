@@ -293,21 +293,23 @@ define([
               if (startRange < minStartRange) {
                 minStartRange = startRange;
                 recording = state.getManifestSingleRecording(recordingCellId, recordingKey);
-                markdown = recording.markdown;
-                hasMovie = recording.hasMovie;
-                //console.log('found range:', range);
-                isIntersecting = true;
-                results = {
-                  isIntersecting: true,
-                  noTokensPresent: false,
-                  recordingCell: recordingCell,
-                  recordingCellId: recordingCellId,
-                  recordingKey: recordingKey, 
-                  markdown: markdown,
-                  hasMovie: hasMovie,
-                  range: {
-                    start: startRange,
-                    end:   endRange
+                if (recording) {
+                  markdown = recording.markdown;
+                  hasMovie = recording.hasMovie;
+                  //console.log('found range:', range);
+                  isIntersecting = true;
+                  results = {
+                    isIntersecting: true,
+                    noTokensPresent: false,
+                    recordingCell: recordingCell,
+                    recordingCellId: recordingCellId,
+                    recordingKey: recordingKey, 
+                    markdown: markdown,
+                    hasMovie: hasMovie,
+                    range: {
+                      start: startRange,
+                      end:   endRange
+                    }
                   }
                 };
               }
