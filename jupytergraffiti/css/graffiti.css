@@ -328,18 +328,19 @@
   background:blue;
 }
 
-#graffiti-setup-button button {
-  display:flex;
-}
-
-#graffiti-setup-button button div {
-  margin-left:5px;
+#graffiti-setup-button button span:last {
+  margin-left:0px;
   color:#666;
 }
 
 #graffiti-setup-button button svg {
   width:20px;
-  height:16px;
+  height:12px;
+}
+
+#graffiti-setup-button button img {
+  width:30px;
+  height:20px;
 }
 
 #graffiti-recording-pens-shell button svg {
