@@ -1,4 +1,6 @@
-// Mark Graffiti as about to load, so that the python library won't try to reload things in a race condition scenario.
+// Mark Graffiti as about to load, because extension should always get precedence over python API library
+// in case that is also going to be loaded by Jupyter.
+
 window.Graffiti = null; 
 
 define([
