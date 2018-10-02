@@ -948,7 +948,7 @@ define([
             cellCanvas.width = cellRect.width;
             cellCanvas.height = cellRect.height;
             canvas.cellRect = cellRect;
-            console.log('resized height of ',cellId, 'to ', cellRect.height);
+            // console.log('resized height of ',cellId, 'to ', cellRect.height);
           }
         }
         const notebookHeight = $('#notebook').outerHeight(true);

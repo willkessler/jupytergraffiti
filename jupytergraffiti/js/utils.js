@@ -232,7 +232,7 @@ define([
             endRange: match.index + match[0].length
           }); 
         }
-        console.log("tags:", tags);
+        //console.log("tags:", tags);
 
         // Figure out if the startPs or endPos is inside an existing Graffiti in this markdown cell (intersecting).
         if (tags.length > 0) {
@@ -278,7 +278,7 @@ define([
             }
           }
         }
-        console.log('final results:',results);
+        //console.log('final results:',results);
       } else if (recordingCellType === 'code') {
         // If in a code cell, try to find tokens in and around the selection.
         if (tokenRanges[recordingCellId] !== undefined) {
