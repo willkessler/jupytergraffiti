@@ -937,10 +937,10 @@ define([
           for (let cellId of Object.keys(graffiti.canvases[canvasType])) {
             canvas = graffiti.canvases[canvasType][cellId];
             cell = utils.findCellByCellId(cellId);
-            cellElement = $(cell.element[0]);
-            cellRect = cellElement[0].getBoundingClientRect();
+            cellElement = cell.element[0];
+            cellRect = cellElement.getBoundingClientRect();
             canvasStyle = {
-              width: cellRect.width + 'px',
+              width:  cellRect.width + 'px',
               height: cellRect.height + 'px'
             };
             canvas.div.css(canvasStyle);
@@ -948,14 +948,19 @@ define([
             cellCanvas.width = cellRect.width;
             cellCanvas.height = cellRect.height;
             canvas.cellRect = cellRect;
+            console.log('resized height of ',cellId, 'to ', cellRect.height);
           }
         }
+        const notebookHeight = $('#notebook').outerHeight(true);
+        graffiti.drawingScreen.css({height: notebookHeight + 'px'});
       },
 
       placeCanvas: (cellId, drawingPermanence) => {
         const cell = utils.findCellByCellId(cellId);
         const cellElement = $(cell.element[0]);
         const cellRect = cellElement[0].getBoundingClientRect();
+        cellRect.width = cellElement.width(); // because getBoundingClientRect only computes the part that's visible on screen
+        cellRect.height = cellElement.height();
         if (graffiti.canvases[drawingPermanence][cellId] !== undefined) {
           //console.log('not adding ' + drawingPermanence + ' canvas to this cell, already exists.');
           return cellRect;
@@ -2468,24 +2473,6 @@ define([
           }
         }
       },
-
-/*
-      processContentOutputs: (cell, frameOutputs, index) => {
-        if (frameOutputs[index] === undefined) {
-          return;
-        }
-        let output_type = frameOutputs[index].output_type;
-        if (output_type !== 'clear') {
-          if ((output_type === 'display_data' || output_type === 'stream') || (output_type === 'error')) {
-            if ((output_type === 'stream') ||
-                (output_type === 'error') ||
-                (frameOutputs[0].hasOwnProperty('data') && !frameOutputs[index].data.hasOwnProperty('application/javascript'))) {
-              cell.output_area.handle_output({header: { msg_type: frameOutputs[index].output_type }, content: frameOutputs[index]});
-            }
-          }
-        }
-      },
-*/
 
       // set_text() causes jupyter to scroll to top of cell so we need to restore scrollTop after calling this fn.
       updateContents: (index, currentScrollTop) => {
