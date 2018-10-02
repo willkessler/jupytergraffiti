@@ -544,7 +544,7 @@ define([
       for (let i = 0; i < cells.length; ++i) {
         cell = cells[i];
         if (cell.cell_type === 'code') {
-          cellId = cell.metadata.cellId;
+          cellId = utils.getMetadataCellId(cell.metadata);
           cm = cell.code_mirror;
           selections = utils.cleanSelectionRecords(cm.listSelections());
           output = null;
@@ -577,7 +577,7 @@ define([
           }
           cellSelections = {
             index: i,
-            active: cellId === activeCell.metadata.cellId,
+            active: cellId === utils.getMetadataCellId(activeCell.metadata),
             selections: selections,
             output: output
           }
@@ -636,7 +636,7 @@ define([
       let cellsContent = {};
       for (let i = 0; i < cells.length; ++i) {
         cell = cells[i];
-        cellId = cell.metadata.cellId;
+        cellId = utils.getMetadataCellId(cell.metadata);
         contents = cell.get_text();
         outputs = undefined;
         // Store the DOM contents of the code cells for rerendering.
@@ -910,7 +910,7 @@ define([
     },
 
     restoreCellOutputs: (cell, frameOutputs) => {
-      const cellId = cell.metadata.cellId;
+      const cellId = utils.getMetadataCellId(cell.metadata);
       if (frameOutputs === undefined)
         return; // no output found, so don't update DOM (e.g. markdown cell)
       if (state.cellOutputsSent[cellId] !== undefined) {

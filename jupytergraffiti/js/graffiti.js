@@ -582,7 +582,7 @@ define([
                   graffiti.setNotifier('<div>Edit this Markdown cell to add or modify Graffiti\'s in the cell.</div>');
                 }
               } else {
-                graffiti.setNotifier('<div>Select some text in this code cell to create or modify Graffiti\'s, or click inside any existing Graffiti text to modify it.</div>');
+                graffiti.setNotifier('<div>Select some text in a code cell to create or modify Graffiti\'s, or click inside any existing Graffiti text to modify it.</div>');
               }
             } else if (accessLevel === 'view') {
               console.log('Graffiti: view only');
@@ -929,6 +929,29 @@ define([
         graffiti.drawingScreen.bind('mousedown mouseup mouseleave', (e) => { graffiti.drawingScreenHandler(e) });
       },
 
+      resizeCanvases: () => {
+        const canvasTypes = ['permanent','temporary'];
+        const cells = Jupyter.notebook.get_cells();
+        let cellElement, cellRect, canvasStyle, canvas, cellCanvas;
+        for (let canvasType of canvasTypes) {
+          for (let cellId of Object.keys(graffiti.canvases[canvasType])) {
+            canvas = graffiti.canvases[canvasType][cellId];
+            cell = utils.findCellByCellId(cellId);
+            cellElement = $(cell.element[0]);
+            cellRect = cellElement[0].getBoundingClientRect();
+            canvasStyle = {
+              width: cellRect.width + 'px',
+              height: cellRect.height + 'px'
+            };
+            canvas.div.css(canvasStyle);
+            cellCanvas = canvas.canvas;
+            cellCanvas.width = cellRect.width;
+            cellCanvas.height = cellRect.height;
+            canvas.cellRect = cellRect;
+          }
+        }
+      },
+
       placeCanvas: (cellId, drawingPermanence) => {
         const cell = utils.findCellByCellId(cellId);
         const cellElement = $(cell.element[0]);
@@ -1215,7 +1238,7 @@ define([
         if (params.cell.cell_type !== 'code') {
           return; // We don't refresh highlights in markdown cells because markdown cells do their highlights with plain html markup.
         }
-        const recordings = state.getManifestRecordingsForCell(params.cell.metadata.cellId);
+        const recordings = state.getManifestRecordingsForCell(utils.getMetadataCellId(params.cell.metadata));
         const cm = params.cell.code_mirror;
         const marks = cm.getAllMarks();
         let markClasses;
@@ -1227,7 +1250,7 @@ define([
           markClasses = marks.map((mark) => { return mark.className }).join(' ').replace(/graffiti-highlight /g, '');
         }
         const allTokens = utils.collectCMTokens(cm);
-        const cellId = params.cell.metadata.cellId;
+        const cellId = utils.getMetadataCellId(params.cell.metadata);
         graffiti.tokenRanges[cellId] = {};
         if (recordings !== undefined) {
           if (Object.keys(recordings).length > 0) {
@@ -1589,7 +1612,7 @@ define([
         } else { 
           // Prepare to create a new recording
           recordingCell = Jupyter.notebook.get_selected_cell();
-          recordingCellId = recordingCell.metadata.cellId;
+          recordingCellId = utils.getMetadataCellId(recordingCell.metadata);
           recordingKey = utils.generateUniqueId();
           newRecording = true;
           recordingRecord = {
@@ -1661,7 +1684,7 @@ define([
         const activeCellIndex = Jupyter.notebook.get_selected_index();
         const graffitiEditCell = Jupyter.notebook.insert_cell_above('markdown');
 
-        graffitiEditCell.metadata.cellId = utils.generateUniqueId();
+        utils.setMetadataCellId(graffitiEditCell.metadata,utils.generateUniqueId());
         utils.refreshCellMaps();
         let editableText;
         if (graffiti.selectedTokens.isIntersecting) {
@@ -1681,7 +1704,7 @@ define([
         graffitiEditCell.select();
         graffitiEditCell.code_mirror.focus();
         graffitiEditCell.code_mirror.setSelection( { line:2, ch:0}, { line:10000, ch:10000} );
-        graffiti.graffitiEditCellId = graffitiEditCell.metadata.cellId;
+        graffiti.graffitiEditCellId = utils.getMetadataCellId(graffitiEditCell.metadata);
       },
 
       finishGraffiti: (doSave) => {
@@ -1750,7 +1773,7 @@ define([
       },
 
       removeGraffitiCore: (recordingCell, recordingKey) => {
-        const recordingCellId = recordingCell.metadata.cellId;
+        const recordingCellId = utils.getMetadataCellId(recordingCell.metadata);
         if (recordingCell.cell_type === 'markdown') {
           // If this Graffiti was in a markdown cell we need to remove the span tags from the markdown source
           const contents = recordingCell.get_text();
@@ -1810,7 +1833,7 @@ define([
 
       removeGraffiti: (recordingCell, recordingKey) => {
         graffiti.removeGraffitiCore(recordingCell, recordingKey);
-        if (state.removeManifestEntry(recordingCell.metadata.cellId, recordingKey)) {
+        if (state.removeManifestEntry(utils.getMetadataCellId(recordingCell.metadata), recordingKey)) {
           graffiti.highlightIntersectingGraffitiRange();
           graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
           graffiti.refreshGraffitiTips();
@@ -1842,7 +1865,7 @@ define([
       removeGraffitiWithPrompt: () => {
         if (graffiti.selectedTokens.isIntersecting) {
           const recordingCell = graffiti.selectedTokens.recordingCell;
-          const recordingCellId = recordingCell.metadata.cellId;
+          const recordingCellId = utils.getMetadataCellId(recordingCell.metadata);
           const recordingKey = graffiti.selectedTokens.recordingKey;
           const recording = state.getManifestSingleRecording(recordingCellId,recordingKey);
           const content = '(Please Note: this cannot be undone.)<br/>' +
@@ -1902,7 +1925,7 @@ define([
       },
 
       addCMEventsToSingleCell: (cell) => {
-        graffiti.CMEvents[cell.metadata.cellId] = true;
+        graffiti.CMEvents[utils.getMetadataCellId(cell.metadata)] = true;
         const cm = cell.code_mirror;
         cm.on('focus', (cm, e) => {
           // console.log('Graffiti: CM focus:' , cm, e);
@@ -1910,8 +1933,9 @@ define([
           // create a focus history record because jupyter is not firing the select cell event in those cases.
           const activity = state.getActivity();
           if (activity === 'recording') {
-            if (cell.metadata.cellId !== state.getSelectedCellId()) {
-              state.saveSelectedCellId(cell.metadata.cellId);
+            const cellId = utils.getMetadataCellId(cell.metadata);
+            if (cellId !== state.getSelectedCellId()) {
+              state.saveSelectedCellId(cellId);
               state.storeHistoryRecord('focus');
             }
           } else if (activity === 'recordingPending') {
@@ -1928,14 +1952,14 @@ define([
           }
           //console.log('graffiti.selectedTokens:', graffiti.selectedTokens);
           const affectedCell = utils.findCellByCodeMirror(cm);
-          state.storeCellIdAffectedByActivity(affectedCell.metadata.cellId);
+          state.storeCellIdAffectedByActivity(utils.getMetadataCellId(affectedCell.metadata));
           state.storeHistoryRecord('selections');
         });
 
         cm.on('change', (cm, changeObj) => {
           //console.log('change activity:', changeObj);
           const affectedCell = utils.findCellByCodeMirror(cm);
-          state.storeCellIdAffectedByActivity(affectedCell.metadata.cellId);
+          state.storeCellIdAffectedByActivity(utils.getMetadataCellId(affectedCell.metadata));
           state.storeHistoryRecord('contents');
           if (state.getActivity() === 'idle') {
             graffiti.refreshGraffitiHighlights({cell: affectedCell, clear: true});
@@ -1973,7 +1997,7 @@ define([
         const inputCells = Jupyter.notebook.get_cells();
         for (let cell of inputCells) {
           // Don't rebind if already bound
-          if (!graffiti.CMEvents.hasOwnProperty(cell.metadata.cellId)) {
+          if (!graffiti.CMEvents.hasOwnProperty(utils.getMetadataCellId(cell.metadata))) {
             graffiti.addCMEventsToSingleCell(cell);
           }
         }
@@ -1996,7 +2020,7 @@ define([
           //console.log(results);
           const newCell = results.cell;
           const newCellIndex = results.index;
-          newCell.metadata.cellId = utils.generateUniqueId();
+          utils.setMetadataCellId(newCell.metadata,utils.generateUniqueId());
           utils.refreshCellMaps();
           graffiti.addCMEventsToSingleCell(newCell);
           state.storeHistoryRecord('contents');
@@ -2012,6 +2036,7 @@ define([
           console.log('Graffiti: Finished execution event fired, e, results:',e, results);
           utils.refreshCellMaps();
           state.storeHistoryRecord('contents');
+          graffiti.resizeCanvases();
         });
 
         // Because we get this event when output is sent but before it's rendered into the dom, we set up to collect
@@ -2028,7 +2053,7 @@ define([
         Jupyter.notebook.events.on('rendered.MarkdownCell', (e, results) => {
           const activity = state.getActivity();
           if (((activity === 'graffiting') || (activity === 'recordingLabelling')) &&
-              (results.cell.metadata.cellId === graffiti.graffitiEditCellId)) {
+              (utils.getMetadataCellId(results.cell.metadata) === graffiti.graffitiEditCellId)) {
             // When creating Graffitis for markdown cells, the user can also save the Graffiti by rendering the target
             // markdown cell rather than the editing cell. Some content creators get confused and do this, so we support it.
             const lastEditActivityTime = state.getLastEditActivityTime();
@@ -2237,7 +2262,7 @@ define([
 
       computeOffsetPosition: (record, includeInnerBuffer) => {
         const cellRects = utils.getCellRects(record.hoverCell);        
-        //console.log('hoverCellId:', record.hoverCell.metadata.cellId, 'rect:', innerCellRect);
+        //console.log('hoverCellId:', utils.getMetadataCellId(record.hoverCell.metadata), 'rect:', innerCellRect);
         const dx = record.x / record.innerCellRect.width;
         const dy = record.y / record.innerCellRect.height;
         if (record.hoverCell.cell_type === 'code') {
@@ -2444,6 +2469,7 @@ define([
         }
       },
 
+/*
       processContentOutputs: (cell, frameOutputs, index) => {
         if (frameOutputs[index] === undefined) {
           return;
@@ -2459,6 +2485,7 @@ define([
           }
         }
       },
+*/
 
       // set_text() causes jupyter to scroll to top of cell so we need to restore scrollTop after calling this fn.
       updateContents: (index, currentScrollTop) => {
@@ -2467,7 +2494,7 @@ define([
         let cellId, contents, outputs, frameContents, frameOutputs;
         for (let cell of cells) {
           if (cell.cell_type === 'code') {
-            cellId = cell.metadata.cellId;
+            cellId = utils.getMetadataCellId(cell.metadata);
             contents = cell.get_text();
             if (contentsRecord.cellsContent.hasOwnProperty(cellId)) {
               frameContents = state.extractDataFromContentRecord(contentsRecord.cellsContent[cellId].contentsRecord, cellId);
@@ -2480,6 +2507,7 @@ define([
           }
         }
         graffiti.sitePanel.scrollTop(currentScrollTop);
+        graffiti.resizeCanvases();
       },
 
       updateDisplay: (frameIndexes) => {

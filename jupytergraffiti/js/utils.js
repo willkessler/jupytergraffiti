@@ -17,6 +17,16 @@ define([
       return flag ? 'permanent': 'temporary';
     },
 
+    // These two functions help us translate between what we store in the notebook json itself ('graffitiCellId') and how we use it in the code, just as 'cellId'.
+    // This was done to make our tags less likely to collide with other Jupyter plugins, but we wanted to keep the field name short in the Graffiti code.
+    getMetadataCellId: (metadata) => {
+      return metadata.graffitiCellId;
+    },
+
+    setMetadataCellId: (metadata, cellId) => {
+      metadata.graffitiCellId = cellId;
+    },
+
     computeArrayAverage: (array) => {
       let average = 0;
       for (let i = 0; i < array.length;++i) {
@@ -33,8 +43,8 @@ define([
       for (let i = 0; i < cells.length; ++i) {
         cell = cells[i];
         cellId = utils.generateUniqueId();
-        if (!cell.metadata.hasOwnProperty('cellId')) {
-          cell.metadata.cellId = cellId;
+        if (!cell.metadata.hasOwnProperty('graffitiCellId')) {
+          utils.setMetadataCellId(cell.metadata, cellId);
         }
       }
     },
@@ -48,7 +58,7 @@ define([
       for (let cellIndex = 0; cellIndex < cellKeys.length; ++cellIndex) {
         cell = utils.cellMaps.cells[cellIndex];
         // supports lookups by cellId
-        utils.cellMaps.maps[cell.metadata.cellId] = cellIndex;
+        utils.cellMaps.maps[utils.getMetadataCellId(cell.metadata)] = cellIndex;
         // Dress up the DOM  cellId so we can track selections in them (pretty much only markdown, selections in code_mirror are done through its API
         if (cell.hasOwnProperty('inner_cell')) {
           cellDOM = $(cell.inner_cell).parents('.cell');
@@ -103,7 +113,7 @@ define([
       let cellElement, cellRect;
       const inputCells = Jupyter.notebook.get_cells();
       const selectedCell = Jupyter.notebook.get_selected_cell();
-      const selectedCellId = selectedCell.metadata.cellId;
+      const selectedCellId = utils.getMetadataCellId(selectedCell.metadata);
       // handle case where pointer is above all cells or below all cells
       let cellIndex, cellIndexStr, cell, innerCell, innerCellRect, innerCellRectRaw, pointerPosition, cellPosition, cm;
       for (cellIndexStr in inputCells) {
@@ -128,7 +138,7 @@ define([
           const innerScrollInfo = cm.getScrollInfo();
           const innerScroll = { left: innerScrollInfo.left, top: innerScrollInfo.top };
           return {
-            cellId: cell.metadata.cellId, // The id of cell that the pointer is hovering over right now
+            cellId: utils.getMetadataCellId(cell.metadata), // The id of cell that the pointer is hovering over right now
             innerCellRect: innerCellRect,
             innerScroll: innerScroll,
             selectedCellId: selectedCellId,
@@ -143,7 +153,7 @@ define([
 
     getActiveCellId: () => {
       const activeCell = Jupyter.notebook.get_selected_cell();
-      return activeCell.metadata.cellId;
+      return utils.getMetadataCellId(activeCell.metadata);
     },
 
     getActiveCellLineNumber: () => {
@@ -191,7 +201,7 @@ define([
     findSelectionTokens: (recordingCell,  tokenRanges, state) => {
       //console.log('findSelectionTokens, tokenRanges:', tokenRanges);
       let range, startRange, endRange, recording, hasMovie, recordingKey, markdown, isIntersecting = false;
-      const recordingCellId = recordingCell.metadata.cellId;
+      const recordingCellId = utils.getMetadataCellId(recordingCell.metadata);
       const recordingCellType = recordingCell.cell_type;
       const cm = recordingCell.code_mirror;
       const selections = cm.listSelections();
