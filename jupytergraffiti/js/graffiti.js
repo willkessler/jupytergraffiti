@@ -1772,7 +1772,11 @@ define([
         } else {
           graffiti.changeActivity('idle');
           recordingCell.code_mirror.focus();
-          graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: false});
+          if (doSave) {
+            graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: false});
+          } else {
+            graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
+          }
           graffiti.refreshGraffitiTips();
         }
       },
