@@ -32,7 +32,7 @@ def stop_playback():
     run_js("window.Graffiti.cancelPlayback()", False)
 
 # Remove all Graffiti from the current notebook. You will be prompted by a confirmation dialog.
-def remove_all_annotations():
+def remove_all_graffitis():
     run_js("window.Graffiti.removeAllGraffiti()", False)
 
 def show_creators_chooser():

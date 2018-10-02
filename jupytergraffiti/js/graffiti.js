@@ -1764,10 +1764,10 @@ define([
         // need to reselect graffiti text that was selected in case it somehow got unselected
         //recordingCell.code_mirror.setSelections(recordingCellInfo.selections);
         graffiti.sitePanel.animate({ scrollTop: recordingCellInfo.scrollTop}, 500);
+        if (doSave && recordingCellInfo.recordingRecord.cellType === 'markdown') {
+          recordingCell.render();
+        }
         if (doSave && state.getActivity() === 'recordingLabelling') {
-          if (recordingCellInfo.recordingRecord.cellType === 'markdown') {
-            recordingCell.render();
-          }
           graffiti.setPendingRecording();
         } else {
           graffiti.changeActivity('idle');
@@ -2922,7 +2922,7 @@ define([
       playRecordingById: (recordingFullId) => { graffiti.playRecordingById(recordingFullId) },
       playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => { graffiti.playRecordingByIdWithPrompt(recordingFullId, promptMarkdown) },
       cancelPlayback: () => { graffiti.cancelPlayback({cancelAnimation:false}) },
-      removeAllGraffitis: graffiti.removeAllGraffitisWithConfirmation,
+      removeAllGraffiti: graffiti.removeAllGraffitisWithConfirmation,
       showCreatorsChooser: graffiti.showCreatorsChooser,
       setAccessLevel: (level) => { graffiti.toggleAccessLevel(level) },
       setAuthorId: (authorId) => { state.setAuthorId(authorId) },
