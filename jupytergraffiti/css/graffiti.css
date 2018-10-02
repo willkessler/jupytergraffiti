@@ -93,17 +93,12 @@
   border-bottom:2px dashed rgb(47,147,107);
 }
 
+.graffiti-highlight:hover {
+  border-bottom:3px dashed rgb(27,127,87);
+}
+
 .graffiti-selected {
   background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAAHUlEQVQYV2NkcP+/mWEnoy8DAwMDI4iACUA4UAEAoMMH/eJADr4AAAAASUVORK5CYII=) repeat;
-}
-
-.graffiti-highlight:hover {
-  font-weight:bold;
-}
-
-.rendered_html p .graffiti-highlight:hover {
-  /* we do not want to bold on hover, on rendered markdown cells */
-   font-weight:normal !important;
 }
 
 .graffiti-text-display {
