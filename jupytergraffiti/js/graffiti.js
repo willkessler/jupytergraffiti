@@ -68,18 +68,20 @@ define([
         // Set up the button that activates Graffiti on new notebooks and controls visibility of the control panel if the notebook has already been graffiti-ized.
         graffiti.updateSetupButton();
 
-        storage.loadManifest(currentAccessLevel).then(() => {
-          graffiti.initInteractivity();
-        }).catch(() => {
-          console.log('Graffiti: Not setting up Graffiti because this notebook has never had any authoring done yet (no recordingId).');
-        });
-
+        if (Jupyter.notebook.metadata.hasOwnProperty('graffitiId')) { // do not try to load the manifest if this notebook has not yet been graffiti-ized.
+          storage.loadManifest(currentAccessLevel).then(() => {
+            graffiti.initInteractivity();
+          }).catch(() => {
+            console.log('Graffiti: Not setting up Graffiti because this notebook has never had any authoring done yet (no recordingId).');
+          });
+        }
         
       },
 
       provideAPIKeyExamples: () => {
         let recorderApiKeyCell = Jupyter.notebook.insert_cell_below('code');
-        let invocationLine = "jupytergraffiti.api.play_recording('" + graffiti.recordingAPIKey + "')\n" +
+        let invocationLine = "import jupytergraffiti\n" +
+                             "jupytergraffiti.api.play_recording('" + graffiti.recordingAPIKey + "')\n" +
                              "# jupytergraffiti.api.play_recording_with_prompt('" + graffiti.recordingAPIKey +
                              "', '![idea](../images/lightbulb_small.jpg) Click **here** to learn more.')\n" +
                              "# jupytergraffiti.api.stop_playback()";
@@ -1017,7 +1019,11 @@ define([
           }
         }
         const rawColorVal = '#' + graffiti.penColors[canvasColor];
-        console.log('rawColorVal', rawColorVal);
+        // Hack test
+        if (rawColorVal === undefined) {
+          debugger;
+        }
+        // console.log('rawColorVal', rawColorVal);
         ctx.strokeStyle = rawColorVal;
         ctx.shadowColor = rawColorVal;
       },
@@ -2577,10 +2583,12 @@ define([
       },
 
       pausePlaybackNoVisualUpdates: () => {
-        clearInterval(state.getPlaybackInterval());
-        graffiti.changeActivity('playbackPaused');
-        audio.pausePlayback();
-        state.setPlaybackTimeElapsed();
+        if (state.getActivity() === 'playing') {
+          clearInterval(state.getPlaybackInterval());
+          graffiti.changeActivity('playbackPaused');
+          audio.pausePlayback();
+          state.setPlaybackTimeElapsed();
+        }
       },
 
       // Pause any ongoing playback
@@ -2722,12 +2730,17 @@ define([
           graffiti.togglePlayback();
           graffiti.hideTip();
         }).catch( (ex) => {
+          graffiti.changeActivity('idle');
           dialog.modal({
             title: 'Movie is not available.',
             body: 'We are sorry, we could not load this movie at this time. Please contact the author of this Notebook for help.',
             sanitize:false,
             buttons: {
-              'OK': { click: (e) => { console.log('Graffiti: Missing movie acknowledged.'); } }
+              'OK': {
+                click: (e) => { 
+                  console.log('Graffiti: Missing movie acknowledged.'); 
+                }
+              }
             }
           });
 
