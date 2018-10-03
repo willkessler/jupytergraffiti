@@ -49,6 +49,16 @@ define([
         graffiti.scrollNudgeSmoothIncrements = 6;
         graffiti.scrollNudgeQuickIncrements = 4;
         graffiti.scrollNudge = undefined;
+        graffiti.penColors = {
+          'red'    : 'ff0000',
+          'green'  : '00ff00',
+          'blue'   : '0000ff',
+          'yellow' : 'ffff00',
+          'orange' : 'ff9900',
+          'purple' : '8a2be2',
+          'brown'  : '996600',
+          'black'  : '000000'
+        };
 
         if (currentAccessLevel === 'create') {
           storage.ensureNotebookGetsGraffitiId();
@@ -370,14 +380,9 @@ define([
                                       '</button>' +
                                       '</div>' +
                                       '<div id="graffiti-recording-colors-shell">' +
-                                      '  <div id="graffiti-recording-color-red" colorVal="ff0000"></div>' +
-                                      '  <div id="graffiti-recording-color-green" colorVal="00ff00"></div>' +
-                                      '  <div id="graffiti-recording-color-blue" colorVal="0000ff"></div>' +
-                                      '  <div id="graffiti-recording-color-yellow" colorVal="ffff00"></div>' +
-                                      '  <div id="graffiti-recording-color-orange" colorVal="ff9900"></div>' +
-                                      '  <div id="graffiti-recording-color-purple" colorVal="8a2be2"></div>' +
-                                      '  <div id="graffiti-recording-color-brown" colorVal="996600"></div>' +
-                                      '  <div id="graffiti-recording-color-black" colorVal="000000"></div>' +
+                                      Object.keys(graffiti.penColors).map((key) => { 
+                                        return '<div id="graffiti-recording-color-' + key + '" colorVal="' + key + '"></div>';
+                                      }).join('') +
                                       '</div>' +
                                       '<div id="graffiti-line-style-controls">' +
                                       '  <div id="graffiti-temporary-ink">' +
@@ -395,9 +400,7 @@ define([
                                           event: 'click',
                                           fn: (e) => {
                                             console.log('Graffiti: you picked highlighter tool.');
-                                            const colorVal = 'ffff00';
-                                            graffiti.setGraffitiPenColor(colorVal);
-                                            $('#graffiti-recording-color-yellow').addClass('graffiti-recording-color-active');
+                                            graffiti.setGraffitiPenColor('yellow');
                                             graffiti.toggleGraffitiPen('highlight');
                                           }
                                         },
@@ -422,22 +425,14 @@ define([
                                           }
                                         },
                                         {
-                                          ids: [
-                                            'graffiti-recording-color-red',
-                                            'graffiti-recording-color-green',
-                                            'graffiti-recording-color-blue',
-                                            'graffiti-recording-color-yellow',
-                                            'graffiti-recording-color-orange',
-                                            'graffiti-recording-color-purple',
-                                            'graffiti-recording-color-brown',
-                                            'graffiti-recording-color-black'
-                                          ],
+                                          ids: Object.keys(graffiti.penColors).map((key) => { return 'graffiti-recording-color-' + key }),
                                           event: 'click',
                                           fn: (e) => {
                                             const target = $(e.target);
                                             const colorVal = target.attr('colorVal');
                                             graffiti.setGraffitiPenColor(colorVal);
-                                            target.addClass('graffiti-recording-color-active');
+                                            // Turn on the pen/highlighter if you change pen color.
+                                            graffiti.activateGraffitiPen(state.getDrawingPenAttribute('type')); 
                                           }
                                         },
                                         {
@@ -822,8 +817,7 @@ define([
         $('#graffiti-recording-colors-shell div').removeClass('graffiti-recording-color-active');
         console.log('Graffiti: you clicked color:', colorVal);
         state.updateDrawingState([ { change: 'color', data: colorVal } ]);
-        // Turn on the pen/highlighter if you change pen color.
-        graffiti.activateGraffitiPen(state.getDrawingPenAttribute('type')); 
+        $('#graffiti-recording-color-' + colorVal).addClass('graffiti-recording-color-active');
       },
 
       activateGraffitiPen: (penType) => {
@@ -854,6 +848,11 @@ define([
         const activePenType = state.getDrawingPenAttribute('type');
         if (activePenType !== penType) {
           // Activate a new active pen, unless this pen is already active, in which case, deactivate it
+          if (activePenType === 'highlight') {
+            // When switching from highlight to pen or eraser, always go to black color because
+            // usual color for highlighter is yellow which looks crappy in the line mode.
+            graffiti.setGraffitiPenColor('black');
+          }
           graffiti.activateGraffitiPen(penType);
         } else {
           // turn off the active pen and drawing
@@ -995,21 +994,17 @@ define([
         const canvas = graffiti.canvases[canvasPermanence][cellId];
         const ctx = canvas.ctx;
         if (canvasColor === undefined) {
-          canvasColor = '#000000'; // default to black lines if not set in older recordings before color was supported.
-        } else {
-          canvasColor = '#' + canvasColor;
+          canvasColor = 'black'; // default to black lines if not set in older recordings before color was supported.
         }
         if (penType === 'highlight') {
-          const highlightCanvasColor = (canvasColor === '#000000' ? '#FFFF00' : canvasColor);
-          ctx.strokeStyle = highlightCanvasColor;
-          ctx.shadowColor = highlightCanvasColor;
+          if (canvasColor === 'black') {
+            canvasColor = 'yellow';
+          }
           ctx.lineWidth = 15;
           ctx.shadowBlur = 35;
           ctx.globalAlpha = 0.5;
         } else { // lines are default although if erase activated, we will ignore this style and use clearRect
           //console.log('canvas color:', canvasColor);
-          ctx.strokeStyle = canvasColor;
-          ctx.shadowColor = canvasColor;
           ctx.shadowBlur = 1;
           ctx.lineWidth = 1.75;
           ctx.globalAlpha = 1.0;
@@ -1021,6 +1016,10 @@ define([
             ctx.globalAlpha = 0.5;
           }
         }
+        const rawColorVal = '#' + graffiti.penColors[canvasColor];
+        console.log('rawColorVal', rawColorVal);
+        ctx.strokeStyle = rawColorVal;
+        ctx.shadowColor = rawColorVal;
       },
 
       clearCanvas: (canvasType, cellId) => {

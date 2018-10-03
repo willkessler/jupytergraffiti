@@ -405,6 +405,10 @@
   cursor:pointer;
 }
 
+#graffiti-dashed-line {
+  padding-left:2px;
+}
+
 /* 
 http://www.patternify.com/
 */
