@@ -2278,7 +2278,7 @@ define([
       applyScrollNudge: (position, record, useTrailingVelocity) => {
         const clientHeight = document.documentElement.clientHeight;
         const topbarHeight = $('#header').height();
-        const bufferY = clientHeight / 10;
+        const bufferY = clientHeight / 8;
         const minAllowedCursorY = topbarHeight + bufferY;
         const maxAllowedCursorY = clientHeight - bufferY;
         let mustNudgeCheck = !useTrailingVelocity;
