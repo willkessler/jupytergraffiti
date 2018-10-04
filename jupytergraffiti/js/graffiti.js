@@ -812,7 +812,7 @@ define([
         graffiti.setupControlPanels();
         graffiti.updateControlPanels();
         graffiti.setupDrawingScreen();
-
+        graffiti.setupSavingScrim();
       },
 
       setGraffitiPenColor: (colorVal) => {
@@ -930,6 +930,11 @@ define([
         graffiti.drawingScreen.bind('mousedown mouseup mouseleave', (e) => { graffiti.drawingScreenHandler(e) });
       },
 
+      setupSavingScrim: () => {
+        const graffitiSavingScrim = $('<div id="graffiti-saving-scrim"><div>Saving Graffiti Recording. Please wait...</div></div>');
+        graffiti.savingScrim = graffitiSavingScrim.prependTo(graffiti.notebookContainer);
+      },
+      
       resizeCanvases: () => {
         const canvasTypes = ['permanent','temporary'];
         const cells = Jupyter.notebook.get_cells();
@@ -1018,12 +1023,12 @@ define([
             ctx.globalAlpha = 0.5;
           }
         }
-        const rawColorVal = '#' + graffiti.penColors[canvasColor];
+        let rawColorVal = '#' + graffiti.penColors[canvasColor];
         // Hack test
         if (rawColorVal === undefined) {
-          debugger;
+          console.log('Graffiti: warning, rawColorVal is undefined');
+          rawColorVal = '#000000';
         }
-        // console.log('rawColorVal', rawColorVal);
         ctx.strokeStyle = rawColorVal;
         ctx.shadowColor = rawColorVal;
       },
@@ -1179,7 +1184,15 @@ define([
         }
       },
 
-      // extract any tooltip commands
+      // Extract any tooltip commands. Here's some examples:
+      //
+      // %%button_name Watch Movie
+      // %%narrator_pic images/adarsh_pic.png
+      // %%narrator_name Adarsh
+      // %%caption_pic ![Adarsh](images/adarsh_pic.png)
+      // %%caption  What is Naive Bayes?
+      //
+
       extractTooltipCommands: (markdown) => {
         const commandParts = markdown.match(/^%%(([^\s]*)\s(.*))$/mig);
         let partsRecord;
@@ -1202,10 +1215,13 @@ define([
               case '%%button_name':
                 partsRecord.buttonName = parts[1];
                 break;
-              case '%%caption_pic':
+              case '%%caption': // you can make a special caption for this tip
+                partsRecord.caption = parts[1];
+                break;
+              case '%%caption_pic': // you can put a tiny pic next to the caption (use markdown)
                 partsRecord.captionPic = utils.renderMarkdown(parts[1]);
                 break;
-              case '%%caption_video_id':
+              case '%%caption_video_id': // you can put a tiny video next to the caption
                 if (parts[1].indexOf('images/') === 0) {
                   partsRecord.captionVideo =
                     '<video width="150" height="75" autoplay><source src="' + parts[1] + '" type="video/mp4"></video>';
@@ -1215,7 +1231,7 @@ define([
                     '?rel=0&amp;controls=0&amp;showinfo=0" frameborder="0"></iframe>';
                 }
                 break;
-              case '%%narrator_name':
+              case '%%narrator_name': // set the name of the narrator to display in the control panel during playback
                 graffiti.narratorName = undefined;
                 if (parts[1].length > 0) {
                   graffiti.narratorName = parts[1];
@@ -1226,9 +1242,6 @@ define([
                 if (parts[1].length > 0) {
                   graffiti.narratorPicture = parts[1];
                 }
-                break;
-              case '%%caption':
-                partsRecord.caption = parts[1];
                 break;
               case '%%hide_player_after_playback_complete':
                 state.setHidePlayerAfterPlayback(true);
@@ -1930,6 +1943,7 @@ define([
           delete(Jupyter.notebook.metadata.graffitiId);
           storage.saveNotebook();
           graffiti.updateSetupButton();
+        }
       },
 
       disableGraffitiWithConfirmation: () => {
@@ -2131,6 +2145,7 @@ define([
           utils.refreshCellMaps();
           if (state.getStorageInProcess()) {
             storage.clearStorageInProcess();
+            graffiti.savingScrim.css({display:'none'});
             graffiti.updateAllGraffitiDisplays();
             graffiti.updateControlPanels(); // necessary because we just finished a save
           }
@@ -2186,6 +2201,9 @@ define([
         const currentActivity = state.getActivity();
         if (currentActivity !== 'playing') {
           if (currentActivity === 'recording') {
+            graffiti.setNotifier('Please wait, storing this movie...');
+            graffiti.showControlPanels(['graffiti-notifier']);
+            graffiti.savingScrim.css({display:'flex'});
             graffiti.stopRecordingCore(true);
             console.log('Graffiti: Stopped recording.');
           } else {
@@ -2598,7 +2616,7 @@ define([
         graffiti.pausePlayback();
         const timeElapsed = state.getPlaybackTimeElapsed();
         const t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction), state.getHistoryDuration() - 1 ));
-        console.log('Graffiti: t:', t);
+        // console.log('Graffiti: t:', t);
         const frameIndexes = state.getHistoryRecordsAtTime(t);
         state.clearSetupForReset();
         state.setPlaybackTimeElapsed(t);
