@@ -35,6 +35,10 @@ def stop_playback():
 def remove_all_graffitis():
     run_js("window.Graffiti.removeAllGraffiti()", False)
 
+# Remove all Graffiti from the current notebook and remove all our tags too.
+def disable_graffiti():
+    run_js("window.Graffiti.disableGraffiti()", False)
+    
 def show_creators_chooser():
     run_js("window.Graffiti.showCreatorsChooser()", False)
 
