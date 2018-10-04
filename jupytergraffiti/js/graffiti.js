@@ -1830,6 +1830,10 @@ define([
         graffiti.updateControlPanels();
         utils.saveNotebook();
 
+        if (destructions === 0) {
+          destructions = 'all';
+        }
+
         let title, body;
         if (graffitiDisabled) {
           title = 'Graffiti has been disabled on this Notebook.';
@@ -1919,7 +1923,13 @@ define([
 
       // Remove all graffiti and remove the graffiti id's as well. Basically, return a notebook to a pre-graffiti-ized state.
       disableGraffiti: () => {
-        graffiti.removeAllGraffitis(true);
+        if (Jupyter.notebook.metadata.hasOwnProperty('graffitiId')) {
+          const notebookGraffitiId = Jupyter.notebook.metadata.graffitiId;
+          graffiti.removeAllGraffitis(true);
+          storage.deleteDataDirectory(notebookGraffitiId);
+          delete(Jupyter.notebook.metadata.graffitiId);
+          storage.saveNotebook();
+          graffiti.updateSetupButton();
       },
 
       disableGraffitiWithConfirmation: () => {
