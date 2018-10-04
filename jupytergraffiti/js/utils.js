@@ -208,8 +208,8 @@ define([
       const firstSelection = selections[0];
       const anchorPos = cm.indexFromPos(firstSelection.anchor);
       const headPos = cm.indexFromPos(firstSelection.head);
-      const startPos = Math.min(anchorPos, headPos);
-      const endPos = Math.max(anchorPos, headPos);
+      let startPos = Math.min(anchorPos, headPos);
+      let endPos = Math.max(anchorPos, headPos);
       let minStartRange = 1000000000;
       const noResults = { isIntersecting: false, noTokensPresent: true };
       let results = noResults;
@@ -218,7 +218,7 @@ define([
         // If in a markdown cell, the selection "tokens" are simply the selection, but only if the selection is 2 characters or more. We do not try to use
         // code mirror's tokenizer tools within markdown cells as there's other stuff like html in a markdown cell that could be confusing to it.
         const contents = recordingCell.get_text();
-        let tagsRe = RegExp('<span class="graffiti-highlight (graffiti-[^"]+)">(.*?)</span>','g')
+        let tagsRe = RegExp('<span class="graffiti-highlight (graffiti-[^"]+)">(.*?)</span>','gm')
         let tags = [], match, tag;
         let idMatch;
         while ((match = tagsRe.exec(contents)) !== null) { 
@@ -265,8 +265,42 @@ define([
             }
           }
         } else {
-          // now check for a selection in the markdown cm cell
-          if (endPos - startPos > 0) { // 2 or more chars is in the selection; this way we disallow Graffitis applied to just CR's
+          // Now check for a selection in the markdown cm cell.
+          if (endPos > startPos) { // 2 or more chars is in the selection; this way we disallow Graffitis applied to just CR's
+            // Move startPos forward past markdown-significant characters, because if we put a graffiti around the markdown indicators, they will lose their markdown significance.
+            let skipped = false;
+            let checkChar = contents[startPos];
+            const skipChars = '#_*'; // note: we do not include backticks, even though they are significant to markdown, as we want them inside our selected text for the graffiti spans.
+            while ((skipChars.indexOf(checkChar) !== -1) && (startPos < endPos)) {
+              skipped = true;
+              startPos++;
+              checkChar = contents[startPos];
+            }
+            if (skipped && (contents[startPos] === ' ')) { // skip past the space after hashtags
+              ++startPos;
+            }
+            // expand the range to include surrounding backticks
+            if (startPos > 0) {
+              if (contents[startPos - 1] === '`') {
+                startPos--;
+              }
+            }
+            if (endPos < contents.length - 1) {
+              if (contents[endPos + 1] === '`') {
+                endPos++;
+              }
+            }
+            endPos = Math.min(contents.length - 1, endPos + 1);
+            // Backup from a cr. this may happen if the user triple clicked on a line and absorbed the cr. we don't want that.
+            console.log('Check for backing up:-->', contents.substring(startPos,endPos), '<--');
+            while (contents[endPos - 1].charCodeAt(0) === 10) {
+              console.log('backing up, -->', contents[endPos], '<--,', contents[endPos].charCodeAt(0) );
+              endPos--;
+              if (endPos === startPos + 1) {
+                break;
+              }
+            }
+            console.log('selection will be:', contents.substring(startPos,endPos), '<--', contents[endPos].charCodeAt(0));
             results = {
               isIntersecting: false,
               noTokensPresent: false,
