@@ -44,7 +44,7 @@ define([
         notebook.metadata['graffitiId'] = graffitiId;
       }
       // hardwired to only load author recordings for now
-      const basePath = "jupytergraffiti_data/notebooks/" + notebook.metadata['graffitiId'] + '/authors/id_' + state.getAuthorId() + '/';
+      const basePath = 'jupytergraffiti_data/notebooks/' + notebook.metadata['graffitiId'] + '/authors/id_' + state.getAuthorId() + '/';
       return basePath;
     },
 
@@ -274,6 +274,21 @@ define([
                                            });
 
       return Promise.resolve(); // not really doing this right but...
+    },
+
+    // Delete all a notebook's stored graffitis and its data directory (but not the global jupytergraffiti_data directory)
+    deleteDataDirectory: (graffitiId) => {
+      const notebookStoragePath = 'jupytergraffiti_data/notebooks/' + graffitiId;
+      const deletePython = "import os\nos.system('rm -r " + notebookStoragePath + "')\n";
+      console.log('Graffiti: deleteNotebookStorage:', deletePython);
+
+      this.Jupyter.notebook.kernel.execute(deletePython,
+                                           undefined,
+                                           {
+                                             silent: false,
+                                             store_history: false,
+                                             stop_on_error : true
+                                           });
     },
 
   }
