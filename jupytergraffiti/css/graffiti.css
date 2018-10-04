@@ -463,3 +463,27 @@ http://www.patternify.com/
   color:#999;
 }
 
+#graffiti-saving-scrim {
+  top: 0;
+  left: 0;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  opacity:0.55;
+  background-color: grey;
+  display:flex;
+  align-items:center;
+  justify-content: center;
+  font-size:24px;
+  z-index:1000;
+  cursor:pointer;
+  display:none;
+}
+
+#graffiti-saving-scrim div {
+  border-radius:10px;
+  padding:20px;
+  color:black;
+  opacity:1;
+  background-color:white;
+}
