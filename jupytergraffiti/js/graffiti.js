@@ -1791,7 +1791,7 @@ define([
         if (recordingCell.cell_type === 'markdown') {
           // If this Graffiti was in a markdown cell we need to remove the span tags from the markdown source
           const contents = recordingCell.get_text();
-          const spanRegex = RegExp('<span class="graffiti-highlight graffiti-' + recordingCellId + '-' + recordingKey + '"><i></i>(\s\S?)</span>','g')
+          const spanRegex = RegExp('<span class="graffiti-highlight graffiti-' + recordingCellId + '-' + recordingKey + '"><i></i>(.*?)</span>','gm')
           let results, foundContents = [];
           while ((results = spanRegex.exec(contents)) !== null) { foundContents.push(results) };
           if (foundContents.length > 0) {
