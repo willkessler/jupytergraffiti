@@ -276,6 +276,18 @@ define([
       return Promise.resolve(); // not really doing this right but...
     },
 
+    removeGraffitiIds: () => {
+      const cells = Jupyter.notebook.get_cells();
+      for (let cell of cells) {
+        if (cell.metadata.hasOwnProperty('graffitiCellId')) {
+          delete(cell.metadata.graffitiCellId)
+        }
+      }
+      const notebookGraffitiId = Jupyter.notebook.metadata.graffitiId;
+      delete(Jupyter.notebook.metadata.graffitiId);
+      utils.saveNotebook();
+    },
+
     // Delete all a notebook's stored graffitis and its data directory (but not the global jupytergraffiti_data directory)
     deleteDataDirectory: (graffitiId) => {
       const notebookStoragePath = 'jupytergraffiti_data/notebooks/' + graffitiId;

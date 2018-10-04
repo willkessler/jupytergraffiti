@@ -1841,6 +1841,16 @@ define([
         graffiti.highlightIntersectingGraffitiRange();
         graffiti.refreshGraffitiTips();
         graffiti.updateControlPanels();
+
+        if (graffitiDisabled) {
+          if (Jupyter.notebook.metadata.hasOwnProperty('graffitiId')) {
+            storage.deleteDataDirectory(Jupyter.notebook.metadata.graffitiId);
+            storage.removeGraffitiIds();
+            graffiti.changeAccessLevel('view');
+            graffiti.updateSetupButton();
+          }
+        }
+
         utils.saveNotebook();
 
         if (destructions === 0) {
@@ -1850,7 +1860,7 @@ define([
         let title, body;
         if (graffitiDisabled) {
           title = 'Graffiti has been disabled on this Notebook.';
-          body = 'We removed ' + destructions + ' graffitis and you will need to Enable Graffiti again to use Graffiti in this notebook.' + 
+          body = 'We removed ' + destructions + ' graffitis, and you will need to Enable Graffiti again to use Graffiti in this notebook.' + 
                  'You will also now want to remove the Graffiti data directory (jupytergraffiti_data) manually.';
         } else {
           title = 'Your notebook is now cleaned of all graffiti.';
@@ -1936,19 +1946,12 @@ define([
 
       // Remove all graffiti and remove the graffiti id's as well. Basically, return a notebook to a pre-graffiti-ized state.
       disableGraffiti: () => {
-        if (Jupyter.notebook.metadata.hasOwnProperty('graffitiId')) {
-          const notebookGraffitiId = Jupyter.notebook.metadata.graffitiId;
-          graffiti.removeAllGraffitis(true);
-          storage.deleteDataDirectory(notebookGraffitiId);
-          delete(Jupyter.notebook.metadata.graffitiId);
-          storage.saveNotebook();
-          graffiti.updateSetupButton();
-        }
+        graffiti.removeAllGraffitis(true);
       },
 
       disableGraffitiWithConfirmation: () => {
-        const content = 'Clicking OK will <i>remove any trace of Graffiti</i> in this notebook, setting it to a state as if you had never enabled Graffiti.' +
-                        'NOTE: This <b>cannot</b> be undone. (Note: you will still need to delete the <i>jupytergraffiti_data</i> directory yourself.)';
+        const content = 'Clicking OK will <i>remove any trace of Graffiti</i> in this notebook, setting it to a state as if you had never enabled Graffiti. ' +
+                        '<br><br><b>NOTE</b>: This <b>cannot</b> be undone.';
         const confirmModal = dialog.modal({
           title: 'Are you sure you want to disable Graffiti?',
           body: content,
@@ -2934,7 +2937,11 @@ define([
         let buttonContents = '<div id="graffiti-setup-button" class="btn-group"><button class="btn btn-default" title="Enable Graffiti">';
 
         if (!notebook.metadata.hasOwnProperty('graffitiId')) {
-          // This notebook has never been graffiti-ized. 
+          // This notebook has never been graffiti-ized, or it just got un-graffiti-ized
+          const existingSetupButton = $('#graffiti-setup-button');
+          if (existingSetupButton.length > 0) {
+            existingSetupButton.remove();
+          }
           buttonLabel = 'Activate Graffiti';
           setupForSetup = true;
         } else {
