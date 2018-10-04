@@ -1807,7 +1807,7 @@ define([
       },
 
 
-      removeAllGraffitis: () => {
+      removeAllGraffitis: (graffitiDisabled) => {
         const manifest = state.getManifest(); // save manifest before we wipe it out
         state.setManifest({});
         let recordingCellId, recordingCell, recordingIds, recordingKeys, destructions = 0;
@@ -1830,9 +1830,18 @@ define([
         graffiti.updateControlPanels();
         utils.saveNotebook();
 
+        let title, body;
+        if (graffitiDisabled) {
+          title = 'Graffiti has been disabled on this Notebook.';
+          body = 'We removed ' + destructions + ' graffitis and you will need to Enable Graffiti again to use Graffiti in this notebook.' + 
+                 'You will also now want to remove the Graffiti data directory (jupytergraffiti_data) manually.';
+        } else {
+          title = 'Your notebook is now cleaned of all graffiti.';
+          body = 'We removed ' + destructions + ' graffitis. Feel free to create new ones.';
+        }
         dialog.modal({
-          title: 'Your notebook is now cleaned of all graffiti.',
-          body: 'We removed ' + destructions + ' graffitis. Feel free to create new ones.',
+          title: title,
+          body: body,
           sanitize:false,
           buttons: {
             'OK': {
@@ -1866,7 +1875,7 @@ define([
             'OK': {
               click: (e) => {
                 console.log('Graffiti: You clicked ok, you want to remove ALL graffitis');
-                graffiti.removeAllGraffitis();
+                graffiti.removeAllGraffitis(false);
 
               }
             },
@@ -1906,6 +1915,33 @@ define([
             console.log('Graffiti: escaped the removeGraffitiWithPrompt modal.');
           });
         }
+      },
+
+      // Remove all graffiti and remove the graffiti id's as well. Basically, return a notebook to a pre-graffiti-ized state.
+      disableGraffiti: () => {
+        graffiti.removeAllGraffitis(true);
+      },
+
+      disableGraffitiWithConfirmation: () => {
+        const content = 'Clicking OK will <i>remove any trace of Graffiti</i> in this notebook, setting it to a state as if you had never enabled Graffiti.' +
+                        'NOTE: This <b>cannot</b> be undone. (Note: you will still need to delete the <i>jupytergraffiti_data</i> directory yourself.)';
+        const confirmModal = dialog.modal({
+          title: 'Are you sure you want to disable Graffiti?',
+          body: content,
+          sanitize:false,
+          buttons: {
+            'OK': {
+              click: (e) => {
+                console.log('Graffiti: you clicked ok, you want to disable graffiti:',
+                            $(e.target).parent());
+                graffiti.disableGraffiti();
+
+              }
+            },
+            'Cancel': { click: (e) => { console.log('Graffiti: you cancelled:', $(e.target).parent()); } },
+          }
+        });
+
       },
 
       updateAllGraffitiDisplays: () => {
@@ -2935,6 +2971,7 @@ define([
       playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => { graffiti.playRecordingByIdWithPrompt(recordingFullId, promptMarkdown) },
       cancelPlayback: () => { graffiti.cancelPlayback({cancelAnimation:false}) },
       removeAllGraffiti: graffiti.removeAllGraffitisWithConfirmation,
+      disableGraffiti: graffiti.disableGraffitiWithConfirmation,
       showCreatorsChooser: graffiti.showCreatorsChooser,
       setAccessLevel: (level) => { graffiti.toggleAccessLevel(level) },
       setAuthorId: (authorId) => { state.setAuthorId(authorId) },
