@@ -232,7 +232,6 @@ define([
             endRange: match.index + match[0].length
           }); 
         }
-        //console.log("tags:", tags);
 
         // Figure out if the startPs or endPos is inside an existing Graffiti in this markdown cell (intersecting).
         if (tags.length > 0) {
@@ -268,7 +267,6 @@ define([
           // Now check for a selection in the markdown cm cell.
           if (endPos > startPos + 1) { // 2 or more chars is in the selection; this way we disallow Graffitis applied to just CR's
             // Move startPos forward past markdown-significant characters, because if we put a graffiti around the markdown indicators, they will lose their markdown significance.
-            console.log('preadjust, code:', contents[endPos].charCodeAt(0), 'code-1:', contents[endPos-1].charCodeAt(0));
             let skipped = false;
             let checkChar = contents[startPos];
             const skipChars = '#_*'; // note: we do not include backticks, even though they are significant to markdown, as we want them inside our selected text for the graffiti spans.
@@ -292,16 +290,16 @@ define([
               }
             }
             // Backup from a cr. this may happen if the user triple clicked on a line and absorbed the cr. we don't want that.
-            console.log('Check for backing up:-->', contents.substring(startPos,endPos), '<--');
-            console.log('code:', contents[endPos].charCodeAt(0), 'code-1:', contents[endPos-1].charCodeAt(0));
+            //console.log('Check for backing up:-->', contents.substring(startPos,endPos), '<--');
+            //console.log('code:', contents[endPos].charCodeAt(0), 'code-1:', contents[endPos-1].charCodeAt(0));
             while (contents[endPos-1].charCodeAt(0) === 10) {
-              console.log('backing up, -->', contents[endPos], '<--,', contents[endPos-1].charCodeAt(0) );
+              //console.log('backing up, -->', contents[endPos], '<--,', contents[endPos-1].charCodeAt(0) );
               endPos--;
               if (endPos === startPos + 2) {
                 break;
               }
             }
-            console.log('selection will be:', contents.substring(startPos,endPos), '<--', contents[endPos].charCodeAt(0));
+            //console.log('selection will be:', contents.substring(startPos,endPos), '<--', contents[endPos].charCodeAt(0));
             results = {
               isIntersecting: false,
               noTokensPresent: false,
