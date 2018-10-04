@@ -2287,7 +2287,7 @@ define([
         // Watch trailing average of cursor. If the average over twenty samples is in a nudge zone, then nudge
         if (useTrailingVelocity) {
           nudgeIncrements = ((state.getActivity === 'scrubbing') ? 1.0 : graffiti.scrollNudgeSmoothIncrements);
-          const trailingAverageSize = 10;
+          const trailingAverageSize = 8;
           if (graffiti.scrollNudgeAverages.length > 0) {
             if (((graffiti.scrollNudgeAverages[graffiti.scrollNudgeAverages.length-1].x === position.x) &&
                  (graffiti.scrollNudgeAverages[graffiti.scrollNudgeAverages.length-1].y === position.y)) ||
