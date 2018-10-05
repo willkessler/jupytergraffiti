@@ -813,7 +813,6 @@ define([
         graffiti.updateControlPanels();
         graffiti.setupDrawingScreen();
         graffiti.setupSavingScrim();
-        graffiti.placeSvg('id_rt4ypn')
       },
 
       setGraffitiPenColor: (colorVal) => {
