@@ -67,7 +67,7 @@ define([
         }
         if (cellDOM !== undefined) {
           if (cellDOM.attr('graffiti-cell-id') === undefined) {
-            cellDOM.attr({ 'graffiti-cell-id' : cell.metadata.cellId});
+            cellDOM.attr({ 'graffiti-cell-id' : utils.getMetadataCellId(cell.metadata)});
           }
         }
       }

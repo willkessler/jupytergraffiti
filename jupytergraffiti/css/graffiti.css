@@ -487,3 +487,19 @@ http://www.patternify.com/
   opacity:1;
   background-color:white;
 }
+
+.graffiti-svg-outer {
+  position:absolute;
+  left:0px;
+  top:0px;
+  border:1px solid red;
+}
+
+.graffitiSvg {
+  position:absolute;
+  left:0px;
+  top:0px;
+  pointer-events:none;
+  z-index:10000;
+}
+
