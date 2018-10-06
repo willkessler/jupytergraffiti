@@ -976,15 +976,10 @@ define([
         }
         $('<div class="graffiti-svg-outer" style="width:' + parseInt(cellRect.width) + 'px;height:' + parseInt(cellRect.height) + 'px"></div>').appendTo(cellElement);
 
-        graffiti.svgCheck = $('.graffiti-svg-outer');
+        graffiti.svgOuter = $('.graffiti-svg-outer');
 
         const rightCurlyBracket = svg.makeRightCurlyBracket(10,10,parseInt(cellRect.height));
-        const rcb = $(rightCurlyBracket);
-        graffiti.svgCheck.append(rcb);
-        const curlySvg = $('svg');
-        curlySvg[0].setAttributeNS(null, 'preserveAspectRatio', "none");
-        
-element[0].setAttribute('startOffset', val);
+        graffiti.svgOuter[0].innerHTML = rightCurlyBracket;
 
 //        const checkMark = svg.makeCheckmark(0,0,cellRect.height);
 //        graffiti.svgCheck[0].appendChild(checkMark);

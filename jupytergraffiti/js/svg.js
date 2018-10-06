@@ -1,19 +1,23 @@
 define([], () => {
   // Thanks to https://stackoverflow.com/questions/3642035/jquerys-append-not-working-with-svg-element
   const svg = {
-    makeSvgElement: (tag, attrs) => {
-      const el= document.createElementNS('http://www.w3.org/2000/svg', tag);
+    makeElementHtml: (tag, attr, innerHtml) => {
+      let svgHtml = '<' + tag + ' ';
       if (tag === 'svg') {
-        el.setAttribute('xmlns', "http://www.w3.org/2000/svg");
-        el.setAttribute('version', "1.1");
+        svgHtml += 'xmlns="http://www.w3.org/2000/svg" version="1.1" class="graffitiSvg" ';
       }
-
-      for (let k in attrs) {
-        el.setAttribute(k, attrs[k]);
+      let attrHtml = '';
+      if (attr !== undefined) {
+        attrHtml = $.map(attr, (val, key) => { return (key + '="' + val + '"') } ).join(' ');
       }
-      return el;
+      if (innerHtml !== undefined) {
+        svgHtml += attrHtml + '>' + innerHtml + '</' + tag + '>';
+      } else {
+        svgHtml += attrHtml + '></' + tag + '>';
+      }
+      return svgHtml;
     },
-
+    
     makeEllipse: (x,y,width,height) => {
     },
 
@@ -53,31 +57,30 @@ define([], () => {
     // cf my post: https://stackoverflow.com/questions/52675823/preserveaspectratio-ignored-by-code-generation-but-not-html-injection-for-svg-p
 
     makeRightCurlyBracket: (x, y, height) => {
-      const container = svg.makeSvgElement('svg', {
-        'xmlns': "http://www.w3.org/2000/svg",
-        'version': "1.1",
-        'class':"graffitiSvg",
+      const rightCurlyBracket = 
+        svg.makeElementHtml('path', {
+          "fill": "none",
+          "stroke": "#000",
+          "vector-effect": "non-scaling-stroke",
+          "stroke-width" : "2",
+          "d": "M0,0 A100, 173.20508075688772 0 0 1  100, 173.20508075688772 A100, " + 
+               "173.20508075688772 0 0 0 200 346.41016151377545 A100, " + 
+               "173.20508075688772 0 0 0 100, 519.6152422706632 A100, " +
+               "173.20508075688772 0 0 1 0, 692.8203230275509"
+        });
+
+
+      const container = svg.makeElementHtml('svg', {
         'width':"8",
         'height': height,
         'viewbox':"0 0 200 692",
-//        'preserveAspectRatio':"meet"
-      });
-      const rightCurlyBracket = 
-        svg.makeSvgElement('path',
-                           { 
-                             fill: "none",
-                             stroke: "#000",
-                             "vector-effect": "non-scaling-stroke",
-                             "stroke-width" : "2",
-                             d: "M0,0 A100, 173.20508075688772 0 0 1  100, 173.20508075688772 A100, " + 
-                                "173.20508075688772 0 0 0 200 346.41016151377545 A100, " + 
-                                "173.20508075688772 0 0 0 100, 519.6152422706632 A100, " +
-                                "173.20508075688772 0 0 1 0, 692.8203230275509"
-                           }
-        );
-      container.appendChild(rightCurlyBracket);
+        'style' : "left:50px;top:25px;",
+        'preserveAspectRatio':"none"
+      }, rightCurlyBracket);
+
       return container;
     }
+
   };
   
   return (svg);
