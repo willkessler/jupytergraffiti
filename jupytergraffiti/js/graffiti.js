@@ -5,9 +5,10 @@ define([
   './utils.js',
   './audio.js',
   './storage.js',
+  './svg.js',
   './selectionSerializer.js',
   'components/marked/lib/marked'
-], function(dialog, LZString, state, utils, audio, storage, selectionSerializer, marked) {
+], function(dialog, LZString, state, utils, audio, storage, svg, selectionSerializer, marked) {
   const Graffiti = (function() {
     const graffiti = {
 
@@ -39,8 +40,12 @@ define([
         graffiti.cmLineFudge = 8; // buffer between lines
         graffiti.tokenRanges = {};
         graffiti.canvases = { 
-          permanent: {}, // these canvases persist drawings throughout the lifespan of the recordin
+          permanent: {}, // these canvases persist drawings throughout the lifespan of the recording
           temporary: {}  // these canvases get wiped a couple seconds after the person stops drawing
+        };
+        graffiti.svgs = {
+          permanent: {}, // these svgs persist svg shapes throughout the lifespan of the recording
+          temporary: {}  // these svgs get wiped a couple seconds after the person finishes placing them
         };
         graffiti.lastUpdateControlsTime = utils.getNow();
         graffiti.notificationMsgs = {};
@@ -813,6 +818,7 @@ define([
         graffiti.updateControlPanels();
         graffiti.setupDrawingScreen();
         graffiti.setupSavingScrim();
+        graffiti.placeSvg('id_rt4ypn', 'permanent')
       },
 
       setGraffitiPenColor: (colorVal) => {
@@ -961,17 +967,30 @@ define([
         graffiti.drawingScreen.css({height: notebookHeight + 'px'});
       },
 
-      placeSvg: (cellId) => {
+      placeSvg: (cellId, svgPermanence) => {
         const cell = utils.findCellByCellId(cellId);
         const cellElement = $(cell.element[0]);
         const cellRect = cellElement[0].getBoundingClientRect();
-        // Helped out by : https://www.beyondjava.net/how-to-connect-html-elements-with-an-arrow-using-svg
-        const arrowHeadDef = 
-          '<defs>' +
-          '  <marker id="arrowHead" viewBox="0 0 10 10" refX="0" refY="5" markerUnits="strokeWidth" markerWidth="10" markerHeight="8" orient="auto">' +
-          '    <path d="M 0 0 L 10 5 L 0 10 z"></path>' +
-          '  </marker>' +
-          '</defs>';
+        if (graffiti.svgs[svgPermanence][cellId] !== undefined) {
+          return cellRect;
+        }
+        $('<div class="graffiti-svg-outer" style="width:' + parseInt(cellRect.width) + 'px;height:' + parseInt(cellRect.height) + 'px"></div>').appendTo(cellElement);
+
+        graffiti.svgCheck = $('.graffiti-svg-outer');
+
+        const rightCurlyBracket = svg.makeRightCurlyBracket(10,10,parseInt(cellRect.height));
+        const rcb = $(rightCurlyBracket);
+        graffiti.svgCheck.append(rcb);
+        const curlySvg = $('svg');
+        curlySvg[0].setAttributeNS(null, 'preserveAspectRatio', "none");
+        
+element[0].setAttribute('startOffset', val);
+
+//        const checkMark = svg.makeCheckmark(0,0,cellRect.height);
+//        graffiti.svgCheck[0].appendChild(checkMark);
+
+
+/*
         const rightEdge = cellRect.width - 50;
         const svgContents = '<svg class="graffitiSvg" width="' + cellRect.width + '" height="' + cellRect.height + '">' + 
                             arrowHeadDef + "\n" + 
@@ -992,7 +1011,8 @@ define([
                             ' <line x1="0" y1="0" x2="' + cellRect.height + '" y2="' + cellRect.height + '" stroke-width="6" transform="scale(0.5 0.5) translate(200 0)" stroke="red" vector-effect="non-scaling-stroke" />' +
                             ' <line x1="0" y1="' + cellRect.height + '" x2="' + cellRect.height + '" y2="0" stroke-width="6" transform="scale(0.5 0.5) translate(200 0)" stroke="red" vector-effect="non-scaling-stroke" />' +
                             '</svg>';
-        $('<div class="graffiti-svg-outer">' + svgContents + '</div>').appendTo(cellElement);
+        graffiti.svgCheck.empty();
+*/
       },
 
       placeCanvas: (cellId, drawingPermanence) => {
