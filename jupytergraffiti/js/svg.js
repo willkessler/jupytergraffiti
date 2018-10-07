@@ -18,6 +18,46 @@ define([], () => {
       return svgHtml;
     },
     
+    makeSvgElement: (tag, attrs) => {
+      const el= document.createElementNS('http://www.w3.org/2000/svg', tag);
+      if (tag === 'svg') {
+        el.setAttribute('xmlns', "http://www.w3.org/2000/svg");
+        el.setAttribute('version', "1.1");
+      }
+      for (let k in attrs) {
+        el.setAttribute(k, attrs[k]);
+      }
+      return el;
+    },
+
+    renderSvg: (svgChild, x, y, width, height, viewBox, transform) => {
+      const container = svg.makeSvgElement('svg', {
+        'xmlns': "http://www.w3.org/2000/svg",
+        'version': "1.1",
+        'viewbox': viewBox,
+        'class':"graffitiSvg",
+        'width': width,
+        'height': height,
+        'style' : 'left:' + x + 'px;top:' + y + 'px;',
+        'preserveAspectRatio':"none"
+      });
+      if (transform !== undefined) {
+        container.setAttribute('transform', transform);
+      }
+
+      container.appendChild(svgChild);
+      let svgGenerator = $('#graffitiSvgGenerator');
+      if (svgGenerator.length === 0) {
+        $('body').append($('<div id="graffitiSvgGenerator"></div>'));
+        svgGenerator = $('#graffitiSvgGenerator');
+      }
+      svgGenerator[0].appendChild(container);
+      containerHtml = svgGenerator[0].innerHTML;
+      svgGenerator.empty();
+
+      return containerHtml;
+    },
+
     makeEllipse: (x,y,width,height) => {
     },
 
@@ -79,43 +119,27 @@ define([], () => {
       }, rightCurlyBracket);
 
       return container;
-    }
+    },
 
-  };
+    makeRightCurlyBracketNew: (x, y, height) => {
+      const rightCurlyBracket =
+        svg.makeSvgElement('path',
+                           {
+                             fill: "none",
+                             stroke: "#000",
+                             "vector-effect": "non-scaling-stroke",
+                             "stroke-width" : "2",
+                             d: "M0,0 A100, 173.20508075688772 0 0 1  100, 173.20508075688772 A100, " +
+                                "173.20508075688772 0 0 0 200 346.41016151377545 A100, " +
+                                "173.20508075688772 0 0 0 100, 519.6152422706632 A100, " +
+                                "173.20508075688772 0 0 1 0, 692.8203230275509"
+                           }
+        );
+      return svg.renderSvg(rightCurlyBracket,x,y,8,height,"0 0 200 692", "scale(-1,1) translate(-100,10)");
+    },
+
+};
   
   return (svg);
 });
 
-
-/*
-#foo {
-  width:600px;
-  height:300px;
-  background-color: teal;
-  position: relative;
-}
-
-svg {
-  width:10px;
-  height:50px;
-  position:absolute;
-  left:150px;
-  top:30px;
-}
-
-<html>
-<head>
-<title>Curly Bracket SVG </title>
-</head>
-<body>
-<div id="foo">
-<svg xmlns = "http://www.w3.org/2000/svg" version = "1.1" viewbox="0 0 200 692" preserveAspectRatio="none" >
-
-<title>Closing Curly Brace</title>
-<path fill = "none" stroke= " #000000" stroke-width="2" vector-effect="non-scaling-stroke" d = "M0,0 A100, 173.20508075688772 0 0 1  100, 173.20508075688772 A100, 173.20508075688772 0 0 0 200 346.41016151377545 A100, 173.20508075688772 0 0 0 100, 519.6152422706632 A100, 173.20508075688772 0 0 1 0, 692.8203230275509"></path>
-
-</svg></div>
-<!-- square root of 3 = "1.7320508075688772"-->
-</body>
-</html>
-*/
