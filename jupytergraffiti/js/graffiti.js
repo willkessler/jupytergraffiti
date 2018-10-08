@@ -73,6 +73,8 @@ define([
         // Set up the button that activates Graffiti on new notebooks and controls visibility of the control panel if the notebook has already been graffiti-ized.
         graffiti.updateSetupButton();
 
+        graffiti.placeSvg('id_rt4ypn', 'permanent')
+
         if (Jupyter.notebook.metadata.hasOwnProperty('graffitiId')) { // do not try to load the manifest if this notebook has not yet been graffiti-ized.
           storage.loadManifest(currentAccessLevel).then(() => {
             graffiti.initInteractivity();
@@ -818,7 +820,6 @@ define([
         graffiti.updateControlPanels();
         graffiti.setupDrawingScreen();
         graffiti.setupSavingScrim();
-        graffiti.placeSvg('id_rt4ypn', 'permanent')
       },
 
       setGraffitiPenColor: (colorVal) => {
@@ -974,7 +975,12 @@ define([
         if (graffiti.svgs[svgPermanence][cellId] !== undefined) {
           return cellRect;
         }
-        $('<div class="graffiti-svg-outer" style="width:' + parseInt(cellRect.width) + 'px;height:' + parseInt(cellRect.height) + 'px"></div>').appendTo(cellElement);
+        // Note that I inline all these styles because to include them from a stylesheet causes rendering jumps and screwups.
+        $('<div class="graffiti-svg-outer" ' +
+          'style="width:' + parseInt(cellRect.width) + 'px;' +
+          'height:' + parseInt(cellRect.height) + 'px;' +
+          'position:absolute;left:0;top:0;">' +
+          '</div>').appendTo(cellElement);
 
         graffiti.svgOuter = $('.graffiti-svg-outer');
 
