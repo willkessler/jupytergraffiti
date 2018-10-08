@@ -978,14 +978,11 @@ define([
 
         graffiti.svgOuter = $('.graffiti-svg-outer');
 
-//        const rightCurlyBracket = svg.makeRightCurlyBracket(10,10,parseInt(cellRect.height));
-//        graffiti.svgOuter[0].innerHTML = rightCurlyBracket;
+//        const rightCurlyBrace = svg.makeRightCurlyBrace(0,0,parseInt(cellRect.height / 2));
+//        graffiti.svgOuter[0].innerHTML = rightCurlyBrace;
 
-        const rightCurlyBracketHtml = svg.makeRightCurlyBracketNew(0,0,parseInt(cellRect.height / 2));
-        graffiti.svgOuter[0].innerHTML = rightCurlyBracketHtml;
-
-//        const checkMark = svg.makeCheckmark(0,0,cellRect.height);
-//        graffiti.svgCheck[0].appendChild(checkMark);
+        const symmetricCurlyBraces = svg.makeSymmetricCurlyBraces(0,0,200,parseInt(cellRect.height));
+        graffiti.svgOuter[0].innerHTML = symmetricCurlyBraces;
 
 
 /*
