@@ -489,14 +489,9 @@ http://www.patternify.com/
 }
 
 .graffiti-svg-outer {
-  position:absolute;
-  left:0px;
-  top:0px;
-  background-size:100% 100%;
 }
 
-.graffitiSvg {
-  position:absolute;
+.graffiti-svg-inner {
   pointer-events:none;
   z-index:10000;
 }

@@ -21,8 +21,9 @@ define([], () => {
     makeSvgElement: (tag, attrs) => {
       const el= document.createElementNS('http://www.w3.org/2000/svg', tag);
       if (tag === 'svg') {
-        el.setAttribute('xmlns', "http://www.w3.org/2000/svg");
-        el.setAttribute('version', "1.1");
+        el.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        el.setAttribute('version', '1.1');
+        el.setAttribute('preserveAspectRatio', 'none')
       }
       for (let k in attrs) {
         el.setAttribute(k, attrs[k]);
@@ -30,35 +31,46 @@ define([], () => {
       return el;
     },
 
-    renderSvg: (svgChildren, x, y, width, height, viewBox) => {
-      const container = svg.makeSvgElement('svg', {
-        'viewbox': viewBox,
-        'class':"graffitiSvg",
-        'width': width,
-        'height': height,
-        'style' : 'left:' + x + 'px;top:' + y + 'px;',
-        'preserveAspectRatio':"none"
-      });
-      
-      let innerSvg;
-      for (let svgChild of svgChildren) {
-        innerSvg = svg.makeSvgElement('svg', {
-          'viewbox': svgChild.viewBox,
-          'class':"graffitiSvg",
-          'width': svgChild.width,
-          'height': svgChild.height,
-          'style' : 'left:' + svgChild.x + 'px;top:' + svgChild.y + 'px;',
-          'preserveAspectRatio':"none"
-        });
-        innerSvg.appendChild(svgChild.el);
-        container.appendChild(innerSvg);
+    makeDomElement: (tag, attrs) => {
+      const el= document.createElement(tag);
+      for (let k in attrs) {
+        el.setAttribute(k, attrs[k]);
       }
+      return el;
+    },
+
+    renderSvg: (svgChildren, x, y, width, height, viewBox) => {
+      let containerDiv, containerSvg;
       let svgGenerator = $('#graffitiSvgGenerator');
       if (svgGenerator.length === 0) {
         $('body').append($('<div id="graffitiSvgGenerator"></div>'));
         svgGenerator = $('#graffitiSvgGenerator');
       }
-      svgGenerator[0].appendChild(container);
+      for (let svgChild of svgChildren) {
+        let transform = '';
+        if (svgChild.hasOwnProperty('cssTransform')) {
+          transform = 'transform:' + svgChild.cssTransform;
+        }
+        containerDiv = 
+          svg.makeDomElement('div',
+                             {
+                               'class':"graffiti-svg-inner",
+                               'style' : 'position:absolute;' +
+                                         'left:' + svgChild.x + 'px;top:' + svgChild.y + 'px;' +
+                                         'width:' + svgChild.width + 'px;height:' + svgChild.height + 'px;' +
+                                         transform
+                             });
+        containerSvg =
+          svg.makeSvgElement('svg',
+                             {
+                               width: svgChild.width,
+                               height: svgChild.height,
+                               viewBox: svgChild.viewBox
+                             });
+        containerSvg.appendChild(svgChild.el);
+        containerDiv.appendChild(containerSvg);
+        svgGenerator[0].appendChild(containerDiv);
+      }
       const containerHtml = svgGenerator[0].innerHTML;
       svgGenerator.empty();
 
@@ -139,7 +151,7 @@ define([], () => {
     },
 
     makeSymmetricCurlyBraces: (x, y, width, height) => {
-      const halfWidth = width / 2;
+      const curlyViewBox = '0 0 200 692';
       const leftCurlyBrace =
         svg.makeSvgElement('path',
                            {
@@ -151,7 +163,6 @@ define([], () => {
                                 "173.20508075688772 0 0 0 200 346.41016151377545 A100, " +
                                 "173.20508075688772 0 0 0 100, 519.6152422706632 A100, " +
                                 "173.20508075688772 0 0 1 0, 692.8203230275509",
-//                             transform:"scale(-1,1)" // flip horizontally
                            }
         );
       const rightCurlyBrace =
@@ -164,28 +175,28 @@ define([], () => {
                              d: "M0,0 A100, 173.20508075688772 0 0 1  100, 173.20508075688772 A100, " +
                                 "173.20508075688772 0 0 0 200 346.41016151377545 A100, " +
                                 "173.20508075688772 0 0 0 100, 519.6152422706632 A100, " +
-                                "173.20508075688772 0 0 1 0, 692.8203230275509"
+                                "173.20508075688772 0 0 1 0, 692.8203230275509",
                            }
         );
-      const curlyViewBox = '0 0 200 692';
       const renderedSvg = svg.renderSvg([
         { 
           el: leftCurlyBrace, 
-          viewBox: curlyViewBox,
           width: 8,
           height: height,
+          viewBox: curlyViewBox,
           x: 0,
-          y : 0
+          y : 0,
+          cssTransform: "scaleX(-1)" // css transform
         },
         { 
           el: rightCurlyBrace, 
-          viewBox: curlyViewBox,
           width: 8,
           height: height,
+          viewBox: curlyViewBox,
           x: width - 10,
           y : 0
         }
-      ], x,y,width,height,'0 0 ' + width + ' ' + height);
+      ]);
       console.log(renderedSvg);
       return renderedSvg;
     },
