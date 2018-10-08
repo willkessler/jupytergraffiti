@@ -1001,33 +1001,20 @@ define([
         const xWrong = svg.makeX(0,0,cellRectHeight);
         innerHtml.push(xWrong);
 
+        const rightTriangle = svg.makeRightTriangle({x: 500,y:0,width:cellRectHeight,height:cellRectHeight});
+        innerHtml.push(rightTriangle);
         
+        const isocelesTriangle = svg.makeIsocelesTriangle({x: 550,y: 0,width: cellRectHeight,height: cellRectHeight});
+        innerHtml.push(isocelesTriangle);
+
+        const theta = svg.makeTheta({x: 580,y: 0,width: cellRectHeight,height: cellRectHeight});
+        innerHtml.push(theta);
+        
+        const sigma = svg.makeSigma({x: 700, y:0, width: cellRectHeight, height: cellRectHeight});
+        innerHtml.push(sigma);
+
         graffiti.svgOuter[0].innerHTML = innerHtml.join('');
         
-
-/*
-        const rightEdge = cellRect.width - 50;
-        const svgContents = '<svg class="graffitiSvg" width="' + cellRect.width + '" height="' + cellRect.height + '">' + 
-                            arrowHeadDef + "\n" + 
-
-                            // Ellipse
-                            ' <ellipse cx="' + cellRect.width / 2 + '" + cy="' + cellRect.height / 2 + '" ' + 
-                            ' rx="' + cellRect.width / 2 + '" + ry="' + cellRect.height/2 + 
-                            ' " style="fill:none;stroke:purple;stroke-width:2" />' +
-                            ' <line x1="0" y1="0" x2="' + rightEdge + '" y2="10" stroke="black" stroke-width="2" stroke-dasharray="4" marker-end="url(#arrowHead)" />' +
-
-                            // Green Check mark
-                            ' <path ' +
-                            ' d="M 0 ' + cellRect.height * 0.6 + ' ' +
-                            cellRect.height * 0.35 + ' ' + cellRect.height + ' ' +
-                            cellRect.height * 0.7 + ' 0" fill="none" stroke-width="8" stroke="green" width="25"></path>' +
-
-                            // Red X
-                            ' <line x1="0" y1="0" x2="' + cellRect.height + '" y2="' + cellRect.height + '" stroke-width="6" transform="scale(0.5 0.5) translate(200 0)" stroke="red" vector-effect="non-scaling-stroke" />' +
-                            ' <line x1="0" y1="' + cellRect.height + '" x2="' + cellRect.height + '" y2="0" stroke-width="6" transform="scale(0.5 0.5) translate(200 0)" stroke="red" vector-effect="non-scaling-stroke" />' +
-                            '</svg>';
-        graffiti.svgCheck.empty();
-*/
       },
 
       placeCanvas: (cellId, drawingPermanence) => {

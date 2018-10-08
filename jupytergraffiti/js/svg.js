@@ -93,19 +93,6 @@ define([], () => {
         '</defs>';
     },
 
-    makeCheckmark: (x, y, height) => {
-      const checkMark = svg.makeSvgElement('path',
-                                           {
-                                             d: 'M 0 ' + height * 0.6 + ' ' + height * 0.35 + ' ' + height + ' ' + height * 0.7 + ' 0',
-                                             fill:'none',
-                                             'stroke-width':'8',
-                                             'stroke':'green',
-                                             'width': '25'
-                                           }
-      );
-      return checkMark;
-    },
-
     makeLeftBracket: (x, y, width,height) => {
     },
 
@@ -188,7 +175,7 @@ define([], () => {
           y : 0
         }
       ]);
-      console.log(renderedSvg);
+      //console.log(renderedSvg);
       return renderedSvg;
     },
 
@@ -217,7 +204,7 @@ define([], () => {
       return renderedSvg;
     },
 
-    // checkmark
+    // x (wrong) symbol
     makeX: (x, y, size) => {
       const viewBox = '0 0 233 291.25';
       const xPath =
@@ -240,8 +227,73 @@ define([], () => {
       ]);
       return renderedSvg;
     },
-    
-  };
+
+    makeSimplePath: (opts) => {
+      const viewBox = opts.viewBox;
+      const thePath =
+        svg.makeSvgElement('path',
+                           {
+                             'stroke-width' : opts.strokeWidth,
+                             d: opts.d
+                           });
+
+      const renderedSvg = svg.renderSvg([
+        {
+          el: thePath,
+          width: opts.width,
+          height: opts.height,
+          viewBox: opts.viewBox,
+          x: opts.x,
+          y : opts.y
+        }
+      ]);
+      return renderedSvg;
+    },
+
+    makeRightTriangle: (opts) => {
+      return svg.makeSimplePath(
+        $.extend(opts, {
+          viewBox: '0 0 100 125',
+          d: "M91,14.657V91H14.657L91,14.657 M95,5L5,95h90V5L95,5z"
+        })
+      );
+    },
+
+    makeIsocelesTriangle: (opts) => {
+      return svg.makeSimplePath(
+        $.extend(opts, {
+          viewBox: '0 0 100 125',
+          d: "M50,11.708L90.146,92H9.854L50,11.708 M50,5L5,95h90L50,5L50,5z"
+        })
+      );
+    },
+
+    makeTheta: (opts) => {
+      return svg.makeSimplePath(
+        $.extend(opts, {
+          viewBox: '0 0 469 843.75',
+          d: "M469 334c-2,440 -453,468 -469,2 -13,-435 472,-460 469,-2zm-383 -20l298 0c-9,-366 -288,-376 -298,-6l0 6zm297 46l-297 0c16,345 279,397 297,11 0,-4 0,-7 0,-11z"
+        })
+      );
+    },
+
+    makeSigma: (opts) => {
+      return svg.makeSimplePath(
+        $.extend(opts, {
+          strokeWidth: 2,
+          viewBox: '0 0 16 20',
+          d: 'M2,1l5.46,7.27L2,15h12v-4h-1v1c0,0.552-0.448,1-1,1H4.97l4.39-5.52L5.25,2H12c0.552,0,1,0.448,1,1v1h1V1H2z'
+        })
+      );
+    },
+
+  }
 
   return (svg);
+
 });
+
+
+
+
+
