@@ -17,7 +17,7 @@ define([], () => {
       }
       return svgHtml;
     },
-    
+
     makeSvgElement: (tag, attrs) => {
       const el= document.createElementNS('http://www.w3.org/2000/svg', tag);
       if (tag === 'svg') {
@@ -51,7 +51,7 @@ define([], () => {
         if (svgChild.hasOwnProperty('cssTransform')) {
           transform = 'transform:' + svgChild.cssTransform;
         }
-        containerDiv = 
+        containerDiv =
           svg.makeDomElement('div',
                              {
                                'class':"graffiti-svg-inner",
@@ -85,7 +85,7 @@ define([], () => {
 
     makeArrow: (x1,y1,x2,y2) => {
       // Cf : https://www.beyondjava.net/how-to-connect-html-elements-with-an-arrow-using-svg
-      const arrowHeadDef = 
+      const arrowHeadDef =
         '<defs>' +
         '  <marker id="arrowHead" viewBox="0 0 10 10" refX="0" refY="5" markerUnits="strokeWidth" markerWidth="10" markerHeight="8" orient="auto">' +
         '    <path d="M 0 0 L 10 5 L 0 10 z"></path>' +
@@ -94,7 +94,7 @@ define([], () => {
     },
 
     makeCheckmark: (x, y, height) => {
-      const checkMark = svg.makeSvgElement('path', 
+      const checkMark = svg.makeSvgElement('path',
                                            {
                                              d: 'M 0 ' + height * 0.6 + ' ' + height * 0.35 + ' ' + height + ' ' + height * 0.7 + ' 0',
                                              fill:'none',
@@ -111,76 +111,67 @@ define([], () => {
 
     makeRightBracket: (x, y, width,height) => {
     },
-    
-    // need to use html injection, not code generation to make stuff work, 
+
+    // need to use html injection, not code generation to make stuff work,
     // cf my post: https://stackoverflow.com/questions/52675823/preserveaspectratio-ignored-by-code-generation-but-not-html-injection-for-svg-p
 
-    makeLeftCurlyBrace: (x, y, height) => {
-      const leftCurlyBrace =
+    makeRightCurlyBracePath: () => {
+      const rightCurlyBracePath =
         svg.makeSvgElement('path',
                            {
                              fill: "none",
                              stroke: "#000",
                              "vector-effect": "non-scaling-stroke",
-                             "stroke-width" : "2",
+                             "stroke-width" : "3",
                              d: "M0,0 A100, 173.20508075688772 0 0 1  100, 173.20508075688772 A100, " +
                                 "173.20508075688772 0 0 0 200 346.41016151377545 A100, " +
                                 "173.20508075688772 0 0 0 100, 519.6152422706632 A100, " +
                                 "173.20508075688772 0 0 1 0, 692.8203230275509"
                            }
         );
-      return svg.renderSvg(leftCurlyBrace,x,y,8,height,"0 0 200 692", "scale(-1,1) translate(-100,10)");
+      return rightCurlyBracePath;
+    },
+
+    makeLeftCurlyBrace: (x, y, height) => {
+      const curlyViewBox = '0 0 200 692';
+      const rightCurlyBracePath = svg.makeRightCurlyBracePath();
+      const renderedSvg = svg.renderSvg([
+        {
+          el: rightCurlyBracePath,
+          width: 8,
+          height: height,
+          viewBox: curlyViewBox,
+          x: x,
+          y : y,
+          cssTransform: "scaleX(-1)" // css transform
+        }
+      ]);
+      return renderedSvg;
     },
 
     makeRightCurlyBrace: (x, y, height) => {
-      const rightCurlyBrace =
-        svg.makeSvgElement('path',
-                           {
-                             fill: "none",
-                             stroke: "#000",
-                             "vector-effect": "non-scaling-stroke",
-                             "stroke-width" : "2",
-                             d: "M0,0 A100, 173.20508075688772 0 0 1  100, 173.20508075688772 A100, " +
-                                "173.20508075688772 0 0 0 200 346.41016151377545 A100, " +
-                                "173.20508075688772 0 0 0 100, 519.6152422706632 A100, " +
-                                "173.20508075688772 0 0 1 0, 692.8203230275509"
-                           }
-        );
-      return svg.renderSvg([rightCurlyBrace], x, y, 8, height, "0 0 200 692");
-
+      const curlyViewBox = '0 0 200 692';
+      const rightCurlyBracePath = svg.makeRightCurlyBracePath();
+      const renderedSvg = svg.renderSvg([
+        {
+          el: rightCurlyBracePath,
+          width: 8,
+          height: height,
+          viewBox: curlyViewBox,
+          x: x,
+          y : y
+        }
+      ]);
+      return renderedSvg;
     },
 
     makeSymmetricCurlyBraces: (x, y, width, height) => {
       const curlyViewBox = '0 0 200 692';
-      const leftCurlyBrace =
-        svg.makeSvgElement('path',
-                           {
-                             fill: "none",
-                             stroke: "#000",
-                             "vector-effect": "non-scaling-stroke",
-                             "stroke-width" : "2",
-                             d: "M0,0 A100, 173.20508075688772 0 0 1  100, 173.20508075688772 A100, " +
-                                "173.20508075688772 0 0 0 200 346.41016151377545 A100, " +
-                                "173.20508075688772 0 0 0 100, 519.6152422706632 A100, " +
-                                "173.20508075688772 0 0 1 0, 692.8203230275509",
-                           }
-        );
-      const rightCurlyBrace =
-        svg.makeSvgElement('path',
-                           {
-                             fill: "none",
-                             stroke: "#000",
-                             "vector-effect": "non-scaling-stroke",
-                             "stroke-width" : "2",
-                             d: "M0,0 A100, 173.20508075688772 0 0 1  100, 173.20508075688772 A100, " +
-                                "173.20508075688772 0 0 0 200 346.41016151377545 A100, " +
-                                "173.20508075688772 0 0 0 100, 519.6152422706632 A100, " +
-                                "173.20508075688772 0 0 1 0, 692.8203230275509",
-                           }
-        );
+      const curlyBracePath1 = svg.makeRightCurlyBracePath();
+      const curlyBracePath2 = svg.makeRightCurlyBracePath();
       const renderedSvg = svg.renderSvg([
-        { 
-          el: leftCurlyBrace, 
+        {
+          el: curlyBracePath1,
           width: 8,
           height: height,
           viewBox: curlyViewBox,
@@ -188,8 +179,8 @@ define([], () => {
           y : 0,
           cssTransform: "scaleX(-1)" // css transform
         },
-        { 
-          el: rightCurlyBrace, 
+        {
+          el: curlyBracePath2,
           width: 8,
           height: height,
           viewBox: curlyViewBox,
@@ -201,10 +192,56 @@ define([], () => {
       return renderedSvg;
     },
 
-    
+    // checkmark
+    makeCheckmark: (x, y, width, height) => {
+      const viewBox = '0 0 587 783.75';
+      const checkmarkPath =
+        svg.makeSvgElement('path',
+                           {
+                             fill: "#00aa00",
+                             "stroke-width":"4",
+                             d: "M0 303c61,65 122,129 184,194 134,-166 227,-376 403,-497 -181,160 -285,402 -400,627 -62,-108 -125,-216 -187,-324z"
+                           }
+        );
+
+      const renderedSvg = svg.renderSvg([
+        {
+          el: checkmarkPath,
+          width: width,
+          height: height,
+          viewBox: viewBox,
+          x: x,
+          y : y
+        }
+      ]);
+      return renderedSvg;
+    },
+
+    // checkmark
+    makeX: (x, y, size) => {
+      const viewBox = '0 0 233 291.25';
+      const xPath =
+        svg.makeSvgElement('polygon',
+                           {
+                             fill: "#aa0000",
+                             points: "233,22 211,0 117,94 22,0 0,22 94,117 0,211 22,233 117,139 211,233 233,211 139,117"
+                           }
+        );
+
+      const renderedSvg = svg.renderSvg([
+        {
+          el: xPath,
+          width: size,
+          height: size,
+          viewBox: viewBox,
+          x: x,
+          y : y
+        }
+      ]);
+      return renderedSvg;
+    },
     
   };
-  
+
   return (svg);
 });
-

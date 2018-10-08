@@ -984,12 +984,26 @@ define([
 
         graffiti.svgOuter = $('.graffiti-svg-outer');
 
-//        const rightCurlyBrace = svg.makeRightCurlyBrace(0,0,parseInt(cellRect.height / 2));
-//        graffiti.svgOuter[0].innerHTML = rightCurlyBrace;
+        const cellRectHeight = parseInt(cellRect.height);
+        let innerHtml = [];
+        const symmetricCurlyBraces = svg.makeSymmetricCurlyBraces(10,0,200,cellRectHeight);
+        innerHtml.push(symmetricCurlyBraces);
 
-        const symmetricCurlyBraces = svg.makeSymmetricCurlyBraces(0,0,200,parseInt(cellRect.height));
-        graffiti.svgOuter[0].innerHTML = symmetricCurlyBraces;
+        const leftCurlyBrace = svg.makeLeftCurlyBrace(250,0,cellRectHeight);
+        innerHtml.push(leftCurlyBrace);
 
+        const rightCurlyBrace = svg.makeRightCurlyBrace(450,0,cellRectHeight);
+        innerHtml.push(rightCurlyBrace);
+
+        const checkMark = svg.makeCheckmark(300,0,cellRectHeight,cellRectHeight);
+        innerHtml.push(checkMark);
+
+        const xWrong = svg.makeX(0,0,cellRectHeight);
+        innerHtml.push(xWrong);
+
+        
+        graffiti.svgOuter[0].innerHTML = innerHtml.join('');
+        
 
 /*
         const rightEdge = cellRect.width - 50;
