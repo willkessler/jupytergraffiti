@@ -235,10 +235,10 @@ define([
         drawingState.wipe = false; // default, we don't register a wipe state
         switch (change) {
           case 'drawingModeActivated':
-            drawingState.drawingModeActivated = data; // a drawing tool is activated.
+            drawingState.drawingModeActivated = data; // a drawing/sticker tool is activated.
             break;
           case 'drawingActivity':
-            drawingState.drawingActivity = data; // the drawing mode (mouse is down) : one of 'draw', 'fade', 'wipe' (mutually exclusive)
+            drawingState.drawingActivity = data; // the drawing mode (mouse is down) : one of 'draw', 'sticker', 'fade', 'wipe' (mutually exclusive)
             break;
           case 'cellId':
             drawingState.cellId = data;
@@ -247,7 +247,10 @@ define([
             drawingState.pen.isDown = data;
             break;
           case 'penType':
-            drawingState.pen.type = data;  // one of 'line', 'highlight', 'eraser'
+            drawingState.pen.type = data;  // one of 'line', 'highlight', 'eraser', or 'sticker'
+            break;
+          case 'stickerType':
+            drawingState.pen.stickerType = data; // one of many sticker types. if this is set that penType will not be set, and vice versa
             break;
           case 'permanence':
             drawingState.pen.permanence = data; // one of 'permanent', 'temporary'
