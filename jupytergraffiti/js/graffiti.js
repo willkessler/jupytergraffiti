@@ -1001,10 +1001,10 @@ define([
         const xWrong = svg.makeX(0,0,cellRectHeight);
         innerHtml.push(xWrong);
 
-        const rightTriangle = svg.makeRightTriangle({x: 500,y:0,width:cellRectHeight,height:cellRectHeight});
+        const rightTriangle = svg.makeRightTriangle({x: 500,y:0,width:cellRectHeight * 2,height:cellRectHeight * 2});
         innerHtml.push(rightTriangle);
         
-        const isocelesTriangle = svg.makeIsocelesTriangle({x: 550,y: 0,width: cellRectHeight,height: cellRectHeight});
+        const isocelesTriangle = svg.makeIsocelesTriangle({x: 550,y: 0, width: cellRectHeight*2,height: cellRectHeight*2});
         innerHtml.push(isocelesTriangle);
 
         const theta = svg.makeTheta({x: 580,y: 0,width: cellRectHeight,height: cellRectHeight});
@@ -1013,6 +1013,19 @@ define([
         const sigma = svg.makeSigma({x: 700, y:0, width: cellRectHeight, height: cellRectHeight});
         innerHtml.push(sigma);
 
+        const rectangle = svg.makeRectangle({x: 800, y:0, width: cellRectHeight, height: cellRectHeight});
+        innerHtml.push(rectangle);
+
+        const topBracket = svg.makeTopBracket({x: 900, y:0, width: 50, height: 10});
+        innerHtml.push(topBracket);
+
+        const bottomBracket = svg.makeBottomBracket({x: 1000, y:30, width: 50, height: 10});
+        innerHtml.push(bottomBracket);
+        
+        const star = svg.makeStar({x: 1100, y:10, width: 50, height: 50, color: 'gold', strokeWidth:2});
+        innerHtml.push(star);
+
+        
         graffiti.svgOuter[0].innerHTML = innerHtml.join('');
         
       },
