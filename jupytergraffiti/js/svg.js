@@ -114,7 +114,7 @@ define([], () => {
     },
 
     makeLine: (opts) => {
-      const viewBox = '0 0 112 112';
+      const viewBox = '0 0 1.12 1.12';
       const color = (opts.color === undefined ? '#000' : opts.color);
       const strokeWidth = (opts.strokeWidth === undefined ? 3 : opts.strokeWidth);
       let pathObj = 
@@ -123,7 +123,7 @@ define([], () => {
           'stroke-width' : strokeWidth,
           stroke: color,
           fill: 'none',
-          d: 'M 0 0 L 100 100'
+          d: 'M ' + opts.p1x + ' ' + opts.p1y + ' L ' + opts.p2x + ' ' + opts.p2y
         };
       if (opts.arrowAtEnd) {
         pathObj['marker-end'] =  'url(#arrowHead)';

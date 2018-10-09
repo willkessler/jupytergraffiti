@@ -482,6 +482,10 @@ define([
         const leftCurlyBrace = svg.makeLeftCurlyBrace(iconSize/4,iconSize/4,iconSize);
         const rightCurlyBrace = svg.makeRightCurlyBrace(iconSize/4,iconSize/4,iconSize);
         const checkMark = svg.makeCheckmark(iconSize/4,iconSize/4,iconSize,iconSize);
+        const lineWithArrow = svg.makeLine({x:iconMargin, y:iconMargin, p1x:0, p1y:1, p2x:1, p2y:0, 
+                                            width:iconSize, height: iconSize, strokeWidth:iconStrokeWidth,
+                                            arrowAtEnd:true, dashed:true, dashWidth:2});
+
         graffiti.setupOneControlPanel('graffiti-stickers-controls', 
                                       '<div id="graffiti-stickers-shell">' +
                                       '  <div id="graffiti-stickers-header">Stickers</div>' +
@@ -489,6 +493,7 @@ define([
                                       '    <div class="graffiti-sticker-button" id="graffiti-sticker-right-triangle">' + rightTriangle + '</div>' +
                                       '    <div class="graffiti-sticker-button" id="graffiti-sticker-icoceles">' + isocelesTriangle + '</div>' +
                                       '    <div class="graffiti-sticker-button" id="graffiti-sticker-rectangle">' + rectangle + '</div>' +
+                                      '    <div class="graffiti-sticker-button" id="graffiti-sticker-line-with-arrow">' + lineWithArrow + '</div>' +
 //                                      '    <div class="graffiti-sticker-button" id="graffiti-sticker-left-curly-brace">' + leftCurlyBrace + '</div>' +
 //                                      '    <div class="graffiti-sticker-button" id="graffiti-sticker-right-curly-brace">' + rightCurlyBrace + '</div>' +
 //                                      '    <div class="graffiti-sticker-button" id="graffiti-sticker-checkmark">' + checkMark + '</div>' +
@@ -615,7 +620,7 @@ define([
                  (!graffiti.selectedTokens.isIntersecting)) ||
                 (isMarkdownCell && activeCell.rendered)) {
               //console.log('Graffiti: no tokens present, or no text selected.');
-              visibleControlPanels = ['graffiti-notifier','graffiti-stickers-controls']; // hide all control panels if in view only mode and not play mode
+              visibleControlPanels = ['graffiti-notifier']; // hide all control panels if in view only mode and not play mode
               if (isMarkdownCell) {
                 if (!activeCell.rendered) {
                   graffiti.setNotifier('<div>Select some text in this Markdown cell to add or modify Graffiti\'s, or click inside any existing Graffiti text to modify it.</div>');
@@ -798,7 +803,7 @@ define([
                                  ]);
             break;
           case 'recording':
-            graffiti.showControlPanels(['graffiti-recording-controls', 'graffiti-recording-pen-controls']);
+            graffiti.showControlPanels(['graffiti-recording-controls', 'graffiti-recording-pen-controls','graffiti-stickers-controls']);
             graffiti.setNotifier('<div>Your activities are being recorded.' + 
                                  'Press ESC or click <span class="graffiti-notifier-link" id="graffiti-end-recording-link">End Recording</span> ' +
                                  'to end recording.</div>' +
