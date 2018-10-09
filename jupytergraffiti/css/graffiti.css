@@ -296,6 +296,10 @@
   border:1px solid black;
 }
 
+#graffiti-stickers-shell .graffiti-active-sticker {
+  border:1px solid #666;
+}
+
 #graffiti-time-display-recording,
 #graffiti-time-display-playback {
   padding: 4px 2px 0px 4px;

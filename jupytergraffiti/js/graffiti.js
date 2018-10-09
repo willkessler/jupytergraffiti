@@ -494,17 +494,19 @@ define([
                                       '    <div class="graffiti-sticker-button" id="graffiti-sticker-icoceles">' + isocelesTriangle + '</div>' +
                                       '    <div class="graffiti-sticker-button" id="graffiti-sticker-rectangle">' + rectangle + '</div>' +
                                       '    <div class="graffiti-sticker-button" id="graffiti-sticker-line-with-arrow">' + lineWithArrow + '</div>' +
-//                                      '    <div class="graffiti-sticker-button" id="graffiti-sticker-left-curly-brace">' + leftCurlyBrace + '</div>' +
-//                                      '    <div class="graffiti-sticker-button" id="graffiti-sticker-right-curly-brace">' + rightCurlyBrace + '</div>' +
-//                                      '    <div class="graffiti-sticker-button" id="graffiti-sticker-checkmark">' + checkMark + '</div>' +
                                       '  </div>' +
                                       '</div>',
                                       [
                                         {
-                                          ids: ['graffiti-sticker-right-triangle','graffiti-sticker-icoceles', 'graffiti-sticker-rectangle'],
+                                          ids: ['graffiti-sticker-right-triangle',
+                                                'graffiti-sticker-icoceles',
+                                                'graffiti-sticker-rectangle', 
+                                                'graffiti-sticker-line-with-arrow'],
                                           event: 'click',
                                           fn: (e) => {
-                                            console.log('you clicked:', $(e.target).attr('id'));
+                                            const stickerId = $(e.target).attr('id');
+                                            console.log('Sticker chosen:', stickerId);
+                                            graffiti.toggleGraffitiSticker(stickerId);
                                           }
                                         }
                                       ]
@@ -917,6 +919,36 @@ define([
         }          
       },
 
+      toggleGraffitiSticker: (stickerType) => {
+        if (!(state.getActivity() == 'recording')) {
+          return; // Stickers can only be used while recording
+        }
+        const activeStickerType = state.getDrawingPenAttribute('stickerType');
+        if (activeStickerType !== stickerType) {
+          // Activate a new sticker, unless this sticker is already active, in which case, deactivate it
+          graffiti.showDrawingScreen();
+          // Deactivate any active pen
+          $('.graffiti-active-pen').removeClass('graffiti-active-pen');
+          const stickerControl = $('#graffiti-sticker-' + stickerType);
+          stickerControl.addClass('graffiti-active-sticker');
+          state.updateDrawingState([
+            { change: 'drawingModeActivated', data: true}, 
+            { change: 'stickerType', data: stickerType },
+            { change: 'penType', data: undefined } 
+          ]);          
+        } else {
+          // Turn off the active sticker.
+          $('.graffiti-active-sticker').removeClass('graffiti-active-sticker');
+          // Disable stickering
+          state.updateDrawingState([ 
+            { change: 'drawingrModeActivated', data: false },
+            { change: 'stickerType', data: undefined },
+            { change: 'penType', data: undefined } 
+          ]);
+          graffiti.hideDrawingScreen();
+        }          
+      },
+
       dimGraffitiCursor: () => {
         graffiti.graffitiCursor.css({opacity:0.1});
       },
@@ -931,10 +963,13 @@ define([
             console.log('drawingScreenHandler: mousedown');
             graffiti.resetTemporaryCanvases();
             state.disableDrawingFadeClock();
+            const stickerType = state.getDrawingPenAttribute('stickerType');
+            console.log('mousedown with stickerType:', stickerType);
+            const drawingActivity = (stickerType === undefined ? 'draw' : 'sticker');
             state.updateDrawingState( [ 
               { change: 'drawingModeActivated', data: true }, 
               { change: 'isDown',  data: true }, 
-              { change: 'drawingActivity', data: 'draw' },
+              { change: 'drawingActivity', data: drawingActivity },
               { change: 'opacity', data: state.getMaxDrawingOpacity() } 
             ]);
           } else if ((e.type === 'mouseup') || (e.type === 'mouseleave')) {
