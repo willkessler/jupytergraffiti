@@ -2373,6 +2373,7 @@ define([
             graffiti.setNotifier('Please wait, storing this movie...');
             graffiti.showControlPanels(['graffiti-notifier']);
             graffiti.savingScrim.css({display:'flex'});
+            graffiti.setGraffitiPenColor('black');
             graffiti.stopRecordingCore(true);
             console.log('Graffiti: Stopped recording.');
           } else {
@@ -2901,7 +2902,9 @@ define([
           graffiti.lastDrawingEraseIndex = undefined;
           state.storeCellStates();
           state.clearCellOutputsSent();
-          graffiti.clearCanvases('all');
+          graffiti.resetTemporaryCanvases(); // we need to do this in case the last recording played stopped in the middle of a fadeout.
+          state.updateDrawingState([ { change: 'drawingModeActivated', data: false },          
+                                     { change: 'opacity', data: state.getMaxDrawingOpacity() } ]);
           graffiti.scrollNudgeAverages = [];
         }
 
