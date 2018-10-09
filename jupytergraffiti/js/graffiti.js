@@ -586,7 +586,7 @@ define([
         if (accessLevel === 'view') {
           if (activity !== 'idle') {
             if (outerControlHidden) {
-              console.trace('fadeIn 1');
+              //console.trace('fadeIn 1');
               graffiti.outerControlPanel.fadeIn(graffiti.panelFadeTime);
             }
           } else if ((state.getPlayableMovie('tip') === undefined) && 
@@ -594,14 +594,14 @@ define([
                      (state.getPlayableMovie('cursorActivity') === undefined) ||
                      (activity !== 'notifying') ) {
             if (!outerControlHidden) {
-              console.trace('fadeout');
+              //console.trace('fadeout');
               graffiti.outerControlPanel.fadeOut(graffiti.panelFadeTime);
             }
             return;
           }
         } else {
           if (outerControlHidden) {
-            console.trace('fadeIn 2');
+            //console.trace('fadeIn 2');
             graffiti.outerControlPanel.fadeIn(graffiti.panelFadeTime);
           }
         }
@@ -2608,15 +2608,24 @@ define([
           Jupyter.notebook.select(selectedCellIndex);
         }
 
-        // Handle pointer updates and canvas updates
+        // Handle pointer updates and canvas updates, as well as cell focus changes
         if (record.subType === 'pointer') {
           //console.log('pointerUpdate is true, record:', record);
           graffiti.updatePointer(record);
         } else {
           graffiti.dimGraffitiCursor();
+          if (record.hoverCell !== undefined) {
+            if (record.subType === 'focus') {
+              record.hoverCell.focus_cell();
+              const code_mirror = record.hoverCell.code_mirror;
+              if (!code_mirror.state.focused) {
+                code_mirror.focus();
+              }
+            }
+          }
         }
 
-        if (record.hoverCell) {
+        if (record.hoverCell !== undefined) {
           const cm = record.hoverCell.code_mirror;
           // Update innerScroll if required
           cm.scrollTo(record.innerScroll.left, record.innerScroll.top);
@@ -2655,7 +2664,6 @@ define([
         let cellId, cell, selectionRecord, selections, code_mirror, currentSelections, active;
 
         // If there were text selections in rendered markdown or rendered output during this frame, restore them first if we need to.
-
         if (record.textSelection !== undefined) {
           const cellId = record.textSelection.cellId;
           const cell = utils.findCellByCellId(cellId);
@@ -2690,26 +2698,27 @@ define([
             if (cell !== undefined) {
               code_mirror = cell.code_mirror;
               currentSelections = utils.cleanSelectionRecords(code_mirror.listSelections());
-              //console.log('cellId, selections, currentSelections:', cellId, selections, currentSelections);
+              //console.log('cellId, selections, currentSelections, subType:', cellId, selections, currentSelections, record.subType);
+
               if (!(_.isEqual(selections,currentSelections))) {
-                //console.log('updating selection, rec:', record, 'sel:', selections, 'cell:', cell);
                 graffiti.dimGraffitiCursor();
-                cell.focus_cell();
+
                 code_mirror.setSelections(selections);
-                if (!code_mirror.state.focused) {
-                  code_mirror.focus();
+
+                if (code_mirror.state.focused) {
+                  // If we made a selections update this frame, AND we are focused in it,
+                  // make sure that we keep it in view. We need to compute the
+                  // offset position of the *head* of the selection where the action is.
+                  // console.log('setting selections with selections:', selections);
+                  const cellRects = utils.getCellRects(cell);
+                  const cellOffsetY = selections[0].head.line * (graffiti.cmLineHeight + graffiti.cmLineFudge);
+                  const offsetPosition = {
+                    x: cellRects.innerCellRect.left, 
+                    y: cellOffsetY + cellRects.innerCellRect.top
+                  }
+                  // console.log('selections[0]', selections[0], 'offsetPosition:', offsetPosition, 'cellId', cellId);
+                  graffiti.applyScrollNudge(offsetPosition, record, false);
                 }
-                // If we made a selections update this frame, make sure that we keep it in view. We need to compute the
-                // offset position of the *head* of the selection where the action is.
-                // console.log('setting selections with selections:', selections);
-                const cellRects = utils.getCellRects(cell);
-                const cellOffsetY = selections[0].head.line * (graffiti.cmLineHeight + graffiti.cmLineFudge);
-                const offsetPosition = {
-                  x: cellRects.innerCellRect.left, 
-                  y: cellOffsetY + cellRects.innerCellRect.top
-                }
-                // console.log('selections[0]', selections[0], 'offsetPosition:', offsetPosition, 'cellId', cellId);
-                graffiti.applyScrollNudge(offsetPosition, record, false);
               }
             }
           }
