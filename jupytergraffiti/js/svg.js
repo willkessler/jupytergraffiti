@@ -129,7 +129,11 @@ define([], () => {
         pathObj['marker-end'] =  'url(#arrowHead)';
       }
       if (opts.dashed) {
-        pathObj['stroke-dasharray'] = 4;
+        if (opts.dashWidth) {
+          pathObj['stroke-dasharray'] = opts.dashWidth;
+        } else {
+          pathObj['stroke-dasharray'] = 4;
+        }
       }
       const line = svg.makeSvgElement('path', pathObj);
 
@@ -297,7 +301,9 @@ define([], () => {
           d: opts.d,
         };
 
-      if (opts.dashed) {
+      if (opts.dashWidth) {
+        pathObj['stroke-dasharray'] = opts.dashWidth;
+      } else {
         pathObj['stroke-dasharray'] = 4;
       }
 
