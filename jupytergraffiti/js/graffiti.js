@@ -998,8 +998,10 @@ define([
         const checkMark = svg.makeCheckmark(300,0,cellRectHeight,cellRectHeight);
         innerHtml.push(checkMark);
 
+/*
         const xWrong = svg.makeX(0,0,cellRectHeight);
         innerHtml.push(xWrong);
+*/
 
         const rightTriangle = svg.makeRightTriangle({x: 500,y:0,width:cellRectHeight * 2,height:cellRectHeight * 2});
         innerHtml.push(rightTriangle);
@@ -1013,18 +1015,37 @@ define([
         const sigma = svg.makeSigma({x: 700, y:0, width: cellRectHeight, height: cellRectHeight});
         innerHtml.push(sigma);
 
-        const rectangle = svg.makeRectangle({x: 800, y:0, width: cellRectHeight, height: cellRectHeight});
+        const rectangle = svg.makeRectangle({x: 800, y:0, width: cellRectHeight, height: cellRectHeight, dashed:true, color:'orange'});
         innerHtml.push(rectangle);
 
         const topBracket = svg.makeTopBracket({x: 900, y:0, width: 50, height: 10});
         innerHtml.push(topBracket);
 
-        const bottomBracket = svg.makeBottomBracket({x: 1000, y:30, width: 50, height: 10});
+        const bottomBracket = svg.makeBottomBracket({x: 951, y:0, width: 50, height: 10});
         innerHtml.push(bottomBracket);
+        
+        const leftBracket = svg.makeLeftBracket({x: 1002, y:0, width: 5, height: cellRectHeight});
+        innerHtml.push(leftBracket);
+
+        const rightBracket = svg.makeRightBracket({x: 1010, y:0, width: 5, height: cellRectHeight});
+        innerHtml.push(rightBracket);
         
         const star = svg.makeStar({x: 1100, y:10, width: 50, height: 50, color: 'gold', strokeWidth:2});
         innerHtml.push(star);
 
+        const lineWithArrow = svg.makeLine({x: 0, y:20, width: 50, height: 50, color: 'blue', strokeWidth:2, arrowAtEnd:true, dashed:true});
+        innerHtml.push(lineWithArrow);
+
+        const smiley = svg.makeSmiley({x: 0, y:30, width: 20, height: 20, color: 'green', strokeWidth:1});
+        innerHtml.push(smiley);
+
+        const frowney = svg.makeFrowney({x: 50, y:30, width: 20, height: 20, color: 'red', strokeWidth:1});
+        innerHtml.push(frowney);
+
+        const thumbsUp = svg.makeThumbsUp({x: 80, y:130, width: 50, height: 50, color: 'grey', strokeWidth:1});
+        innerHtml.push(thumbsUp);
+        const thumbsDown = svg.makeThumbsDown({x: 120, y:130, width: 50, height: 50, color: 'grey', strokeWidth:1});
+        innerHtml.push(thumbsDown);
         
         graffiti.svgOuter[0].innerHTML = innerHtml.join('');
         

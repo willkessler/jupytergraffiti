@@ -1,6 +1,39 @@
 define([], () => {
   // Thanks to https://stackoverflow.com/questions/3642035/jquerys-append-not-working-with-svg-element
   const svg = {
+
+    // Cf : https://www.beyondjava.net/how-to-connect-html-elements-with-an-arrow-using-svg
+    generateArrowHeadElem: (color) => {
+      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      const marker = svg.makeSvgElement('marker', {
+        id:'arrowHead',
+        viewBox: '0 0 10 10',
+        refX: 0,
+        refY: 5,
+        markerUnits: 'strokeWidth',
+        markerWidth: '10',
+        markerHeight: '8',
+        orient: 'auto',
+        stroke: color
+      });
+      const path = svg.makeSvgElement('path', {
+        d: "M 0 0 L 10 5 L 0 10 z"
+      });
+      marker.appendChild(path);
+      defs.appendChild(marker);
+      return defs;
+    },
+    
+    /*
+       const arrowHeadDef =
+       '<defs>' +
+       '  <marker id="arrowHead" viewBox="0 0 10 10" refX="0" refY="5" markerUnits="strokeWidth" markerWidth="10" markerHeight="8" orient="auto">' +
+       '    <path d="M 0 0 L 10 5 L 0 10 z"></path>' +
+       '  </marker>' +
+       '</defs>';
+       },
+     */
+
     makeElementHtml: (tag, attr, innerHtml) => {
       let svgHtml = '<' + tag + ' ';
       if (tag === 'svg') {
@@ -67,6 +100,9 @@ define([], () => {
                                height: svgChild.height,
                                viewBox: svgChild.viewBox
                              });
+        if (svgChild.arrowAtEnd) {
+          containerSvg.appendChild(svg.generateArrowHeadElem(svgChild.color));
+        }
         containerSvg.appendChild(svgChild.el);
         containerDiv.appendChild(containerSvg);
         svgGenerator[0].appendChild(containerDiv);
@@ -78,17 +114,42 @@ define([], () => {
     },
 
     makeLine: (opts) => {
+      const viewBox = '0 0 112 112';
+      const color = (opts.color === undefined ? '#000' : opts.color);
+      const strokeWidth = (opts.strokeWidth === undefined ? 3 : opts.strokeWidth);
+      let pathObj = 
+        {
+          'vector-effect': 'non-scaling-stroke',
+          'stroke-width' : strokeWidth,
+          stroke: color,
+          fill: 'none',
+          d: 'M 0 0 L 100 100'
+        };
+      if (opts.arrowAtEnd) {
+        pathObj['marker-end'] =  'url(#arrowHead)';
+      }
+      if (opts.dashed) {
+        pathObj['stroke-dasharray'] = 4;
+      }
+      const line = svg.makeSvgElement('path', pathObj);
+
+      const renderedSvg = svg.renderSvg([
+        {
+          el: line,
+          width: opts.width,
+          height: opts.height,
+          color: color,
+          viewBox: viewBox,
+          x: opts.x,
+          y : opts.y,
+          arrowAtEnd: true,
+        }
+      ]);
+      return renderedSvg;
+
+      
     },
 
-    makeArrow: (x1,y1,x2,y2) => {
-      // Cf : https://www.beyondjava.net/how-to-connect-html-elements-with-an-arrow-using-svg
-      const arrowHeadDef =
-        '<defs>' +
-        '  <marker id="arrowHead" viewBox="0 0 10 10" refX="0" refY="5" markerUnits="strokeWidth" markerWidth="10" markerHeight="8" orient="auto">' +
-        '    <path d="M 0 0 L 10 5 L 0 10 z"></path>' +
-        '  </marker>' +
-        '</defs>';
-    },
 
     makeEllipse: (opts) => {
     },
@@ -227,15 +288,20 @@ define([], () => {
       const color = (opts.color === undefined ? '#000' : opts.color);
       const fill = (opts.fill === undefined ? 'none' : opts.fill);
       const strokeWidth = (opts.strokeWidth === undefined ? 3 : opts.strokeWidth);
-      const thePath =
-        svg.makeSvgElement('path',
-                           {
-                             'vector-effect': 'non-scaling-stroke',
-                             'stroke-width' : strokeWidth,
-                             stroke: color,
-                             fill: fill,
-                             d: opts.d,
-                           });
+      let pathObj = 
+        {
+          'vector-effect': 'non-scaling-stroke',
+          'stroke-width' : strokeWidth,
+          stroke: color,
+          fill: fill,
+          d: opts.d,
+        };
+
+      if (opts.dashed) {
+        pathObj['stroke-dasharray'] = 4;
+      }
+
+      const thePath = svg.makeSvgElement('path',pathObj);
 
       const renderedSvg = svg.renderSvg([
         {
@@ -264,6 +330,24 @@ define([], () => {
         $.extend(opts, {
           viewBox: '0 0 10 10',
           d: "M 0 0 L 0 10 L 10 10 L 10 0"
+        })
+      );
+    },
+
+    makeLeftBracket: (opts) => {
+      return svg.makeSimplePath(
+        $.extend(opts, {
+          viewBox: '0 0 10 10',
+          d: "M 10 10 L 0 10 L 0 0 L 10 0"
+        })
+      );
+    },
+
+    makeRightBracket: (opts) => {
+      return svg.makeSimplePath(
+        $.extend(opts, {
+          viewBox: '0 0 10 10',
+          d: "M 0 0 L 10 0 L 10 10 L 0 10"
         })
       );
     },
@@ -315,6 +399,51 @@ define([], () => {
         })
       );
     },
+
+    makeSmiley: (opts) => {
+      return svg.makeSimplePath(
+        $.extend(opts, {
+          strokeWidth: 2,
+          viewBox: '0 0 50 62.5',
+          d: 'M25,1A24,24,0,1,0,49,25,24,24,0,0,0,25,1Zm0,46A22,22,0,1,1,47,25,22,22,0,0,1,25,47ZM35.77,33.32a1,1,0,0,1-.13,1.41C31.73,38,28.06,39.1,24.9,39.1a16,16,0,0,1-10.63-4.45,1,1,0,0,1,1.45-1.38c0.34,0.35,8.35,8.52,18.63-.08A1,1,0,0,1,35.77,33.32ZM15,19a3,3,0,1,1,3,3A3,3,0,0,1,15,19Zm14,0a3,3,0,1,1,3,3A3,3,0,0,1,29,19Z',
+          fill: 'none',
+        })
+      );
+    },
+
+    makeFrowney: (opts) => {
+      return svg.makeSimplePath(
+        $.extend(opts, {
+          strokeWidth: 2,
+          viewBox: '0 0 100 125',
+          d: 'M50,2.5C23.809,2.5,2.5,23.809,2.5,50S23.809,97.5,50,97.5S97.5,76.191,97.5,50S76.191,2.5,50,2.5z M50,91.684    C27.016,91.684,8.316,72.984,8.316,50S27.016,8.316,50,8.316S91.684,27.016,91.684,50S72.984,91.684,50,91.684z M37.489,41.386    c2.964,0,5.369-2.403,5.369-5.369c0-2.966-2.405-5.368-5.369-5.368c-2.966,0-5.369,2.402-5.369,5.368    C32.12,38.982,34.523,41.386,37.489,41.386z M62.511,41.386c2.965,0,5.369-2.403,5.369-5.369c0-2.966-2.404-5.368-5.369-5.368    c-2.966,0-5.368,2.402-5.368,5.368C57.143,38.982,59.545,41.386,62.511,41.386z M50.001,51.186    c-13.939,0-20.525,9.548-22.06,14.597c-0.467,1.537,0.399,3.161,1.936,3.628c1.539,0.471,3.161-0.399,3.628-1.936    c0.032-0.105,3.336-10.473,16.496-10.473c13.015,0,16.363,10.061,16.494,10.472c0.381,1.255,1.534,2.063,2.781,2.063    c0.28,0,0.564-0.04,0.846-0.127c1.538-0.467,2.405-2.091,1.938-3.627C70.524,60.733,63.939,51.186,50.001,51.186z',
+          fill: 'none',
+        })
+      );
+    },
+
+    makeThumbsUp: (opts) => {
+      return svg.makeSimplePath(
+        $.extend(opts, {
+          strokeWidth: 2,
+          viewBox: '0 0 218 346.25',
+          d: 'M28 263l31 -9c64,42 77,13 92,10 4,0 1,4 17,0 22,-7 31,-19 23,-35 19,-6 21,-18 15,-33 15,-9 15,-26 3,-38 19,-37 -11,-67 -80,-48 -5,-36 11,-59 5,-80 -7,-27 -25,-31 -50,-30 3,68 8,35 -25,101 -27,55 -3,48 -57,63 -6,36 4,70 26,99zm4 -12c-16,-24 -23,-49 -21,-77 48,-14 33,-15 57,-65 33,-71 31,-34 27,-97 31,1 32,26 26,50 -7,27 -6,40 -1,62 26,-7 74,-21 82,6 7,27 -22,40 -35,41l-42 -7c9,-28 36,-19 44,-19l10 -3 7 -13c-29,8 -10,3 -31,4 -24,1 -40,15 -43,40l8 1c-8,7 -13,16 -14,28l9 1c-5,6 -10,15 -12,26l14 3c-5,7 -9,15 -11,26l29 4c-29,10 -50,-1 -74,-20l-29 9zm87 -58c12,-30 27,-10 49,-12 5,0 27,-7 33,-14 24,20 -36,32 -39,33l-43 -7zm-2 27l10 -15c44,7 28,8 70,-4 10,19 -35,26 -35,26l-45 -7zm3 30l9 -17c36,5 26,7 53,0 4,16 -17,22 -23,22l-39 -5z',
+          fill: 'fill',
+        })
+      );
+    },
+
+    makeThumbsDown: (opts) => {
+      return svg.makeSimplePath(
+        $.extend(opts, {
+          strokeWidth: 2,
+          viewBox: '0 0 226 357.5',
+          d: 'M18 27l33 4c59,-51 77,-23 92,-23 5,0 0,-4 18,-2 23,3 33,15 28,32 20,4 24,15 20,32 17,7 19,23 8,37 25,36 -1,70 -74,60 0,38 19,59 16,82 -3,27 -21,34 -46,37 -6,-70 3,-37 -40,-99 -35,-52 -10,-48 -67,-56 -11,-36 -6,-71 12,-104zm6 12c-13,26 -16,53 -10,81 51,7 35,11 67,58 44,66 36,29 41,95 32,-7 29,-32 19,-55 -11,-27 -11,-40 -9,-63 27,4 78,10 82,-18 4,-28 -28,-37 -41,-36l-42 13c13,27 39,14 48,13l10 1 9 12c-30,-4 -10,-1 -33,1 -23,2 -41,-9 -49,-34l8 -3c-8,-6 -15,-14 -18,-26l9 -3c-6,-5 -11,-13 -16,-24l15 -5c-7,-6 -12,-15 -15,-25l28 -8c-30,-7 -50,8 -72,30l-31 -4zm96 46c17,28 30,7 52,5 6,-1 29,4 36,9 21,-23 -42,-27 -44,-27l-44 13zm-5 -27l12 14c44,-13 27,-12 72,-6 7,-21 -39,-22 -40,-22l-44 14zm-1 -31l11 16c36,-11 26,-11 54,-7 2,-18 -20,-20 -27,-20l-38 11z',
+          fill: 'fill',
+        })
+      );
+    },
+
 
     makeStar: (opts) => {
       return svg.makeSimplePath(
