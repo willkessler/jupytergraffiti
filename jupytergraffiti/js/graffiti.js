@@ -586,6 +586,7 @@ define([
         if (accessLevel === 'view') {
           if (activity !== 'idle') {
             if (outerControlHidden) {
+              console.trace('fadeIn 1');
               graffiti.outerControlPanel.fadeIn(graffiti.panelFadeTime);
             }
           } else if ((state.getPlayableMovie('tip') === undefined) && 
@@ -593,12 +594,14 @@ define([
                      (state.getPlayableMovie('cursorActivity') === undefined) ||
                      (activity !== 'notifying') ) {
             if (!outerControlHidden) {
+              console.trace('fadeout');
               graffiti.outerControlPanel.fadeOut(graffiti.panelFadeTime);
             }
             return;
           }
         } else {
           if (outerControlHidden) {
+            console.trace('fadeIn 2');
             graffiti.outerControlPanel.fadeIn(graffiti.panelFadeTime);
           }
         }
@@ -2444,7 +2447,7 @@ define([
       applyScrollNudge: (position, record, useTrailingVelocity) => {
         const clientHeight = document.documentElement.clientHeight;
         const topbarHeight = $('#header').height();
-        const bufferY = clientHeight / 8;
+        const bufferY = clientHeight / 9;
         const minAllowedCursorY = topbarHeight + bufferY;
         const maxAllowedCursorY = clientHeight - bufferY;
         let mustNudgeCheck = !useTrailingVelocity;
@@ -2877,8 +2880,8 @@ define([
 
       startPlayback: () => {
         // start playback
-        console.log('Graffiti: Starting playback.');
         const activity = state.getActivity();
+        console.log('Graffiti: Starting playback, current activity:', activity);
         if ((activity === 'idle') || (activity === 'notifying')) {
           // If just starting to play back, store all cells current contents so we can restore them when you cancel playback.
           utils.saveNotebook();
@@ -2951,7 +2954,10 @@ define([
           console.log('Graffiti: no playable movie defined.');
           return;
         }
-        graffiti.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
+
+        // next line seems to be extraneous and buggy because we create a race condition with the control panel. however what happens if a movie cannot be loaded?
+        // graffiti.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
+
         storage.loadMovie(playableMovie.cellId, playableMovie.recordingKey).then( () => {
           console.log('Graffiti: Movie loaded for cellId, recordingKey:', playableMovie.cellId, playableMovie.recordingKey);
           if (playableMovie.cellType === 'markdown') {
