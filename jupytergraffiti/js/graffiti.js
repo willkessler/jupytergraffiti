@@ -73,8 +73,6 @@ define([
         // Set up the button that activates Graffiti on new notebooks and controls visibility of the control panel if the notebook has already been graffiti-ized.
         graffiti.updateSetupButton();
 
-        // graffiti.placeSvg('id_rt4ypn', 'permanent')
-
         if (Jupyter.notebook.metadata.hasOwnProperty('graffitiId')) { // do not try to load the manifest if this notebook has not yet been graffiti-ized.
           storage.loadManifest(currentAccessLevel).then(() => {
             graffiti.initInteractivity();
