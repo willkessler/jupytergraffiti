@@ -258,6 +258,44 @@
   margin-left:2px;
 }
 
+#graffiti-stickers-controls {
+  font-color:#666;
+  text-align:left;
+  width:100%;
+  margin-top:0px;
+  margin-bottom:8px;
+  font-size:.8em;
+  cursor:pointer;
+}
+
+#graffiti-stickers-shell {
+  height:55px;
+}
+
+#graffiti-stickers-header {
+  text-transform:uppercase;
+  margin-bottom:2px;
+}
+
+#graffiti-stickers-body {
+  display:flex;
+  align-items:left;
+}
+
+.graffiti-sticker-button {
+  margin-right:4px;
+  position:relative;
+  padding:5px;
+  background:#eee;
+  width:30px;
+  height:30px;
+  border:1px solid #ccc;
+}
+
+.graffiti-sticker-button:hover {
+  border:1px solid black;
+}
+
 #graffiti-time-display-recording,
 #graffiti-time-display-playback {
   padding: 4px 2px 0px 4px;
@@ -493,6 +531,6 @@ http://www.patternify.com/
 
 .graffiti-svg-inner {
   pointer-events:none;
-  z-index:10000;
+  z-index:900;
 }
 
