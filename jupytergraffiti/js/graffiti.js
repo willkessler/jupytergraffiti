@@ -2902,10 +2902,11 @@ define([
           graffiti.lastDrawingEraseIndex = undefined;
           state.storeCellStates();
           state.clearCellOutputsSent();
-          graffiti.resetTemporaryCanvases(); // we need to do this in case the last recording played stopped in the middle of a fadeout.
-          state.updateDrawingState([ { change: 'drawingModeActivated', data: false },          
-                                     { change: 'opacity', data: state.getMaxDrawingOpacity() } ]);
           graffiti.scrollNudgeAverages = [];
+        }
+
+        if ((activity === 'idle') || (activity === 'notifying') || (activity === 'playbackPaused')) {
+          graffiti.clearCanvases('all');
         }
 
         graffiti.clearHighlightMarkText();
