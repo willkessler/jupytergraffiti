@@ -43,9 +43,9 @@ define([
           permanent: {}, // these canvases persist drawings throughout the lifespan of the recording
           temporary: {}  // these canvases get wiped a couple seconds after the person stops drawing
         };
-        graffiti.svgs = {
-          permanent: {}, // these svgs persist svg shapes throughout the lifespan of the recording
-          temporary: {}  // these svgs get wiped a couple seconds after the person finishes placing them
+        graffiti.stickers = {
+          permanent: {}, // these stickers persist throughout the lifespan of the recording
+          temporary: {}  // these stickers fade out a couple seconds after the person finishes placing them
         };
         graffiti.lastUpdateControlsTime = utils.getNow();
         graffiti.notificationMsgs = {};
@@ -64,6 +64,7 @@ define([
           'brown'  : '996600',
           'black'  : '000000'
         };
+        graffiti.stickerMinimumSize = 25; // pixels
 
         if (currentAccessLevel === 'create') {
           storage.ensureNotebookGetsGraffitiId();
@@ -502,8 +503,12 @@ define([
                                                 'graffiti-sticker-line-with-arrow'],
                                           event: 'click',
                                           fn: (e) => {
-                                            const stickerId = $(e.target).attr('id');
+                                            let stickerId = $(e.target).attr('id');
+                                            if (stickerId === undefined) {
+                                              stickerId = $(e.target).parents('.graffiti-sticker-button').attr('id');
+                                            }
                                             console.log('Sticker chosen:', stickerId);
+                                            const cleanStickerId = stickerId.replace('graffiti-sticker-','');
                                             graffiti.toggleGraffitiSticker(stickerId);
                                           }
                                         }
@@ -891,6 +896,7 @@ define([
         // Turn on drawing (if it's not already on), and activate this pen type
         state.updateDrawingState([ 
           { change: 'drawingModeActivated', data: true}, 
+          { change: 'stickerType', data: undefined },
           { change: 'penType', data: penType } 
         ]);
       },
@@ -914,6 +920,7 @@ define([
           // Disable drawing
           state.updateDrawingState([ 
             { change: 'drawingModeActivated', data: false },
+            { change: 'stickerType', data: undefined },
             { change: 'penType', data: undefined } 
           ]);
           graffiti.hideDrawingScreen();
@@ -931,6 +938,7 @@ define([
           // Deactivate any active pen
           $('.graffiti-active-pen').removeClass('graffiti-active-pen');
           const stickerControl = $('#graffiti-sticker-' + stickerType);
+          $('.graffiti-active-sticker').removeClass('graffiti-active-sticker');
           stickerControl.addClass('graffiti-active-sticker');
           state.updateDrawingState([
             { change: 'drawingModeActivated', data: true}, 
@@ -950,6 +958,35 @@ define([
         }          
       },
 
+      placeStickerCanvas: (cellId, stickerPermanence) => {
+        const cell = utils.findCellByCellId(cellId);
+        const cellElement = $(cell.element[0]);
+        const cellRect = cellElement[0].getBoundingClientRect();
+        if (graffiti.stickers[stickerPermanence][cellId] !== undefined) {
+          return cellRect;
+        }
+        // Note that we inline all these styles because to include them from a stylesheet causes rendering jumps.
+        const stickerDivId = 'graffiti-sticker-' + cellId;
+        $('<div class="graffiti-sticker-outer" id="' + stickerDivId + '" ' +
+          'style="width:' + parseInt(cellRect.width) + 'px;' +
+          'height:' + parseInt(cellRect.height) + 'px;' +
+          'position:absolute;left:0;top:0;">' +
+          '</div>').appendTo(cellElement);
+
+        graffiti.stickerOuterDiv = $('#' + stickerDivId);
+        const cellRectHeight = parseInt(cellRect.height);
+      },
+
+      // Place a sticker on the active cell. If opts.dynamic is true, then this will be marked as the "active" sticker
+      // and will be recreated on every mousemove (until mouseup). 
+      placeSticker: (opts) => {
+        console.log('placeSticker');
+        const viewInfo = state.getViewInfo();
+        const stickerPermanence = state.getDrawingPenAttribute('permanence');
+        graffiti.placeStickerCanvas(viewInfo.cellId, stickerPermanence);
+        console.log('now placing a sticker');
+      },
+
       dimGraffitiCursor: () => {
         graffiti.graffitiCursor.css({opacity:0.1});
       },
@@ -965,8 +1002,22 @@ define([
             graffiti.resetTemporaryCanvases();
             state.disableDrawingFadeClock();
             const stickerType = state.getDrawingPenAttribute('stickerType');
-            console.log('mousedown with stickerType:', stickerType);
-            const drawingActivity = (stickerType === undefined ? 'draw' : 'sticker');
+            let drawingActivity = 'draw';
+            if (stickerType !== undefined) {
+              console.log('mousedown with stickerType:', stickerType);
+              drawingActivity = 'sticker';
+              graffiti.placeSticker({dynamic:true});
+              const currentPointerPosition = state.getPointerPosition();
+              state.updateDrawingState([
+                { change: 'positions',
+                  data: { 
+                    positions: {
+                      start: { x: currentPointerPosition.x, y: currentPointerPosition.y },
+                      end: { x: currentPointerPosition.x + graffiti.stickerMinimumSize, y: currentPointerPosition.y + graffiti.stickerMinimumSize },
+                    }
+                  }
+                }]);
+            }
             state.updateDrawingState( [ 
               { change: 'drawingModeActivated', data: true }, 
               { change: 'isDown',  data: true }, 
@@ -1046,6 +1097,7 @@ define([
         graffiti.drawingScreen.css({height: notebookHeight + 'px'});
       },
 
+/*
       placeSvg: (cellId, svgPermanence) => {
         const cell = utils.findCellByCellId(cellId);
         const cellElement = $(cell.element[0]);
@@ -1126,6 +1178,7 @@ define([
         graffiti.svgOuter[0].innerHTML = innerHtml.join('');
         
       },
+*/
 
       placeCanvas: (cellId, drawingPermanence) => {
         const cell = utils.findCellByCellId(cellId);
@@ -1331,6 +1384,42 @@ define([
               }
             ]);
             state.storeHistoryRecord('drawings');
+          }
+        }
+      },
+
+      updateStickerDisplay: (cellId, bx, by, stickerPenColor, stickerPenDash, stickerPermanence ) => {
+      },
+
+      updateStickerDisplayWhenRecording:  (bx, by, viewInfo) => {
+        if (state.getActivity() === 'recording') {
+          if (state.getDrawingPenAttribute('isDown')) {
+            const stickerPenType = state.getDrawingPenAttribute('type');
+            const stickerPenDash = state.getDrawingPenAttribute('dash');
+            const stickerPenColor = state.getDrawingPenAttribute('color');
+            const stickerPermanence = state.getDrawingPenAttribute('permanence');
+            const cellRect = graffiti.placeStickerCanvas(viewInfo.cellId, stickerPermanence);
+            const position2 = { x: bx - cellRect.left, y: by - cellRect.top };
+            graffiti.updateStickerDisplay(viewInfo.cellId, 
+                                          position2.x, position2.y,
+                                          stickerPenColor,
+                                          stickerPenDash,
+                                          stickerPermanence);
+            state.updateDrawingState([
+              { change:'positions', 
+                data: { 
+                  positions: {
+                    start: { x: graffiti.stickerP1.x - cellRect.left, y: graffiti.stickerP1.y - cellRect.top },
+                    end:   { x: position2.x, y: position2.y }
+                  }
+                }
+              },
+              { change: 'cellId',
+                data: viewInfo.cellId
+              }
+            ]);
+            state.storeHistoryRecord('stickers');
+
           }
         }
       },
@@ -1727,7 +1816,12 @@ define([
           state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.storeViewInfo(viewInfo);
           state.storeHistoryRecord('pointer');
-          graffiti.updateDrawingDisplayWhenRecording(previousPointerX, previousPointerY, e.clientX, e.clientY, viewInfo );
+          const drawingActivity = state.getDrawingPenAttribute('drawingActivity');
+          if (drawingActivity === 'sticker') {
+            graffiti.updateStickerDisplayWhenRecording(previousPointerX, previousPointerY, e.clientX, e.clientY, viewInfo );
+          } else {
+            graffiti.updateDrawingDisplayWhenRecording(previousPointerX, previousPointerY, e.clientX, e.clientY, viewInfo );
+          }
           graffiti.updateControlPanelPosition();
           return true;
         };

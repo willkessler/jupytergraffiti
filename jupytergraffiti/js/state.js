@@ -18,7 +18,7 @@ define([
       state.resetOnNextPlay = false;
       state.recordedAudioString = '';
       state.audioStorageCallback = undefined;
-      state.frameArrays = ['view', 'selections', 'contents', 'drawings'];
+      state.frameArrays = ['view', 'selections', 'contents', 'drawings','stickers'];
       state.scrollTop = undefined;
       state.selectedCellId = undefined;
       state.mute = false;
@@ -54,7 +54,7 @@ define([
       // Set up a default version of the drawing state object. This gets updated during drawing activity.
       state.drawingState = {
         drawingModeActivated: false,     // when true a drawing tool is selected
-        drawingActivity: 'draw',         // One of 'draw', 'fade', 'wipe'. Note that 'drawing activity' includes using the eraser tool
+        drawingActivity: 'draw',         // One of 'draw', 'fade', 'wipe', 'sticker'. Note that 'drawing activity' includes using the eraser tool and stickering
         cellId: undefined,
         positions: {
           start: { x: 0, y: 0 },
@@ -539,6 +539,22 @@ define([
       return record;
     },
 
+    createStickerRecord: () => {
+      let record = $.extend(true, {}, 
+                            {
+                              innerCellRect: { 
+                                left: state.viewInfo.innerCellRect.left, 
+                                top: state.viewInfo.innerCellRect.top,
+                                width: state.viewInfo.innerCellRect.width,
+                                height: state.viewInfo.innerCellRect.height
+                              }
+                            }, state.drawingState);
+      // Remove statuses that are not needed in history records
+      delete(record.drawingModeActivated);
+      delete(record.pen.isDown);
+      return record;
+    },
+
     createSelectionsRecord: () => {
       const activeCell = Jupyter.notebook.get_selected_cell();
       const cells = Jupyter.notebook.get_cells();
@@ -695,6 +711,9 @@ define([
         case 'drawings':
           record = state.createDrawingRecord();
           break;
+        case 'stickers':
+          record = state.createStickerRecord();
+          break;
         case 'selections':
           record = state.createSelectionsRecord();
           break;
@@ -717,13 +736,15 @@ define([
         selections:  [],                          // cell selections
         contents:    [],                          // contents state: what cells present, and what their contents are, and cell outputs
         drawings:    [],                          // drawing record, of type: ['draw', 'fade', 'wipe']
+        stickers:    [],                          // sticker record. this contains drawing info as well as a sticker type
 
         // Where we are in each track, during playback.
         lastVisited: {
           view:       0,
           selections: 0,
           contents:   0,
-          drawings:   0
+          drawings:   0,
+          stickers:   0
         },
 
         // What was the latest record processed during playback (so we don't process a record twice)
@@ -731,7 +752,8 @@ define([
           view:       undefined,
           selections: undefined,
           contents:   undefined,
-          drawings:   undefined
+          drawings:   undefined,
+          stickers:   undefined
         },
         
         cellContentsTracking: {},                  // this enables back-referencing to reduce storage costs on content recording
@@ -803,57 +825,59 @@ define([
       for (arrName of state.frameArrays) {
         skipped[arrName] = -1;
         historyArray = state.history[arrName];
-        numRecords = historyArray.length;
-        currentFrameIndex = state.history.lastVisited[arrName];
-        indexes[arrName] = undefined;
-        if (historyArray.length > 0) {
-          // Only do a scan if the time is within the band of recorded history. E.g. there may only be drawing
-          // history in the middle of all recorded time so don't look for records if you're outside that band.
-          if ((t >= historyArray[0].startTime) || (t <= historyArray[historyArray.length - 1].endTime)) {
-            previousFrameIndex = currentFrameIndex;
-            frame = historyArray[currentFrameIndex];
-            if ((t >= frame.startTime) && (t < frame.endTime)) {
-              // We're already in the right frame so just return that
-              indexes[arrName] = { index: currentFrameIndex, rangeStart: undefined };
-            } else {
-              // if the distance between the start time of the current frame and t is
-              // < 10% of the total duration, start scanning up or
-              // down from the current frame until you find the right frame.
-              const tDist = t - frame.startTime;
-              const tDistAbs = Math.abs(tDist);
-              if ((tDistAbs / historyDuration) < 0.1) {
-                scanDir = Math.sign(tDist);
-                scanPtr = currentFrameIndex + scanDir;
+        if (historyArray !== undefined) {
+          numRecords = historyArray.length;
+          currentFrameIndex = state.history.lastVisited[arrName];
+          indexes[arrName] = undefined;
+          if (historyArray.length > 0) {
+            // Only do a scan if the time is within the band of recorded history. E.g. there may only be drawing
+            // history in the middle of all recorded time so don't look for records if you're outside that band.
+            if ((t >= historyArray[0].startTime) || (t <= historyArray[historyArray.length - 1].endTime)) {
+              previousFrameIndex = currentFrameIndex;
+              frame = historyArray[currentFrameIndex];
+              if ((t >= frame.startTime) && (t < frame.endTime)) {
+                // We're already in the right frame so just return that
+                indexes[arrName] = { index: currentFrameIndex, rangeStart: undefined };
               } else {
-                // Scan to find the frame:
-                //  from the beginning of the recording if the time is in the first half of the recording,
-                //  otherwise scan backwards from the end
-                if (t < halfHistory) {
-                  scanPtr = 0;
-                  scanDir = 1;
+                // if the distance between the start time of the current frame and t is
+                // < 10% of the total duration, start scanning up or
+                // down from the current frame until you find the right frame.
+                const tDist = t - frame.startTime;
+                const tDistAbs = Math.abs(tDist);
+                if ((tDistAbs / historyDuration) < 0.1) {
+                  scanDir = Math.sign(tDist);
+                  scanPtr = currentFrameIndex + scanDir;
                 } else {
-                  scanPtr = numRecords - 1;
-                  scanDir = -1;
+                  // Scan to find the frame:
+                  //  from the beginning of the recording if the time is in the first half of the recording,
+                  //  otherwise scan backwards from the end
+                  if (t < halfHistory) {
+                    scanPtr = 0;
+                    scanDir = 1;
+                  } else {
+                    scanPtr = numRecords - 1;
+                    scanDir = -1;
+                  }
                 }
-              }
-              // Now scan to find the right frame by looking for t within the time frame.
-              while ((scanPtr >= 0) && (scanPtr < numRecords)) {
-                frame = historyArray[scanPtr];
-                if ((t >= frame.startTime) && (t < frame.endTime)) {
-                  indexes[arrName] = { index: scanPtr, rangeStart: undefined };
-                  state.history.lastVisited[arrName] = scanPtr;
-                  break;
+                // Now scan to find the right frame by looking for t within the time frame.
+                while ((scanPtr >= 0) && (scanPtr < numRecords)) {
+                  frame = historyArray[scanPtr];
+                  if ((t >= frame.startTime) && (t < frame.endTime)) {
+                    indexes[arrName] = { index: scanPtr, rangeStart: undefined };
+                    state.history.lastVisited[arrName] = scanPtr;
+                    break;
+                  }
+                  scanPtr += scanDir;
+                  skipped[arrName]++;
                 }
-                scanPtr += scanDir;
-                skipped[arrName]++;
+                if ((indexes[arrName] !== undefined) && (indexes[arrName].index !== previousFrameIndex) && (indexes[arrName].index > previousFrameIndex)) {
+                  // If we skipped forward a bunch of records to catch up with real time, remember how far we skipped. 
+                  // This is needed to make sure we (re)draw everything we recorded during the time that was skipped over.
+                  // Time skipping happens because browser setInterval timing isn't that reliable, so to avoid desynching
+                  // with the audio track, we sometimes need to skip records.
+                  indexes[arrName].rangeStart = previousFrameIndex + 1;
+                }                
               }
-              if ((indexes[arrName] !== undefined) && (indexes[arrName].index !== previousFrameIndex) && (indexes[arrName].index > previousFrameIndex)) {
-                // If we skipped forward a bunch of records to catch up with real time, remember how far we skipped. 
-                // This is needed to make sure we (re)draw everything we recorded during the time that was skipped over.
-                // Time skipping happens because browser setInterval timing isn't that reliable, so to avoid desynching
-                // with the audio track, we sometimes need to skip records.
-                indexes[arrName].rangeStart = previousFrameIndex + 1;
-              }                
             }
           }
         }
@@ -862,7 +886,7 @@ define([
       return(indexes);
     },
 
-    // Get index of record just before or at the specified time. Used for scrubbing/redrawing drawings.
+    // Get index of record just before or at the specified time. Used for scrubbing/redrawing drawings/stickers.
     getIndexUpToTime: (kind, t) => {
       let i;
       const historyArray = state.history[kind];
