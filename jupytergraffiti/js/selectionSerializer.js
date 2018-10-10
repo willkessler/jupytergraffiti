@@ -3,6 +3,20 @@ define([], function() {
   // restore the selection specified by the given state and reference node, and
   // return the new selection object
   const selectionSerializer = {
+
+    // https://stackoverflow.com/questions/3169786/clear-text-selection-with-javascript
+    clearWindowSelection: () => {
+      if (window.getSelection) {
+        if (window.getSelection().empty) {  // Chrome
+          window.getSelection().empty();
+        } else if (window.getSelection().removeAllRanges) {  // Firefox
+          window.getSelection().removeAllRanges();
+        }
+      } else if (document.selection) {  // IE?
+        document.selection.empty();
+      }
+    },
+
     // serialize the current selection offsets using given node as a reference point
     get: (referenceNode) => {
       referenceNode = referenceNode || document.body;
