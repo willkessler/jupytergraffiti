@@ -2923,6 +2923,9 @@ define([
           graffiti.changeActivity('playbackPaused');
           audio.pausePlayback();
           state.setPlaybackTimeElapsed();
+          // Make sure, if some markdown was selected, it gets deselected and the active code_mirror reengages.
+          // selectionSerializer.clearWindowSelection();
+          // utils.refreshCodeMirrorSelections(); 
         }
       },
 
