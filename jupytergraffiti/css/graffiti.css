@@ -297,7 +297,8 @@
 }
 
 #graffiti-stickers-shell .graffiti-active-sticker {
-  border:1px solid #666;
+  outline:1px dashed red !important;
+  outline-offset:1px;
 }
 
 #graffiti-time-display-recording,
@@ -530,10 +531,10 @@ http://www.patternify.com/
   background-color:white;
 }
 
-.graffiti-svg-outer {
+.graffiti-sticker-outer {
 }
 
-.graffiti-svg-inner {
+.graffiti-sticker-inner {
   pointer-events:none;
   z-index:900;
 }
