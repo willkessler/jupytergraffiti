@@ -3160,7 +3160,6 @@ define([
       changeAccessLevel: (level) => {
         if (level === 'create') {
           graffiti.cancelPlayback({cancelAnimation:true});
-          graffiti.activateAudio();
           state.setAuthorId(0); // currently hardwiring this to creator(teacher) ID, which is always 0. Eventually we will replace this with 
           // individual author ids
           storage.ensureNotebookGetsGraffitiId();
@@ -3180,7 +3179,6 @@ define([
         const level = (forcedLevel === undefined ? state.getAccessLevel() : forcedLevel);
         if (forcedLevel !== undefined) {
           if (level === 'create') {
-            graffiti.activateAudio(); // request microphone access if needed
             buttonLabel = 'Hide Graffiti Editor';
             graffiti.changeAccessLevel('create');
           } else {
@@ -3189,7 +3187,6 @@ define([
           }
         } else {
           if (level === 'create') {
-            graffiti.activateAudio(); // request microphone access if needed
             buttonLabel = 'Show Graffiti Editor';
             graffiti.changeAccessLevel('view');
           } else {
@@ -3273,6 +3270,7 @@ define([
                 utils.saveNotebook();
                 graffiti.initInteractivity();
                 graffiti.toggleAccessLevel('view');
+                graffiti.activateAudio(); // request microphone access in case switching to 'create' mode later
                 $('#graffiti-setup-button').unbind('click').click(() => {
                   graffiti.toggleAccessLevel();
                 });
