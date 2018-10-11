@@ -570,6 +570,11 @@ define([
 
       },
 
+      setSitePanelScrollTop: (scrollTop) => {
+        // console.log('Setting sitepanel to scrolltop:', newScrollTop);
+        graffiti.sitePanel.scrollTop(scrollTop);
+      },
+      
       showControlPanels: (panels) => {
         graffiti.controlPanelsShell.children().hide();
         graffiti.controlPanelIds['graffiti-control-panel-title'].css({display:'flex'}); // the title bar is always shown
@@ -578,7 +583,6 @@ define([
           graffiti.controlPanelIds[controlPanelId].show();
         }
       },
-
 
       updateControlPanels: (cm) => {
         // When we transition to a new state, control panel tweaks need to be made
@@ -2746,10 +2750,22 @@ define([
             graffiti.lastScrollViewId = viewIndex;
           }
 
-          // console.log('Setting sitepanel finally to scrolltop:', newScrollTop);
-          graffiti.sitePanel.scrollTop(newScrollTop);
+          graffiti.setSitePanelScrollTop(newScrollTop);
 
         }
+      },
+
+      updateCellSelections: (cell,cm, selections) => {
+        const currentScrollTop = graffiti.sitePanel.scrollTop();
+        cell.focus_cell();
+        cm.setSelections(selections);
+        graffiti.setSitePanelScrollTop(currentScrollTop);
+      },
+
+      updateSelectedCellSelections: (currentScrollTop) => {
+        const selectedCell = Jupyter.notebook.get_selected_cell();
+        utils.refreshCodeMirrorSelection(selectedCell);
+        graffiti.setSitePanelScrollTop(currentScrollTop);
       },
 
       updateSelections: (index,currentScrollTop) => {        
@@ -2775,7 +2791,7 @@ define([
                 // console.log('Graffiti: Focusing on markdown cell');
                 cell.focus_cell();
                 // we don't need to shrink if we focus the cell
-                graffiti.sitePanel.scrollTop(currentScrollTop); // restore scrollTop because changing selections messes with it
+                graffiti.setSitePanelScrollTop(currentScrollTop); // restore scrollTop because changing selections messes with it
               }
               // console.log('Graffiti: Selection restoring textSelection, currentSelection:', record.textSelection, currentSelection);
               record.textSelection.referenceNode = referenceNode;
@@ -2796,7 +2812,7 @@ define([
               if (!(_.isEqual(selections,currentSelections))) {
                 graffiti.dimGraffitiCursor();
 
-                code_mirror.setSelections(selections);
+                graffiti.updateCellSelections(cell,code_mirror, selections);
 
                 if (code_mirror.state.focused) {
                   // If we made a selections update this frame, AND we are focused in it,
@@ -2837,7 +2853,7 @@ define([
             }
           }
         }
-        graffiti.sitePanel.scrollTop(currentScrollTop);
+        graffiti.setSitePanelScrollTop(currentScrollTop); // restore scrollTop because changing selections messes with it
         graffiti.resizeCanvases();
       },
 
@@ -2923,9 +2939,8 @@ define([
           graffiti.changeActivity('playbackPaused');
           audio.pausePlayback();
           state.setPlaybackTimeElapsed();
-          // Make sure, if some markdown was selected, it gets deselected and the active code_mirror reengages.
-          // selectionSerializer.clearWindowSelection();
-          // utils.refreshCodeMirrorSelections(); 
+          // Make sure, if some markdown was selected, that the active code_mirror textarea reengages to get keystrokes.
+          graffiti.updateSelectedCellSelections(graffiti.sitePanel.scrollTop()); 
         }
       },
 
