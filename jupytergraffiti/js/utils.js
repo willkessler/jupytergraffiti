@@ -36,24 +36,23 @@ define([
       return average;      
     },
 
+    refreshCodeMirrorSelection: (cell) => {
+      if ((cell.cell_type === 'code') && (cell.selected)) {
+        cm = cell.code_mirror;
+        selections = cm.listSelections();
+        cell.focus_cell();
+        cm.getInputField().focus();
+        cm.setSelections(selections);
+      } 
+    },
+
     refreshCodeMirrorSelections: () => {
       const cells = Jupyter.notebook.get_cells();
-      let code_mirror,origSelections, newSelections;
+      let cm,selections;
       for (let i = 0; i < cells.length; ++i) {
         cell = cells[i];
-        if (cell.cell_type === 'code') {
-          code_mirror = cell.code_mirror;
-          origSelections = code_mirror.listSelections();
-//          newSelections = code_mirror.listSelections();
-//          newSelections[0].anchor.char = Math.max(0, origSelections[0].anchor.char - 1);
-//          newSelections[0].head.char = origSelections[0].head.char + 1;
-//          console.log('newSelections=', newSelections);
-//          code_mirror.setSelections(newSelections);
-          console.log('origSelections=', origSelections);
-          code_mirror.getInputField().focus();
-          setTimeout(() => { code_mirror.setSelections(origSelections); }, 1000);
-        }
-      }        
+        utils.refreshCodeMirrorSelection(cell);
+      }       
     },
 
     // Assign cellIds to any cells that don't have them yet.
