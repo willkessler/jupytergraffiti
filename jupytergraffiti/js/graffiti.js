@@ -3160,6 +3160,7 @@ define([
       changeAccessLevel: (level) => {
         if (level === 'create') {
           graffiti.cancelPlayback({cancelAnimation:true});
+          graffiti.activateAudio(); // we need to activate audio to create the audio object, even if microphone access was previously granted.
           state.setAuthorId(0); // currently hardwiring this to creator(teacher) ID, which is always 0. Eventually we will replace this with 
           // individual author ids
           storage.ensureNotebookGetsGraffitiId();
