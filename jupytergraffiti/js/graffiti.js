@@ -2267,7 +2267,7 @@ define([
         graffiti.CMEvents[utils.getMetadataCellId(cell.metadata)] = true;
         const cm = cell.code_mirror;
         cm.on('focus', (cm, e) => {
-          // console.log('Graffiti: CM focus:' , cm, e);
+          console.log('Graffiti: CM focus:' , cm, e);
           // Check to see if we jumped from another cell to this cell with the arrow keys. If we did and we're recording, we need to
           // create a focus history record because jupyter is not firing the select cell event in those cases.
           const activity = state.getActivity();
@@ -2275,8 +2275,8 @@ define([
             const cellId = utils.getMetadataCellId(cell.metadata);
             if (cellId !== state.getSelectedCellId()) {
               state.saveSelectedCellId(cellId);
-              state.storeHistoryRecord('focus');
             }
+            state.storeHistoryRecord('focus');
           } else if (activity === 'recordingPending') {
             console.log('Graffiti: Now starting movie recording');
             graffiti.toggleRecording();
@@ -2713,11 +2713,13 @@ define([
           graffiti.dimGraffitiCursor();
           if (record.hoverCell !== undefined) {
             if (record.subType === 'focus') {
+              console.log('processing focus');
               record.hoverCell.focus_cell();
               const code_mirror = record.hoverCell.code_mirror;
               if (!code_mirror.state.focused) {
                 code_mirror.focus();
               }
+              code_mirror.getInputField().focus();
             }
           }
         }
