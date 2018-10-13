@@ -1,6 +1,6 @@
 define([], () => {
   // Thanks to https://stackoverflow.com/questions/3642035/jquerys-append-not-working-with-svg-element
-  const svg = {
+  const sticker = {
 
     // Cf : https://www.beyondjava.net/how-to-connect-html-elements-with-an-arrow-using-svg
     generateArrowHeadElem: (color) => {
@@ -239,12 +239,12 @@ define([], () => {
     },
 
     // checkmark
-    makeCheckmark: (x, y, width, height) => {
+    makeCheckmark: (x, y, width, height, color) => {
       const viewBox = '0 0 587 783.75';
       const checkmarkPath =
         svg.makeSvgElement('path',
                            {
-                             fill: "#00aa00",
+                             fill: '#' + color,
                              "stroke-width":"4",
                              d: "M0 303c61,65 122,129 184,194 134,-166 227,-376 403,-497 -181,160 -285,402 -400,627 -62,-108 -125,-216 -187,-324z"
                            }
@@ -264,12 +264,12 @@ define([], () => {
     },
 
     // x (wrong) symbol
-    makeX: (x, y, size) => {
+    makeX: (x, y, size, color) => {
       const viewBox = '0 0 233 291.25';
       const xPath =
         svg.makeSvgElement('polygon',
                            {
-                             fill: "#aa0000",
+                             fill: '#' + color,
                              points: "233,22 211,0 117,94 22,0 0,22 94,117 0,211 22,233 117,139 211,233 233,211 139,117"
                            }
         );
@@ -356,6 +356,12 @@ define([], () => {
           d: "M 0 0 L 10 0 L 10 10 L 0 10"
         })
       );
+    },
+
+    makeHorizontalBrackets: (opts) => {
+    },
+
+    makeVerticalBrackets: (opts) => {
     },
 
     makeRectangle: (opts) => {
@@ -465,11 +471,6 @@ define([], () => {
 
   }
 
-  return (svg);
+  return (sticker);
 
 });
-
-
-
-
-

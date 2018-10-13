@@ -62,14 +62,15 @@ define([
         },
         pen: {
           isDown: false, // becomes true when the pen is down, ie user has clicked and held the mouse button
+          mouseDownPosition: { x : 0, y: 0 },
           permanence: 'temporary', // default: ink disappears after a second of inactivity
-          type: 'line', // one of 'line', 'highlight', 'eraser'
+          type: 'line', // one of 'line', 'highlight', 'eraser', 'sticker'
           color: '000000',
           dash: 'solid' // one of 'solid', 'dashed'
         },
         opacity: state.maxDrawingOpacity
       };
-        
+      
       utils.refreshCellMaps();
 
     },
@@ -227,6 +228,10 @@ define([
       return state.drawingState;
     },
     
+    getDrawingStateField: (field) => {
+      return state.drawingState[field];
+    },
+
     updateDrawingState: (changeSets) => {
       for (let changeSet of changeSets) {
         const change = changeSet.change;
@@ -242,6 +247,9 @@ define([
             break;
           case 'cellId':
             drawingState.cellId = data;
+            break;
+          case 'mouseDownPosition':
+            drawingState.pen.mouseDownPosition = { x: data.x, y: data.y };
             break;
           case 'isDown':
             drawingState.pen.isDown = data;
@@ -272,6 +280,7 @@ define([
             break;
         }
       }
+      // console.log('updateDrawingState, state=', state.drawingState);
     },
 
     resetDrawingOpacity: () => {
@@ -325,6 +334,56 @@ define([
       // console.log('startDrawingFadeClock');
       state.drawingFadeStart = utils.getNow();
       state.drawingFadeClockAllowed = true;
+    },
+
+    createStickerRecord: (endX,endY) => {
+      const startPosition = state.drawingState.pen['mouseDownPosition'];
+      const bbox = {  // bounding box for this sticker
+        p1: { x: Math.min(startPosition.x, endX), y: Math.min(startPosition.y, endY) },
+                      p2: { x: Math.max(startPosition.x, endX), y: Math.max(startPosition.y, endY) },
+      };
+      const stickerType = state.drawingState.pen['stickerType'];
+      let fill;
+      switch (stickerType) {
+        case 'isocelesTriangle':
+        case 'rightTriangle':
+        case 'ellipse':
+        case 'rectangle':          
+        case 'leftCurlyBrace':
+        case 'rightCurlyBrace':
+        case 'symmetricCurlyBraces':
+        case 'topBracket':
+        case 'bottomBracket':
+        case 'leftBracket':
+        case 'rightBracket':
+        case 'horizontalBrackets':
+        case 'verticalBrackets':
+        case 'smiley':
+        case 'frowney':
+        case 'thumbsUp':
+        case 'thumbsDown':
+        case 'star':
+          fill = 'none';
+          break;
+        case 'checkMark':
+          fill = '00aa00'; // hardwired to green
+          break;
+        case 'x':
+          fill = 'aa0000'; // hardwired to reddish
+          break;
+        case 'theta': // greek symbols hardwired to black
+        case 'sigma':
+          fill = '000000';
+          break;
+      }
+
+      const record = {
+        type:  stickerType, // 'isoceles', 'rightTriangle', 'rectangle', 'theta', etc
+        bbox:  bbox,
+        color: state.drawingState.pen['color'],
+        dash:  state.drawingState.pen['color'],
+        fill:  fill        
+      };
     },
 
     getLastRecordedCursorPosition: () => {
