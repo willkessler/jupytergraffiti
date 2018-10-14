@@ -64,7 +64,7 @@ define([
           'brown'  : '996600',
           'black'  : '000000'
         };
-        graffiti.stickerMinimumSize = 25; // pixels
+        graffiti.minimumStickerSize = 40; // pixels
 
         if (currentAccessLevel === 'create') {
           storage.ensureNotebookGetsGraffitiId();
@@ -77,8 +77,9 @@ define([
         if (Jupyter.notebook.metadata.hasOwnProperty('graffitiId')) { // do not try to load the manifest if this notebook has not yet been graffiti-ized.
           storage.loadManifest(currentAccessLevel).then(() => {
             graffiti.initInteractivity();
-          }).catch(() => {
+          }).catch((ex) => {
             console.log('Graffiti: Not setting up Graffiti because this notebook has never had any authoring done yet (no recordingId).');
+            console.log(ex);
           });
         }
         
@@ -472,35 +473,50 @@ define([
         const iconColor = '#666'
         const iconStrokeWidth = '1';
         const iconMargin = 3;
-        const rightTriangle = sticker.makeRightTriangle({x: iconMargin, y:iconMargin, width:iconSize,height:iconSize,color:iconColor,
-                                                     dashWidth:2, strokeWidth:iconStrokeWidth});
-        const isocelesTriangle = sticker.makeIsocelesTriangle({x: iconMargin,y:iconMargin, width: iconSize, height: iconSize,
-                                                           color:iconColor, dashWidth:2, strokeWidth:iconStrokeWidth });
-        const rectangle = sticker.makeRectangle({x: iconMargin, y:iconMargin, width: iconSize, height: iconSize, dashed:true,  dashWidth:2,
-                                             color:iconColor, strokeWidth:iconStrokeWidth});
+        const rightTriangle = sticker.makeRightTriangle({
+          dimensions: { x: iconMargin, y:iconMargin, width:iconSize,height:iconSize },
+          color:iconColor,
+          dashWidth:2,
+          strokeWidth:iconStrokeWidth
+        });
+        const isocelesTriangle = sticker.makeIsocelesTriangle({ 
+          dimensions: { x: iconMargin,y:iconMargin, width: iconSize, height: iconSize },
+          color:iconColor, 
+          dashWidth:2, 
+          strokeWidth:iconStrokeWidth 
+        });
+        const rectangle = sticker.makeRectangle({
+          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
+          dashed:true,  
+          dashWidth:2,
+          color:iconColor, 
+          strokeWidth:iconStrokeWidth
+        });
+        const lineWithArrow = sticker.makeLine({
+          x:iconMargin, y:iconMargin, p1x:0, p1y:1, p2x:1, p2y:0, 
+          width:iconSize, height: iconSize, strokeWidth:iconStrokeWidth,
+          arrowAtEnd:true, dashed:true, dashWidth:2
+        });
+
         const leftCurlyBrace = sticker.makeLeftCurlyBrace(iconSize/4,iconSize/4,iconSize);
         const rightCurlyBrace = sticker.makeRightCurlyBrace(iconSize/4,iconSize/4,iconSize);
         const checkMark = sticker.makeCheckmark(iconSize/4,iconSize/4,iconSize,iconSize);
-        const lineWithArrow = sticker.makeLine({x:iconMargin, y:iconMargin, p1x:0, p1y:1, p2x:1, p2y:0, 
-                                            width:iconSize, height: iconSize, strokeWidth:iconStrokeWidth,
-                                            arrowAtEnd:true, dashed:true, dashWidth:2});
-
         graffiti.setupOneControlPanel('graffiti-stickers-controls', 
                                       '<div id="graffiti-stickers-shell">' +
                                       '  <div id="graffiti-stickers-header">Stickers</div>' +
                                       '  <div id="graffiti-stickers-body">' +
-                                      '    <div class="graffiti-sticker-button" id="graffiti-sticker-right-triangle">' + rightTriangle + '</div>' +
-                                      '    <div class="graffiti-sticker-button" id="graffiti-sticker-icoceles">' + isocelesTriangle + '</div>' +
+                                      '    <div class="graffiti-sticker-button" id="graffiti-sticker-rightTriangle">' + rightTriangle + '</div>' +
+                                      '    <div class="graffiti-sticker-button" id="graffiti-sticker-isocelesTriangle">' + isocelesTriangle + '</div>' +
                                       '    <div class="graffiti-sticker-button" id="graffiti-sticker-rectangle">' + rectangle + '</div>' +
-                                      '    <div class="graffiti-sticker-button" id="graffiti-sticker-line-with-arrow">' + lineWithArrow + '</div>' +
+                                      '    <div class="graffiti-sticker-button" id="graffiti-sticker-lineWithArrow">' + lineWithArrow + '</div>' +
                                       '  </div>' +
                                       '</div>',
                                       [
                                         {
-                                          ids: ['graffiti-sticker-right-triangle',
-                                                'graffiti-sticker-icoceles',
+                                          ids: ['graffiti-sticker-rightTriangle',
+                                                'graffiti-sticker-isocelesTriangle',
                                                 'graffiti-sticker-rectangle', 
-                                                'graffiti-sticker-line-with-arrow'],
+                                                'graffiti-sticker-lineWithArrow'],
                                           event: 'click',
                                           fn: (e) => {
                                             let stickerId = $(e.target).attr('id');
@@ -918,6 +934,7 @@ define([
             graffiti.setGraffitiPenColor('black');
           }
           graffiti.activateGraffitiPen(penType);
+          $('.graffiti-active-sticker').removeClass('graffiti-active-sticker');
         } else {
           // turn off the active pen and drawing
           $('.graffiti-active-pen').removeClass('graffiti-active-pen');
@@ -962,35 +979,6 @@ define([
         }          
       },
 
-      placeStickerCanvas: (cellId, stickerPermanence) => {
-        const cell = utils.findCellByCellId(cellId);
-        const cellElement = $(cell.element[0]);
-        const cellRect = cellElement[0].getBoundingClientRect();
-        if (graffiti.stickers[stickerPermanence][cellId] !== undefined) {
-          return cellRect;
-        }
-        // Note that we inline all these styles because to include them from a stylesheet causes rendering jumps.
-        const stickerDivId = 'graffiti-sticker-' + cellId;
-        $('<div class="graffiti-sticker-outer" id="' + stickerDivId + '" ' +
-          'style="width:' + parseInt(cellRect.width) + 'px;' +
-          'height:' + parseInt(cellRect.height) + 'px;' +
-          'position:absolute;left:0;top:0;">' +
-          '</div>').appendTo(cellElement);
-
-        graffiti.stickerOuterDiv = $('#' + stickerDivId);
-        const cellRectHeight = parseInt(cellRect.height);
-      },
-
-      // Place a sticker on the active cell. If opts.dynamic is true, then this will be marked as the "active" sticker
-      // and will be recreated on every mousemove (until mouseup). 
-      placeSticker: (opts) => {
-        console.log('placeSticker');
-        const viewInfo = state.getViewInfo();
-        const stickerPermanence = state.getDrawingPenAttribute('permanence');
-        graffiti.placeStickerCanvas(viewInfo.cellId, stickerPermanence);
-        console.log('now placing a sticker');
-      },
-
       dimGraffitiCursor: () => {
         graffiti.graffitiCursor.css({opacity:0.1});
       },
@@ -1010,7 +998,7 @@ define([
             if (stickerType !== undefined) {
               console.log('mousedown with stickerType:', stickerType);
               drawingActivity = 'sticker';
-              graffiti.placeSticker({dynamic:true});
+              //graffiti.placeSticker({dynamic:true});
               const currentPointerPosition = state.getPointerPosition();
               state.updateDrawingState([
                 { change: 'mouseDownPosition',
@@ -1107,88 +1095,23 @@ define([
         graffiti.drawingScreen.css({height: notebookHeight + 'px'});
       },
 
-/*
-      placeSticker: (cellId, stickerPermanence) => {
+      placeStickerCanvas: (stickerPermanence, cellId) => {
+        if (graffiti.stickers[stickerPermanence][cellId].canvas !== undefined) {
+          return;
+        }
         const cell = utils.findCellByCellId(cellId);
         const cellElement = $(cell.element[0]);
         const cellRect = cellElement[0].getBoundingClientRect();
-        if (graffiti.stickers[stickerPermanence][cellId] !== undefined) {
-          return cellRect;
-        }
-        // Note that I inline all these styles because to include them from a stylesheet causes rendering jumps and screwups.
-        $('<div class="graffiti-sticker-outer" ' +
-          'style="width:' + parseInt(cellRect.width) + 'px;' +
-          'height:' + parseInt(cellRect.height) + 'px;' +
-          'position:absolute;left:0;top:0;">' +
-          '</div>').appendTo(cellElement);
 
-        graffiti.stickerOuter = $('.graffiti-sticker-outer');
-
-        const cellRectHeight = parseInt(cellRect.height);
-        let innerHtml = [];
-        const symmetricCurlyBraces = sticker.makeSymmetricCurlyBraces(10,0,200,cellRectHeight);
-        innerHtml.push(symmetricCurlyBraces);
-
-        const leftCurlyBrace = sticker.makeLeftCurlyBrace(250,0,cellRectHeight);
-        innerHtml.push(leftCurlyBrace);
-
-        const rightCurlyBrace = sticker.makeRightCurlyBrace(450,0,cellRectHeight);
-        innerHtml.push(rightCurlyBrace);
-
-        const checkMark = sticker.makeCheckmark(300,0,cellRectHeight,cellRectHeight);
-        innerHtml.push(checkMark);
-
-        const xWrong = sticker.makeX(0,0,cellRectHeight);
-        innerHtml.push(xWrong);
-
-        const rightTriangle = sticker.makeRightTriangle({x: 500,y:0,width:cellRectHeight * 2,height:cellRectHeight * 2});
-        innerHtml.push(rightTriangle);
-        
-        const isocelesTriangle = sticker.makeIsocelesTriangle({x: 550,y: 0, width: cellRectHeight*2,height: cellRectHeight*2});
-        innerHtml.push(isocelesTriangle);
-
-        const theta = sticker.makeTheta({x: 580,y: 0,width: cellRectHeight,height: cellRectHeight});
-        innerHtml.push(theta);
-        
-        const sigma = sticker.makeSigma({x: 700, y:0, width: cellRectHeight, height: cellRectHeight});
-        innerHtml.push(sigma);
-
-        const rectangle = sticker.makeRectangle({x: 800, y:0, width: cellRectHeight, height: cellRectHeight, dashed:true, color:'orange'});
-        innerHtml.push(rectangle);
-
-        const topBracket = sticker.makeTopBracket({x: 900, y:0, width: 50, height: 10});
-        innerHtml.push(topBracket);
-
-        const bottomBracket = sticker.makeBottomBracket({x: 951, y:0, width: 50, height: 10});
-        innerHtml.push(bottomBracket);
-        
-        const leftBracket = sticker.makeLeftBracket({x: 1002, y:0, width: 5, height: cellRectHeight});
-        innerHtml.push(leftBracket);
-
-        const rightBracket = sticker.makeRightBracket({x: 1010, y:0, width: 5, height: cellRectHeight});
-        innerHtml.push(rightBracket);
-        
-        const star = sticker.makeStar({x: 1100, y:10, width: 50, height: 50, color: 'gold', strokeWidth:2});
-        innerHtml.push(star);
-
-        const lineWithArrow = sticker.makeLine({x: 0, y:20, width: 50, height: 50, color: 'blue', strokeWidth:2, arrowAtEnd:true, dashed:true});
-        innerHtml.push(lineWithArrow);
-
-        const smiley = sticker.makeSmiley({x: 0, y:30, width: 20, height: 20, color: 'green', strokeWidth:1});
-        innerHtml.push(smiley);
-
-        const frowney = sticker.makeFrowney({x: 50, y:30, width: 20, height: 20, color: 'red', strokeWidth:1});
-        innerHtml.push(frowney);
-
-        const thumbsUp = sticker.makeThumbsUp({x: 80, y:130, width: 50, height: 50, color: 'grey', strokeWidth:1});
-        innerHtml.push(thumbsUp);
-        const thumbsDown = sticker.makeThumbsDown({x: 120, y:130, width: 50, height: 50, color: 'grey', strokeWidth:1});
-        innerHtml.push(thumbsDown);
-        
-        graffiti.stickerOuter[0].innerHTML = innerHtml.join('');
-        
+        // Note that we inline all these styles because to include them from a stylesheet causes rendering jumps.
+        const stickerDivId = 'graffiti-sticker-' + cellId;
+        graffiti.stickers[stickerPermanence][cellId].canvas = 
+          $('<div class="graffiti-sticker-outer" id="' + stickerDivId + '" ' +
+            'style="width:' + parseInt(cellRect.width) + 'px;' +
+            'height:' + parseInt(cellRect.height) + 'px;' +
+            'position:absolute;left:0;top:0;">' +
+            '</div>').appendTo(cellElement);
       },
-*/
 
       placeCanvas: (cellId, drawingPermanence) => {
         const cell = utils.findCellByCellId(cellId);
@@ -1367,20 +1290,59 @@ define([
         }
       },
 
-      drawStickersForCell: (cellId) => {
+      // calculate correct offsets based on innerCellRect / dx, dy etc
+      drawStickersForCell: (stickerPermanence, cellId) => {
+        graffiti.placeStickerCanvas(stickerPermanence, cellId);
+        let stickerType, width, height, stickerWidth, stickerHeight, generatedStickerElem, newInnerHtml = [];
+        let canvasElem = graffiti.stickers[stickerPermanence][cellId].canvas;
+        canvasElem.empty();
+        for (let stickerRecord of graffiti.stickers[stickerPermanence][cellId].stickers) {
+          stickerType = stickerRecord.pen.stickerType;
+          width =  stickerRecord.positions.end.x - stickerRecord.positions.start.x;
+          height = stickerRecord.positions.end.y - stickerRecord.positions.start.y;
+          stickerWidth = (stickerType !== 'line' ? Math.max(graffiti.minimumStickerSize, width): width);
+          stickerHeight = (stickerType !== 'line' ? Math.max(graffiti.minimumStickerSize, height) : height);
+          const dimensions = {
+            x: stickerRecord.positions.start.x, 
+            y: stickerRecord.positions.start.y, 
+            width: stickerWidth,
+            height: stickerHeight
+          };
+          switch (stickerRecord.pen.stickerType) {
+            case 'rectangle':
+              generatedStickerHtml = sticker.makeRectangle({
+                dashed: stickerRecord.dash, 
+                color: stickerRecord.color,
+                fill:stickerRecord.fill,
+                dimensions: dimensions
+              });
+              break;
+            case 'isocelesTriangle':
+              generatedStickerHtml = sticker.makeIsocelesTriangle({
+                dimensions: dimensions
+              });
+              break;
+          }
+          newInnerHtml.push(generatedStickerHtml);
+        }
+        const finalInnerHtml = newInnerHtml.join('');
+        canvasElem.html(finalInnerHtml);
       },
 
-      updateStickerDisplay: (cellId, bx, by, stickerPenColor, stickerPenDash, stickerPermanence ) => {
-        const stickerRecord = state.createStickerRecord(bx, by);
+      updateStickerDisplay: (cellId, stickerPermanence) => {
+        const stickerRecord = state.createStickerRecord();
         if (!graffiti.stickers[stickerPermanence].hasOwnProperty(cellId)) {
-          graffiti.stickers[stickerPermanence].cellId = [];
+          graffiti.stickers[stickerPermanence][cellId] = {
+            stickers: [],
+            canvas: undefined
+          }
         } else {
           // Remove last or only sticker record so we'll replace it with the new one.
-          graffiti.stickers[stickerPermanence].cellId.pop();
+          graffiti.stickers[stickerPermanence][cellId].stickers.pop();
         }
-        graffiti.stickers[stickerPermanence].cellId.push(stickerRecord);
+        graffiti.stickers[stickerPermanence][cellId].stickers.push(stickerRecord);
         // Now rerender all stickers for this cell
-        graffiti.drawStickersForCell(cellId);
+        graffiti.drawStickersForCell(stickerPermanence, cellId);
       },
 
       // This fn is called on mousemove, which means fade counts always reset, and we clear the temporary ink completely if it was part way through a fade
@@ -1393,13 +1355,8 @@ define([
             const drawingPenColor = state.getDrawingPenAttribute('color');
             const cellRect = graffiti.placeCanvas(viewInfo.cellId, drawingPermanence);
             const drawingActivity = state.getDrawingStateField('drawingActivity');
-            console.log('drawingActivity', drawingActivity);
+            console.log('drawingActivity', drawingActivity, drawingPenType);
             if (drawingActivity === 'sticker') {
-              graffiti.updateStickerDisplay( viewInfo.cellId, 
-                                             bx - cellRect.left,
-                                             by - cellRect.top,
-                                             drawingPenType,
-                                             drawingPermanence);
               const mouseDownPosition = state.getDrawingPenAttribute('mouseDownPosition');
               state.updateDrawingState([
                 { change:'positions', 
@@ -1412,11 +1369,11 @@ define([
                 },
                 { change: 'cellId',
                   data: viewInfo.cellId
-                }
+                },
+                { change: 'bbox', data: undefined }
               ]);
-              state.storeHistoryRecord('drawings');
+              graffiti.updateStickerDisplay( viewInfo.cellId, drawingPermanence);
             } else {
-
               graffiti.setCanvasStyle(viewInfo.cellId, drawingPenType, drawingPenDash, drawingPenColor, drawingPermanence);
               graffiti.updateDrawingDisplay(viewInfo.cellId, 
                                             ax - cellRect.left,
@@ -1438,9 +1395,9 @@ define([
                   data: viewInfo.cellId
                 }
               ]);
-              state.storeHistoryRecord('drawings');
             }
           }
+          state.storeHistoryRecord('drawings');
         }
       },
 

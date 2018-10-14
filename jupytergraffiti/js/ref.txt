@@ -1,3 +1,92 @@
+/*
+      placeSticker: (cellId, stickerPermanence) => {
+        const cell = utils.findCellByCellId(cellId);
+        const cellElement = $(cell.element[0]);
+        const cellRect = cellElement[0].getBoundingClientRect();
+        if (graffiti.stickers[stickerPermanence][cellId] !== undefined) {
+          return cellRect;
+        }
+        // Note that I inline all these styles because to include them from a stylesheet causes rendering jumps and screwups.
+        $('<div class="graffiti-sticker-outer" ' +
+          'style="width:' + parseInt(cellRect.width) + 'px;' +
+          'height:' + parseInt(cellRect.height) + 'px;' +
+          'position:absolute;left:0;top:0;">' +
+          '</div>').appendTo(cellElement);
+
+        graffiti.stickerOuter = $('.graffiti-sticker-outer');
+
+        const cellRectHeight = parseInt(cellRect.height);
+        let innerHtml = [];
+        const symmetricCurlyBraces = sticker.makeSymmetricCurlyBraces(10,0,200,cellRectHeight);
+        innerHtml.push(symmetricCurlyBraces);
+
+        const leftCurlyBrace = sticker.makeLeftCurlyBrace(250,0,cellRectHeight);
+        innerHtml.push(leftCurlyBrace);
+
+        const rightCurlyBrace = sticker.makeRightCurlyBrace(450,0,cellRectHeight);
+        innerHtml.push(rightCurlyBrace);
+
+        const checkMark = sticker.makeCheckmark(300,0,cellRectHeight,cellRectHeight);
+        innerHtml.push(checkMark);
+
+        const xWrong = sticker.makeX(0,0,cellRectHeight);
+        innerHtml.push(xWrong);
+
+        const rightTriangle = sticker.makeRightTriangle({x: 500,y:0,width:cellRectHeight * 2,height:cellRectHeight * 2});
+        innerHtml.push(rightTriangle);
+        
+        const isocelesTriangle = sticker.makeIsocelesTriangle({x: 550,y: 0, width: cellRectHeight*2,height: cellRectHeight*2});
+        innerHtml.push(isocelesTriangle);
+
+        const theta = sticker.makeTheta({x: 580,y: 0,width: cellRectHeight,height: cellRectHeight});
+        innerHtml.push(theta);
+        
+        const sigma = sticker.makeSigma({x: 700, y:0, width: cellRectHeight, height: cellRectHeight});
+        innerHtml.push(sigma);
+
+        const rectangle = sticker.makeRectangle({x: 800, y:0, width: cellRectHeight, height: cellRectHeight, dashed:true, color:'orange'});
+        innerHtml.push(rectangle);
+
+        const topBracket = sticker.makeTopBracket({x: 900, y:0, width: 50, height: 10});
+        innerHtml.push(topBracket);
+
+        const bottomBracket = sticker.makeBottomBracket({x: 951, y:0, width: 50, height: 10});
+        innerHtml.push(bottomBracket);
+        
+        const leftBracket = sticker.makeLeftBracket({x: 1002, y:0, width: 5, height: cellRectHeight});
+        innerHtml.push(leftBracket);
+
+        const rightBracket = sticker.makeRightBracket({x: 1010, y:0, width: 5, height: cellRectHeight});
+        innerHtml.push(rightBracket);
+        
+        const star = sticker.makeStar({x: 1100, y:10, width: 50, height: 50, color: 'gold', strokeWidth:2});
+        innerHtml.push(star);
+
+        const lineWithArrow = sticker.makeLine({x: 0, y:20, width: 50, height: 50, color: 'blue', strokeWidth:2, arrowAtEnd:true, dashed:true});
+        innerHtml.push(lineWithArrow);
+
+        const smiley = sticker.makeSmiley({x: 0, y:30, width: 20, height: 20, color: 'green', strokeWidth:1});
+        innerHtml.push(smiley);
+
+        const frowney = sticker.makeFrowney({x: 50, y:30, width: 20, height: 20, color: 'red', strokeWidth:1});
+        innerHtml.push(frowney);
+
+        const thumbsUp = sticker.makeThumbsUp({x: 80, y:130, width: 50, height: 50, color: 'grey', strokeWidth:1});
+        innerHtml.push(thumbsUp);
+        const thumbsDown = sticker.makeThumbsDown({x: 120, y:130, width: 50, height: 50, color: 'grey', strokeWidth:1});
+        innerHtml.push(thumbsDown);
+        
+        graffiti.stickerOuter[0].innerHTML = innerHtml.join('');
+        
+      },
+*/
+
+
+
+-----------------------------------
+
+
+
 var regex1 = RegExp('foo*','g');
 var str1 = 'table football, foosball';
 var array1;
