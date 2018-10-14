@@ -66,7 +66,8 @@ define([
           permanence: 'temporary', // default: ink disappears after a second of inactivity
           type: 'line', // one of 'line', 'highlight', 'eraser', 'sticker'
           color: '000000',
-          dash: 'solid' // one of 'solid', 'dashed'
+          dash: 'solid', // one of 'solid', 'dashed'
+          fill: 'none' // one of 'none', '#xyz'
         },
         opacity: state.maxDrawingOpacity
       };
@@ -259,12 +260,57 @@ define([
             break;
           case 'stickerType':
             drawingState.pen.stickerType = data; // one of many sticker types. if this is set that penType will not be set, and vice versa
+            let fill = 'none';
+            switch (data) {
+              case 'isocelesTriangle':
+              case 'rightTriangle':
+              case 'ellipse':
+              case 'rectangle':          
+              case 'leftCurlyBrace':
+              case 'rightCurlyBrace':
+              case 'symmetricCurlyBraces':
+              case 'topBracket':
+              case 'bottomBracket':
+              case 'leftBracket':
+              case 'rightBracket':
+              case 'horizontalBrackets':
+              case 'verticalBrackets':
+              case 'smiley':
+              case 'frowney':
+              case 'thumbsUp':
+              case 'thumbsDown':
+              case 'star':
+                break;
+              case 'checkMark':
+                fill = '00aa00'; // hardwired to green
+                break;
+              case 'x':
+                fill = 'aa0000'; // hardwired to reddish
+                break;
+              case 'theta': // greek symbols hardwired to black
+              case 'sigma':
+                fill = '000000';
+                break;
+            }
+            drawingState.pen.fill = fill;
             break;
           case 'permanence':
             drawingState.pen.permanence = data; // one of 'permanent', 'temporary'
             break;
           case 'positions':
-            drawingState.positions = { start: { x: data.positions.start.x, y: data.positions.start.y }, end: { x: data.positions.end.x, y: data.positions.end.y } };
+            let bbox = { start: { x: data.positions.start.x, y: data.positions.start.y }, end: { x: data.positions.end.x, y: data.positions.end.y } };
+            if (drawingState.pen.penType === 'sticker') {
+              if (drawingState.pen.stickerType !== 'line') {
+                // Unless we're drawing a line sticker, we want to compute bounding box around the given shape, as it will always be the same orientation, and
+                // always have a minimum size
+                bbox = { start: { x: Math.min(data.positions.start.x, data.positions.end.x), 
+                                  y: Math.min(data.positions.start.y, data.positions.end.y) },
+                         end:   { x: Math.max(data.positions.start.x, data.positions.end.x), 
+                                  y: Math.max(data.positions.start.y, data.positions.end.y) }
+                };
+              }
+            }
+            drawingState.positions = bbox;
             break;
           case 'color':
             drawingState.pen.color = data;
@@ -334,56 +380,6 @@ define([
       // console.log('startDrawingFadeClock');
       state.drawingFadeStart = utils.getNow();
       state.drawingFadeClockAllowed = true;
-    },
-
-    createStickerRecord: (endX,endY) => {
-      const startPosition = state.drawingState.pen['mouseDownPosition'];
-      const bbox = {  // bounding box for this sticker
-        p1: { x: Math.min(startPosition.x, endX), y: Math.min(startPosition.y, endY) },
-                      p2: { x: Math.max(startPosition.x, endX), y: Math.max(startPosition.y, endY) },
-      };
-      const stickerType = state.drawingState.pen['stickerType'];
-      let fill;
-      switch (stickerType) {
-        case 'isocelesTriangle':
-        case 'rightTriangle':
-        case 'ellipse':
-        case 'rectangle':          
-        case 'leftCurlyBrace':
-        case 'rightCurlyBrace':
-        case 'symmetricCurlyBraces':
-        case 'topBracket':
-        case 'bottomBracket':
-        case 'leftBracket':
-        case 'rightBracket':
-        case 'horizontalBrackets':
-        case 'verticalBrackets':
-        case 'smiley':
-        case 'frowney':
-        case 'thumbsUp':
-        case 'thumbsDown':
-        case 'star':
-          fill = 'none';
-          break;
-        case 'checkMark':
-          fill = '00aa00'; // hardwired to green
-          break;
-        case 'x':
-          fill = 'aa0000'; // hardwired to reddish
-          break;
-        case 'theta': // greek symbols hardwired to black
-        case 'sigma':
-          fill = '000000';
-          break;
-      }
-
-      const record = {
-        type:  stickerType, // 'isoceles', 'rightTriangle', 'rectangle', 'theta', etc
-        bbox:  bbox,
-        color: state.drawingState.pen['color'],
-        dash:  state.drawingState.pen['color'],
-        fill:  fill        
-      };
     },
 
     getLastRecordedCursorPosition: () => {
@@ -599,6 +595,8 @@ define([
     },
 
     createStickerRecord: () => {
+      const startPosition = state.drawingState.pen['mouseDownPosition'];
+
       let record = $.extend(true, {}, 
                             {
                               innerCellRect: { 
@@ -611,6 +609,8 @@ define([
       // Remove statuses that are not needed in history records
       delete(record.drawingModeActivated);
       delete(record.pen.isDown);
+      delete(record.drawingActivity);
+      delete(record.wipe);
       return record;
     },
 
