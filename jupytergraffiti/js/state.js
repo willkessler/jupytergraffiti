@@ -18,7 +18,7 @@ define([
       state.resetOnNextPlay = false;
       state.recordedAudioString = '';
       state.audioStorageCallback = undefined;
-      state.frameArrays = ['view', 'selections', 'contents', 'drawings','stickers'];
+      state.frameArrays = ['view', 'selections', 'contents', 'drawings'];
       state.scrollTop = undefined;
       state.selectedCellId = undefined;
       state.mute = false;
@@ -590,9 +590,9 @@ define([
                             }, state.drawingState);
       // Remove statuses that are not needed in history records
       delete(record.drawingModeActivated);
-      delete(record.drawingActivity);
       delete(record.pen.isDown);
       delete(record.wipe);
+      console.log('createDrawingRecord:', record);
       return record;
     },
 
@@ -774,16 +774,14 @@ define([
         view:        [],                          // pointer move, vertical scroll or innerscroll (scroll inside cell)
         selections:  [],                          // cell selections
         contents:    [],                          // contents state: what cells present, and what their contents are, and cell outputs
-        drawings:    [],                          // drawing record, of type: ['draw', 'fade', 'wipe']
-        stickers:    [],                          // sticker record. this contains drawing info as well as a sticker type
+        drawings:    [],                          // drawing record, of type: ['draw', 'fade', 'wipe', 'sticker']
 
         // Where we are in each track, during playback.
         lastVisited: {
           view:       0,
           selections: 0,
           contents:   0,
-          drawings:   0,
-          stickers:   0
+          drawings:   0
         },
 
         // What was the latest record processed during playback (so we don't process a record twice)
@@ -791,8 +789,7 @@ define([
           view:       undefined,
           selections: undefined,
           contents:   undefined,
-          drawings:   undefined,
-          stickers:   undefined
+          drawings:   undefined
         },
         
         cellContentsTracking: {},                  // this enables back-referencing to reduce storage costs on content recording

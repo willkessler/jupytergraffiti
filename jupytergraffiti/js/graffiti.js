@@ -8,7 +8,7 @@ define([
   './sticker.js',
   './selectionSerializer.js',
   'components/marked/lib/marked'
-], function(dialog, LZString, state, utils, audio, storage, sticker, selectionSerializer, marked) {
+], function(dialog, LZString, state, utils, audio, storage, stickerLib, selectionSerializer, marked) {
   const Graffiti = (function() {
     const graffiti = {
 
@@ -47,6 +47,7 @@ define([
           permanent: {}, // these stickers persist throughout the lifespan of the recording
           temporary: {}  // these stickers fade out a couple seconds after the person finishes placing them
         };
+
         graffiti.lastUpdateControlsTime = utils.getNow();
         graffiti.notificationMsgs = {};
         graffiti.panelFadeTime = 350;
@@ -479,28 +480,28 @@ define([
         const iconColor = '#666'
         const iconStrokeWidth = '1';
         const iconMargin = 3;
-        const rightTriangle = sticker.makeRightTriangle({
+        const rightTriangle = stickerLib.makeRightTriangle({
           dimensions: { x: iconMargin, y:iconMargin, width:iconSize,height:iconSize },
           color:iconColor,
           dashed:'dashed',
           dashWidth:2,
           strokeWidth:iconStrokeWidth
         });
-        const isocelesTriangle = sticker.makeIsocelesTriangle({ 
+        const isocelesTriangle = stickerLib.makeIsocelesTriangle({ 
           dimensions: { x: iconMargin,y:iconMargin, width: iconSize, height: iconSize },
           color:iconColor, 
           dashed:'dashed',
           dashWidth:2, 
           strokeWidth:iconStrokeWidth 
         });
-        const rectangle = sticker.makeRectangle({
+        const rectangle = stickerLib.makeRectangle({
           dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
           dashed:'dashed',  
           dashWidth:2,
           color:iconColor, 
           strokeWidth:iconStrokeWidth
         });
-        const lineWithArrow = sticker.makeLine({
+        const lineWithArrow = stickerLib.makeLine({
           dimensions: { x: iconMargin, y: iconMargin, width: iconSize, height: iconSize },
           endpoints: { p1: { x:0, y:1 }, p2: { x:1, y:0 } },
           strokeWidth:iconStrokeWidth,
@@ -508,9 +509,9 @@ define([
           arrowAtEnd:true, 
         });
 
-        const leftCurlyBrace = sticker.makeLeftCurlyBrace(iconSize/4,iconSize/4,iconSize);
-        const rightCurlyBrace = sticker.makeRightCurlyBrace(iconSize/4,iconSize/4,iconSize);
-        const checkMark = sticker.makeCheckmark(iconSize/4,iconSize/4,iconSize,iconSize);
+        const leftCurlyBrace = stickerLib.makeLeftCurlyBrace(iconSize/4,iconSize/4,iconSize);
+        const rightCurlyBrace = stickerLib.makeRightCurlyBrace(iconSize/4,iconSize/4,iconSize);
+        const checkMark = stickerLib.makeCheckmark(iconSize/4,iconSize/4,iconSize,iconSize);
         graffiti.setupOneControlPanel('graffiti-stickers-controls', 
                                       '<div id="graffiti-stickers-shell">' +
                                       '  <div id="graffiti-stickers-header">Stickers</div>' +
@@ -931,6 +932,17 @@ define([
         ]);
       },
 
+      deactivateAllPens: () => {
+        graffiti.setGraffitiPenColor('black');
+        state.updateDrawingState([ 
+          { change: 'drawingModeActivated', data: false}, 
+          { change: 'stickerType', data: undefined },
+          { change: 'penType', data: undefined } 
+        ]);
+        $('.graffiti-active-sticker').removeClass('graffiti-active-sticker');
+        $('.graffiti-active-pen').removeClass('graffiti-active-pen');
+      },
+
       toggleGraffitiPen: (penType) => {
         if (!(state.getActivity() == 'recording')) {
           return; // Pens can only be used while recording
@@ -1306,8 +1318,23 @@ define([
         }
       },
 
+      resetStickerCanvases: () => {
+        const canvasTypes = ['temporary', 'permanent'];
+        let sticker;
+        for (let canvasType of canvasTypes) {
+          for (let cellId of Object.keys(graffiti.stickers[canvasType])) {
+            sticker = graffiti.stickers[canvasType][cellId];
+            if (sticker.canvas !== undefined) {
+              sticker.canvas.empty();
+            }
+            sticker.stickers = [];
+            sticker.activeStickerIndex = 0;
+          }
+        }
+      },        
+
       // calculate correct offsets based on innerCellRect / dx, dy etc
-      drawStickersForCell: (stickerPermanence, cellId) => {
+      drawStickersForCell: (cellId, stickerPermanence) => {
         graffiti.placeStickerCanvas(stickerPermanence, cellId);
         let stickerType, stickerX, stickerY, width, height, stickerWidth, stickerHeight, generatedStickerElem, pen, positions, p1x,p1y,p2x,p2y;
         let newInnerHtml = [];
@@ -1335,7 +1362,7 @@ define([
           pen = stickerRecord.pen;
           switch (pen.stickerType) {
             case 'rectangle':
-              generatedStickerHtml = sticker.makeRectangle({
+              generatedStickerHtml = stickerLib.makeRectangle({
                 color:  pen.color,
                 fill:   pen.fill,
                 dashed: pen.dash, 
@@ -1343,7 +1370,7 @@ define([
               });
               break;
             case 'isocelesTriangle':
-              generatedStickerHtml = sticker.makeIsocelesTriangle({
+              generatedStickerHtml = stickerLib.makeIsocelesTriangle({
                 color:  pen.color,
                 fill:   pen.fill,
                 dashed: pen.dash, 
@@ -1351,7 +1378,7 @@ define([
               });
               break;
             case 'rightTriangle':
-              generatedStickerHtml = sticker.makeRightTriangle({
+              generatedStickerHtml = stickerLib.makeRightTriangle({
                 color:  pen.color,
                 fill:   pen.fill,
                 dashed: pen.dash, 
@@ -1359,7 +1386,7 @@ define([
               });
               break;
             case 'lineWithArrow':
-              generatedStickerHtml = sticker.makeLine({
+              generatedStickerHtml = stickerLib.makeLine({
                 color:  pen.color,
                 dashed: pen.dash, 
                 dimensions: dimensions,
@@ -1388,7 +1415,7 @@ define([
         graffiti.stickers[stickerPermanence][cellId].stickers[activeStickerIndex] = stickerRecord;
         console.log('stickers:', activeStickerIndex, graffiti.stickers[stickerPermanence][cellId].stickers);
         // Now rerender all stickers for this cell
-        graffiti.drawStickersForCell(stickerPermanence, cellId);
+        graffiti.drawStickersForCell(cellId, stickerPermanence);
       },
 
       // This fn is called on mousemove, which means fade counts always reset, and we clear the temporary ink completely if it was part way through a fade
@@ -1415,8 +1442,7 @@ define([
                 },
                 { change: 'cellId',
                   data: viewInfo.cellId
-                },
-                { change: 'bbox', data: undefined }
+                }
               ]);
               graffiti.updateStickerDisplay( viewInfo.cellId, drawingPermanence);
             } else {
@@ -1442,8 +1468,8 @@ define([
                 }
               ]);
             }
+            state.storeHistoryRecord('drawings');
           }
-          state.storeHistoryRecord('drawings');
         }
       },
 
@@ -2485,7 +2511,8 @@ define([
             graffiti.setNotifier('Please wait, storing this movie...');
             graffiti.showControlPanels(['graffiti-notifier']);
             graffiti.savingScrim.css({display:'flex'});
-            graffiti.setGraffitiPenColor('black');
+            graffiti.deactivateAllPens();
+            graffiti.resetStickerCanvases();
             graffiti.stopRecordingCore(true);
             console.log('Graffiti: Stopped recording.');
           } else {
@@ -2653,6 +2680,7 @@ define([
       },
 
       updateDrawingCore: (record) => {
+        console.log('updateDrawingCore:', record);
         record.hoverCell = utils.findCellByCellId(record.cellId);
         const cellRects = utils.getCellRects(record.hoverCell);
         switch (record.drawingActivity) {
@@ -2667,6 +2695,9 @@ define([
                                           record.positions.end.y,
                                           record.pen.type,
                                           record.pen.permanence);
+            break;
+          case 'sticker':
+            graffiti.drawStickersForCell(record.cellId, record.pen.permanence);
             break;
           case 'fade':
             $('.graffiti-canvas-type-temporary').css({opacity: record.opacity });
