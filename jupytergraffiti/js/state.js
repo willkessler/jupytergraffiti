@@ -65,7 +65,7 @@ define([
           mouseDownPosition: { x : 0, y: 0 },
           permanence: 'temporary', // default: ink disappears after a second of inactivity
           type: 'line', // one of 'line', 'highlight', 'eraser', 'sticker'
-          color: '000000',
+          color: 'black',
           dash: 'solid', // one of 'solid', 'dashed'
           fill: 'none' // one of 'none', '#xyz'
         },
@@ -590,26 +590,8 @@ define([
                             }, state.drawingState);
       // Remove statuses that are not needed in history records
       delete(record.drawingModeActivated);
-      delete(record.pen.isDown);
-      return record;
-    },
-
-    createStickerRecord: () => {
-      const startPosition = state.drawingState.pen['mouseDownPosition'];
-
-      let record = $.extend(true, {}, 
-                            {
-                              innerCellRect: { 
-                                left: state.viewInfo.innerCellRect.left, 
-                                top: state.viewInfo.innerCellRect.top,
-                                width: state.viewInfo.innerCellRect.width,
-                                height: state.viewInfo.innerCellRect.height
-                              }
-                            }, state.drawingState);
-      // Remove statuses that are not needed in history records
-      delete(record.drawingModeActivated);
-      delete(record.pen.isDown);
       delete(record.drawingActivity);
+      delete(record.pen.isDown);
       delete(record.wipe);
       return record;
     },
@@ -768,10 +750,8 @@ define([
           type = 'view'; // override passed-in type: focus is a view type
           break;
         case 'drawings':
-          record = state.createDrawingRecord();
-          break;
         case 'stickers':
-          record = state.createStickerRecord();
+          record = state.createDrawingRecord(); // these are identical, except for the drawingActivity field and related data
           break;
         case 'selections':
           record = state.createSelectionsRecord();

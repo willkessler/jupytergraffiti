@@ -114,21 +114,26 @@ define([], () => {
     },
 
     makeLine: (opts) => {
-      const viewBox = '0 0 1.12 1.12';
+      const viewBox = [Math.min(opts.endpoints.p1.x, opts.endpoints.p2.x),
+                       Math.min(opts.endpoints.p1.y, opts.endpoints.p2.y),
+                       Math.max(opts.endpoints.p1.y, opts.endpoints.p2.y),
+                       Math.max(opts.endpoints.p1.y, opts.endpoints.p2.y)
+      ].join(' ');
       const color = (opts.color === undefined ? '#000' : opts.color);
       const strokeWidth = (opts.strokeWidth === undefined ? 3 : opts.strokeWidth);
+      const endpoints = opts.endpoints;
       let pathObj = 
         {
           'vector-effect': 'non-scaling-stroke',
           'stroke-width' : strokeWidth,
           stroke: color,
           fill: 'none',
-          d: 'M ' + opts.p1x + ' ' + opts.p1y + ' L ' + opts.p2x + ' ' + opts.p2y
+          d: 'M ' + endpoints.p1.x + ' ' + endpoints.p1.y + ' L ' + endpoints.p2.x + ' ' + endpoints.p2.y
         };
       if (opts.arrowAtEnd) {
         pathObj['marker-end'] =  'url(#arrowHead)';
       }
-      if (opts.dashed) {
+      if ((opts.dashed !== undefined) && (opts.dashed === 'dashed')) {
         if (opts.dashWidth) {
           pathObj['stroke-dasharray'] = opts.dashWidth;
         } else {
@@ -140,18 +145,17 @@ define([], () => {
       const renderedSvg = sticker.renderSvg([
         {
           el: line,
-          width: opts.width,
-          height: opts.height,
+          x: opts.dimensions.x,
+          y: opts.dimensions.y,
+          width: opts.dimensions.width,
+          height: opts.dimensions.height,
           color: color,
           viewBox: viewBox,
-          x: opts.x,
-          y : opts.y,
-          arrowAtEnd: true,
+          arrowAtEnd: opts.arrowAtEnd
         }
       ]);
-      return renderedSvg;
 
-      
+      return renderedSvg;
     },
 
 
@@ -301,10 +305,12 @@ define([], () => {
           d: opts.d,
         };
 
-      if (opts.dashWidth) {
-        pathObj['stroke-dasharray'] = opts.dashWidth;
-      } else {
-        pathObj['stroke-dasharray'] = 4;
+      if ((opts.dashed !== undefined) && (opts.dashed === 'dashed')) {
+        if (opts.dashWidth) {
+          pathObj['stroke-dasharray'] = opts.dashWidth;
+        } else {
+          pathObj['stroke-dasharray'] = 4;
+        }
       }
 
       const thePath = sticker.makeSvgElement('path',pathObj);
