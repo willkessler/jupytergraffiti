@@ -31,7 +31,7 @@ define([
         graffiti.notebookPanel = $('#notebook');
         graffiti.notebookContainer = $('#notebook-container');
         graffiti.notebookContainerPadding = parseInt(graffiti.notebookContainer.css('padding').replace('px',''));
-        graffiti.penColor = '000000';
+        graffiti.penColor = 'black';
 
         graffiti.recordingIntervalMs = 10; // In milliseconds, how frequently we sample the state of things while recording.
         graffiti.storageInProcess = false;
@@ -65,10 +65,10 @@ define([
           'black'  : '000000'
         };
         graffiti.minimumStickerSize = 40; // pixels
+        graffiti.activeStickerTracker = undefined;
 
         if (currentAccessLevel === 'create') {
           storage.ensureNotebookGetsGraffitiId();
-
         }
 
         // Set up the button that activates Graffiti on new notebooks and controls visibility of the control panel if the notebook has already been graffiti-ized.
@@ -451,8 +451,11 @@ define([
                                             const permanence = ($('#graffiti-temporary-ink-control').is(':checked') ? 'temporary' : 'permanent');
                                             console.log('You set temporary ink to:', permanence);
                                             state.updateDrawingState([ { change: 'permanence', data: permanence } ]);
-                                            // Turn on the pen/highlighter if you switch temporary ink status.
-                                            graffiti.activateGraffitiPen(state.getDrawingPenAttribute('type')); 
+                                            // Turn on the pen/highlighter if you switch temporary ink status and it's not already on.
+                                            const drawingActivity = state.getDrawingStateField('drawingActivity');
+                                            if ((drawingActivity !== 'draw') && (drawingActivity !== 'sticker')) {
+                                              graffiti.activateGraffitiPen(state.getDrawingPenAttribute('type')); 
+                                            }
                                           }
                                         },
                                         {
@@ -462,8 +465,11 @@ define([
                                             const dashedLine = ($('#graffiti-dashed-line-control').is(':checked') ? 'dashed' : 'solid');
                                             console.log('You set dashed line to:', dashedLine);
                                             state.updateDrawingState([ { change: 'dash', data: dashedLine } ]);
-                                            // Turn on the pen/highlighter if you switch temporary ink status.
-                                            graffiti.activateGraffitiPen(state.getDrawingPenAttribute('type')); 
+                                            // Turn on the pen/highlighter if you switch dashed line status and not drawing or stickering already
+                                            const drawingActivity = state.getDrawingStateField('drawingActivity');
+                                            if ((drawingActivity !== 'draw') && (drawingActivity !== 'sticker')) {
+                                              graffiti.activateGraffitiPen(state.getDrawingPenAttribute('type')); 
+                                            }
                                           }
                                         }
                                       ]
@@ -476,26 +482,30 @@ define([
         const rightTriangle = sticker.makeRightTriangle({
           dimensions: { x: iconMargin, y:iconMargin, width:iconSize,height:iconSize },
           color:iconColor,
+          dashed:'dashed',
           dashWidth:2,
           strokeWidth:iconStrokeWidth
         });
         const isocelesTriangle = sticker.makeIsocelesTriangle({ 
           dimensions: { x: iconMargin,y:iconMargin, width: iconSize, height: iconSize },
           color:iconColor, 
+          dashed:'dashed',
           dashWidth:2, 
           strokeWidth:iconStrokeWidth 
         });
         const rectangle = sticker.makeRectangle({
           dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
-          dashed:true,  
+          dashed:'dashed',  
           dashWidth:2,
           color:iconColor, 
           strokeWidth:iconStrokeWidth
         });
         const lineWithArrow = sticker.makeLine({
-          x:iconMargin, y:iconMargin, p1x:0, p1y:1, p2x:1, p2y:0, 
-          width:iconSize, height: iconSize, strokeWidth:iconStrokeWidth,
-          arrowAtEnd:true, dashed:true, dashWidth:2
+          dimensions: { x: iconMargin, y: iconMargin, width: iconSize, height: iconSize },
+          endpoints: { p1: { x:0, y:1 }, p2: { x:1, y:0 } },
+          strokeWidth:iconStrokeWidth,
+          dashed:'solid',
+          arrowAtEnd:true, 
         });
 
         const leftCurlyBrace = sticker.makeLeftCurlyBrace(iconSize/4,iconSize/4,iconSize);
@@ -900,11 +910,11 @@ define([
       },
 
       activateGraffitiPen: (penType) => {
-        if (penType === undefined) {
-          penType = 'line';
-        }
         if (!(state.getActivity() == 'recording')) {
           return; // Pens can only be used while recording
+        }
+        if (penType === undefined) {
+          penType = 'line';
         }
         graffiti.showDrawingScreen();
         $('.graffiti-active-pen').removeClass('graffiti-active-pen');
@@ -1024,6 +1034,12 @@ define([
             ]);
           } else if ((e.type === 'mouseup') || (e.type === 'mouseleave')) {
             console.log('drawingScreenHandler: ', e.type);
+            const drawingActivity = state.getDrawingStateField('drawingActivity');
+            if ((drawingActivity === 'sticker') && (e.type === 'mouseup')) {
+              if (graffiti.activeStickerTracker !== undefined) {
+                graffiti.activeStickerTracker.activeStickerIndex++;
+              }
+            }
             if (state.getDrawingPenAttribute('isDown')) {
               state.updateDrawingState( [ { change: 'isDown',  data: false } ]);
               state.startDrawingFadeClock();
@@ -1038,7 +1054,7 @@ define([
       resetDrawingColor: () => {
         $('#graffiti-recording-colors-shell div').removeClass('graffiti-recording-color-active');
         $('#graffiti-recording-color-black').addClass('graffiti-recording-color-active');
-        state.updateDrawingState([ { change: 'color', data: '000000' }] );
+        state.updateDrawingState([ { change: 'color', data: 'black' }] );
       },
 
       resetDrawingPen: () => {
@@ -1293,33 +1309,61 @@ define([
       // calculate correct offsets based on innerCellRect / dx, dy etc
       drawStickersForCell: (stickerPermanence, cellId) => {
         graffiti.placeStickerCanvas(stickerPermanence, cellId);
-        let stickerType, width, height, stickerWidth, stickerHeight, generatedStickerElem, newInnerHtml = [];
+        let stickerType, stickerX, stickerY, width, height, stickerWidth, stickerHeight, generatedStickerElem, pen, positions, p1x,p1y,p2x,p2y;
+        let newInnerHtml = [];
         let canvasElem = graffiti.stickers[stickerPermanence][cellId].canvas;
         canvasElem.empty();
         for (let stickerRecord of graffiti.stickers[stickerPermanence][cellId].stickers) {
           stickerType = stickerRecord.pen.stickerType;
-          width =  stickerRecord.positions.end.x - stickerRecord.positions.start.x;
-          height = stickerRecord.positions.end.y - stickerRecord.positions.start.y;
-          stickerWidth = (stickerType !== 'line' ? Math.max(graffiti.minimumStickerSize, width): width);
-          stickerHeight = (stickerType !== 'line' ? Math.max(graffiti.minimumStickerSize, height) : height);
+          positions = stickerRecord.positions;
+          if (stickerType === 'lineWithArrow') {
+            stickerX = positions.start.x;
+            stickerY = positions.start.y;
+          } else {
+            stickerX = Math.min(positions.start.x, positions.end.x);
+            stickerY = Math.min(positions.start.y, positions.end.y);
+          }
+          stickerWidth =  Math.abs(positions.end.x - positions.start.x);
+          stickerHeight = Math.abs(positions.end.y - positions.start.y);
           const dimensions = {
-            x: stickerRecord.positions.start.x, 
-            y: stickerRecord.positions.start.y, 
+            x: stickerX,
+            y: stickerY,
             width: stickerWidth,
             height: stickerHeight
           };
-          switch (stickerRecord.pen.stickerType) {
+          console.log('Processing stickerRecord:', stickerRecord);
+          pen = stickerRecord.pen;
+          switch (pen.stickerType) {
             case 'rectangle':
               generatedStickerHtml = sticker.makeRectangle({
-                dashed: stickerRecord.dash, 
-                color: stickerRecord.color,
-                fill:stickerRecord.fill,
+                color:  pen.color,
+                fill:   pen.fill,
+                dashed: pen.dash, 
                 dimensions: dimensions
               });
               break;
             case 'isocelesTriangle':
               generatedStickerHtml = sticker.makeIsocelesTriangle({
-                dimensions: dimensions
+                color:  pen.color,
+                fill:   pen.fill,
+                dashed: pen.dash, 
+                dimensions: dimensions,
+              });
+              break;
+            case 'rightTriangle':
+              generatedStickerHtml = sticker.makeRightTriangle({
+                color:  pen.color,
+                fill:   pen.fill,
+                dashed: pen.dash, 
+                dimensions: dimensions,
+              });
+              break;
+            case 'lineWithArrow':
+              generatedStickerHtml = sticker.makeLine({
+                color:  pen.color,
+                dashed: pen.dash, 
+                dimensions: dimensions,
+                endpoints: { p1: {x: positions.start.x, y: positions.start.y }, p2: { x: positions.end.x, y: positions.end.y } }
               });
               break;
           }
@@ -1330,17 +1374,19 @@ define([
       },
 
       updateStickerDisplay: (cellId, stickerPermanence) => {
-        const stickerRecord = state.createStickerRecord();
+        const stickerRecord = state.createDrawingRecord();
         if (!graffiti.stickers[stickerPermanence].hasOwnProperty(cellId)) {
           graffiti.stickers[stickerPermanence][cellId] = {
             stickers: [],
+            activeStickerIndex: 0,
             canvas: undefined
-          }
-        } else {
-          // Remove last or only sticker record so we'll replace it with the new one.
-          graffiti.stickers[stickerPermanence][cellId].stickers.pop();
+          };
+          graffiti.activeStickerTracker = graffiti.stickers[stickerPermanence][cellId];
         }
-        graffiti.stickers[stickerPermanence][cellId].stickers.push(stickerRecord);
+        // Replace active sticker.
+        const activeStickerIndex = graffiti.activeStickerTracker.activeStickerIndex;
+        graffiti.stickers[stickerPermanence][cellId].stickers[activeStickerIndex] = stickerRecord;
+        console.log('stickers:', activeStickerIndex, graffiti.stickers[stickerPermanence][cellId].stickers);
         // Now rerender all stickers for this cell
         graffiti.drawStickersForCell(stickerPermanence, cellId);
       },
@@ -1355,7 +1401,7 @@ define([
             const drawingPenColor = state.getDrawingPenAttribute('color');
             const cellRect = graffiti.placeCanvas(viewInfo.cellId, drawingPermanence);
             const drawingActivity = state.getDrawingStateField('drawingActivity');
-            console.log('drawingActivity', drawingActivity, drawingPenType);
+            //console.log('drawingActivity', drawingActivity, drawingPenType);
             if (drawingActivity === 'sticker') {
               const mouseDownPosition = state.getDrawingPenAttribute('mouseDownPosition');
               state.updateDrawingState([
