@@ -1146,8 +1146,7 @@ define([
         // Note that we inline all these styles because to include them from a stylesheet causes rendering jumps.
         const stickerDivId = 'graffiti-sticker-' + cellId;
         graffiti.stickers[stickerPermanence][cellId].canvas = 
-          $('<div class="graffiti-sticker-outer" id="' + stickerDivId + '" ' +
-            'graffiti-permanence="' + stickerPermanence + '" ' + 
+          $('<div class="graffiti-sticker-outer graffiti-canvas-type-' + stickerPermanence + '" id="' + stickerDivId + '" ' +
             'style="width:' + parseInt(cellRect.width) + 'px;' +
             'height:' + parseInt(cellRect.height) + 'px;' +
             'position:absolute;left:0;top:0;">' +
@@ -1290,6 +1289,7 @@ define([
                 break;
               case 'fadeDone':
                 graffiti.resetTemporaryCanvases();
+                graffiti.resetStickerCanvases('temporary');
                 break;
             }
           }
@@ -1335,9 +1335,8 @@ define([
         $('.graffiti-sticker-outer').empty();
       },
       
-      resetStickerCanvases: () => {
-        const canvasTypes = ['temporary', 'permanent'];
-        let sticker;
+      resetStickerCanvases: (typeOverride) => {
+        let sticker, canvasTypes = (typeOverride === undefined ? ['temporary', 'permanent'] : [ typeOverride ]);
         for (let canvasType of canvasTypes) {
           for (let cellId of Object.keys(graffiti.stickers[canvasType])) {
             sticker = graffiti.stickers[canvasType][cellId];
@@ -2728,6 +2727,7 @@ define([
             break;
           case 'wipe':
             graffiti.clearCanvases('temporary');            
+            graffiti.wipeStickerDomCanvases();
             break;
         }
       },
