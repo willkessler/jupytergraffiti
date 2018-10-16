@@ -1504,6 +1504,8 @@ define([
             record = state.getHistoryItem('drawings', index);
             graffiti.updateDrawingCore(record);
           }
+        } else {
+          console.log('frame index undefined');
         }
       },
 
@@ -1849,6 +1851,7 @@ define([
                   break;
                 case 'playing':
                 case 'playbackPaused':
+                case 'scrubbing':
                   graffiti.cancelPlayback({cancelAnimation:true});
                   break;
               }
@@ -2734,7 +2737,7 @@ define([
           return; // no drawings yet at this index
         }
 
-        console.log('updateDrawings');
+        // console.log('updateDrawings');
         // Need to process a range of records if that's required.
         const startIndex = ((drawingFrameIndex.rangeStart == undefined) ? drawingFrameIndex.index : drawingFrameIndex.rangeStart);
         const endIndex = drawingFrameIndex.index;
@@ -2936,9 +2939,10 @@ define([
           graffiti.updateSelections(frameIndexes.selections.index, graffiti.sitePanel.scrollTop());
         }
         if (state.shouldUpdateDisplay('drawing', frameIndexes.drawings)) {
-          graffiti.updateDrawings(frameIndexes.drawings);
-        } else {
-          console.log('no updateDrawings');
+          if (state.getActivity() !== 'scrubbing') {
+            // console.log('calling updateDrawings from updateDisplay');
+            graffiti.updateDrawings(frameIndexes.drawings);
+          }
         }
         if (state.shouldUpdateDisplay('view', frameIndexes.view)) {
           graffiti.updateView(frameIndexes.view.index);
