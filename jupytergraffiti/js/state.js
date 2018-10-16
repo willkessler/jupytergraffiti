@@ -956,6 +956,13 @@ define([
           return i;
         }
       }
+      // check to see if time is on or past the last known record.
+      i = historyArray.length - 1;
+      if (((historyArray[i].startTime < t) && (historyArray[i].endTime >= t)) ||
+          (historyArray[i].endTime < t)) {
+        return i;
+      }
+
       return undefined;
     },
 
