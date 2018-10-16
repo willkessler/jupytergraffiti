@@ -1331,10 +1331,14 @@ define([
         }
       },
 
-      wipeStickerDomCanvases: () => {
-        $('.graffiti-sticker-outer').empty();
+      wipeTemporaryStickerDomCanvases: () => {
+        $('.graffiti-sticker-outer.graffiti-canvas-type-temporary').empty();
       },
       
+      wipeAllStickerDomCanvases: () => {
+        $('.graffiti-sticker-outer').empty();
+      },
+
       resetStickerCanvases: (typeOverride) => {
         let sticker, canvasTypes = (typeOverride === undefined ? ['temporary', 'permanent'] : [ typeOverride ]);
         for (let canvasType of canvasTypes) {
@@ -1358,10 +1362,8 @@ define([
         let canvasElem = graffiti.stickers[stickerPermanence][cellId].canvas;
         canvasElem.empty();
         if (record !== undefined) {
-          // during playback, the canvas is always wiped before calling drawStickersForCell, 
-          // in case there are no stickers present, and we scrubbed from an area where there were stickers
           stickersRecords = record.stickersRecords;
-        } else { // we are recording so we need to clear the canvas before drawing
+        } else { 
           stickersRecords = graffiti.stickers[stickerPermanence][cellId].stickers; 
         }
         for (let stickerRecord of stickersRecords) {
@@ -2727,7 +2729,7 @@ define([
             break;
           case 'wipe':
             graffiti.clearCanvases('temporary');            
-            graffiti.wipeStickerDomCanvases();
+            graffiti.wipeTemporaryStickerDomCanvases();
             break;
         }
       },
@@ -2984,7 +2986,7 @@ define([
         const frameIndexes = state.getHistoryRecordsAtTime(t);
         state.clearSetupForReset();
         state.setPlaybackTimeElapsed(t);
-        graffiti.wipeStickerDomCanvases();
+        graffiti.wipeAllStickerDomCanvases();
         graffiti.updateDisplay(frameIndexes);
         graffiti.updateSlider(t);
         graffiti.updateTimeDisplay(t);
@@ -3006,7 +3008,7 @@ define([
         // Now we need to set the time we are going to start with if we play from here.
         state.setPlaybackTimeElapsed(t);
         const frameIndexes = state.getHistoryRecordsAtTime(t);
-        graffiti.wipeStickerDomCanvases();
+        graffiti.wipeAllStickerDomCanvases();
         graffiti.updateDisplay(frameIndexes); // can replay scroll diffs, and in playback use cumulative scroll diff
         graffiti.updateTimeDisplay(t);
         graffiti.redrawAllDrawings(t);
