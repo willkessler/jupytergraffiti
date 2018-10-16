@@ -1123,7 +1123,19 @@ define([
         graffiti.drawingScreen.css({height: notebookHeight + 'px'});
       },
 
-      placeStickerCanvas: (stickerPermanence, cellId) => {
+      resetGraffitiStickerStage: (cellId, stickerPermanence) => {
+        if (!graffiti.stickers[stickerPermanence].hasOwnProperty(cellId)) {
+          graffiti.stickers[stickerPermanence][cellId] = {
+            stickers: [],
+            activeStickerIndex: 0,
+            canvas: undefined
+          };
+        }
+        return graffiti.stickers[stickerPermanence][cellId];
+      },
+
+      placeStickerCanvas: (cellId, stickerPermanence) => {
+        graffiti.resetGraffitiStickerStage(cellId, stickerPermanence); // put the sticker stage record into memory if we need to before placing a canvas in the dom
         if (graffiti.stickers[stickerPermanence][cellId].canvas !== undefined) {
           return;
         }
@@ -1135,6 +1147,7 @@ define([
         const stickerDivId = 'graffiti-sticker-' + cellId;
         graffiti.stickers[stickerPermanence][cellId].canvas = 
           $('<div class="graffiti-sticker-outer" id="' + stickerDivId + '" ' +
+            'graffiti-permanence="' + stickerPermanence + '" ' + 
             'style="width:' + parseInt(cellRect.width) + 'px;' +
             'height:' + parseInt(cellRect.height) + 'px;' +
             'position:absolute;left:0;top:0;">' +
@@ -1318,6 +1331,10 @@ define([
         }
       },
 
+      wipeStickerDomCanvases: () => {
+        $('.graffiti-sticker-outer').empty();
+      },
+      
       resetStickerCanvases: () => {
         const canvasTypes = ['temporary', 'permanent'];
         let sticker;
@@ -1334,16 +1351,24 @@ define([
       },        
 
       // calculate correct offsets based on innerCellRect / dx, dy etc
-      drawStickersForCell: (cellId, stickerPermanence) => {
-        graffiti.placeStickerCanvas(stickerPermanence, cellId);
+      drawStickersForCell: (cellId, stickerPermanence,record) => {
+        graffiti.placeStickerCanvas(cellId, stickerPermanence);
         let stickerType, stickerX, stickerY, width, height, stickerWidth, stickerHeight, generatedStickerElem, pen, positions, p1x,p1y,p2x,p2y;
         let newInnerHtml = [];
+        let stickersRecords;
         let canvasElem = graffiti.stickers[stickerPermanence][cellId].canvas;
-        canvasElem.empty();
-        for (let stickerRecord of graffiti.stickers[stickerPermanence][cellId].stickers) {
-          stickerType = stickerRecord.pen.stickerType;
+        if (record !== undefined) {
+          // during playback, the canvas is always wiped before calling drawStickersForCell, in case there are no stickers present, and we scrubbed from an area where there were stickers
+          stickersRecords = record.stickersRecords;
+        } else { // we are recording so we need to clear the canvas before drawing
+          stickersRecords = graffiti.stickers[stickerPermanence][cellId].stickers; 
+          canvasElem.empty();
+        }
+        for (let stickerRecord of stickersRecords) {
+          pen = stickerRecord.pen;
+          type = pen.stickerType;
           positions = stickerRecord.positions;
-          if (stickerType === 'lineWithArrow') {
+          if (type === 'lineWithArrow') {
             stickerX = positions.start.x;
             stickerY = positions.start.y;
           } else {
@@ -1358,9 +1383,8 @@ define([
             width: stickerWidth,
             height: stickerHeight
           };
-          console.log('Processing stickerRecord:', stickerRecord);
-          pen = stickerRecord.pen;
-          switch (pen.stickerType) {
+          //console.log('Processing stickerRecord:', stickerRecord);
+          switch (type) {
             case 'rectangle':
               generatedStickerHtml = stickerLib.makeRectangle({
                 color:  pen.color,
@@ -1400,20 +1424,16 @@ define([
         canvasElem.html(finalInnerHtml);
       },
 
-      updateStickerDisplay: (cellId, stickerPermanence) => {
-        const stickerRecord = state.createDrawingRecord();
-        if (!graffiti.stickers[stickerPermanence].hasOwnProperty(cellId)) {
-          graffiti.stickers[stickerPermanence][cellId] = {
-            stickers: [],
-            activeStickerIndex: 0,
-            canvas: undefined
-          };
-          graffiti.activeStickerTracker = graffiti.stickers[stickerPermanence][cellId];
-        }
+      updateStickerDisplayWhenRecording: (cellId, stickerPermanence) => {
+        graffiti.activeStickerTracker = graffiti.resetGraffitiStickerStage(cellId, stickerPermanence);
+
         // Replace active sticker.
         const activeStickerIndex = graffiti.activeStickerTracker.activeStickerIndex;
+        const stickerRecord = state.createDrawingRecord();
         graffiti.stickers[stickerPermanence][cellId].stickers[activeStickerIndex] = stickerRecord;
         console.log('stickers:', activeStickerIndex, graffiti.stickers[stickerPermanence][cellId].stickers);
+
+        state.storeStickersStateForCell(graffiti.stickers[stickerPermanence][cellId].stickers, cellId);
         // Now rerender all stickers for this cell
         graffiti.drawStickersForCell(cellId, stickerPermanence);
       },
@@ -1444,7 +1464,7 @@ define([
                   data: viewInfo.cellId
                 }
               ]);
-              graffiti.updateStickerDisplay( viewInfo.cellId, drawingPermanence);
+              graffiti.updateStickerDisplayWhenRecording(viewInfo.cellId, drawingPermanence);
             } else {
               graffiti.setCanvasStyle(viewInfo.cellId, drawingPenType, drawingPenDash, drawingPenColor, drawingPermanence);
               graffiti.updateDrawingDisplay(viewInfo.cellId, 
@@ -2680,9 +2700,9 @@ define([
       },
 
       updateDrawingCore: (record) => {
-        console.log('updateDrawingCore:', record);
+        //console.log('updateDrawingCore:', record);
         record.hoverCell = utils.findCellByCellId(record.cellId);
-        const cellRects = utils.getCellRects(record.hoverCell);
+
         switch (record.drawingActivity) {
           case 'draw':
             graffiti.placeCanvas(record.cellId, record.pen.permanence);
@@ -2697,7 +2717,7 @@ define([
                                           record.pen.permanence);
             break;
           case 'sticker':
-            graffiti.drawStickersForCell(record.cellId, record.pen.permanence);
+            graffiti.drawStickersForCell(record.cellId, record.pen.permanence, record);
             break;
           case 'fade':
             $('.graffiti-canvas-type-temporary').css({opacity: record.opacity });
@@ -2709,6 +2729,7 @@ define([
       },
 
       updateDrawings: (drawingFrameIndex) => {
+        graffiti.wipeStickerDomCanvases();
         if (drawingFrameIndex === undefined) {
           return; // no drawings yet at this index
         }
@@ -3033,6 +3054,7 @@ define([
         console.log('Graffiti: Cancelling playback');
         graffiti.cancelPlaybackNoVisualUpdates();
         state.setDontRestoreCellContentsAfterPlayback(false);
+        graffiti.resetStickerCanvases();
         graffiti.graffitiCursor.hide();
         graffiti.clearCanvases('all');
         graffiti.refreshAllGraffitiHighlights();

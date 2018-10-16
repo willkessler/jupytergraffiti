@@ -69,8 +69,10 @@ define([
           dash: 'solid', // one of 'solid', 'dashed'
           fill: 'none' // one of 'none', '#xyz'
         },
+        stickersRecords: {}, // This contains records of all stickers drawn to date during a recording, or since the last fadeout in a recording.
         opacity: state.maxDrawingOpacity
       };
+
       
       utils.refreshCellMaps();
 
@@ -231,6 +233,29 @@ define([
     
     getDrawingStateField: (field) => {
       return state.drawingState[field];
+    },
+
+    // Store the stickers stages sticker lists for later redrawing during playing/scrubbing
+    storeStickersStateForCell: (stickers, cellId) => {
+      let stickersRecords = {};
+      if ((stickers !== undefined) && (stickers.length > 0)) {
+        stickersRecords = [];
+        for (let sticker of stickers) {
+          stickersRecords.push({
+            positions: { start: { x: sticker.positions.start.x, y: sticker.positions.start.y },
+                         end:   { x: sticker.positions.end.x, y: sticker.positions.end.y } },
+            pen: {
+              stickerType: sticker.pen.stickerType,
+              color: sticker.pen.color,
+              dash:  sticker.pen.dash,
+              fill:  sticker.pen.fill,
+              permanence: sticker.pen.permanence,
+            }
+          });
+        }
+      }
+      state.drawingState.stickersRecords = stickersRecords;
+      console.log('stickersRecords:', stickersRecords);
     },
 
     updateDrawingState: (changeSets) => {
