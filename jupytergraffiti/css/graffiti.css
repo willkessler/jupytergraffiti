@@ -533,10 +533,10 @@ http://www.patternify.com/
 
 .graffiti-sticker-outer {
   opacity:0.5;
+  z-index:1;
 }
 
 .graffiti-sticker-inner {
   pointer-events:none;
-  z-index:900;
 }
 
