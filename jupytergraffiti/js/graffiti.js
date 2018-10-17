@@ -1022,6 +1022,7 @@ define([
               drawingActivity = 'sticker';
               //graffiti.placeSticker({dynamic:true});
               const currentPointerPosition = state.getPointerPosition();
+              const viewInfo = state.getViewInfo();
               state.updateDrawingState([
                 { change: 'mouseDownPosition',
                   data: {
@@ -1036,7 +1037,11 @@ define([
                       end: { x: currentPointerPosition.x + graffiti.stickerMinimumSize, y: currentPointerPosition.y + graffiti.stickerMinimumSize },
                     }
                   }
-                }]);
+                },
+                { change: 'cellId',
+                  data: viewInfo.cellId
+                }
+              ]);
             }
             state.updateDrawingState( [ 
               { change: 'drawingModeActivated', data: true }, 
@@ -1426,7 +1431,8 @@ define([
         canvasElem.html(finalInnerHtml);
       },
 
-      updateStickerDisplayWhenRecording: (cellId, stickerPermanence) => {
+      updateStickerDisplayWhenRecording: (stickerPermanence) => {
+        const cellId = state.getDrawingStateField('cellId');
         graffiti.activeStickerTracker = graffiti.resetGraffitiStickerStage(cellId, stickerPermanence);
 
         // Replace active sticker.
@@ -1444,12 +1450,13 @@ define([
       updateDrawingDisplayWhenRecording: (ax, ay, bx, by, viewInfo) => {
         if (state.getActivity() === 'recording') {
           if (state.getDrawingPenAttribute('isDown')) {
+            const drawingActivity = state.getDrawingStateField('drawingActivity');
             const drawingPermanence = state.getDrawingPenAttribute('permanence');
+            const cellId = (drawingActivity === 'sticker' ? state.getDrawingStateField('cellId') : viewInfo.cellId);
+            const cellRect = graffiti.placeCanvas(cellId, drawingPermanence);
             const drawingPenType = state.getDrawingPenAttribute('type');
             const drawingPenDash = state.getDrawingPenAttribute('dash');
             const drawingPenColor = state.getDrawingPenAttribute('color');
-            const cellRect = graffiti.placeCanvas(viewInfo.cellId, drawingPermanence);
-            const drawingActivity = state.getDrawingStateField('drawingActivity');
             //console.log('drawingActivity', drawingActivity, drawingPenType);
             if (drawingActivity === 'sticker') {
               const mouseDownPosition = state.getDrawingPenAttribute('mouseDownPosition');
@@ -1461,12 +1468,9 @@ define([
                       end:   { x: bx - cellRect.left, y: by - cellRect.top }
                     }
                   }
-                },
-                { change: 'cellId',
-                  data: viewInfo.cellId
-                }
+                } // note that we don't change the sticker cellId during mousemove. It's set once at mousedown and kept constant until mouse up.
               ]);
-              graffiti.updateStickerDisplayWhenRecording(viewInfo.cellId, drawingPermanence);
+              graffiti.updateStickerDisplayWhenRecording(drawingPermanence);
             } else {
               graffiti.setCanvasStyle(viewInfo.cellId, drawingPenType, drawingPenDash, drawingPenColor, drawingPermanence);
               graffiti.updateDrawingDisplay(viewInfo.cellId, 
@@ -3109,6 +3113,7 @@ define([
         if (state.getResetOnNextPlay()) {
           console.log('Resetting for first/re play.');
           graffiti.clearCanvases('all');
+          graffiti.wipeAllStickerDomCanvases();
           state.resetPlayState();
         }
 
