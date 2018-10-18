@@ -504,9 +504,11 @@ define([
         const lineWithArrow = stickerLib.makeLine({
           dimensions: { x: iconMargin, y: iconMargin, width: iconSize, height: iconSize },
           endpoints: { p1: { x:0, y:iconSize }, p2: { x:iconSize, y:0 } },
+          lineStartOffset: { x: iconMargin, y:iconMargin },
           strokeWidth:iconStrokeWidth,
           dashed:'solid',
           usesArrow:true, 
+          arrowHeadSize: 10,
         });
 
         const leftCurlyBrace = stickerLib.makeLeftCurlyBrace(iconSize/4,iconSize/4,iconSize);
@@ -1425,7 +1427,9 @@ define([
                 dashed: pen.dash, 
                 dimensions: dimensions,
                 endpoints: { p1: {x: positions.start.x, y: positions.start.y }, p2: { x: positions.end.x, y: positions.end.y } },
-                usesArrow: true
+                lineStartOffset: { x: 0, y: 0 },
+                usesArrow: true,
+                arrowHeadSize: 6
               });
               break;
           }
