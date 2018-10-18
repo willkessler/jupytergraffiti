@@ -503,6 +503,14 @@ define([
           color:iconColor, 
           strokeWidth:iconStrokeWidth
         });
+        const ribbon = stickerLib.makeRibbon({
+          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
+          dashed:'solid',
+          dashWidth:2,
+          color:iconColor, 
+          strokeWidth:iconStrokeWidth
+        });
+
         const lineWithArrow = stickerLib.makeLine({
           color:'black',
           dimensions: { x: iconMargin, y: iconMargin, width: iconSize, height: iconSize },
@@ -525,6 +533,7 @@ define([
                                       '    <div class="graffiti-sticker-button" id="graffiti-sticker-isocelesTriangle">' + isocelesTriangle + '</div>' +
                                       '    <div class="graffiti-sticker-button" id="graffiti-sticker-rectangle">' + rectangle + '</div>' +
                                       '    <div class="graffiti-sticker-button" id="graffiti-sticker-lineWithArrow">' + lineWithArrow + '</div>' +
+                                      '    <div class="graffiti-sticker-button" id="graffiti-sticker-ribbon">' + ribbon + '</div>' +
                                       '  </div>' +
                                       '</div>',
                                       [
@@ -532,7 +541,8 @@ define([
                                           ids: ['graffiti-sticker-rightTriangle',
                                                 'graffiti-sticker-isocelesTriangle',
                                                 'graffiti-sticker-rectangle', 
-                                                'graffiti-sticker-lineWithArrow'],
+                                                'graffiti-sticker-lineWithArrow',
+                                                'graffiti-sticker-ribbon'],
                                           event: 'click',
                                           fn: (e) => {
                                             let stickerId = $(e.target).attr('id');
@@ -1438,6 +1448,14 @@ define([
               break;
             case 'rightTriangle':
               generatedStickerHtml = stickerLib.makeRightTriangle({
+                color:  pen.color,
+                fill:   pen.fill,
+                dashed: pen.dash, 
+                dimensions: dimensions,
+              });
+              break;
+            case 'ribbon':
+              generatedStickerHtml = stickerLib.makeRibbon({
                 color:  pen.color,
                 fill:   pen.fill,
                 dashed: pen.dash, 
