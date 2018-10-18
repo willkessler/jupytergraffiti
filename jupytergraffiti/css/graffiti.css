@@ -538,7 +538,7 @@ http://www.patternify.com/
 }
 
 .graffiti-sticker-inner {
-  border:1px dashed red;
+/*  border:1px dashed red;*/
   pointer-events:none;
 }
 

@@ -4,7 +4,7 @@ define([], () => {
 
     // Cf : https://www.beyondjava.net/how-to-connect-html-elements-with-an-arrow-using-svg
     // and: https://stackoverflow.com/questions/43887340/how-to-include-the-arrow-head-in-the-length-of-a-line-in-svg
-    generateArrowHeadElem: (color, arrowHeadSize) => {
+    generateArrowHeadElem: (arrowHeadColor, arrowHeadSize) => {
       const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
       const marker = sticker.makeSvgElement('marker', {
         id:'arrowHead',
@@ -15,7 +15,8 @@ define([], () => {
         markerWidth: arrowHeadSize,
         markerHeight: arrowHeadSize,
         orient: 'auto',
-        stroke: color
+        stroke: arrowHeadColor,
+        fill: arrowHeadColor
       });
       const path = sticker.makeSvgElement('path', {
         d: "M 0,0 L0,6 L9,3 z"
@@ -25,16 +26,6 @@ define([], () => {
       return defs;
     },
     
-    /*
-       const arrowHeadDef =
-       '<defs>' +
-       '  <marker id="arrowHead" viewBox="0 0 10 10" refX="0" refY="5" markerUnits="strokeWidth" markerWidth="10" markerHeight="8" orient="auto">' +
-       '    <path d="M 0 0 L 10 5 L 0 10 z"></path>' +
-       '  </marker>' +
-       '</defs>';
-       },
-     */
-
     makeElementHtml: (tag, attr, innerHtml) => {
       let svgHtml = '<' + tag + ' ';
       if (tag === 'svg') {
