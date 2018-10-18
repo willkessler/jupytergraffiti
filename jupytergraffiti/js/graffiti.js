@@ -66,7 +66,6 @@ define([
           'black'  : '000000'
         };
         graffiti.minimumStickerSize = 40; // pixels
-        graffiti.activeStickerTracker = undefined;
 
         if (currentAccessLevel === 'create') {
           storage.ensureNotebookGetsGraffitiId();
@@ -441,8 +440,11 @@ define([
                                             const target = $(e.target);
                                             const colorVal = target.attr('colorVal');
                                             graffiti.setGraffitiPenColor(colorVal);
-                                            // Turn on the pen/highlighter if you change pen color.
-                                            graffiti.activateGraffitiPen(state.getDrawingPenAttribute('type')); 
+                                            // Turn on the pen/highlighter if you change pen color and not stickering
+                                            const activePenType = state.getDrawingPenAttribute('type');
+                                            if (activePenType !== 'sticker') {
+                                              graffiti.activateGraffitiPen(state.getDrawingPenAttribute('type')); 
+                                            }
                                           }
                                         },
                                         {
@@ -452,9 +454,9 @@ define([
                                             const permanence = ($('#graffiti-temporary-ink-control').is(':checked') ? 'temporary' : 'permanent');
                                             console.log('You set temporary ink to:', permanence);
                                             state.updateDrawingState([ { change: 'permanence', data: permanence } ]);
-                                            // Turn on the pen/highlighter if you switch temporary ink status and it's not already on.
-                                            const drawingActivity = state.getDrawingStateField('drawingActivity');
-                                            if ((drawingActivity !== 'draw') && (drawingActivity !== 'sticker')) {
+                                            // Turn on the pen/highlighter if you switch temporary ink status and it's not already on, unless stickering
+                                            const activePenType = state.getDrawingPenAttribute('type');
+                                            if (activePenType !== 'sticker') {
                                               graffiti.activateGraffitiPen(state.getDrawingPenAttribute('type')); 
                                             }
                                           }
@@ -466,9 +468,9 @@ define([
                                             const dashedLine = ($('#graffiti-dashed-line-control').is(':checked') ? 'dashed' : 'solid');
                                             console.log('You set dashed line to:', dashedLine);
                                             state.updateDrawingState([ { change: 'dash', data: dashedLine } ]);
-                                            // Turn on the pen/highlighter if you switch dashed line status and not drawing or stickering already
-                                            const drawingActivity = state.getDrawingStateField('drawingActivity');
-                                            if ((drawingActivity !== 'draw') && (drawingActivity !== 'sticker')) {
+                                            // Turn on the pen/highlighter if you switch dashed line status and not stickering
+                                            const activePenType = state.getDrawingPenAttribute('type');
+                                            if (activePenType !== 'sticker') {
                                               graffiti.activateGraffitiPen(state.getDrawingPenAttribute('type')); 
                                             }
                                           }
@@ -502,6 +504,7 @@ define([
           strokeWidth:iconStrokeWidth
         });
         const lineWithArrow = stickerLib.makeLine({
+          color:'black',
           dimensions: { x: iconMargin, y: iconMargin, width: iconSize, height: iconSize },
           endpoints: { p1: { x:0, y:iconSize }, p2: { x:iconSize, y:0 } },
           lineStartOffset: { x: iconMargin, y:iconMargin },
@@ -976,13 +979,19 @@ define([
         if (!(state.getActivity() == 'recording')) {
           return; // Stickers can only be used while recording
         }
+        const activePenType = state.getDrawingPenAttribute('type');
         const activeStickerType = state.getDrawingPenAttribute('stickerType');
         if (activeStickerType !== stickerType) {
-          // Activate a new sticker, unless this sticker is already active, in which case, deactivate it
+          // Activate a new sticker, unless sticker is already active, in which case, deactivate it
           graffiti.showDrawingScreen();
           // Deactivate any active pen
           $('.graffiti-active-pen').removeClass('graffiti-active-pen');
           const stickerControl = $('#graffiti-sticker-' + stickerType);
+          if (activePenType === 'highlight') {
+            // If we were highlighting, it was probably yellow. we probably don't want that color
+            // when switching back to stickering.
+            graffiti.setGraffitiPenColor('black'); 
+          }
           $('.graffiti-active-sticker').removeClass('graffiti-active-sticker');
           stickerControl.addClass('graffiti-active-sticker');
           state.updateDrawingState([
@@ -1058,9 +1067,7 @@ define([
             console.log('drawingScreenHandler: ', e.type);
             const drawingActivity = state.getDrawingStateField('drawingActivity');
             if ((drawingActivity === 'sticker') && (e.type === 'mouseup')) {
-              if (graffiti.activeStickerTracker !== undefined) {
-                graffiti.activeStickerTracker.activeStickerIndex++;
-              }
+              graffiti.clearAnyActiveStickerStages();
             }
             if (state.getDrawingPenAttribute('isDown')) {
               state.updateDrawingState( [ { change: 'isDown',  data: false } ]);
@@ -1133,15 +1140,31 @@ define([
         graffiti.drawingScreen.css({height: notebookHeight + 'px'});
       },
 
+      // Pretty inefficient, good enough for time being though.
+      clearAnyActiveStickerStages: () => {
+        let stickerStage, stickerIndex, sticker, canvasTypes = ['temporary', 'permanent'];
+        for (let canvasType of canvasTypes) {
+          for (let cellId of Object.keys(graffiti.stickers[canvasType])) {
+            stickerStage = graffiti.stickers[canvasType][cellId];
+            if (stickerStage.stickers !== undefined) {
+              for (let stickerIndex = 0; stickerIndex < stickerStage.stickers.length; ++stickerIndex) {
+                sticker = stickerStage.stickers[stickerIndex];
+                if (sticker.active) {
+                  stickerStage.stickers[stickerIndex].active = false;
+                }
+              }
+            }
+          }
+        }
+      },
+
       resetGraffitiStickerStage: (cellId, stickerPermanence) => {
         if (!graffiti.stickers[stickerPermanence].hasOwnProperty(cellId)) {
           graffiti.stickers[stickerPermanence][cellId] = {
             stickers: [],
-            activeStickerIndex: 0,
             canvas: undefined
           };
         }
-        return graffiti.stickers[stickerPermanence][cellId];
       },
 
       placeStickerCanvas: (cellId, stickerPermanence) => {
@@ -1441,14 +1464,25 @@ define([
 
       updateStickerDisplayWhenRecording: (stickerPermanence) => {
         const cellId = state.getDrawingStateField('cellId');
-        graffiti.activeStickerTracker = graffiti.resetGraffitiStickerStage(cellId, stickerPermanence);
+        graffiti.resetGraffitiStickerStage(cellId, stickerPermanence);
 
-        // Replace active sticker.
-        const activeStickerIndex = graffiti.activeStickerTracker.activeStickerIndex;
-        const stickerRecord = state.createDrawingRecord();
-        graffiti.stickers[stickerPermanence][cellId].stickers[activeStickerIndex] = stickerRecord;
-        //console.log('stickers:', activeStickerIndex, graffiti.stickers[stickerPermanence][cellId].stickers);
+        // Replace active sticker if there is one, or add a new active sticker
+        const stickers = graffiti.stickers[stickerPermanence][cellId].stickers;
+        let stickerRecord = state.createDrawingRecord();
+        stickerRecord.active = true;
+        let replaced = false;
+        if (stickers.length > 0) {
+          const lastSticker = stickers.length - 1;
+          if (stickers[lastSticker].active) {
+            graffiti.stickers[stickerPermanence][cellId].stickers[lastSticker] = stickerRecord;
+            replaced = true;
+          }
+        }
+        if (!replaced) {
+          stickers.push(stickerRecord);
+        }
 
+        // Store the state for later redrawing.
         state.storeStickersStateForCell(graffiti.stickers[stickerPermanence][cellId].stickers, cellId);
         // Now rerender all stickers for this cell
         graffiti.drawStickersForCell(cellId, stickerPermanence);

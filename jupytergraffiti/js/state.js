@@ -241,6 +241,9 @@ define([
       if ((stickers !== undefined) && (stickers.length > 0)) {
         stickersRecords = [];
         for (let sticker of stickers) {
+          if (sticker === undefined) {
+            debugger;
+          }
           stickersRecords.push({
             positions: { start: { x: sticker.positions.start.x, y: sticker.positions.start.y },
                          end:   { x: sticker.positions.end.x, y: sticker.positions.end.y } },
@@ -619,6 +622,7 @@ define([
       delete(record.drawingModeActivated);
       delete(record.pen.isDown);
       delete(record.wipe);
+      delete(record.stickerActive);
       //console.log('createDrawingRecord:', record);
       return record;
     },
