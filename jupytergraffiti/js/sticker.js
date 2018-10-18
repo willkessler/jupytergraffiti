@@ -89,8 +89,8 @@ define([], () => {
                              {
                                'class':"graffiti-sticker-inner",
                                'style' : 'position:absolute;' +
-                                         'left:' + svgChild.x + 'px;top:' + svgChild.y + 'px;' +
-                                         'width:' + svgChild.width + 'px;height:' + svgChild.height + 'px;' +
+                                         'left:' + parseInt(svgChild.x) + 'px;top:' + parseInt(svgChild.y) + 'px;' +
+                                         'width:' + parseInt(svgChild.width) + 'px;height:' + parseInt(svgChild.height) + 'px;' +
                                          transform
                              });
         containerSticker =
@@ -100,7 +100,7 @@ define([], () => {
                                height: svgChild.height,
                                viewBox: svgChild.viewBox
                              });
-        if (svgChild.arrowAtEnd) {
+        if (svgChild.usesArrow) {
           containerSticker.appendChild(sticker.generateArrowHeadElem(svgChild.color));
         }
         containerSticker.appendChild(svgChild.el);
@@ -114,24 +114,45 @@ define([], () => {
     },
 
     makeLine: (opts) => {
-      const viewBox = [Math.min(opts.endpoints.p1.x, opts.endpoints.p2.x),
+      const bbox = [Math.min(opts.endpoints.p1.x, opts.endpoints.p2.x),
                        Math.min(opts.endpoints.p1.y, opts.endpoints.p2.y),
-                       Math.max(opts.endpoints.p1.y, opts.endpoints.p2.y),
+                       Math.max(opts.endpoints.p1.x, opts.endpoints.p2.x),
                        Math.max(opts.endpoints.p1.y, opts.endpoints.p2.y)
-      ].join(' ');
+      ];
       const color = (opts.color === undefined ? '#000' : opts.color);
       const strokeWidth = (opts.strokeWidth === undefined ? 3 : opts.strokeWidth);
       const endpoints = opts.endpoints;
+      let tmp;
+      let arrowStatus = 'marker-end';
+      if ((opts.endpoints.p1.x > opts.endpoints.p2.x) ||
+          (opts.endpoints.p1.y > opts.endpoints.p2.y)) {
+        tmp = opts.endpoints.p2.x;
+        opts.endpoints.p2.x = opts.endpoints.p1.x;
+        opts.endpoints.p1.x = tmp;
+        tmp = opts.endpoints.p2.y;
+        opts.endpoints.p2.y = opts.endpoints.p1.y;
+        opts.endpoints.p1.y = tmp;
+        arrowStatus = 'marker-start';
+      }
+      const coordSpaceEndpoints = [
+        opts.endpoints.p1.x - bbox[0],
+        opts.endpoints.p1.y - bbox[1],
+        opts.endpoints.p2.x - bbox[0],
+        opts.endpoints.p2.y - bbox[1]
+      ];
+
+      const pathPart = 'M ' + coordSpaceEndpoints[0] + ' ' + coordSpaceEndpoints[1] + ' ' +
+                       'L ' + coordSpaceEndpoints[2] + ' ' + coordSpaceEndpoints[3];
       let pathObj = 
-        {
+          {
           'vector-effect': 'non-scaling-stroke',
           'stroke-width' : strokeWidth,
           stroke: color,
           fill: 'none',
-          d: 'M ' + endpoints.p1.x + ' ' + endpoints.p1.y + ' L ' + endpoints.p2.x + ' ' + endpoints.p2.y
+          d: pathPart
         };
-      if (opts.arrowAtEnd) {
-        pathObj['marker-end'] =  'url(#arrowHead)';
+      if (opts.usesArrow !== undefined) {
+        pathObj[arrowStatus] =  'url(#arrowHead)';
       }
       if ((opts.dashed !== undefined) && (opts.dashed === 'dashed')) {
         if (opts.dashWidth) {
@@ -142,19 +163,22 @@ define([], () => {
       }
       const line = sticker.makeSvgElement('path', pathObj);
 
+      const arrowMargin = 15;
+      const viewBox = [0,0,Math.abs(bbox[2]-bbox[0] + arrowMargin),Math.abs(bbox[3]-bbox[1]) + arrowMargin];
       const renderedSvg = sticker.renderSvg([
         {
           el: line,
-          x: opts.dimensions.x,
-          y: opts.dimensions.y,
-          width: opts.dimensions.width,
-          height: opts.dimensions.height,
+          x: bbox[0],
+          y: bbox[1],
+          width: viewBox[2],
+          height: viewBox[3],
           color: color,
-          viewBox: viewBox,
-          arrowAtEnd: opts.arrowAtEnd
+          viewBox: viewBox.join(' '),
+          usesArrow: opts.usesArrow
         }
       ]);
 
+      console.log('bbox:', bbox, 'coordSpaceEndpoints', coordSpaceEndpoints, 'viewBox', viewBox, 'pathPart:', pathPart);
       return renderedSvg;
     },
 

@@ -255,7 +255,7 @@ define([
         }
       }
       state.drawingState.stickersRecords = stickersRecords;
-      console.log('stickersRecords:', stickersRecords);
+      // console.log('stickersRecords:', stickersRecords);
     },
 
     updateDrawingState: (changeSets) => {
@@ -305,6 +305,8 @@ define([
               case 'thumbsUp':
               case 'thumbsDown':
               case 'star':
+              case 'line':
+              case 'lineWithArrow':
                 break;
               case 'checkMark':
                 fill = '00aa00'; // hardwired to green
@@ -617,7 +619,7 @@ define([
       delete(record.drawingModeActivated);
       delete(record.pen.isDown);
       delete(record.wipe);
-      console.log('createDrawingRecord:', record);
+      //console.log('createDrawingRecord:', record);
       return record;
     },
 
