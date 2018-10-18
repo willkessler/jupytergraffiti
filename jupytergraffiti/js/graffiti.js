@@ -503,10 +503,10 @@ define([
         });
         const lineWithArrow = stickerLib.makeLine({
           dimensions: { x: iconMargin, y: iconMargin, width: iconSize, height: iconSize },
-          endpoints: { p1: { x:0, y:1 }, p2: { x:1, y:0 } },
+          endpoints: { p1: { x:0, y:iconSize }, p2: { x:iconSize, y:0 } },
           strokeWidth:iconStrokeWidth,
           dashed:'solid',
-          arrowAtEnd:true, 
+          usesArrow:true, 
         });
 
         const leftCurlyBrace = stickerLib.makeLeftCurlyBrace(iconSize/4,iconSize/4,iconSize);
@@ -1023,6 +1023,9 @@ define([
               //graffiti.placeSticker({dynamic:true});
               const currentPointerPosition = state.getPointerPosition();
               const viewInfo = state.getViewInfo();
+              const penType = state.getDrawingPenAttribute('type');
+              const minSize = (penType === 'lineWithArrow' ? 1 : graffiti.minimumStickerSize);
+              console.log('minSize:', minSize);
               state.updateDrawingState([
                 { change: 'mouseDownPosition',
                   data: {
@@ -1034,7 +1037,7 @@ define([
                   data: { 
                     positions: {
                       start: { x: currentPointerPosition.x, y: currentPointerPosition.y },
-                      end: { x: currentPointerPosition.x + graffiti.stickerMinimumSize, y: currentPointerPosition.y + graffiti.stickerMinimumSize },
+                      end: { x: currentPointerPosition.x + minSize, y: currentPointerPosition.y + minSize },
                     }
                   }
                 },
@@ -1361,7 +1364,7 @@ define([
       // calculate correct offsets based on innerCellRect / dx, dy etc
       drawStickersForCell: (cellId, stickerPermanence,record) => {
         graffiti.placeStickerCanvas(cellId, stickerPermanence);
-        let stickerType, stickerX, stickerY, width, height, stickerWidth, stickerHeight, generatedStickerElem, pen, positions, p1x,p1y,p2x,p2y;
+        let stickerX, stickerY, width, height, stickerWidth, stickerHeight, generatedStickerElem, pen, type, positions, p1x,p1y,p2x,p2y;
         let newInnerHtml = [];
         let stickersRecords;
         let canvasElem = graffiti.stickers[stickerPermanence][cellId].canvas;
@@ -1421,7 +1424,8 @@ define([
                 color:  pen.color,
                 dashed: pen.dash, 
                 dimensions: dimensions,
-                endpoints: { p1: {x: positions.start.x, y: positions.start.y }, p2: { x: positions.end.x, y: positions.end.y } }
+                endpoints: { p1: {x: positions.start.x, y: positions.start.y }, p2: { x: positions.end.x, y: positions.end.y } },
+                usesArrow: true
               });
               break;
           }
@@ -1439,7 +1443,7 @@ define([
         const activeStickerIndex = graffiti.activeStickerTracker.activeStickerIndex;
         const stickerRecord = state.createDrawingRecord();
         graffiti.stickers[stickerPermanence][cellId].stickers[activeStickerIndex] = stickerRecord;
-        console.log('stickers:', activeStickerIndex, graffiti.stickers[stickerPermanence][cellId].stickers);
+        //console.log('stickers:', activeStickerIndex, graffiti.stickers[stickerPermanence][cellId].stickers);
 
         state.storeStickersStateForCell(graffiti.stickers[stickerPermanence][cellId].stickers, cellId);
         // Now rerender all stickers for this cell
@@ -2716,7 +2720,7 @@ define([
           case 'draw':
             graffiti.placeCanvas(record.cellId, record.pen.permanence);
             graffiti.setCanvasStyle(record.cellId, record.pen.type, record.pen.dash, record.pen.color, record.pen.permanence);
-            const offsetPosition = graffiti.computeOffsetPosition(record, false);
+            // const offsetPosition = graffiti.computeOffsetPosition(record, false);
             graffiti.updateDrawingDisplay(record.cellId, 
                                           record.positions.start.x, 
                                           record.positions.start.y,
