@@ -368,16 +368,22 @@ define([], () => {
 
       const thePath = sticker.makeSvgElement('path',pathObj);
 
-      const renderedSvg = sticker.renderSvg([
+      let cssTransform = '';
+      if (opts.cssTransform !== undefined) {
+        cssTransform = opts.cssTransform;
+      }
+      const renderParms = [
         {
           el: thePath,
           x: opts.dimensions.x,
           y : opts.dimensions.y,
           width: opts.dimensions.width,
           height: opts.dimensions.height,
-          viewBox: opts.viewBox
+          viewBox: opts.viewBox,
+          cssTransform: cssTransform
         }
-      ]);
+      ];
+      const renderedSvg = sticker.renderSvg(renderParms);
       return renderedSvg;
     },
 
