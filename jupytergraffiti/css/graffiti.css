@@ -269,7 +269,6 @@
 }
 
 #graffiti-stickers-shell {
-  height:38px;
 }
 
 #graffiti-stickers-header {
@@ -278,8 +277,12 @@
 }
 
 #graffiti-stickers-body {
-  display:flex;
   align-items:left;
+}
+
+#graffiti-stickers-body div {
+  display:flex;
+  margin-bottom:2px;
 }
 
 .graffiti-sticker-button {

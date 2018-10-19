@@ -510,6 +510,13 @@ define([
           color:iconColor, 
           strokeWidth:iconStrokeWidth
         });
+        const sigma = stickerLib.makeSigma({
+          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
+          dashed:'solid',
+          dashWidth:2,
+          color:iconColor, 
+          strokeWidth:iconStrokeWidth
+        });
 
         const lineWithArrow = stickerLib.makeLine({
           color:'black',
@@ -529,20 +536,27 @@ define([
                                       '<div id="graffiti-stickers-shell">' +
                                       '  <div id="graffiti-stickers-header">Stickers</div>' +
                                       '  <div id="graffiti-stickers-body">' +
-                                      '    <div class="graffiti-sticker-button" id="graffiti-sticker-rightTriangle">' + rightTriangle + '</div>' +
-                                      '    <div class="graffiti-sticker-button" id="graffiti-sticker-isocelesTriangle">' + isocelesTriangle + '</div>' +
-                                      '    <div class="graffiti-sticker-button" id="graffiti-sticker-rectangle">' + rectangle + '</div>' +
-                                      '    <div class="graffiti-sticker-button" id="graffiti-sticker-lineWithArrow">' + lineWithArrow + '</div>' +
-                                      '    <div class="graffiti-sticker-button" id="graffiti-sticker-ribbon">' + ribbon + '</div>' +
-                                      '  </div>' +
+                                      '    <div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-rightTriangle">' + rightTriangle + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-isocelesTriangle">' + isocelesTriangle + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-rectangle">' + rectangle + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-lineWithArrow">' + lineWithArrow + '</div>' +
+                                      '    </div>' +
+                                      '    <div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-ribbon">' + ribbon + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-sigma">' + sigma + '</div>' +
+                                      '    </div>' +
                                       '</div>',
                                       [
                                         {
-                                          ids: ['graffiti-sticker-rightTriangle',
-                                                'graffiti-sticker-isocelesTriangle',
-                                                'graffiti-sticker-rectangle', 
-                                                'graffiti-sticker-lineWithArrow',
-                                                'graffiti-sticker-ribbon'],
+                                          ids: [
+                                            'graffiti-sticker-rightTriangle',
+                                            'graffiti-sticker-isocelesTriangle',
+                                            'graffiti-sticker-rectangle', 
+                                            'graffiti-sticker-lineWithArrow',
+                                            'graffiti-sticker-ribbon',
+                                            'graffiti-sticker-sigma'
+                                          ],
                                           event: 'click',
                                           fn: (e) => {
                                             let stickerId = $(e.target).attr('id');
@@ -1422,6 +1436,9 @@ define([
           }
           stickerWidth =  Math.abs(positions.end.x - positions.start.x);
           stickerHeight = Math.abs(positions.end.y - positions.start.y);
+          const transformX = Math.sign(positions.end.x - positions.start.x);
+          const transformY = Math.sign(positions.end.y - positions.start.y);
+          const cssTransform = 'scale(' + transformX + ',' + transformY + ')';
           const dimensions = {
             x: stickerX,
             y: stickerY,
@@ -1452,6 +1469,16 @@ define([
                 fill:   pen.fill,
                 dashed: pen.dash, 
                 dimensions: dimensions,
+                cssTransform: cssTransform
+              });
+              break;
+            case 'sigma':
+              generatedStickerHtml = stickerLib.makeSigma({
+                color:  pen.color,
+                fill:   pen.fill,
+                dashed: pen.dash, 
+                dimensions: dimensions,
+                cssTransform: cssTransform
               });
               break;
             case 'ribbon':
