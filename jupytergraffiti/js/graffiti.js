@@ -517,7 +517,7 @@ define([
           color:iconColor, 
           strokeWidth:iconStrokeWidth
         });
-        const grid = stickerLib.makeGrid({
+        const axis = stickerLib.makeAxis({
           dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
           dashed:'solid',
           dashWidth:2,
@@ -552,7 +552,7 @@ define([
                                       '    <div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-ribbon">' + ribbon + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-sigma">' + sigma + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-grid">' + grid + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-axis">' + axis + '</div>' +
                                       '    </div>' +
                                       '</div>',
                                       [
@@ -564,7 +564,7 @@ define([
                                             'graffiti-sticker-lineWithArrow',
                                             'graffiti-sticker-ribbon',
                                             'graffiti-sticker-sigma',
-                                            'graffiti-sticker-grid',
+                                            'graffiti-sticker-axis',
                                           ],
                                           event: 'click',
                                           fn: (e) => {
@@ -1493,8 +1493,8 @@ define([
                 cssTransform: cssTransform
               });
               break;
-            case 'grid':
-              generatedStickerHtml = stickerLib.makeGrid({
+            case 'axis':
+              generatedStickerHtml = stickerLib.makeAxis({
                 color:  pen.color,
                 fill:   pen.fill,
                 dashed: pen.dash, 

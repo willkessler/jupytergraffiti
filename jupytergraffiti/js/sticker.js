@@ -545,7 +545,7 @@ define([], () => {
       );
     },
     
-    makeGrid: (opts) => {
+    makeAxis: (opts) => {
       return sticker.makeSimplePath(
         $.extend(opts, {
           strokeWidth: opts.strokeWidth,
