@@ -517,6 +517,13 @@ define([
           color:iconColor, 
           strokeWidth:iconStrokeWidth
         });
+        const grid = stickerLib.makeGrid({
+          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
+          dashed:'solid',
+          dashWidth:2,
+          color:iconColor, 
+          strokeWidth:iconStrokeWidth
+        });
 
         const lineWithArrow = stickerLib.makeLine({
           color:'black',
@@ -534,7 +541,7 @@ define([
         const checkMark = stickerLib.makeCheckmark(iconSize/4,iconSize/4,iconSize,iconSize);
         graffiti.setupOneControlPanel('graffiti-stickers-controls', 
                                       '<div id="graffiti-stickers-shell">' +
-                                      '  <div id="graffiti-stickers-header">Stickers</div>' +
+                                      '  <div id="graffiti-stickers-header">Stickers <span>(Select, then click & drag)</span></div>' +
                                       '  <div id="graffiti-stickers-body">' +
                                       '    <div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-rightTriangle">' + rightTriangle + '</div>' +
@@ -545,6 +552,7 @@ define([
                                       '    <div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-ribbon">' + ribbon + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-sigma">' + sigma + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-grid">' + grid + '</div>' +
                                       '    </div>' +
                                       '</div>',
                                       [
@@ -555,7 +563,8 @@ define([
                                             'graffiti-sticker-rectangle', 
                                             'graffiti-sticker-lineWithArrow',
                                             'graffiti-sticker-ribbon',
-                                            'graffiti-sticker-sigma'
+                                            'graffiti-sticker-sigma',
+                                            'graffiti-sticker-grid',
                                           ],
                                           event: 'click',
                                           fn: (e) => {
@@ -1436,6 +1445,9 @@ define([
           }
           stickerWidth =  Math.abs(positions.end.x - positions.start.x);
           stickerHeight = Math.abs(positions.end.y - positions.start.y);
+          if (graffiti.shiftKeyIsDown) {
+            stickerHeight = stickerWidth; // make things square when shift key is down
+          }
           const transformX = Math.sign(positions.end.x - positions.start.x);
           const transformY = Math.sign(positions.end.y - positions.start.y);
           const cssTransform = 'scale(' + transformX + ',' + transformY + ')';
@@ -1474,6 +1486,15 @@ define([
               break;
             case 'sigma':
               generatedStickerHtml = stickerLib.makeSigma({
+                color:  pen.color,
+                fill:   pen.fill,
+                dashed: pen.dash, 
+                dimensions: dimensions,
+                cssTransform: cssTransform
+              });
+              break;
+            case 'grid':
+              generatedStickerHtml = stickerLib.makeGrid({
                 color:  pen.color,
                 fill:   pen.fill,
                 dashed: pen.dash, 
@@ -1924,7 +1945,7 @@ define([
         $('body').keydown((e) => {
           const activity = state.getActivity();
           let stopProp = false;
-          //console.log('keydown e:', e);
+          //console.log('keydown e.which:', e.which);
           switch (e.which) {
             case 32: // space key stops playback
               if (activity === 'playing') {
@@ -1948,6 +1969,9 @@ define([
                   break;
               }
               break;
+            case 16: // shift key
+              graffiti.shiftKeyIsDown = true;
+              break;
               //          case 13: // enter key
               //            break;
               // case 18: // meta key
@@ -1967,6 +1991,15 @@ define([
           return true;
         });
 
+        $('body').keyup((e) => {
+          //console.log('keyUp e.which:', e.which);
+          switch (e.which) {
+            case 16:
+              graffiti.shiftKeyIsDown = false;
+              break;
+          }
+        });
+        
         window.onmousemove = (e) => {
           //console.log('cursorPosition:[',e.clientX, e.clientY, ']');
           //console.log('mouse_e:', e.pageX, e.pageY);

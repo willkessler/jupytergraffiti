@@ -276,6 +276,11 @@
   margin-bottom:2px;
 }
 
+#graffiti-stickers-header span {
+  text-transform: none !important;
+  font-style:italic;
+}
+
 #graffiti-stickers-body {
   align-items:left;
 }
