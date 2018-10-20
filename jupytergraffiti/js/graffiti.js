@@ -507,7 +507,14 @@ define([
           dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
           dashed:'dashed',  
           dashWidth:2,
-          color:iconColor, 
+          color:iconColor,
+          iconUsage: true,
+          strokeWidth:iconStrokeWidth
+        });
+        const xMark = stickerLib.makeXmark({
+          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
+          dashed:'solid',
+          dashWidth:2,
           strokeWidth:iconStrokeWidth
         });
         const ribbon = stickerLib.makeRibbon({
@@ -531,6 +538,13 @@ define([
           color:iconColor, 
           strokeWidth:iconStrokeWidth
         });
+        const grid = stickerLib.makeGrid({
+          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
+          dashed:'solid',
+          dashWidth:2,
+          color:iconColor, 
+          strokeWidth:1
+        });
         const bomb = stickerLib.makeBomb({
           dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
           dashed:'solid',
@@ -538,6 +552,29 @@ define([
           color:iconColor, 
           strokeWidth:iconStrokeWidth
         });
+        const smiley = stickerLib.makeSmiley({
+          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
+          dashed:'solid',
+          dashWidth:2,
+          color:iconColor, 
+          strokeWidth:iconStrokeWidth
+        });
+        const horizontalBrackets = stickerLib.makeHorizontalBrackets({
+          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
+          dashed:'solid',
+          dashWidth:2,
+          color:iconColor, 
+          strokeWidth:iconStrokeWidth
+        });
+        const verticalBrackets = stickerLib.makeVerticalBrackets({
+          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
+          dashed:'solid',
+          dashWidth:2,
+          color:iconColor, 
+          strokeWidth:iconStrokeWidth
+        });
+        const leftCurlyBrace = stickerLib.makeSymmetricCurlyBraces(iconMargin, iconMargin, iconSize, iconSize);
+        const rightCurlyBrace = stickerLib.makeSymmetricCurlyBraces(iconMargin, iconMargin, iconSize, iconSize);
 
         const lineWithArrow = stickerLib.makeLine({
           color:'black',
@@ -550,24 +587,33 @@ define([
           arrowHeadSize: 10,
         });
 
-        const leftCurlyBrace = stickerLib.makeLeftCurlyBrace(iconSize/4,iconSize/4,iconSize);
-        const rightCurlyBrace = stickerLib.makeRightCurlyBrace(iconSize/4,iconSize/4,iconSize);
         graffiti.setupOneControlPanel('graffiti-stickers-controls', 
                                       '<div id="graffiti-stickers-shell">' +
                                       '  <div id="graffiti-stickers-header">Stickers <span>(Select, then click & drag)</span></div>' +
                                       '  <div id="graffiti-stickers-body">' +
                                       '    <div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-rectangle">' + rectangle + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-rightTriangle">' + rightTriangle + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-isocelesTriangle">' + isocelesTriangle + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-rectangle">' + rectangle + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-lineWithArrow">' + lineWithArrow + '</div>' +
                                       '    </div>' +
                                       '    <div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-checkmark">' + checkMark + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-xmark">' + xMark + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-axis">' + axis + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-grid">' + grid + '</div>' +
+                                      '    </div>' +
+                                      '    <div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-ribbon">' + ribbon + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-sigma">' + sigma + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-axis">' + axis + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-bomb">' + bomb + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-smiley">' + smiley + '</div>' +
+                                      '    </div>' +
+                                      '    <div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-horizontalBrackets">' + horizontalBrackets + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-verticalBrackets">' + verticalBrackets + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-leftCurlyBrace">' + leftCurlyBrace + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-rightCurlyBrace">' + rightCurlyBrace + '</div>' +
                                       '    </div>' +
                                       '</div>',
                                       [
@@ -578,10 +624,17 @@ define([
                                             'graffiti-sticker-rectangle', 
                                             'graffiti-sticker-lineWithArrow',
                                             'graffiti-sticker-checkmark',
+                                            'graffiti-sticker-xmark',
+                                            'graffiti-sticker-grid',
                                             'graffiti-sticker-ribbon',
                                             'graffiti-sticker-sigma',
                                             'graffiti-sticker-axis',
                                             'graffiti-sticker-bomb',
+                                            'graffiti-sticker-smiley',
+                                            'graffiti-sticker-horizontalBrackets',
+                                            'graffiti-sticker-verticalBrackets',
+                                            'graffiti-sticker-leftCurlyBrace',
+                                            'graffiti-sticker-rightCurlyBrace',
                                           ],
                                           event: 'click',
                                           fn: (e) => {
@@ -1518,6 +1571,24 @@ define([
                 dimensions: dimensions
               });
               break;
+            case 'xmark':
+              generatedStickerHtml = stickerLib.makeXmark({
+                strokeWidth: 2,
+                color:  'red',
+                dashed: pen.dash, 
+                dimensions: dimensions
+              });
+              break;
+            case 'grid':
+              generatedStickerHtml = stickerLib.makeGrid({
+                color:  pen.color,
+                fill:   pen.fill,
+                dashed: pen.dash, 
+                dimensions: dimensions,
+                cssTransform: cssTransform,
+                strokeWidth: 1
+              });
+              break;
             case 'axis':
               generatedStickerHtml = stickerLib.makeAxis({
                 color:  pen.color,
@@ -1536,8 +1607,33 @@ define([
                 cssTransform: cssTransform
               });
               break;
+            case 'smiley':
+              generatedStickerHtml = stickerLib.makeSmiley({
+                color:  pen.color,
+                fill:   pen.fill,
+                dashed: pen.dash, 
+                dimensions: dimensions,
+                cssTransform: cssTransform
+              });
+              break;
             case 'ribbon':
               generatedStickerHtml = stickerLib.makeRibbon({
+                color:  pen.color,
+                fill:   pen.fill,
+                dashed: pen.dash, 
+                dimensions: dimensions,
+              });
+              break;
+            case 'horizontalBrackets':
+              generatedStickerHtml = stickerLib.makeHorizontalBrackets({
+                color:  pen.color,
+                fill:   pen.fill,
+                dashed: pen.dash, 
+                dimensions: dimensions,
+              });
+              break;
+            case 'verticalBrackets':
+              generatedStickerHtml = stickerLib.makeVerticalBrackets({
                 color:  pen.color,
                 fill:   pen.fill,
                 dashed: pen.dash, 

@@ -295,57 +295,6 @@ define([], () => {
       return renderedSvg;
     },
 
-    // checkmark
-/*
-    makeCheckmark: (x, y, width, height, color) => {
-      const viewBox = '0 0 587 783.75';
-      const checkmarkPath =
-        sticker.makeSvgElement('path',
-                               {
-                                 fill: '#' + color,
-                                 "stroke-width":"4",
-                                 d: "M0 303c61,65 122,129 184,194 134,-166 227,-376 403,-497 -181,160 -285,402 -400,627 -62,-108 -125,-216 -187,-324z"
-                               }
-        );
-
-      const renderedSvg = sticker.renderSvg([
-        {
-          el: checkmarkPath,
-          width: width,
-          height: height,
-          viewBox: viewBox,
-          x: x,
-          y : y
-        }
-      ]);
-      return renderedSvg;
-    },
-    */
-
-    // X ("wrong") symbol
-    makeX: (x, y, size, color) => {
-      const viewBox = '0 0 233 291.25';
-      const xPath =
-        sticker.makeSvgElement('polygon',
-                               {
-                                 fill: '#' + color,
-                                 points: "233,22 211,0 117,94 22,0 0,22 94,117 0,211 22,233 117,139 211,233 233,211 139,117"
-                               }
-        );
-
-      const renderedSvg = sticker.renderSvg([
-        {
-          el: xPath,
-          width: size,
-          height: size,
-          viewBox: viewBox,
-          x: x,
-          y : y
-        }
-      ]);
-      return renderedSvg;
-    },
-
     makeSimplePath: (opts) => {
       const viewBox = opts.viewBox;
       const color = (opts.color === undefined ? '#000' : opts.color);
@@ -367,6 +316,8 @@ define([], () => {
 
         if (opts.fill !== undefined) {
           pathObj.fill = opts.fill;
+        } else {
+          pathObj['fill-opacity'] = 0;
         }
 
         if ((opts.dashed !== undefined) && (opts.dashed === 'dashed')) {
@@ -429,9 +380,23 @@ define([], () => {
     },
 
     makeHorizontalBrackets: (opts) => {
+      return sticker.makeSimplePath(
+        $.extend(opts, {
+          viewBox: '0 0 10 10',
+          d: ["M 0 1 L 0 0 L 10 0 L 10 1",
+              "M 0 9 L 0 10 L 10 10 L 10 9"]
+        })
+      );
     },
 
     makeVerticalBrackets: (opts) => {
+      return sticker.makeSimplePath(
+        $.extend(opts, {
+          viewBox: '0 0 10 10',
+          d: ["M 1 0 L 0 0 L 0 10 L 1 10",
+              "M 9 0 L 10 0 L 10 10 L 9 10"]
+        })
+      );
     },
 
     makeRectangle: (opts) => {
@@ -475,7 +440,7 @@ define([], () => {
       return sticker.makeSimplePath(
         $.extend(opts, {
           strokeWidth: 2,
-          viewBox: '0 0 16 20',
+          viewBox: '0 0 16 16',
           d: ['M2,1l5.46,7.27L2,15h12v-4h-1v1c0,0.552-0.448,1-1,1H4.97l4.39-5.52L5.25,2H12c0.552,0,1,0.448,1,1v1h1V1H2z'],
           fill: opts.color
         })
@@ -486,7 +451,7 @@ define([], () => {
       return sticker.makeSimplePath(
         $.extend(opts, {
           strokeWidth: 2,
-          viewBox: '0 0 50 62.5',
+          viewBox: '0 0 50 50',
           d: ['M25,1A24,24,0,1,0,49,25,24,24,0,0,0,25,1Zm0,46A22,22,0,1,1,47,25,22,22,0,0,1,25,47ZM35.77,33.32a1,1,0,0,1-.13,1.41C31.73,38,28.06,39.1,24.9,39.1a16,16,0,0,1-10.63-4.45,1,1,0,0,1,1.45-1.38c0.34,0.35,8.35,8.52,18.63-.08A1,1,0,0,1,35.77,33.32ZM15,19a3,3,0,1,1,3,3A3,3,0,0,1,15,19Zm14,0a3,3,0,1,1,3,3A3,3,0,0,1,29,19Z'],
         })
       );
@@ -540,7 +505,7 @@ define([], () => {
       return sticker.makeSimplePath(
         $.extend(opts, {
           strokeWidth: 2,
-          viewBox: '0 0 100 125',
+          viewBox: '0 0 100 100',
           d: ["M76.979,12.22c-0.366-0.579-1.004-0.93-1.689-0.93H59.165c-0.768,0-1.468,0.439-1.802,1.132l-6.634,13.76l-7.117-13.808  c-0.343-0.666-1.028-1.084-1.777-1.084H24.71c-0.686,0-1.323,0.351-1.689,0.93c-0.367,0.579-0.411,1.306-0.118,1.926l15.213,32.151  c-6.585,4.021-10.99,11.274-10.99,19.538C27.125,78.448,37.387,88.71,50,88.71s22.875-10.262,22.875-22.875  c0-8.264-4.405-15.518-10.99-19.538l15.213-32.151C77.391,13.525,77.347,12.799,76.979,12.22z M27.869,15.29h12.747l14.572,28.271  C53.521,43.172,51.785,42.96,50,42.96c-2.927,0-5.724,0.559-8.299,1.564L27.869,15.29z M68.875,65.835  c0,10.407-8.468,18.875-18.875,18.875s-18.875-8.468-18.875-18.875S39.593,46.96,50,46.96S68.875,55.428,68.875,65.835z   M59.201,42.617l-6.178-11.984l7.397-15.343h11.71L59.201,42.617z M48.207,53.277l-2.999,6.074l-6.703,0.973  c-0.754,0.109-1.38,0.638-1.615,1.361s-0.039,1.519,0.506,2.051l4.852,4.728l-1.146,6.677c-0.128,0.75,0.181,1.509,0.796,1.956  c0.349,0.253,0.762,0.382,1.176,0.382c0.318,0,0.638-0.076,0.931-0.229L50,74.098l5.994,3.151c0.675,0.353,1.491,0.295,2.106-0.152  s0.924-1.206,0.796-1.956l-1.145-6.677l4.852-4.728c0.545-0.532,0.741-1.327,0.506-2.051s-0.861-1.252-1.615-1.361l-6.703-0.973  l-2.997-6.074c-0.337-0.683-1.032-1.115-1.794-1.115C49.239,52.162,48.544,52.595,48.207,53.277z M51.669,62.064  c0.292,0.591,0.855,1,1.507,1.095l3.732,0.542l-2.7,2.632c-0.472,0.46-0.687,1.122-0.576,1.771l0.638,3.72l-3.339-1.756  c-0.582-0.307-1.279-0.307-1.861,0l-3.34,1.756l0.638-3.72c0.11-0.648-0.104-1.311-0.575-1.771l-2.701-2.632l3.732-0.542  c0.651-0.095,1.215-0.504,1.506-1.095L50,58.682L51.669,62.064z"],
           fill: opts.color
         })
@@ -551,7 +516,7 @@ define([], () => {
       return sticker.makeSimplePath(
         $.extend(opts, {
           strokeWidth: opts.strokeWidth,
-          viewBox: '0 0 100 125',
+          viewBox: '0 0 100 100',
           d:["M89.7,85.7c0,0.2-0.1,0.3-0.2,0.4l-3.2,2.2c-0.1,0.1-0.2,0.1-0.3,0.1c-0.1,0-0.2,0-0.2-0.1c-0.2-0.1-0.3-0.3-0.3-0.4v-1.2  H13c-0.6,0-1-0.4-1-1V15.8h-1.2c-0.2,0-0.4-0.1-0.4-0.3c-0.1-0.2-0.1-0.4,0-0.5l2.2-3.2c0.2-0.3,0.6-0.3,0.8,0l2.2,3.2  c0.1,0.2,0.1,0.4,0,0.5c-0.1,0.2-0.3,0.3-0.4,0.3H14v68.9h71.4v-1.2c0-0.2,0.1-0.4,0.3-0.4c0.2-0.1,0.4-0.1,0.5,0l3.2,2.2  C89.6,85.4,89.7,85.6,89.7,85.7z"],
           fill: 'solid',
         })
@@ -562,7 +527,7 @@ define([], () => {
       return sticker.makeSimplePath(
         $.extend(opts, {
           strokeWidth: opts.strokeWidth,
-          viewBox: '0 0 100 125',
+          viewBox: '0 0 100 100',
           d:["M44.5,44.4v-3.9c0-1.1-0.9-2-2-2h-5.6c0-2.2,0.3-5.1,1.8-6.9c1.1-1.3,2.6-1.9,4.7-1.9c3.1,0,6.1,1.2,8.9,2.3  c5.4,2.2,11.1,4.4,16.9-1.6c0.6-0.6,0.6-1.5,0-2.1c-0.6-0.6-1.5-0.6-2.1,0c-4.4,4.6-8.5,3-13.6,0.9c-3.1-1.3-6.4-2.6-10-2.6  c-3,0-5.3,1-7,3c-2.2,2.6-2.5,6.3-2.5,8.8h-5.1c-1.1,0-2,0.9-2,2v3.9C18.3,47.9,12.3,56.3,12.3,66c0,12.9,10.4,23.3,23.3,23.3  S59,78.9,59,66C59,56.3,53,47.9,44.5,44.4z M32.9,80.3c-0.2,0.6-0.8,1.1-1.4,1.1c-0.1,0-0.3,0-0.4-0.1c-6.8-2-11.3-8.2-11.3-15.3  c0-3.5,1.1-6.9,3.3-9.7c0.5-0.7,1.4-0.8,2.1-0.3c0.7,0.5,0.8,1.4,0.3,2.1c-1.7,2.3-2.7,5-2.7,7.9c0,5.7,3.8,10.8,9.2,12.4  C32.7,78.6,33.2,79.5,32.9,80.3z",
              "M82.3,14.5c0.5-0.6,0.5-1.6-0.2-2.1c-0.6-0.5-1.6-0.5-2.1,0.2l-8.6,10.1c-0.5,0.6-0.5,1.6,0.2,2.1c0.3,0.2,0.6,0.4,1,0.4  c0.4,0,0.8-0.2,1.1-0.5L82.3,14.5z",
              "M60.7,13.9C60.7,13.9,60.7,13.9,60.7,13.9l3.9,8.7c0,0,0,0,0,0l0.5,1.1c0.3,0.6,0.8,0.9,1.4,0.9c0.2,0,0.4,0,0.6-0.1  c0.8-0.3,1.1-1.2,0.7-2l-0.5-1.1c0,0,0,0,0,0l-3.9-8.7c0,0,0,0,0,0l-0.5-1.1c-0.3-0.8-1.2-1.1-2-0.7c-0.8,0.3-1.1,1.2-0.7,2  L60.7,13.9z",
@@ -596,6 +561,66 @@ define([], () => {
           fill:'#4f4',
           dimensions:dimensions,
           dashed:undefined
+        })
+      );
+    },
+
+    makeXmark: (opts) => {
+      let dimensions, strokeWidth;
+      if (opts.iconUsage) {
+        dimensions = $.extend({}, opts.dimensions);
+        strokeWidth = opts.strokeWidth;
+      } else {
+        strokeWidth = 3;
+        dimensions = { x: opts.dimensions.x, 
+                       y: opts.dimensions.y,
+                       width:  Math.max(opts.dimensions.width, 25)
+        };
+        dimensions.height = dimensions.width;
+      }
+      return sticker.makeSimplePath(
+        $.extend(opts, {
+          strokeWidth: strokeWidth,
+          viewBox: '0 0 100 100',
+          d:["M10 10 L 80 80 M 80 10 L 10 80"],
+          color: 'red',
+          dimensions: dimensions,
+          dashed: undefined
+        })
+      );
+    },
+
+    makeGrid: (opts) => {
+      let dimensions, strokeWidth;
+      if (opts.iconUsage) {
+        dimensions = $.extend({}, opts.dimensions);
+        strokeWidth = opts.strokeWidth;
+      } else {
+        strokeWidth = 3;
+        dimensions = { x: opts.dimensions.x, 
+                       y: opts.dimensions.y,
+                       width:  Math.max(opts.dimensions.width, 25)
+        };
+        dimensions.height = dimensions.width;
+      }
+      return sticker.makeSimplePath(
+        $.extend(opts, {
+          strokeWidth: strokeWidth,
+          viewBox: '0 0 100 100',
+          d:[
+            "M 0  0  L 100  0 " +
+            "M 0 25  L 100 25" +
+            "M 0 50  L 100 50" + 
+            "M 0 75  L 100 75" + 
+            "M 0 100 L 100 100" +
+            "M 0  0  L 0  100 " +
+            "M 25 0  L 25 100" +
+            "M 50 0  L 50 100" + 
+            "M 75 0  L 75 100" + 
+            "M 100 0 L 100 100"
+          ],
+          dimensions: dimensions,
+          dashed: undefined
         })
       );
     },
