@@ -25,6 +25,19 @@
   color:#000;
 }
 
+#graffiti-rapidplay-buttons svg {
+  width:20px;
+  height:12px;
+}
+
+#graffiti-rapidplay-on-btn {
+  display:block;
+}
+
+#graffiti-rapidplay-off-btn {
+  display:none;
+}
+
 .graffiti-cursor {
   position: fixed;
   z-index:101;
