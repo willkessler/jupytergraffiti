@@ -299,11 +299,7 @@ define([], () => {
       const viewBox = opts.viewBox;
       const color = (opts.color === undefined ? '#000' : opts.color);
       const strokeWidth = (opts.strokeWidth === undefined ? 3 : opts.strokeWidth);
-      let pathObj, thePath;
-      let cssTransform = undefined;
-      if (opts.cssTransform !== undefined) {
-        cssTransform = opts.cssTransform;
-      }
+      let pathObj, thePath, parmBlock;
       let renderParms = [];
       for (let dRec of opts.d) {
         pathObj = 
@@ -329,15 +325,18 @@ define([], () => {
         }
 
         thePath = sticker.makeSvgElement('path',pathObj);
-        renderParms.push({
+        parmBlock = {          
           el: thePath,
           x: opts.dimensions.x,
           y : opts.dimensions.y,
           width: opts.dimensions.width,
           height: opts.dimensions.height,
           viewBox: opts.viewBox,
-          cssTransform: cssTransform
-        });
+        };
+        if (opts.cssTransform !== undefined) {
+          parmBlock.cssTransform = opts.cssTransform;
+        }
+        renderParms.push(parmBlock);
       }
       const renderedSvg = sticker.renderSvg(renderParms);
       return renderedSvg;
@@ -393,8 +392,8 @@ define([], () => {
       return sticker.makeSimplePath(
         $.extend(opts, {
           viewBox: '0 0 10 10',
-          d: ["M 1 0 L 0 0 L 0 10 L 1 10",
-              "M 9 0 L 10 0 L 10 10 L 9 10"]
+          d: ["M 0.5 0 L 0 0 L 0 10 L 0.5 10",
+              "M 9.5 0 L 10 0 L 10 10 L 9.5 10"]
         })
       );
     },

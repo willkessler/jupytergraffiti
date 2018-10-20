@@ -34,6 +34,7 @@ define([
         graffiti.penColor = 'black';
 
         graffiti.recordingIntervalMs = 10; // In milliseconds, how frequently we sample the state of things while recording.
+        graffiti.playbackIntervalMs = graffiti.recordingIntervalMs;  // In milliseconds, loop speed for playback.  Must match recordingIntervalMs.
         graffiti.storageInProcess = false;
         graffiti.highlightMarkText = undefined;
         graffiti.cmLineHeight = 17.0001; // line height of code mirror lines as styled in Jupyter
@@ -1564,6 +1565,7 @@ define([
                 color:  pen.color,
                 fill:   pen.fill,
                 dashed: pen.dash, 
+                strokeWidth: 4,
                 dimensions: dimensions
               });
               break;
@@ -1572,6 +1574,7 @@ define([
                 color:  pen.color,
                 fill:   pen.fill,
                 dashed: pen.dash, 
+                strokeWidth: 4,
                 dimensions: dimensions,
               });
               break;
@@ -1581,6 +1584,7 @@ define([
                 fill:   pen.fill,
                 dashed: pen.dash, 
                 dimensions: dimensions,
+                strokeWidth: 4,
                 cssTransform: cssTransform
               });
               break;
@@ -1659,6 +1663,7 @@ define([
                 color:  pen.color,
                 fill:   pen.fill,
                 dashed: pen.dash, 
+                strokeWidth:5,
                 dimensions: dimensions,
               });
               break;
@@ -1667,6 +1672,7 @@ define([
                 color:  pen.color,
                 fill:   pen.fill,
                 dashed: pen.dash, 
+                strokeWidth:5,
                 dimensions: dimensions,
               });
               break;
@@ -3419,7 +3425,7 @@ define([
               graffiti.updateDisplay(frameIndexes);
               //console.log('play interval, now=', utils.getNow());
             }
-          }, 10)
+          }, graffiti.playbackIntervalMs)
         );
       },
 
