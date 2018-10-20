@@ -22,6 +22,7 @@ define([
       state.scrollTop = undefined;
       state.selectedCellId = undefined;
       state.mute = false;
+      state.rapidPlay = false;
       state.recordedCursorPosition = { x: -1000, y: -1000 };
       state.viewInfo = undefined;
       state.recordingCellInfo = {};
@@ -207,6 +208,14 @@ define([
 
     setMute: (muteState) => {
       state.mute = muteState;
+    },
+
+    getRapidPlay: () => {
+      return state.rapidPlay;
+    },
+
+    setRapidPlay: (rapidPlayState) => {
+      state.rapidPlay = rapidPlayState;
     },
 
     shouldUpdateDisplay: (kind, frameIndex) => {
