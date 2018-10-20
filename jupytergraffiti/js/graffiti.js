@@ -503,6 +503,13 @@ define([
           color:iconColor, 
           strokeWidth:iconStrokeWidth
         });
+        const checkMark = stickerLib.makeCheckmark({
+          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
+          dashed:'dashed',  
+          dashWidth:2,
+          color:iconColor, 
+          strokeWidth:iconStrokeWidth
+        });
         const ribbon = stickerLib.makeRibbon({
           dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
           dashed:'solid',
@@ -524,6 +531,13 @@ define([
           color:iconColor, 
           strokeWidth:iconStrokeWidth
         });
+        const bomb = stickerLib.makeBomb({
+          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
+          dashed:'solid',
+          dashWidth:2,
+          color:iconColor, 
+          strokeWidth:iconStrokeWidth
+        });
 
         const lineWithArrow = stickerLib.makeLine({
           color:'black',
@@ -538,7 +552,6 @@ define([
 
         const leftCurlyBrace = stickerLib.makeLeftCurlyBrace(iconSize/4,iconSize/4,iconSize);
         const rightCurlyBrace = stickerLib.makeRightCurlyBrace(iconSize/4,iconSize/4,iconSize);
-        const checkMark = stickerLib.makeCheckmark(iconSize/4,iconSize/4,iconSize,iconSize);
         graffiti.setupOneControlPanel('graffiti-stickers-controls', 
                                       '<div id="graffiti-stickers-shell">' +
                                       '  <div id="graffiti-stickers-header">Stickers <span>(Select, then click & drag)</span></div>' +
@@ -550,9 +563,11 @@ define([
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-lineWithArrow">' + lineWithArrow + '</div>' +
                                       '    </div>' +
                                       '    <div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-checkmark">' + checkMark + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-ribbon">' + ribbon + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-sigma">' + sigma + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-axis">' + axis + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-bomb">' + bomb + '</div>' +
                                       '    </div>' +
                                       '</div>',
                                       [
@@ -562,9 +577,11 @@ define([
                                             'graffiti-sticker-isocelesTriangle',
                                             'graffiti-sticker-rectangle', 
                                             'graffiti-sticker-lineWithArrow',
+                                            'graffiti-sticker-checkmark',
                                             'graffiti-sticker-ribbon',
                                             'graffiti-sticker-sigma',
                                             'graffiti-sticker-axis',
+                                            'graffiti-sticker-bomb',
                                           ],
                                           event: 'click',
                                           fn: (e) => {
@@ -1493,8 +1510,25 @@ define([
                 cssTransform: cssTransform
               });
               break;
+            case 'checkmark':
+              generatedStickerHtml = stickerLib.makeCheckmark({
+                color:  pen.color,
+                fill:   pen.fill,
+                dashed: pen.dash, 
+                dimensions: dimensions
+              });
+              break;
             case 'axis':
               generatedStickerHtml = stickerLib.makeAxis({
+                color:  pen.color,
+                fill:   pen.fill,
+                dashed: pen.dash, 
+                dimensions: dimensions,
+                cssTransform: cssTransform
+              });
+              break;
+            case 'bomb':
+              generatedStickerHtml = stickerLib.makeBomb({
                 color:  pen.color,
                 fill:   pen.fill,
                 dashed: pen.dash, 
