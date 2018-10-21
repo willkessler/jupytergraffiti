@@ -23,6 +23,9 @@ define([
       state.selectedCellId = undefined;
       state.mute = false;
       state.rapidPlay = false;
+      state.rapidPlayTime = 0;
+      state.regularPlayRate = 1.0;
+      state.rapidPlayRate = 2.0;
       state.recordedCursorPosition = { x: -1000, y: -1000 };
       state.viewInfo = undefined;
       state.recordingCellInfo = {};
@@ -214,8 +217,27 @@ define([
       return state.rapidPlay;
     },
 
-    setRapidPlay: (rapidPlayState) => {
-      state.rapidPlay = rapidPlayState;
+    getRapidPlayRate: () => {
+      return state.rapidPlayRate;
+    },
+
+    getRegularPlayRate: () => {
+      return state.regularPlayRate;
+    },
+
+    setRapidPlay: (rapidPlay) => {
+      if (rapidPlay) {
+        state.rapidPlayStartTime = utils.getNow();
+      } else if (state.rapidPlay) {
+        // If we were already in rapidPlay mode and we are turning rapidPlay off, add to the total rapid play time played so far
+        // so that we can advance things correctly
+        state.rapidPlayTime += utils.getNow() - state.rapidPlayStartTime;
+      }
+      state.rapidPlay = rapidPlay;
+    },
+
+    resetRapidPlayTime: () => {
+      state.rapidPlayTime = 0;
     },
 
     shouldUpdateDisplay: (kind, frameIndex) => {
@@ -459,7 +481,9 @@ define([
 
     setPlaybackTimeElapsed: (timeElapsed) => {
       if (timeElapsed === undefined) {
-        state.playbackTimeElapsed = state.utils.getNow() - state.getPlaybackStartTime();
+        const timePlayedSoFar = state.getTimePlayedSoFar();
+        console.log('setPlaybackTimeElapsed: timePlayedSoFar=', timePlayedSoFar);
+        state.playbackTimeElapsed = timePlayedSoFar - state.getPlaybackStartTime();
       } else {
         state.playbackTimeElapsed = timeElapsed;
       }
@@ -485,6 +509,7 @@ define([
     resetPlayState: () => {
       state.resetOnNextPlay = false;
       state.playbackTimeElapsed = 0;
+      state.resetRapidPlayTime();
     },
 
     getActivity: () => {
@@ -998,7 +1023,15 @@ define([
     },
 
     getTimePlayedSoFar: () => {
-      return state.utils.getNow() - state.getPlaybackStartTime();
+      const now = utils.getNow();
+      let rapidPlayTimeSoFar = state.rapidPlayTime;
+      if (state.rapidPlay) {
+        rapidPlayTimeSoFar += now - state.rapidPlayStartTime;
+      }
+      const realTimePlayedSoFar = now - state.playbackStartTime;
+      // Add half the rapid play time to the total because rapid play is 2x real time play.
+      const correctedTimeSoFar = realTimePlayedSoFar + rapidPlayTimeSoFar / 2;
+      return correctedTimeSoFar;
     },
 
     storeCellStates: () => {

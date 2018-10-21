@@ -263,10 +263,6 @@ define([
                                       ]
         );
 
-        const rabbitIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:sketch="http://www.bohemiancoding.com/sketch/ns" viewBox="0 0 100 75" version="1.1" x="0px" y="10px"><g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" sketch:type="MSPage"><g sketch:type="MSArtboardGroup" transform="translate(0.000000, -7.000000)" fill="#000000"><path d="M60.1164483,76.5101184 C60.1164483,77.7869765 61.1184016,79.097951 62.3543737,79.4324469 L72.798828,82.2590697 C74.9502082,82.841306 76.9428079,85.1218308 77.229578,87.3473934 L77.4381368,88.9659749 L61.2268002,86.7611761 C59.0007748,86.4584288 55.762595,85.1122528 53.9830021,83.7528954 L30.0193357,65.4480423 C18.6673757,64.6909954 9.4627489,56.133214 7.77382209,45.1160791 L4.34635739,45.1647777 C1.94608449,45.1988816 -1.83318034e-16,43.2833095 -1.07537429e-17,40.8862227 L12.0835739,27.3645101 C17.4743573,21.3386402 23.6068695,17.4194231 31.6593886,17.4194231 C32.7498041,17.4194231 33.8233498,17.4912885 34.8755022,17.6305187 C36.0956627,17.7349159 37.3050822,17.9433886 38.4888396,18.2605754 C54.0954993,22.4423673 65.570761,42.6024939 65.570761,42.6024939 C66.516058,44.0861571 68.636741,45.6806441 70.3388841,46.136732 L71.0643059,46.3311082 C72.7686884,46.7877961 75.036606,46.0402598 76.1348435,44.6627794 L79.3667959,40.6090557 L69.0683577,35.5886404 C54.9830017,29.5 58.824985,11.8109045 58.824985,11.8109045 C58.9924242,10.7260817 59.7843012,10.4649372 60.587326,11.2216236 L82.7393229,32.0953411 L64.7779732,12.0675015 C65.0289152,8.20500861 68.1652109,7 68.1652109,7 L85.5324488,34.7272898 L86.921334,36.0360295 L96.0521825,42.4677019 C98.138955,43.9376022 99.8625925,47.2144004 99.8888571,49.7773535 L100.007257,61.3310185 L99.3236978,61.8899026 C97.5857982,63.3108255 94.5445704,63.6651439 92.5224884,62.6881932 L89.3807164,61.1702742 C86.2103299,59.6385304 81.4523901,60.2321429 78.7512966,62.4950512 L69.6842316,70.0912108 C68.6969982,70.9182902 67.3970043,71.7079683 65.972973,72.3860195 C65.450814,57.828347 59.4984737,45.9574271 46.7248907,37.1161254 C45.6127483,36.4326524 43.9592431,38.4195836 44.7777067,39.1109172 C56.0407574,49.2817354 60.1164483,60.3235994 60.1164483,74.5177084 L60.1164483,76.5101184 Z M95.0509461,53.9162538 C96.1764172,53.9162538 97.0887918,53.0084656 97.0887918,51.8886521 C97.0887918,50.7688386 96.1764172,49.8610504 95.0509461,49.8610504 C93.925475,49.8610504 93.0131004,50.7688386 93.0131004,51.8886521 C93.0131004,53.0084656 93.925475,53.9162538 95.0509461,53.9162538 L95.0509461,53.9162538 Z M19.9417759,92 L19.9417759,89.8393536 C19.9417758,87.5932185 21.6918837,85.2820263 23.828826,84.6248277 C23.828826,84.6248277 35.0800582,81.8619915 38.1368268,76.9378159 C38.1368268,76.9378159 46.7248911,83.7447645 46.7248911,83.7447645 C34.7889374,89.6827409 19.9417759,92 19.9417759,92 L19.9417759,92 Z" sketch:type="MSShapeGroup"/></g></g></svg>';
-
-        const snailIcon = '<svg style="transform:scaleX(-1.0)" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" version="1.1" x="0px" y="5px" viewBox="0 0 75 75"><g transform="translate(0,-952.36218)"><path style="text-indent:0;text-transform:none;direction:ltr;block-progression:tb;baseline-shift:baseline;color:#000000;enable-background:accumulate;" d="m 63.748703,971.36229 c -5.43917,0.046 -12.9678,1.9026 -17.33056,4.9688 -5.33006,3.7325 -9.84923,9.9737 -12.23149,20.2812 -1.91437,7.74631 -1.56839,15.38211 1.72054,19.75001 5.65023,-0.3712 12.79569,-0.6555 19.30136,-0.4375 -5.52288,-4.5469 -7.39127,-10.3988 -7.25756,-17.56251 -0.0291,-9.4042 7.41348,-15 14.82795,-15 6.96147,0.06 12.98292,5.6893 12.88842,13 -0.0443,5.72511 -4.66524,9.92801 -9.91658,10.00001 -3.86287,-0.055 -8.81178,-2.1402 -8.91553,-7.00003 0.012,-3.41788 2.27613,-6.76628 5.94369,-6.99998 0.52311,-0.01 1.00104,0.4716 1.00104,1 0,0.5284 -0.47793,1.01 -1.00104,1 -2.58389,0.4032 -3.81164,2.1726 -3.94161,4.99998 0.0869,3.54803 4.10317,4.92403 6.91345,5.00003 4.15393,-0.085 7.88782,-3.7511 7.94578,-8.00001 -0.0251,-5.3606 -4.55816,-11 -10.91762,-11 -6.44788,0 -12.88287,4.6227 -12.85715,12.9688 -0.0323,6.38281 1.10231,13.05131 8.54015,17.68741 10.33074,0.4959 17.71944,1.8254 22.77372,2.625 3.622699,-1.5245 6.11839,-4.1742 7.789365,-8 1.71466,-3.9255 2.5026,-9.064 2.5026,-15.25001 0,-13.3656 -12.517635,-24.0313 -27.778925,-24.0312 z m -45.73514,1 c -1.65858,0 -3.00313,1.3431 -3.00313,3 0,1.6569 1.34455,3 3.00313,3 0.59787,0 1.15869,-0.1992 1.62669,-0.5 1.92801,1.5462 3.44429,3.6637 3.409799,5.9375 -0.0532,2.3056 -1.432899,5.3535 -2.09593,10.1875 -0.37363,-0.053 -0.78261,-0.094 -1.18874,-0.094 -0.58486,0.01 -1.18456,0.1249 -1.81439,0.2813 0.087,-2.7692 -0.50124,-4.9363 -1.34515,-7.0625 -0.88646,-2.2334 -2.73222,-4.4208 -5.91241,-7.5 0.18193,-0.3868 0.31283,-0.7944 0.31283,-1.25 0,-1.6569 -1.3445495,-3 -3.0031295,-3 -1.65858,0 -3.00313,1.3431 -3.00313,3 0,1.6569 1.34455,3 3.00313,3 0.46283,0 0.89106,-0.1257 1.28258,-0.3125 3.0970895,3.0036 4.7355995,4.9984 5.4431695,6.7813 0.74291,1.8716 1.40489,3.8601 1.15746,7 -0.16002,0.067 -0.31086,0.1478 -0.46924,0.2187 -0.89952,8.26371 -0.58523,17.83861 2.47133,25.28131 3.12374,7.606 8.840111,13.0022 19.30135,13.0312 l 57.810216,0 c -0.672391,-1.924 -2.13834,-4.398 -4.410841,-6.7188 -2.40769,-2.4191 -5.888875,-4.6967 -9.635035,-6 -8.34215,-1.2926 -22.74908,-3.8874 -46.07925,-2.2187 -2.51776,-0.2143 -4.76029,-1.7063 -6.06882,-3.6563 -3.74447,-5.5541 -3.29333,-13.0509 -5.25548,-19.75001 -0.18057,-0.1675 -0.39608,-0.3318 -0.65693,-0.4687 0.62315,-4.7755 2.09036,-7.7341 2.1585,-10.6875 -0.1,-3.42 -1.90212,-5.6714 -4.19187,-7.5938 0.0934,-0.2898 0.15641,-0.5852 0.15641,-0.9062 0.0525,-1.7066 -1.59672,-2.9573 -3.00312,-2.9998 z" fill="#000000" fill-opacity="1" stroke="none" marker="none" visibility="visible" display="inline" overflow="visible"/></g></svg>';
-
         graffiti.setupOneControlPanel('graffiti-playback-controls', 
                                       '<div id="graffiti-narrator-info">' +
                                       '  <div id="graffiti-narrator-pic"></div>' +
@@ -298,11 +294,9 @@ define([
                                       '   </button>' +
                                       '  </div>' +
                                       '  <div id="graffiti-rapidplay-buttons">' +
-                                      '    <button class="btn btn-default btn-rapidplay-on" id="graffiti-rapidplay-on-btn" title="high speed playback">' +
-                                      rabbitIcon +
+                                      '    <button class="btn btn-default btn-rapidplay-on" id="graffiti-rapidplay-on-btn" title="high speed playback">' + '2x' +
                                       '   </button>' +
-                                      '   <button class="btn btn-default btn-rapidplay-off" id="graffiti-rapidplay-off-btn" title="regular speed playback">' +
-                                      snailIcon +
+                                      '   <button class="btn btn-default btn-rapidplay-off" id="graffiti-rapidplay-off-btn" title="regular speed playback">' + '2x' +
                                       '   </button>' +
                                       '  </div>' +
                                       '</div>' +
@@ -355,13 +349,7 @@ define([
                                           ids: ['graffiti-rapidplay-on-btn', 'graffiti-rapidplay-off-btn'],
                                           event: 'click',
                                           fn: (e) => {
-                                            if (state.getRapidPlay()) {
-                                              state.setRapidPlay(false);
-                                              graffiti.updateControlPanels();
-                                            } else {
-                                              state.setRapidPlay(true);
-                                              graffiti.updateControlPanels();
-                                            }
+                                            graffiti.toggleRapidPlay();
                                           }
                                         },
                                         {
@@ -898,6 +886,11 @@ define([
             } else {
               graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-sound-off-btn').hide().parent().find('#graffiti-sound-on-btn').show();
             }
+            if (state.getRapidPlay()) {
+              graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidplay-on-btn').hide().parent().find('#graffiti-rapidplay-off-btn').show();
+            } else {
+              graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidplay-off-btn').hide().parent().find('#graffiti-rapidplay-on-btn').show();
+            }
             if (state.getSetupForReset()) {
               graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-restart-play-link">Play movie again</span>, or</div>' +
                                    '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-postreset-link">Cancel</span> movie playback</div>',
@@ -1144,6 +1137,23 @@ define([
           ]);
           graffiti.hideDrawingScreen();
         }          
+      },
+
+      cancelRapidPlay: () => {
+        console.log('Graffiti: cancelRapidPlay');
+        state.setRapidPlay(false);
+        audio.updateAudioPlaybackRate();
+        graffiti.updateControlPanels();
+      },
+
+      toggleRapidPlay: () => {
+        if (state.getRapidPlay()) {
+          graffiti.cancelRapidPlay();
+        } else {
+          state.setRapidPlay(true);
+          audio.updateAudioPlaybackRate();
+          graffiti.updateControlPanels();
+        }
       },
 
       dimGraffitiCursor: () => {
@@ -3275,6 +3285,7 @@ define([
         // console.log('Graffiti: t:', t);
         const frameIndexes = state.getHistoryRecordsAtTime(t);
         state.clearSetupForReset();
+        state.resetRapidPlayTime();
         state.setPlaybackTimeElapsed(t);
         graffiti.wipeAllStickerDomCanvases();
         graffiti.updateDisplay(frameIndexes);
@@ -3293,6 +3304,7 @@ define([
         const timeLocation = target.val() / 1000;
         //console.log('slider value:', timeLocation);
         state.clearSetupForReset();
+        state.resetRapidPlayTime();
         graffiti.undimGraffitiCursor();
         const t = Math.min(state.getHistoryDuration() * timeLocation, state.getHistoryDuration() - 1);
         // Now we need to set the time we are going to start with if we play from here.
@@ -3309,6 +3321,7 @@ define([
           clearInterval(state.getPlaybackInterval());
           graffiti.changeActivity('playbackPaused');
           audio.pausePlayback();
+          console.log('Graffiti: pausePlaybackNoVisualUpdates');
           state.setPlaybackTimeElapsed();
           // Make sure, if some markdown was selected, that the active code_mirror textarea reengages to get keystrokes.
           graffiti.updateSelectedCellSelections(graffiti.sitePanel.scrollTop()); 
@@ -3324,6 +3337,7 @@ define([
 
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTips();
+        graffiti.cancelRapidPlay();
 
         // Save after play stops, so if the user reloads we don't get the annoying dialog box warning us changes were made.
         // graffiti.saveNotebook();
@@ -3397,13 +3411,14 @@ define([
         graffiti.lastTemporaryCanvasClearViewIndex = -1;
 
         if (state.getResetOnNextPlay()) {
-          console.log('Resetting for first/re play.');
+          console.log('Graffiti: Resetting for first/re play.');
           graffiti.clearCanvases('all');
           graffiti.wipeAllStickerDomCanvases();
           state.resetPlayState();
         }
 
-        state.setPlaybackStartTime(new Date().getTime() - state.getPlaybackTimeElapsed());
+        //state.resetRapidPlayTime();
+        state.setPlaybackStartTime(utils.getNow() - state.getPlaybackTimeElapsed());
 
         if (!state.getMute()) {
           audio.startPlayback(state.getPlaybackTimeElapsed());

@@ -36,6 +36,8 @@
 
 #graffiti-rapidplay-off-btn {
   display:none;
+  background:black;
+  color:white;
 }
 
 .graffiti-cursor {
