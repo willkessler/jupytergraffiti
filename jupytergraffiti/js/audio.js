@@ -53,8 +53,13 @@ define([
       audio.audioObj = audioObj;
     },
 
+    updateAudioPlaybackRate: () => {
+      audio.audioObj.playbackRate = (state.getRapidPlay() ? state.getRapidPlayRate() : state.getRegularPlayRate());
+    },
+
     playAudio: (elapsedTime) => {
       audio.setAudioPosition(elapsedTime);
+      audio.updateAudioPlaybackRate();
       audio.audioObj.play();
     },
 
