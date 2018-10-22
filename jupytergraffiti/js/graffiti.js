@@ -962,6 +962,13 @@ define([
                                      fn: (e) => {
                                        graffiti.finishGraffiti(false);
                                      }
+                                   },
+                                   {
+                                     ids: ['graffiti-cancel-recording-pending-link'],
+                                     event: 'click',
+                                     fn: (e) => {
+                                       graffiti.cancelPendingRecording();
+                                     }
                                    }
                                  ]);
             break;
@@ -2834,11 +2841,20 @@ define([
         state.restoreCellStates('contents');
         graffiti.updateAllGraffitiDisplays();
         graffiti.sitePanel.animate({ scrollTop: graffiti.preRecordingScrollTop }, 750);
+        graffiti.wipeAllStickerDomCanvases();
         state.restoreCellStates('selections');
         graffiti.selectIntersectingGraffitiRange();
         state.deleteTrackingArrays();
         state.clearDisplayedTipInfo();
         graffiti.changeActivity('idle');
+      },
+
+      cancelPendingRecording: () => {
+        const currentActivity = state.getActivity();
+        console.log('Graffiti: canceling recording, current activity:', currentActivity);
+        if (currentActivity === 'recordingPending') {
+          graffiti.changeActivity('idle');
+        }        
       },
 
       cancelRecording: () => {
