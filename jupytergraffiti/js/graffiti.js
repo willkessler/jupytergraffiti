@@ -4338,7 +4338,6 @@ define([
         const notebook = Jupyter.notebook;
         const sprayCanIcon = stickerLib.makeSprayCanIcon();
         let buttonLabel, setupForSetup = false;
-        //sprayCanIcon = '<img src="jupytergraffiti/css/spray_can_icon.png">';
         let buttonContents = '<div id="graffiti-setup-button" class="btn-group"><button class="btn btn-default" title="Enable Graffiti">';
 
         if (!notebook.metadata.hasOwnProperty('graffitiId')) {
