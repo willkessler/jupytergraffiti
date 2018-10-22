@@ -1,13 +1,16 @@
-define([], () => {
+define([
+  './utils.js'
+], (utils) => {
   // Thanks to https://stackoverflow.com/questions/3642035/jquerys-append-not-working-with-svg-element
   const sticker = {
 
     // Cf : https://www.beyondjava.net/how-to-connect-html-elements-with-an-arrow-using-svg
     // and: https://stackoverflow.com/questions/43887340/how-to-include-the-arrow-head-in-the-length-of-a-line-in-svg
     generateArrowHeadElem: (arrowHeadColor, arrowHeadSize) => {
+      const arrowHeadId = 'arrowHead-' + utils.generateUniqueId();
       const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
       const marker = sticker.makeSvgElement('marker', {
-        id:'arrowHead',
+        id: arrowHeadId,
         viewBox: '0 0 10 10',
         refX: 8.7,
         refY: 3,
@@ -23,7 +26,10 @@ define([], () => {
       });
       marker.appendChild(path);
       defs.appendChild(marker);
-      return defs;
+      return { 
+        arrowHeadId: arrowHeadId, 
+        defs: defs 
+      };
     },
     
     makeElementHtml: (tag, attr, innerHtml) => {
@@ -64,7 +70,7 @@ define([], () => {
       return el;
     },
 
-    renderSvg: (svgChildren, x, y, width, height, viewBox) => {
+    renderSvg: (svgChildren, x, y, width, height, viewBox, arrowHeadRecord) => {
       let containerDiv, containerSticker;
       let svgGenerator = $('#graffitiSvgGenerator');
       if (svgGenerator.length === 0) {
@@ -93,7 +99,7 @@ define([], () => {
                                viewBox: svgChild.viewBox
                              });
         if (svgChild.usesArrow) {
-          containerSticker.appendChild(sticker.generateArrowHeadElem(svgChild.color, svgChild.arrowHeadSize));
+          containerSticker.appendChild(svgChild.arrowHeadRecord.defs);
         }
         containerSticker.appendChild(svgChild.el);
         containerDiv.appendChild(containerSticker);
@@ -180,8 +186,10 @@ define([], () => {
           fill: color,
           d: pathPart
         };
+      let arrowHeadRecord = undefined;
       if (opts.usesArrow !== undefined) {
-        pathObj['marker-end'] =  'url(#arrowHead)';
+        arrowHeadRecord = sticker.generateArrowHeadElem(opts.color, opts.arrowHeadSize);
+        pathObj['marker-end'] =  'url(#' + arrowHeadRecord.arrowHeadId + ')';
       }
       if ((opts.dashed !== undefined) && (opts.dashed === 'dashed')) {
         if (opts.dashWidth) {
@@ -203,6 +211,7 @@ define([], () => {
           color: color,
           viewBox: viewBox.join(' '),
           usesArrow: opts.usesArrow,
+          arrowHeadRecord: arrowHeadRecord,
           arrowHeadSize: opts.arrowHeadSize
         }
       ]);
