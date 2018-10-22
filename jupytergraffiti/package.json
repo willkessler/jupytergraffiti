@@ -12,9 +12,13 @@
     "amd-optimize": "^0.6.1",
     "gulp": "^3.9.1",
     "gulp-concat": "^2.6.1",
+    "gulp-string-replace": "^1.1.2",
     "gulp-strip-debug": "^3.0.0",
     "gulp-uglify": "^3.0.1",
     "gulp-uglify-es": "^1.0.4",
     "lodash": "^4.17.5"
+  },
+  "dependencies": {
+    "gulp-replace": "^1.0.0"
   }
 }
