@@ -31,6 +31,7 @@ define([
       state.recordingCellInfo = {};
       state.storageInProcess = false;
       state.tipTimeout = undefined;
+      state.displayedTipInfo = undefined;
       state.movieRecordingStarted = false;
       state.cellsAffectedByActivity = {};
       state.drawingFadeClockAllowed = true;
@@ -197,6 +198,18 @@ define([
       }
     },
 
+    clearDisplayedTipInfo: () => {
+      state.displayedTipInfo = undefined;
+    },
+
+    setDisplayedTipInfo: (cellId, recordingKey) => {
+      state.displayedTipInfo = { cellId: cellId, recordingKey: recordingKey };
+    },
+
+    getDisplayedTipInfo: () => {
+      return state.displayedTipInfo;
+    },
+
     saveSelectedCellId: (cellId) => {
       state.selectedCellId = cellId;
     },
@@ -213,10 +226,6 @@ define([
       state.mute = muteState;
     },
 
-    getRapidPlay: () => {
-      return state.rapidPlay;
-    },
-
     getRapidPlayRate: () => {
       return state.rapidPlayRate;
     },
@@ -225,15 +234,25 @@ define([
       return state.regularPlayRate;
     },
 
+    getRapidPlay: () => {
+      return state.rapidPlay;
+    },
+
     setRapidPlay: (rapidPlay) => {
-      if (rapidPlay) {
-        state.rapidPlayStartTime = utils.getNow();
-      } else if (state.rapidPlay) {
-        // If we were already in rapidPlay mode and we are turning rapidPlay off, add to the total rapid play time played so far
-        // so that we can advance things correctly
-        state.rapidPlayTime += utils.getNow() - state.rapidPlayStartTime;
+      if (state.activity === 'playing') {
+        if (rapidPlay) {
+          state.rapidPlayStartTime = utils.getNow();
+        } else {
+          state.rapidPlayTime += utils.getNow() - state.rapidPlayStartTime;
+        }
       }
       state.rapidPlay = rapidPlay;
+    },
+
+    setRapidPlayStartTimeToNowIfOn: () => {
+      if (state.rapidPlay && state.activity === 'playing') {
+        state.rapidPlayStartTime = utils.getNow();
+      }
     },
 
     resetRapidPlayTime: () => {
@@ -482,8 +501,9 @@ define([
     setPlaybackTimeElapsed: (timeElapsed) => {
       if (timeElapsed === undefined) {
         const timePlayedSoFar = state.getTimePlayedSoFar();
-        console.log('setPlaybackTimeElapsed: timePlayedSoFar=', timePlayedSoFar);
-        state.playbackTimeElapsed = timePlayedSoFar - state.getPlaybackStartTime();
+        state.playbackTimeElapsed = timePlayedSoFar;
+        console.log('Graffiti: setPlaybackTimeElapsed: playbackTimeElapsed=', state.playbackTimeElapsed,
+                    'timePlayedSoFar=', timePlayedSoFar, 'playbackStartTime', state.playbackStartTime);
       } else {
         state.playbackTimeElapsed = timeElapsed;
       }
