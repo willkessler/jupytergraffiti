@@ -5,9 +5,10 @@ window.Graffiti = null;
 
 define([
   'base/js/namespace',
-  '/nbextensions/graffiti_extension/js/graffiti.js',
-  '/nbextensions/graffiti_extension/js/utils.js'
-], (Jupyter, Graffiti, utils) => {
+  '/nbextensions/graffiti_extension/graffiti.js',
+  '/nbextensions/graffiti_extension/utils.js',
+  '/nbextensions/graffiti_extension/user.js'
+], (Jupyter, Graffiti, utils, User) => {
   function load_ipython_extension() {
     console.log('Graffiti loaded:', Graffiti);
     window.Graffiti = Graffiti;
@@ -16,11 +17,33 @@ define([
 
     Jupyter.notebook.events.on('kernel_restarting.Kernel', (e) => {
       console.log('Graffiti: kernel restarted, so rerunning require', e);
-      require(['jupytergraffiti/js/loader.js']);
+      require(['/nbextensions/graffiti_extension/loader.js']);
       utils.saveNotebook();
     });
-  }
 
+    let importApiScript = '';
+    importApiScript += 'api_path=\'/opt/jupytergraffiti\'';
+    importApiScript += 'if api_path not in sys.path:\n';
+    importApiScript += '  import sys\n';
+    importApiScript += '  sys.path.insert(0,api_path)\n';
+
+    let scriptOptions = {
+      silent: false,
+      store_history: false,
+      stop_on_error : true
+    }
+
+    // TODO: Move to graffiti.js
+    UdacityUser
+      .getToken()
+      .then(token => UdacityUser.getUdacityUser(token))
+      .then(user => {
+        user.coco && $('#graffiti-setup-button').css('display', 'inline-block');
+        return Jupyter.notebook.kernel.execute(importApiScript, undefined, scriptOptions);
+      })
+      .catch(err => console.error(err));
+  }
+  
   return {
     load_ipython_extension: load_ipython_extension
   };
