@@ -60,7 +60,7 @@
   background-color:#fff;
   color:#222;
   position:absolute;
-  z-index:10;
+  z-index:102;
   padding:10px;
   border:1px solid #ddd;
   border-radius:5px;
@@ -110,6 +110,10 @@
 
 .graffiti-highlight:hover {
   border-bottom:3px dashed rgb(27,127,87);
+}
+
+.graffiti-highlight img {
+  cursor:pointer;
 }
 
 .graffiti-selected {
