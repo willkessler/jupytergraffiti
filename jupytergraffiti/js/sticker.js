@@ -227,77 +227,103 @@ define([
     // need to use html injection, not code generation to make stuff work,
     // cf my post: https://stackoverflow.com/questions/52675823/preserveaspectratio-ignored-by-code-generation-but-not-html-injection-for-svg-p
 
-    makeRightCurlyBracePath: () => {
-      const rightCurlyBracePath =
-        sticker.makeSvgElement('path',
-                           {
-                             fill: '#000',
-                             stroke: "#000",
-                             "vector-effect": "non-scaling-stroke",
-                             "stroke-width" : "3",
-                             d: "M0,0 A100, 173.20508075688772 0 0 1  100, 173.20508075688772 A100, " +
-                                "173.20508075688772 0 0 0 200 346.41016151377545 A100, " +
-                                "173.20508075688772 0 0 0 100, 519.6152422706632 A100, " +
-                                "173.20508075688772 0 0 1 0, 692.8203230275509"
-                           }
-        );
+    makeRightCurlyBracePath: (opts) => {
+      let pathObj = {
+        stroke: opts.color,
+        "stroke-width": opts.strokeWidth,
+        "vector-effect": "non-scaling-stroke",
+        "stroke-width" : "3",
+        d: "M0,0 A100, 173.20508075688772 0 0 1  100, 173.20508075688772 A100, " +
+           "173.20508075688772 0 0 0 200 346.41016151377545 A100, " +
+           "173.20508075688772 0 0 0 100, 519.6152422706632 A100, " +
+           "173.20508075688772 0 0 1 0, 692.8203230275509",
+        "fill-opacity": 0,
+      };
+
+      if ((opts.dashed !== undefined) && (opts.dashed === 'dashed')) {
+        if (opts.dashWidth) {
+          pathObj['stroke-dasharray'] = opts.dashWidth;
+        } else {
+          pathObj['stroke-dasharray'] = 4;
+        }
+      }
+      const  rightCurlyBracePath = sticker.makeSvgElement('path', pathObj);
       return rightCurlyBracePath;
     },
 
-    makeLeftCurlyBrace: (x, y, height) => {
+    makeLeftCurlyBrace: (opts) => {
       const curlyViewBox = '0 0 200 692';
-      const rightCurlyBracePath = sticker.makeRightCurlyBracePath();
+      const curlyBracePath = sticker.makeRightCurlyBracePath({ 
+        dashed: opts.dashed,
+        color: opts.color,
+        strokeWidth: opts.strokeWidth
+      });
       const renderedSvg = sticker.renderSvg([
         {
-          el: rightCurlyBracePath,
+          el: curlyBracePath,
           width: 8,
-          height: height,
+          height: opts.dimensions.height,
           viewBox: curlyViewBox,
-          x: x,
-          y : y,
+          x: opts.dimensions.x,
+          y: opts.dimensions.y,
           cssTransform: "scaleX(-1)" // css transform
         }
       ]);
       return renderedSvg;
     },
 
-    makeRightCurlyBrace: (x, y, height) => {
+    makeRightCurlyBrace: (opts) => {
       const curlyViewBox = '0 0 200 692';
-      const rightCurlyBracePath = sticker.makeRightCurlyBracePath();
+      const curlyBracePath = sticker.makeRightCurlyBracePath({ 
+        dashed: opts.dashed,
+        color: opts.color,
+        strokeWidth: opts.strokeWidth
+      });
       const renderedSvg = sticker.renderSvg([
         {
-          el: rightCurlyBracePath,
+          el: curlyBracePath,
           width: 8,
-          height: height,
+          height: opts.dimensions.height,
           viewBox: curlyViewBox,
-          x: x,
-          y : y
+          x: opts.dimensions.x,
+          y: opts.dimensions.y
         }
       ]);
       return renderedSvg;
     },
 
-    makeSymmetricCurlyBraces: (x, y, width, height) => {
+    makeSymmetricCurlyBraces: (opts) => {
       const curlyViewBox = '0 0 200 692';
-      const curlyBracePath1 = sticker.makeRightCurlyBracePath();
-      const curlyBracePath2 = sticker.makeRightCurlyBracePath();
+      const curlyBracePath1 = sticker.makeRightCurlyBracePath({ 
+        dashed: opts.dashed,
+        color: opts.color,
+        strokeWidth: opts.strokeWidth
+      });
+      const curlyBracePath2 = sticker.makeRightCurlyBracePath({ 
+        dashed: opts.dashed,
+        color: opts.color,
+        strokeWidth: opts.strokeWidth
+      });
       const renderedSvg = sticker.renderSvg([
         {
           el: curlyBracePath1,
           width: 8,
-          height: height,
+          height: opts.dimensions.height,
           viewBox: curlyViewBox,
-          x: 0,
-          y : 0,
+          x: opts.dimensions.x,
+          y : opts.dimensions.y,
           cssTransform: "scaleX(-1)" // css transform
         },
         {
           el: curlyBracePath2,
           width: 8,
-          height: height,
+          height: opts.dimensions.height,
           viewBox: curlyViewBox,
-          x: width - 10,
-          y : 0
+          x: opts.dimensions.x + opts.dimensions.width - 8,
+          y : opts.dimensions.y,
+          dashed: opts.dashed,
+          color:opts.color,
+          strokeWidth: opts.strokeWidth
         }
       ]);
       //console.log(renderedSvg);
@@ -580,7 +606,7 @@ define([
         dimensions = $.extend({}, opts.dimensions);
         strokeWidth = opts.strokeWidth;
       } else {
-        strokeWidth = 3;
+        strokeWidth = 5;
         dimensions = { x: opts.dimensions.x, 
                        y: opts.dimensions.y,
                        width:  Math.max(opts.dimensions.width, 25)
@@ -605,7 +631,7 @@ define([
         dimensions = $.extend({}, opts.dimensions);
         strokeWidth = opts.strokeWidth;
       } else {
-        strokeWidth = 3;
+        strokeWidth = 1;
         dimensions = { x: opts.dimensions.x, 
                        y: opts.dimensions.y,
                        width:  Math.max(opts.dimensions.width, 25)
