@@ -736,7 +736,7 @@ define([
       updateControlPanels: (cm) => {
         // When we transition to a new state, control panel tweaks need to be made
         const activity = state.getActivity();
-        console.log('Graffiti: updateControlPanels, activity:', activity);
+        // console.log('Graffiti: updateControlPanels, activity:', activity);
         const accessLevel = state.getAccessLevel();
         const outerControlHidden = graffiti.outerControlPanel.css('display') === 'none';
         if (accessLevel === 'view') {
@@ -1546,7 +1546,11 @@ define([
         for (let stickerRecord of stickersRecords) {
           pen = stickerRecord.pen;
           type = pen.stickerType;
-          positions = stickerRecord.positions;
+          if (state.getActivity() === 'recording') {
+            positions = stickerRecord.positions;
+          } else {
+            positions = graffiti.computeStickersOffsetPositions(cellId, record, stickerRecord);
+          }
           if (type === 'lineWithArrow') {
             stickerX = positions.start.x;
             stickerY = positions.start.y;
@@ -3016,7 +3020,7 @@ define([
         }
       },
 
-      computeOffsetPosition: (record, includeInnerBuffer) => {
+      computeOffsetPosition: (record) => {
         const cellRects = utils.getCellRects(record.hoverCell);        
         //console.log('hoverCellId:', utils.getMetadataCellId(record.hoverCell.metadata), 'rect:', innerCellRect);
         const dx = record.x / record.innerCellRect.width;
@@ -3032,19 +3036,51 @@ define([
           dxScaled = parseInt(cellRects.innerCellRect.width * dx);
           dyScaled = parseInt(cellRects.innerCellRect.height * dy);
         }
-        let offsetPosition;
-        if (includeInnerBuffer) {
-          offsetPosition = { 
-            x: dxScaled + (cellRects.innerCellRect.left - cellRects.cellRect.left), 
-            y: dyScaled + (cellRects.innerCellRect.top - cellRects.cellRect.top) 
-          };
-        } else {
-          offsetPosition = {
-            x : cellRects.innerCellRect.left + dxScaled,
-            y : cellRects.innerCellRect.top + dyScaled
-          };
-        }
+        const offsetPosition = {
+          x : cellRects.innerCellRect.left + dxScaled,
+          y : cellRects.innerCellRect.top + dyScaled
+        };
+        return offsetPosition;
+      },
 
+      // This needs a rethink, it's too similar to the func above
+      computeStickersOffsetPositions: (cellId, record, stickerRecord) => {
+        const cell = utils.findCellByCellId(cellId);
+        //console.log('computeStickersOffsetPositions, cellId', cellId);
+        const cellRects = utils.getCellRects(cell);
+        const positions = stickerRecord.positions;
+        const ratio = { 
+          start: { x: positions.start.x / record.innerCellRect.width,
+                   y: positions.start.y / record.innerCellRect.height },
+          end:   { x: positions.end.x / record.innerCellRect.width,
+                   y: positions.end.y / record.innerCellRect.height }
+        };
+        posScaled = { start: {}, end: {} };
+        if (cell.cell_type === 'code') {
+          let codeCellWidth = $('.code_cell:first').width();
+          if (record.innerCellRect.width !== undefined) {
+            codeCellWidth = record.innerCellRect.width;
+          }
+          posScaled.start.x = parseInt(codeCellWidth * ratio.start.x);
+          posScaled.start.y = parseInt(cellRects.innerCellRect.height * ratio.start.y);
+          posScaled.end.x = parseInt(codeCellWidth * ratio.end.x);
+          posScaled.end.y = parseInt(cellRects.innerCellRect.height * ratio.end.y);
+        } else {
+          posScaled.start.x = parseInt(cellRects.innerCellRect.width * ratio.start.x);
+          posScaled.start.y = parseInt(cellRects.innerCellRect.height * ratio.start.y);
+          posScaled.end.x = parseInt(cellRects.innerCellRect.width * ratio.end.x);
+          posScaled.end.y = parseInt(cellRects.innerCellRect.height * ratio.end.y);
+        }
+        const offsetPosition = {
+          start: {
+            x : posScaled.start.x,
+            y : posScaled.start.y
+          },
+          end: {
+            x : posScaled.end.x,
+            y : posScaled.end.y
+          }
+        };
         return offsetPosition;
       },
 
@@ -3056,7 +3092,6 @@ define([
           case 'draw':
             graffiti.placeCanvas(record.cellId, record.pen.permanence);
             graffiti.setCanvasStyle(record.cellId, record.pen.type, record.pen.dash, record.pen.color, record.pen.permanence);
-            // const offsetPosition = graffiti.computeOffsetPosition(record, false);
             graffiti.updateDrawingDisplay(record.cellId, 
                                           record.positions.start.x, 
                                           record.positions.start.y,
@@ -3096,7 +3131,7 @@ define([
 
       updatePointer: (record) => {
         if (record.hoverCell !== undefined) {
-          const offsetPosition = graffiti.computeOffsetPosition(record, false);
+          const offsetPosition = graffiti.computeOffsetPosition(record);
           graffiti.applyScrollNudge(offsetPosition, record, true);
 
           const lastPosition = state.getLastRecordedCursorPosition();
