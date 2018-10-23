@@ -496,130 +496,40 @@ define([
         const iconColor = '#666'
         const iconStrokeWidth = 1;
         const iconFatStrokeWidth = 2;
-        const iconMargin = 3;
-        const rightTriangle = stickerLib.makeRightTriangle({
-          dimensions: { x: iconMargin, y:iconMargin, width:iconSize,height:iconSize },
+        const iconMargin = 6;
+        const iconDimensions = { x: iconMargin, y:iconMargin, width:iconSize - iconMargin,height:iconSize - iconMargin };
+        const defaultIconConfiguration = {
+          dimensions: iconDimensions,
           color:iconColor,
           dashed:'dashed',
           dashWidth:2,
-          strokeWidth:iconStrokeWidth
-        });
-        const isocelesTriangle = stickerLib.makeIsocelesTriangle({ 
-          dimensions: { x: iconMargin,y:iconMargin, width: iconSize, height: iconSize },
-          color:iconColor, 
-          dashed:'dashed',
-          dashWidth:2, 
-          strokeWidth:iconStrokeWidth 
-        });
-        const rectangle = stickerLib.makeRectangle({
-          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
-          dashed:'dashed',  
-          dashWidth:2,
-          color:iconColor, 
-          strokeWidth:iconStrokeWidth
-        });
-        const checkMark = stickerLib.makeCheckmark({
-          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
-          dashed:'dashed',  
-          dashWidth:2,
-          color:iconColor,
           iconUsage: true,
           strokeWidth:iconStrokeWidth
-        });
-        const xMark = stickerLib.makeXmark({
-          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
-          dashed:'solid',
-          dashWidth:2,
-          iconUsage: true,
-          strokeWidth:iconStrokeWidth
-        });
-        const ribbon = stickerLib.makeRibbon({
-          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
-          dashed:'solid',
-          dashWidth:2,
-          color:iconColor, 
-          strokeWidth:iconStrokeWidth
-        });
-        const sigma = stickerLib.makeSigma({
-          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
-          dashed:'solid',
-          dashWidth:2,
-          color:iconColor, 
-          strokeWidth:iconStrokeWidth
-        });
-        const axis = stickerLib.makeAxis({
-          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
-          dashed:'solid',
-          dashWidth:2,
-          color:iconColor, 
-          strokeWidth:iconStrokeWidth
-        });
-        const grid = stickerLib.makeGrid({
-          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
-          dashed:'solid',
-          dashWidth:2,
-          color:iconColor, 
-          strokeWidth:1
-        });
-        const bomb = stickerLib.makeBomb({
-          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
-          dashed:'solid',
-          dashWidth:2,
-          color:iconColor, 
-          strokeWidth:iconStrokeWidth
-        });
-        const smiley = stickerLib.makeSmiley({
-          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
-          dashed:'solid',
-          dashWidth:2,
-          color:iconColor, 
-          strokeWidth:iconStrokeWidth
-        });
-        const horizontalBrackets = stickerLib.makeHorizontalBrackets({
-          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
-          dashed:'solid',
-          dashWidth:2,
-          color:iconColor, 
-          strokeWidth:iconFatStrokeWidth,
-        });
-        const verticalBrackets = stickerLib.makeVerticalBrackets({
-          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
-          dashed:'solid',
-          dashWidth:2,
-          color:iconColor, 
-          strokeWidth:iconFatStrokeWidth,
-        });
-        const ellipse = stickerLib.makeEllipse({
-          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
-          dashed:'solid',
-          dashWidth:2,
-          color:iconColor, 
-          strokeWidth:iconFatStrokeWidth,
-        });
-        const pi = stickerLib.makePi({
-          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
-          dashed:'solid',
-          dashWidth:2,
-          color:iconColor, 
-          iconUsage: true,
-          strokeWidth:iconStrokeWidth,
-        });
-        const curlyBraces = stickerLib.makeSymmetricCurlyBraces({ 
-          dimensions: {
-            x: iconMargin, 
-            y: iconMargin, 
-            width: iconSize, 
-            height: iconSize,
-          },
-          strokeWidth: iconStrokeWidth,
-          color:iconColor,
-          dashed:'solid',
-          dashWidth: 2
-        });
+        };
+        const solidIconConfiguration = $.extend({}, true, defaultIconConfiguration, { dashed:undefined });
+        const solidFatIconConfiguration = $.extend({}, true, defaultIconConfiguration, { dashed:undefined, strokeWidth:iconFatStrokeWidth });
+        console.log('defaultIconConfiguration', defaultIconConfiguration,
+                    'solidIconConfiguration', solidIconConfiguration, 'solidFatIconConfiguration', solidFatIconConfiguration);
 
+        const rightTriangle = stickerLib.makeRightTriangle(defaultIconConfiguration);
+        const isocelesTriangle = stickerLib.makeIsocelesTriangle(defaultIconConfiguration);
+        const rectangle = stickerLib.makeRectangle(defaultIconConfiguration);
+        const checkMark = stickerLib.makeCheckmark(solidIconConfiguration);
+        const xMark = stickerLib.makeXmark(solidIconConfiguration);
+        const ribbon = stickerLib.makeRibbon(solidIconConfiguration)
+        const sigma = stickerLib.makeSigma(solidIconConfiguration);
+        const axis = stickerLib.makeAxis(solidIconConfiguration)
+        const grid = stickerLib.makeGrid(solidIconConfiguration);
+        const bomb = stickerLib.makeBomb(solidIconConfiguration);
+        const smiley = stickerLib.makeSmiley(solidIconConfiguration);
+        const horizontalBrackets = stickerLib.makeHorizontalBrackets(solidFatIconConfiguration);
+        const verticalBrackets = stickerLib.makeVerticalBrackets(solidFatIconConfiguration);
+        const ellipse = stickerLib.makeEllipse($.extend({}, true, solidFatIconConfiguration, { buffer: 2 }));
+        const pi = stickerLib.makePi(solidIconConfiguration);
+        const curlyBraces = stickerLib.makeSymmetricCurlyBraces(solidIconConfiguration);
         const lineWithArrow = stickerLib.makeLine({
           color:'black',
-          dimensions: { x: iconMargin, y: iconMargin, width: iconSize, height: iconSize },
+          dimensions: iconDimensions,
           endpoints: { p1: { x:0, y:iconSize }, p2: { x:iconSize, y:0 } },
           lineStartOffset: { x: iconMargin, y:iconMargin },
           strokeWidth:iconStrokeWidth,
@@ -655,9 +565,9 @@ define([
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-pi">' + pi + '</div>' +
                                       '    </div>' +
                                       '    <div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-ribbon">' + ribbon + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-bomb">' + bomb + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-smiley">' + smiley + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-bomb">' + bomb + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-ribbon">' + ribbon + '</div>' +
                                       '    </div>' +
                                       '</div>',
                                       [
@@ -1621,6 +1531,7 @@ define([
                 dashed: pen.dash, 
                 strokeWidth: 4,
                 dimensions: dimensions,
+                cssTransform: cssTransform,
               });
               break;
             case 'rightTriangle':
@@ -1692,7 +1603,8 @@ define([
                 fill:   pen.fill,
                 dashed: pen.dash, 
                 dimensions: dimensions,
-                cssTransform: cssTransform
+                cssTransform: cssTransform,
+                strokeWidth:2,
               });
               break;
             case 'ribbon':
@@ -1700,6 +1612,7 @@ define([
                 color:  pen.color,
                 fill:   pen.fill,
                 dashed: pen.dash, 
+                strokeWidth:2,
                 dimensions: dimensions,
               });
               break;
@@ -1708,7 +1621,7 @@ define([
                 color:  pen.color,
                 fill:   pen.fill,
                 dashed: pen.dash, 
-                strokeWidth:5,
+                strokeWidth:3,
                 dimensions: dimensions,
               });
               break;
@@ -1717,7 +1630,7 @@ define([
                 color:  pen.color,
                 fill:   pen.fill,
                 dashed: pen.dash, 
-                strokeWidth:5,
+                strokeWidth:3,
                 dimensions: dimensions,
               });
               break;
@@ -1725,7 +1638,7 @@ define([
               generatedStickerHtml = stickerLib.makeSymmetricCurlyBraces({
                 color:  pen.color,
                 dashed: pen.dash, 
-                strokeWidth:5,
+                strokeWidth:3,
                 dimensions: dimensions,
               });
               break;
@@ -1733,8 +1646,9 @@ define([
               generatedStickerHtml = stickerLib.makeEllipse({
                 color:  pen.color,
                 dashed: pen.dash, 
-                strokeWidth:5,
+                strokeWidth:3,
                 dimensions: dimensions,
+                buffer: 4,
               });
               break;
             case 'pi':
@@ -1743,6 +1657,7 @@ define([
                 dashed: pen.dash, 
                 strokeWidth:2,
                 dimensions: dimensions,
+                cssTransform: cssTransform
               });
               break;
             case 'lineWithArrow':
