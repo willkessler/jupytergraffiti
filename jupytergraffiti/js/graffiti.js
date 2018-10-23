@@ -588,6 +588,13 @@ define([
           color:iconColor, 
           strokeWidth:iconFatStrokeWidth,
         });
+        const ellipse = stickerLib.makeEllipse({
+          dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
+          dashed:'solid',
+          dashWidth:2,
+          color:iconColor, 
+          strokeWidth:iconFatStrokeWidth,
+        });
         const curlyBraces = stickerLib.makeSymmetricCurlyBraces({ 
           dimensions: {
             x: iconMargin, 
@@ -638,6 +645,7 @@ define([
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-horizontalBrackets">' + horizontalBrackets + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-verticalBrackets">' + verticalBrackets + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-curlyBraces">' + curlyBraces + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-ellipse">' + ellipse + '</div>' +
                                       '    </div>' +
                                       '</div>',
                                       [
@@ -657,7 +665,8 @@ define([
                                             'graffiti-sticker-smiley',
                                             'graffiti-sticker-horizontalBrackets',
                                             'graffiti-sticker-verticalBrackets',
-                                            'graffiti-sticker-curlyBraces'
+                                            'graffiti-sticker-curlyBraces',
+                                            'graffiti-sticker-ellipse'
                                           ],
                                           event: 'click',
                                           fn: (e) => {
@@ -1701,6 +1710,14 @@ define([
               break;
             case 'curlyBraces':
               generatedStickerHtml = stickerLib.makeSymmetricCurlyBraces({
+                color:  pen.color,
+                dashed: pen.dash, 
+                strokeWidth:5,
+                dimensions: dimensions,
+              });
+              break;
+            case 'ellipse':
+              generatedStickerHtml = stickerLib.makeEllipse({
                 color:  pen.color,
                 dashed: pen.dash, 
                 strokeWidth:5,

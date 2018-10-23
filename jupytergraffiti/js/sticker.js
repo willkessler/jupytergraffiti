@@ -4,6 +4,16 @@ define([
   // Thanks to https://stackoverflow.com/questions/3642035/jquerys-append-not-working-with-svg-element
   const sticker = {
 
+    interpretDashing: (opts,obj) => {
+      if ((opts.dashed !== undefined) && (opts.dashed === 'dashed')) {
+        if (opts.dashWidth) {
+          obj['stroke-dasharray'] = opts.dashWidth;
+        } else {
+          obj['stroke-dasharray'] = 4;
+        }
+      }
+    },
+    
     // Cf : https://www.beyondjava.net/how-to-connect-html-elements-with-an-arrow-using-svg
     // and: https://stackoverflow.com/questions/43887340/how-to-include-the-arrow-head-in-the-length-of-a-line-in-svg
     generateArrowHeadElem: (arrowHeadColor, arrowHeadSize) => {
@@ -84,20 +94,20 @@ define([
         }
         containerDiv =
           sticker.makeDomElement('div',
-                             {
-                               'class':"graffiti-sticker-inner",
-                               'style' : 'position:absolute;' +
-                                         'left:' + parseInt(svgChild.x) + 'px;top:' + parseInt(svgChild.y) + 'px;' +
-                                         'width:' + parseInt(svgChild.width) + 'px;height:' + parseInt(svgChild.height) + 'px;' +
-                                         transform
-                             });
+                                 {
+                                   'class':"graffiti-sticker-inner",
+                                   'style' : 'position:absolute;' +
+                                             'left:' + parseInt(svgChild.x) + 'px;top:' + parseInt(svgChild.y) + 'px;' +
+                                             'width:' + parseInt(svgChild.width) + 'px;height:' + parseInt(svgChild.height) + 'px;' +
+                                             transform
+                                 });
         containerSticker =
           sticker.makeSvgElement('svg',
-                             {
-                               width: svgChild.width,
-                               height: svgChild.height,
-                               viewBox: svgChild.viewBox
-                             });
+                                 {
+                                   width: svgChild.width,
+                                   height: svgChild.height,
+                                   viewBox: svgChild.viewBox
+                                 });
         if (svgChild.usesArrow) {
           containerSticker.appendChild(svgChild.arrowHeadRecord.defs);
         }
@@ -179,7 +189,7 @@ define([
       const pathPart = 'M ' + finalCoordSpaceEndpoints.p1.x + ' ' + finalCoordSpaceEndpoints.p1.y + ' ' +
                        'L ' + finalCoordSpaceEndpoints.p2.x + ' ' + finalCoordSpaceEndpoints.p2.y;
       let pathObj = 
-          {
+        {
           'vector-effect': 'non-scaling-stroke',
           'stroke-width' : strokeWidth,
           stroke: color,
@@ -191,13 +201,8 @@ define([
         arrowHeadRecord = sticker.generateArrowHeadElem(opts.color, opts.arrowHeadSize);
         pathObj['marker-end'] =  'url(#' + arrowHeadRecord.arrowHeadId + ')';
       }
-      if ((opts.dashed !== undefined) && (opts.dashed === 'dashed')) {
-        if (opts.dashWidth) {
-          pathObj['stroke-dasharray'] = opts.dashWidth;
-        } else {
-          pathObj['stroke-dasharray'] = 4;
-        }
-      }
+      sticker.interpretDashing(opts, pathObj);
+
       const line = sticker.makeSvgElement('path', pathObj);
 
       const viewBox = [0,0,Math.max(10,Math.abs(bbox.p2.x-bbox.p1.x)),Math.max(10, Math.abs(bbox.p2.y-bbox.p1.y))];
@@ -220,10 +225,6 @@ define([
       return renderedSvg;
     },
 
-
-    makeEllipse: (opts) => {
-    },
-
     // need to use html injection, not code generation to make stuff work,
     // cf my post: https://stackoverflow.com/questions/52675823/preserveaspectratio-ignored-by-code-generation-but-not-html-injection-for-svg-p
 
@@ -240,13 +241,8 @@ define([
         "fill-opacity": 0,
       };
 
-      if ((opts.dashed !== undefined) && (opts.dashed === 'dashed')) {
-        if (opts.dashWidth) {
-          pathObj['stroke-dasharray'] = opts.dashWidth;
-        } else {
-          pathObj['stroke-dasharray'] = 4;
-        }
-      }
+      sticker.interpretDashing(opts, pathObj);
+
       const  rightCurlyBracePath = sticker.makeSvgElement('path', pathObj);
       return rightCurlyBracePath;
     },
@@ -329,6 +325,34 @@ define([
       //console.log(renderedSvg);
       return renderedSvg;
     },
+
+    makeEllipse: (opts) => {
+      const dimensions = opts.dimensions;
+      const ellipseBox = '0 0 ' + dimensions.width + ' ' + dimensions.height;
+      let shapeObj = { cx: dimensions.width / 2,
+                       cy: dimensions.height / 2,
+                       rx: dimensions.width / 2,
+                       ry: dimensions.height / 2,
+                       stroke: opts.color,
+                       strokeWidth: opts.strokeWidth,
+                       "fill-opacity":0
+      };
+      sticker.interpretDashing(opts, shapeObj);
+
+      const theEllipse = sticker.makeSvgElement('ellipse', shapeObj);
+      const parmBlock = {          
+        el: theEllipse,
+        x: dimensions.x,
+        y : dimensions.y,
+        width: dimensions.width,
+        height: dimensions.height,
+        viewBox: ellipseBox,
+      };
+
+      const renderedSvg = sticker.renderSvg([parmBlock]);
+      return renderedSvg;
+    },
+
 
     makeSimplePath: (opts) => {
       const viewBox = opts.viewBox;
