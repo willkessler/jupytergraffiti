@@ -494,7 +494,8 @@ define([
 
         const iconSize = 22;
         const iconColor = '#666'
-        const iconStrokeWidth = '1';
+        const iconStrokeWidth = 1;
+        const iconFatStrokeWidth = 2;
         const iconMargin = 3;
         const rightTriangle = stickerLib.makeRightTriangle({
           dimensions: { x: iconMargin, y:iconMargin, width:iconSize,height:iconSize },
@@ -578,17 +579,27 @@ define([
           dashed:'solid',
           dashWidth:2,
           color:iconColor, 
-          strokeWidth:iconStrokeWidth
+          strokeWidth:iconFatStrokeWidth,
         });
         const verticalBrackets = stickerLib.makeVerticalBrackets({
           dimensions: { x: iconMargin, y:iconMargin, width: iconSize, height: iconSize },
           dashed:'solid',
           dashWidth:2,
           color:iconColor, 
-          strokeWidth:iconStrokeWidth
+          strokeWidth:iconFatStrokeWidth,
         });
-        const leftCurlyBrace = stickerLib.makeSymmetricCurlyBraces(iconMargin, iconMargin, iconSize, iconSize);
-        const rightCurlyBrace = stickerLib.makeSymmetricCurlyBraces(iconMargin, iconMargin, iconSize, iconSize);
+        const curlyBraces = stickerLib.makeSymmetricCurlyBraces({ 
+          dimensions: {
+            x: iconMargin, 
+            y: iconMargin, 
+            width: iconSize, 
+            height: iconSize,
+          },
+          strokeWidth: iconStrokeWidth,
+          color:iconColor,
+          dashed:'solid',
+          dashWidth: 2
+        });
 
         const lineWithArrow = stickerLib.makeLine({
           color:'black',
@@ -626,8 +637,7 @@ define([
                                       '    <div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-horizontalBrackets">' + horizontalBrackets + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-verticalBrackets">' + verticalBrackets + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-leftCurlyBrace">' + leftCurlyBrace + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-rightCurlyBrace">' + rightCurlyBrace + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-curlyBraces">' + curlyBraces + '</div>' +
                                       '    </div>' +
                                       '</div>',
                                       [
@@ -647,8 +657,7 @@ define([
                                             'graffiti-sticker-smiley',
                                             'graffiti-sticker-horizontalBrackets',
                                             'graffiti-sticker-verticalBrackets',
-                                            'graffiti-sticker-leftCurlyBrace',
-                                            'graffiti-sticker-rightCurlyBrace',
+                                            'graffiti-sticker-curlyBraces'
                                           ],
                                           event: 'click',
                                           fn: (e) => {
@@ -1685,6 +1694,14 @@ define([
               generatedStickerHtml = stickerLib.makeVerticalBrackets({
                 color:  pen.color,
                 fill:   pen.fill,
+                dashed: pen.dash, 
+                strokeWidth:5,
+                dimensions: dimensions,
+              });
+              break;
+            case 'curlyBraces':
+              generatedStickerHtml = stickerLib.makeSymmetricCurlyBraces({
+                color:  pen.color,
                 dashed: pen.dash, 
                 strokeWidth:5,
                 dimensions: dimensions,
