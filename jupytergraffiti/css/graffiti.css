@@ -477,6 +477,8 @@
 
 #graffiti-sticker-style-controls {
   font-size: 12px !important;
+  display:block !important;
+  line-height:10px;
 }
 
 #graffiti-sticker-style-controls input {
@@ -485,6 +487,10 @@
 
 #graffiti-sticker-style-controls label {
   padding-left:2px;
+}
+
+#graffiti-sticker-hint {
+  font-size:0.9em;
 }
 
 #graffiti-dashed-line {
@@ -564,7 +570,7 @@ http://www.patternify.com/
 
 #graffiti-saving-scrim div {
   border-radius:10px;
-  padding:15px;
+  padding:50px 15px 50px 15px;
   color:black;
   opacity:1.0 !important;
   background-color:white;
