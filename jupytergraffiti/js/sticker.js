@@ -232,7 +232,9 @@ define([
 
     makeEllipse: (opts) => {
       const dimensions = opts.dimensions;
-      const ellipseBox = '0 0 ' + dimensions.width + ' ' + dimensions.height;
+      const buffer = opts.buffer || 4;
+      const viewBoxRaw = '0 0 ' + dimensions.width + ' ' + dimensions.height;
+      const viewBox = sticker.makeBufferedViewBox({buffer:buffer, bufferAllSides: true, viewBox: viewBoxRaw });
       let shapeObj = { cx: dimensions.width / 2,
                        cy: dimensions.height / 2,
                        rx: Math.max(0, dimensions.width / 2 - opts.buffer),
@@ -250,7 +252,7 @@ define([
         y : dimensions.y,
         width: dimensions.width,
         height: dimensions.height,
-        viewBox: ellipseBox,
+        viewBox: viewBox
       };
 
       const renderedSvg = sticker.renderSvg([parmBlock]);
@@ -261,19 +263,25 @@ define([
     makeBufferedViewBox: (opts) => {
       const doubleBuffer = opts.buffer * 2;
       let bufferedViewBox;
+      let viewBox;
+      if (typeof(opts.viewBox) === 'string') {
+        viewBox = opts.viewBox.split(' ');
+      } else {
+        viewBox = opts.viewBox;
+      }
       if (opts.bufferAllSides) {
         bufferedViewBox = [
-          parseInt(opts.coords[0]) - opts.buffer,
-          parseInt(opts.coords[1]) - opts.buffer,
-          parseInt(opts.coords[2]) + doubleBuffer,
-          parseInt(opts.coords[3]) + doubleBuffer
+          parseInt(viewBox[0]) - opts.buffer,
+          parseInt(viewBox[1]) - opts.buffer,
+          parseInt(viewBox[2]) + doubleBuffer,
+          parseInt(viewBox[3]) + doubleBuffer
         ];
       } else {
         bufferedViewBox = [
-          parseInt(opts.coords[0]),
-          parseInt(opts.coords[1]),
-          parseInt(opts.coords[2]) + doubleBuffer,
-          parseInt(opts.coords[3]) + doubleBuffer
+          parseInt(viewBox[0]),
+          parseInt(viewBox[1]),
+          parseInt(viewBox[2]) + doubleBuffer,
+          parseInt(viewBox[3]) + doubleBuffer
         ];
       }
       return bufferedViewBox.join(' ');
@@ -282,13 +290,7 @@ define([
     makeSimplePath: (opts) => {
       const buffer = opts.buffer || 4;
       const doubleBuffer = buffer * 2;
-      let viewBoxRaw;
-      if (typeof(opts.viewBox) === 'string') {
-        viewBoxRaw = opts.viewBox.split(' ');
-      } else {
-        viewBoxRaw = opts.viewBox;
-      }
-      const viewBox = sticker.makeBufferedViewBox({buffer:buffer, bufferAllSides: true, coords: viewBoxRaw });
+      const viewBox = sticker.makeBufferedViewBox({buffer:buffer, bufferAllSides: true, viewBox: opts.viewBox });
       const color = (opts.color === undefined ? '#000' : opts.color);
       const strokeWidth = (opts.strokeWidth === undefined ? 3 : opts.strokeWidth);
       let pathObj, thePath, parmBlock;
@@ -502,12 +504,35 @@ define([
     },
 
     makeRectangle: (opts) => {
-      return sticker.makeSimplePath(
-        $.extend({}, true, opts, {
-          viewBox: [0, 0, 100, 100],
-          d: ["M 0 0 L 0 100 L 100 100 L 100 0 Z"]
-        })
-      );
+      const dimensions = opts.dimensions;
+      const buffer = opts.buffer || 4;
+      const viewBoxRaw = '0 0 ' + dimensions.width + ' ' + dimensions.height;
+      const viewBox = sticker.makeBufferedViewBox({buffer:buffer, bufferAllSides: true, viewBox: viewBoxRaw });
+      let shapeObj = { x: 0,
+                       y: 0, 
+                       width: dimensions.width,
+                       height: dimensions.height,
+                       stroke: opts.color,
+                       "stroke-width": opts.strokeWidth,
+                       "fill-opacity":0
+      };
+      sticker.interpretDashing(opts, shapeObj);
+      if (opts.rx !== undefined) { // check for roundrect
+        shapeObj.rx = opts.rx;
+        shapeObj.ry = opts.ry;
+      }
+      const theRect = sticker.makeSvgElement('rect', shapeObj);
+      const parmBlock = {          
+        el: theRect,
+        x: dimensions.x,
+        y : dimensions.y,
+        width: dimensions.width,
+        height: dimensions.height,
+        viewBox: viewBox
+      };
+
+      const renderedSvg = sticker.renderSvg([parmBlock]);
+      return renderedSvg;
     },
 
     makeRightTriangle: (opts) => {
@@ -735,7 +760,7 @@ define([
       const numGridLines = 10;
       const viewBoxSize = 100;
       const gridInc = viewBoxSize / numGridLines;
-      const viewBox = sticker.makeBufferedViewBox({buffer:5, coords: [0,0,viewBoxSize,viewBoxSize]});
+      const viewBox = sticker.makeBufferedViewBox({buffer:5, viewBox: [0,0,viewBoxSize,viewBoxSize]});
       let gridCtr, gridVal, d = '';
       for (gridCtr = 0; gridCtr <= numGridLines; ++gridCtr) {
         gridVal = gridCtr * gridInc;
