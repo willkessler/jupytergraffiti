@@ -532,8 +532,8 @@ define([
         const lineWithArrow = stickerLib.makeLine({
           color:'black',
           dimensions: iconDimensions,
-          endpoints: { p1: { x:0, y:iconSize }, p2: { x:iconSize, y:0 } },
-          lineStartOffset: { x: iconMargin, y:iconMargin },
+          endpoints: { p1: { x:-2, y:iconSize - 2 }, p2: { x:iconSize - 2, y:-2 } },
+          lineStartOffset: { x: iconMargin - 2, y:iconMargin - 2 },
           strokeWidth:iconStrokeWidth,
           dashed:'solid',
           usesArrow:true, 
