@@ -508,7 +508,7 @@ define([
           strokeWidth:iconStrokeWidth,
           fillOpacity: 0
         };
-        const solidIconConfiguration = $.extend({}, defaultIconConfiguration);
+        const solidIconConfiguration = $.extend({}, defaultIconConfiguration, { fillOpacity: 1 });
         const solidFatIconConfiguration = $.extend({}, true, solidIconConfiguration, { strokeWidth:iconFatStrokeWidth });
         const largeIconConfiguration = $.extend({}, true, defaultIconConfiguration, { buffer: 1, dimensions:largeIconDimensions });
         const roundRectConfiguration = $.extend({}, true, largeIconConfiguration, { rx: 6, ry: 6 });
@@ -522,11 +522,11 @@ define([
         const ribbon = stickerLib.makeRibbon(solidIconConfiguration)
         const axis = stickerLib.makeAxis(solidIconConfiguration)
         const grid = stickerLib.makeGrid(solidIconConfiguration);
-        const bomb = stickerLib.makeBomb(solidIconConfiguration);
-        const trophy = stickerLib.makeTrophy(solidIconConfiguration);
+        const bomb = stickerLib.makeBomb(defaultIconConfiguration);
+        const trophy = stickerLib.makeTrophy(defaultIconConfiguration);
         const smiley = stickerLib.makeSmiley(solidIconConfiguration);
-        const horizontalBrackets = stickerLib.makeHorizontalBrackets(solidFatIconConfiguration);
-        const verticalBrackets = stickerLib.makeVerticalBrackets(solidFatIconConfiguration);
+        const horizontalBrackets = stickerLib.makeHorizontalBrackets(defaultIconConfiguration);
+        const verticalBrackets = stickerLib.makeVerticalBrackets(defaultIconConfiguration);
         const ellipse = stickerLib.makeEllipse(largeIconConfiguration);
         const pi = stickerLib.makePi(solidIconConfiguration);
         const alpha = stickerLib.makeAlpha(solidIconConfiguration);
@@ -588,6 +588,7 @@ define([
                                       '     <input type="checkbox" id="graffiti-sticker-fill-control" />' +
                                       '     <label id="graffiti-sticker-fill-control-label" for="graffiti-sticker-fill-control">Solid Fill</label>' +
                                       '    </div>' +
+                                      '    <div id="graffiti-sticker-hint">Shift-key: align items / keep items square</div>' +
                                       '  </div>' +
                                       '</div>',
                                       [
