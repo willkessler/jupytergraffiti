@@ -528,6 +528,7 @@ define([
         const verticalBrackets = stickerLib.makeVerticalBrackets(solidFatIconConfiguration);
         const ellipse = stickerLib.makeEllipse($.extend({}, true, defaultIconConfiguration, { buffer: 1, dimensions:largeIconDimensions }));
         const pi = stickerLib.makePi(solidIconConfiguration);
+        const theta = stickerLib.makeTheta(solidIconConfiguration);
         const curlyBraces = stickerLib.makeSymmetricCurlyBraces(solidIconConfiguration);
         const lineWithArrow = stickerLib.makeLine({
           color:'black',
@@ -546,10 +547,6 @@ define([
                                       '  <div id="graffiti-stickers-body">' +
                                       '    <div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-lineWithArrow">' + lineWithArrow + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-checkmark">' + checkMark + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-xmark">' + xMark + '</div>' +
-                                      '    </div>' +
-                                      '    <div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-horizontalBrackets">' + horizontalBrackets + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-verticalBrackets">' + verticalBrackets + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-curlyBraces">' + curlyBraces + '</div>' +
@@ -561,15 +558,21 @@ define([
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-isocelesTriangle">' + isocelesTriangle + '</div>' +
                                       '    </div>' +
                                       '    <div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-axis">' + axis + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-grid">' + grid + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-sigma">' + sigma + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-pi">' + pi + '</div>' +
-                                      '    </div>' +
-                                      '    <div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-checkmark">' + checkMark + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-xmark">' + xMark + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-smiley">' + smiley + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-bomb">' + bomb + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-ribbon">' + ribbon + '</div>' +
+                                      '    </div>' +
+                                      '    <div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-pi">' + pi + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-sigma">' + sigma + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-theta">' + theta + '</div>' +
+                                      // alpha, beta
+                                      '    </div>' +
+                                      '    <div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-axis">' + axis + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-grid">' + grid + '</div>' +
+                                      // angle icon
                                       '    </div>' +
                                       '</div>',
                                       [
@@ -584,6 +587,7 @@ define([
                                             'graffiti-sticker-grid',
                                             'graffiti-sticker-ribbon',
                                             'graffiti-sticker-sigma',
+                                            'graffiti-sticker-theta',
                                             'graffiti-sticker-axis',
                                             'graffiti-sticker-bomb',
                                             'graffiti-sticker-smiley',
