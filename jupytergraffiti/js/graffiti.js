@@ -518,16 +518,20 @@ define([
         const checkMark = stickerLib.makeCheckmark(solidFatIconConfiguration);
         const xMark = stickerLib.makeXmark(solidFatIconConfiguration);
         const ribbon = stickerLib.makeRibbon(solidIconConfiguration)
-        const sigma = stickerLib.makeSigma(solidIconConfiguration);
         const axis = stickerLib.makeAxis(solidIconConfiguration)
         const grid = stickerLib.makeGrid(solidIconConfiguration);
         const bomb = stickerLib.makeBomb(solidIconConfiguration);
+        const trophy = stickerLib.makeTrophy(solidIconConfiguration);
         const smiley = stickerLib.makeSmiley(solidIconConfiguration);
         const horizontalBrackets = stickerLib.makeHorizontalBrackets(solidFatIconConfiguration);
         const verticalBrackets = stickerLib.makeVerticalBrackets(solidFatIconConfiguration);
         const ellipse = stickerLib.makeEllipse(largeIconConfiguration);
         const pi = stickerLib.makePi(solidIconConfiguration);
+        const alpha = stickerLib.makeAlpha(solidIconConfiguration);
+        const beta = stickerLib.makeBeta(solidIconConfiguration);
+        const sigma = stickerLib.makeSigma(solidIconConfiguration);
         const theta = stickerLib.makeTheta(solidIconConfiguration);
+        const angle = stickerLib.makeAngle(defaultIconConfiguration);
         const curlyBraces = stickerLib.makeSymmetricCurlyBraces(solidIconConfiguration);
         const lineWithArrow = stickerLib.makeLine({
           color:'black',
@@ -562,9 +566,12 @@ define([
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-xmark">' + xMark + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-smiley">' + smiley + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-bomb">' + bomb + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-trophy">' + trophy + '</div>' +
                                       '    </div>' +
                                       '    <div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-pi">' + pi + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-alpha">' + alpha + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-beta">' + beta + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-sigma">' + sigma + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-theta">' + theta + '</div>' +
                                       // alpha, beta
@@ -572,6 +579,7 @@ define([
                                       '    <div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-axis">' + axis + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-grid">' + grid + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-angle">' + angle + '</div>' +
                                       // angle icon
                                       '    </div>' +
                                       '</div>',
@@ -586,11 +594,15 @@ define([
                                             'graffiti-sticker-checkmark',
                                             'graffiti-sticker-xmark',
                                             'graffiti-sticker-grid',
+                                            'graffiti-sticker-angle',
                                             'graffiti-sticker-ribbon',
+                                            'graffiti-sticker-alpha',
+                                            'graffiti-sticker-beta',
                                             'graffiti-sticker-sigma',
                                             'graffiti-sticker-theta',
                                             'graffiti-sticker-axis',
                                             'graffiti-sticker-bomb',
+                                            'graffiti-sticker-trophy',
                                             'graffiti-sticker-smiley',
                                             'graffiti-sticker-horizontalBrackets',
                                             'graffiti-sticker-verticalBrackets',
@@ -1539,16 +1551,6 @@ define([
                 cssTransform: cssTransform
               });
               break;
-            case 'sigma':
-              generatedStickerHtml = stickerLib.makeSigma({
-                strokeWidth:1,
-                color:  pen.color,
-                fill:   pen.fill,
-                dashed: pen.dash, 
-                dimensions: dimensions,
-                cssTransform: cssTransform
-              });
-              break;
             case 'checkmark':
               generatedStickerHtml = stickerLib.makeCheckmark({
                 color:  pen.color,
@@ -1587,6 +1589,15 @@ define([
               break;
             case 'bomb':
               generatedStickerHtml = stickerLib.makeBomb({
+                color:  pen.color,
+                fill:   pen.fill,
+                dashed: pen.dash, 
+                dimensions: dimensions,
+                cssTransform: cssTransform
+              });
+              break;
+            case 'trophy':
+              generatedStickerHtml = stickerLib.makeTrophy({
                 color:  pen.color,
                 fill:   pen.fill,
                 dashed: pen.dash, 
@@ -1653,6 +1664,54 @@ define([
                 color:  pen.color,
                 dashed: pen.dash, 
                 strokeWidth:2,
+                dimensions: dimensions,
+                cssTransform: cssTransform
+              });
+              break;
+            case 'alpha':
+              generatedStickerHtml = stickerLib.makeAlpha({
+                color:  pen.color,
+                dashed: pen.dash, 
+                strokeWidth:2,
+                dimensions: dimensions,
+                cssTransform: cssTransform
+              });
+              break;
+            case 'beta':
+              generatedStickerHtml = stickerLib.makeBeta({
+                color:  pen.color,
+                dashed: pen.dash, 
+                strokeWidth:2,
+                dimensions: dimensions,
+                cssTransform: cssTransform
+              });
+              break;
+            case 'sigma':
+              generatedStickerHtml = stickerLib.makeSigma({
+                strokeWidth:1,
+                color:  pen.color,
+                fill:   pen.fill,
+                dashed: pen.dash, 
+                dimensions: dimensions,
+                cssTransform: cssTransform
+              });
+              break;
+            case 'theta':
+              generatedStickerHtml = stickerLib.makeTheta({
+                strokeWidth:1,
+                color:  pen.color,
+                fill:   pen.fill,
+                dashed: pen.dash, 
+                dimensions: dimensions,
+                cssTransform: cssTransform
+              });
+              break;
+            case 'angle':
+              generatedStickerHtml = stickerLib.makeAngle({
+                strokeWidth:1,
+                fill: pen.fill,
+                color:  pen.color,
+                dashed: pen.dash, 
                 dimensions: dimensions,
                 cssTransform: cssTransform
               });
