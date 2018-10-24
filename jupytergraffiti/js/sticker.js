@@ -399,7 +399,7 @@ define([
           width: 8,
           height: opts.dimensions.height,
           viewBox: curlyViewBox,
-          x: opts.dimensions.x,
+          x: opts.dimensions.x - 1,
           y : opts.dimensions.y,
           cssTransform: "scaleX(-1)" // css transform
         },
@@ -408,7 +408,7 @@ define([
           width: 8,
           height: opts.dimensions.height,
           viewBox: curlyViewBox,
-          x: opts.dimensions.x + opts.dimensions.width - 8,
+          x: opts.dimensions.x + opts.dimensions.width - 8 + 1,
           y : opts.dimensions.y,
           dashed: opts.dashed,
           color:opts.color,
@@ -537,7 +537,7 @@ define([
       return sticker.makeSimplePath(
         $.extend({}, true, opts, {
           strokeWidth: 2,
-          viewBox: [0, 0, 16, 16],
+          viewBox: [0, 0, 14, 14],
           d: ['M2,1l5.46,7.27L2,15h12v-4h-1v1c0,0.552-0.448,1-1,1H4.97l4.39-5.52L5.25,2H12c0.552,0,1,0.448,1,1v1h1V1H2z'],
           fill: opts.color
         })
@@ -614,7 +614,7 @@ define([
       return sticker.makeSimplePath(
         $.extend({}, true, opts, {
           strokeWidth: opts.strokeWidth,
-          viewBox: '0 0 85 85',
+          viewBox: '0 0 90 90',
           d:["M89.7,85.7c0,0.2-0.1,0.3-0.2,0.4l-3.2,2.2c-0.1,0.1-0.2,0.1-0.3,0.1c-0.1,0-0.2,0-0.2-0.1c-0.2-0.1-0.3-0.3-0.3-0.4v-1.2  H13c-0.6,0-1-0.4-1-1V15.8h-1.2c-0.2,0-0.4-0.1-0.4-0.3c-0.1-0.2-0.1-0.4,0-0.5l2.2-3.2c0.2-0.3,0.6-0.3,0.8,0l2.2,3.2  c0.1,0.2,0.1,0.4,0,0.5c-0.1,0.2-0.3,0.3-0.4,0.3H14v68.9h71.4v-1.2c0-0.2,0.1-0.4,0.3-0.4c0.2-0.1,0.4-0.1,0.5,0l3.2,2.2  C89.6,85.4,89.7,85.6,89.7,85.7z"],
           fill: 'solid',
         })

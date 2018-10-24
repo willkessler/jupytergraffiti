@@ -498,6 +498,7 @@ define([
         const iconFatStrokeWidth = 2;
         const iconMargin = 6;
         const iconDimensions = { x: iconMargin, y:iconMargin, width:iconSize - iconMargin,height:iconSize - iconMargin };
+        const largeIconDimensions = { x: iconMargin / 2, y:iconMargin / 2, width:iconSize - iconMargin / 2,height:iconSize - iconMargin / 2 };
         const defaultIconConfiguration = {
           dimensions: iconDimensions,
           color:iconColor,
@@ -506,16 +507,17 @@ define([
           iconUsage: true,
           strokeWidth:iconStrokeWidth
         };
-        const solidIconConfiguration = $.extend({}, true, defaultIconConfiguration, { dashed:undefined });
-        const solidFatIconConfiguration = $.extend({}, true, defaultIconConfiguration, { dashed:undefined, strokeWidth:iconFatStrokeWidth });
+        const solidIconConfiguration = $.extend({}, defaultIconConfiguration);
+        delete(solidIconConfiguration['dashed']);
+        const solidFatIconConfiguration = $.extend({}, true, solidIconConfiguration, { strokeWidth:iconFatStrokeWidth });
         console.log('defaultIconConfiguration', defaultIconConfiguration,
                     'solidIconConfiguration', solidIconConfiguration, 'solidFatIconConfiguration', solidFatIconConfiguration);
 
         const rightTriangle = stickerLib.makeRightTriangle(defaultIconConfiguration);
         const isocelesTriangle = stickerLib.makeIsocelesTriangle(defaultIconConfiguration);
         const rectangle = stickerLib.makeRectangle(defaultIconConfiguration);
-        const checkMark = stickerLib.makeCheckmark(solidIconConfiguration);
-        const xMark = stickerLib.makeXmark(solidIconConfiguration);
+        const checkMark = stickerLib.makeCheckmark(solidFatIconConfiguration);
+        const xMark = stickerLib.makeXmark(solidFatIconConfiguration);
         const ribbon = stickerLib.makeRibbon(solidIconConfiguration)
         const sigma = stickerLib.makeSigma(solidIconConfiguration);
         const axis = stickerLib.makeAxis(solidIconConfiguration)
@@ -524,7 +526,7 @@ define([
         const smiley = stickerLib.makeSmiley(solidIconConfiguration);
         const horizontalBrackets = stickerLib.makeHorizontalBrackets(solidFatIconConfiguration);
         const verticalBrackets = stickerLib.makeVerticalBrackets(solidFatIconConfiguration);
-        const ellipse = stickerLib.makeEllipse($.extend({}, true, solidFatIconConfiguration, { buffer: 2 }));
+        const ellipse = stickerLib.makeEllipse($.extend({}, true, defaultIconConfiguration, { buffer: 1, dimensions:largeIconDimensions }));
         const pi = stickerLib.makePi(solidIconConfiguration);
         const curlyBraces = stickerLib.makeSymmetricCurlyBraces(solidIconConfiguration);
         const lineWithArrow = stickerLib.makeLine({
@@ -1546,6 +1548,7 @@ define([
               break;
             case 'sigma':
               generatedStickerHtml = stickerLib.makeSigma({
+                strokeWidth:1,
                 color:  pen.color,
                 fill:   pen.fill,
                 dashed: pen.dash, 
@@ -1581,6 +1584,7 @@ define([
               break;
             case 'axis':
               generatedStickerHtml = stickerLib.makeAxis({
+                strokeWidth: 2,
                 color:  pen.color,
                 fill:   pen.fill,
                 dashed: pen.dash, 
