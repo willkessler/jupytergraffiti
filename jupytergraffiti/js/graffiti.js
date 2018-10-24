@@ -497,25 +497,24 @@ define([
         const iconStrokeWidth = 1;
         const iconFatStrokeWidth = 2;
         const iconMargin = 6;
+        const smallIconMargin = 2;
         const iconDimensions = { x: iconMargin, y:iconMargin, width:iconSize - iconMargin,height:iconSize - iconMargin };
-        const largeIconDimensions = { x: iconMargin / 2, y:iconMargin / 2, width:iconSize - iconMargin / 2,height:iconSize - iconMargin / 2 };
+        const largeIconDimensions = { x: smallIconMargin, y:smallIconMargin, width:iconSize + smallIconMargin,height:iconSize + smallIconMargin };
         const defaultIconConfiguration = {
           dimensions: iconDimensions,
           color:iconColor,
-          dashed:'dashed',
-          dashWidth:2,
           iconUsage: true,
           strokeWidth:iconStrokeWidth
         };
         const solidIconConfiguration = $.extend({}, defaultIconConfiguration);
-        delete(solidIconConfiguration['dashed']);
         const solidFatIconConfiguration = $.extend({}, true, solidIconConfiguration, { strokeWidth:iconFatStrokeWidth });
-        console.log('defaultIconConfiguration', defaultIconConfiguration,
-                    'solidIconConfiguration', solidIconConfiguration, 'solidFatIconConfiguration', solidFatIconConfiguration);
+        const largeIconConfiguration = $.extend({}, true, defaultIconConfiguration, { buffer: 1, dimensions:largeIconDimensions });
+        const roundRectConfiguration = $.extend({}, true, largeIconConfiguration, { rx: 6, ry: 6 });
 
         const rightTriangle = stickerLib.makeRightTriangle(defaultIconConfiguration);
         const isocelesTriangle = stickerLib.makeIsocelesTriangle(defaultIconConfiguration);
-        const rectangle = stickerLib.makeRectangle(defaultIconConfiguration);
+        const rectangle = stickerLib.makeRectangle(largeIconConfiguration);
+        const roundRectangle = stickerLib.makeRectangle(roundRectConfiguration);
         const checkMark = stickerLib.makeCheckmark(solidFatIconConfiguration);
         const xMark = stickerLib.makeXmark(solidFatIconConfiguration);
         const ribbon = stickerLib.makeRibbon(solidIconConfiguration)
@@ -526,7 +525,7 @@ define([
         const smiley = stickerLib.makeSmiley(solidIconConfiguration);
         const horizontalBrackets = stickerLib.makeHorizontalBrackets(solidFatIconConfiguration);
         const verticalBrackets = stickerLib.makeVerticalBrackets(solidFatIconConfiguration);
-        const ellipse = stickerLib.makeEllipse($.extend({}, true, defaultIconConfiguration, { buffer: 1, dimensions:largeIconDimensions }));
+        const ellipse = stickerLib.makeEllipse(largeIconConfiguration);
         const pi = stickerLib.makePi(solidIconConfiguration);
         const theta = stickerLib.makeTheta(solidIconConfiguration);
         const curlyBraces = stickerLib.makeSymmetricCurlyBraces(solidIconConfiguration);
@@ -553,6 +552,7 @@ define([
                                       '    </div>' +
                                       '    <div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-rectangle">' + rectangle + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-roundRectangle">' + roundRectangle + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-ellipse">' + ellipse + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-rightTriangle">' + rightTriangle + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-isocelesTriangle">' + isocelesTriangle + '</div>' +
@@ -581,6 +581,7 @@ define([
                                             'graffiti-sticker-rightTriangle',
                                             'graffiti-sticker-isocelesTriangle',
                                             'graffiti-sticker-rectangle', 
+                                            'graffiti-sticker-roundRectangle',
                                             'graffiti-sticker-lineWithArrow',
                                             'graffiti-sticker-checkmark',
                                             'graffiti-sticker-xmark',
@@ -1504,6 +1505,17 @@ define([
                 fill:   pen.fill,
                 dashed: pen.dash, 
                 strokeWidth: 4,
+                dimensions: dimensions
+              });
+              break;
+            case 'roundRectangle':
+              generatedStickerHtml = stickerLib.makeRectangle({
+                color:  pen.color,
+                fill:   pen.fill,
+                dashed: pen.dash, 
+                strokeWidth: 4,
+                rx: 8,
+                ry: 8,
                 dimensions: dimensions
               });
               break;
