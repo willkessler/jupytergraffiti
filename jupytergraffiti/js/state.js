@@ -663,15 +663,16 @@ define([
     },
 
     createDrawingRecord: () => {
-      let record = $.extend(true, {}, 
-                            {
-                              innerCellRect: { 
-                                left: state.viewInfo.innerCellRect.left, 
-                                top: state.viewInfo.innerCellRect.top,
-                                width: state.viewInfo.innerCellRect.width,
-                                height: state.viewInfo.innerCellRect.height
-                              }
-                            }, state.drawingState);
+      const cell = utils.findCellByCellId(state.drawingState.cellId);
+      const cellRects = utils.getCellRects(cell);
+      let record = $.extend(true, {}, {
+        innerCellRect: { 
+          left: cellRects.innerCellRect.left, 
+          top: cellRects.innerCellRect.top,
+          width: cellRects.innerCellRect.width,
+          height: cellRects.innerCellRect.height
+        }
+      }, state.drawingState);
       // Remove statuses that are not needed in history records
       delete(record.drawingModeActivated);
       delete(record.pen.isDown);
