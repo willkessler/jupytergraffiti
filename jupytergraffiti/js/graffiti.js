@@ -1111,6 +1111,8 @@ define([
         if (state.getActivity() === 'recording') {
           if (e.type === 'mousedown') {
             console.log('drawingScreenHandler: mousedown');
+            const wasFading = (state.getDrawingStateField('drawingActivity') === 'fade');
+            console.log('wasFading:', wasFading);
             graffiti.resetTemporaryCanvases();
             state.disableDrawingFadeClock();
             const stickerType = state.getDrawingPenAttribute('stickerType');
@@ -1118,6 +1120,10 @@ define([
             if (stickerType !== undefined) {
               console.log('mousedown with stickerType:', stickerType);
               drawingActivity = 'sticker';
+              if (wasFading) {
+                graffiti.resetStickerCanvases('temporary');
+                graffiti.wipeTemporaryStickerDomCanvases();
+              }
               //graffiti.placeSticker({dynamic:true});
               const currentPointerPosition = state.getPointerPosition();
               const viewInfo = state.getViewInfo();
@@ -1380,56 +1386,27 @@ define([
         }
       },
 
-      updateDrawingOpacity: (opts) => {
+      updateDrawingOpacity: () => {
         const maxOpacity = state.getMaxDrawingOpacity();
-        if (opts.recording) {
-          // Recording ongoing, so store opacity records and handle resets when mouse goes down
-          if (opts.reset) {
-            // Forced reset of (possibly fading) canvases
-            if (state.drawingFadeInProgress()) {
-              graffiti.clearCanvases('temporary'); // clear the canvases only if we were in the middle of a fade. 
-              state.updateDrawingState( [ { change: 'opacity', data: maxOpacity } ]);
+        // Check for fadeouts
+        const currentOpacity = state.getDrawingStateField('opacity');
+        const opacityInfo = state.calculateDrawingOpacity();
+        switch (opacityInfo.status) {
+          case 'max':
+            if (currentOpacity !== maxOpacity) { // only go to max if not already set to max
+              const drawingActivity = state.getDrawingStateField('drawingActivity');
+              state.updateDrawingState( [ { change: 'drawingActivity', data: drawingActivity }, { change: 'opacity', data: maxOpacity } ] );
             }
-            state.disableDrawingFadeClock();
-          } else {
-            // Check for fadeouts
-            const currentOpacity = state.getDrawingStateField('opacity');
-            const opacityInfo = state.calculateDrawingOpacity();
-            switch (opacityInfo.status) {
-              case 'max':
-                if (currentOpacity !== maxOpacity) { // only go to max if not already set to max
-                  const drawingActivity = state.getDrawingStateField('drawingActivity');
-                  state.updateDrawingState( [ { change: 'drawingActivity', data: drawingActivity }, { change: 'opacity', data: maxOpacity } ] );
-                }
-                break;
-              case 'fade':
-                state.updateDrawingState( [ { change: 'drawingActivity', data: 'fade' }, { change: 'opacity', data: opacityInfo.opacity } ] );
-                state.storeHistoryRecord('drawings');
-                $('.graffiti-canvas-type-temporary').css({opacity:opacityInfo.opacity});
-                break;
-              case 'fadeDone':
-                graffiti.resetTemporaryCanvases();
-                graffiti.resetStickerCanvases('temporary');
-                break;
-            }
-          }
-        } else {
-          // Playback ongoing, so process records
-          const opacityRecord = state.getHistoryItem('opacity',opts.opacityIndex);
-          //console.log('opacityRecord:', opacityRecord);
-          if (opacityRecord !== undefined) {
-            if (opacityRecord.reset) {
-              if ((graffiti.lastDrawingEraseIndex === undefined) ||
-                  (graffiti.lastDrawingEraseIndex !== opts.opacityIndex)) {
-                console.log('Erasing canvases');
-                graffiti.clearCanvases('temporary');
-                graffiti.lastDrawingEraseIndex = opts.opacityIndex;
-              }
-              state.resetDrawingOpacity(); // if latest record was a reset, make sure you reset
-            } else {
-              state.setDrawingOpacity(opacityRecord.opacity);
-            }
-          }
+            break;
+          case 'fade':
+            state.updateDrawingState( [ { change: 'drawingActivity', data: 'fade' }, { change: 'opacity', data: opacityInfo.opacity } ] );
+            state.storeHistoryRecord('drawings');
+            $('.graffiti-canvas-type-temporary').css({opacity:opacityInfo.opacity});
+            break;
+          case 'fadeDone':
+            graffiti.resetTemporaryCanvases();
+            graffiti.resetStickerCanvases('temporary');
+            break;
         }
       },      
 
@@ -2900,7 +2877,7 @@ define([
                   graffiti.runOnceOnNextRecordingTick = undefined;
                 }
                 graffiti.updateTimeDisplay(state.getTimeRecordedSoFar());
-                graffiti.updateDrawingOpacity({recording:true, reset: false});
+                graffiti.updateDrawingOpacity();
               }, graffiti.recordingIntervalMs)
             );
             // Flash a red recording bullet while recording is ongoing, every second. 
