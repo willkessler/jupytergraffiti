@@ -205,12 +205,17 @@ define([
 
       const line = sticker.makeSvgElement('path', pathObj);
 
-      const viewBox = [0,0,Math.max(10,Math.abs(bbox.p2.x-bbox.p1.x)),Math.max(10, Math.abs(bbox.p2.y-bbox.p1.y))];
+      const viewBoxBuffer = 10;
+      const minArrowBox = 10 + viewBoxBuffer;
+      const viewBox = [-1 * viewBoxBuffer,
+                      -1 * viewBoxBuffer,
+                       Math.max(minArrowBox,Math.abs(bbox.p2.x-bbox.p1.x) + viewBoxBuffer * 2),
+                       Math.max(minArrowBox, Math.abs(bbox.p2.y-bbox.p1.y) + viewBoxBuffer * 2)];
       const renderedSvg = sticker.renderSvg([
         {
           el: line,
-          x: bbox.p1.x + opts.lineStartOffset.x,
-          y: bbox.p1.y + opts.lineStartOffset.y,
+          x: bbox.p1.x + opts.lineStartOffset.x - viewBoxBuffer,
+          y: bbox.p1.y + opts.lineStartOffset.y - viewBoxBuffer,
           width: viewBox[2],
           height: viewBox[3],
           color: color,
