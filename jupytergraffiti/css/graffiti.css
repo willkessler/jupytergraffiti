@@ -467,12 +467,24 @@
   background-color:#000000;
 }
 
-#graffiti-line-style-controls {
+#graffiti-line-style-controls, #graffiti-sticker-style-controls {
   display:flex;
   align-items:center;
   font-size:0.9em;
   font-style:italic;
   cursor:pointer;
+}
+
+#graffiti-sticker-style-controls {
+  font-size: 12px !important;
+}
+
+#graffiti-sticker-style-controls input {
+  margin-top:0px;
+}
+
+#graffiti-sticker-style-controls label {
+  padding-left:2px;
 }
 
 #graffiti-dashed-line {

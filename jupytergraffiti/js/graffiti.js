@@ -48,6 +48,7 @@ define([
           permanent: {}, // these stickers persist throughout the lifespan of the recording
           temporary: {}  // these stickers fade out a couple seconds after the person finishes placing them
         };
+        graffiti.useFilledStickers = false;
 
         graffiti.lastUpdateControlsTime = utils.getNow();
         graffiti.notificationMsgs = {};
@@ -504,7 +505,8 @@ define([
           dimensions: iconDimensions,
           color:iconColor,
           iconUsage: true,
-          strokeWidth:iconStrokeWidth
+          strokeWidth:iconStrokeWidth,
+          fillOpacity: 0
         };
         const solidIconConfiguration = $.extend({}, defaultIconConfiguration);
         const solidFatIconConfiguration = $.extend({}, true, solidIconConfiguration, { strokeWidth:iconFatStrokeWidth });
@@ -574,14 +576,19 @@ define([
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-beta">' + beta + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-sigma">' + sigma + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-theta">' + theta + '</div>' +
-                                      // alpha, beta
                                       '    </div>' +
                                       '    <div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-axis">' + axis + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-grid">' + grid + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-angle">' + angle + '</div>' +
-                                      // angle icon
                                       '    </div>' +
+                                      '  </div>' +
+                                      '  <div id="graffiti-sticker-style-controls">' +
+                                      '    <div id="graffiti-sticker-fill">' +
+                                      '     <input type="checkbox" id="graffiti-sticker-fill-control" />' +
+                                      '     <label id="graffiti-sticker-fill-control-label" for="graffiti-sticker-fill-control">Solid Fill</label>' +
+                                      '    </div>' +
+                                      '  </div>' +
                                       '</div>',
                                       [
                                         {
@@ -619,6 +626,13 @@ define([
                                             const cleanStickerId = stickerId.replace('graffiti-sticker-','');
                                             console.log('Sticker chosen:', cleanStickerId);
                                             graffiti.toggleGraffitiSticker(cleanStickerId);
+                                          }
+                                        },
+                                        {
+                                          ids: [ 'graffiti-sticker-fill-control', 'graffiti-sticker-fill-control-label' ],
+                                          event: 'click',
+                                          fn: (e) => {
+                                            graffiti.useFilledStickers = $('#graffiti-sticker-fill-control').is(':checked');
                                           }
                                         }
                                       ]
@@ -1517,7 +1531,8 @@ define([
                 fill:   pen.fill,
                 dashed: pen.dash, 
                 strokeWidth: 4,
-                dimensions: dimensions
+                dimensions: dimensions,
+                fillOpacity: (graffiti.useFilledStickers ? 1 : 0),
               });
               break;
             case 'roundRectangle':
@@ -1528,7 +1543,8 @@ define([
                 strokeWidth: 4,
                 rx: 8,
                 ry: 8,
-                dimensions: dimensions
+                dimensions: dimensions,
+                fillOpacity: (graffiti.useFilledStickers ? 1 : 0),
               });
               break;
             case 'isocelesTriangle':
@@ -1539,6 +1555,7 @@ define([
                 strokeWidth: 4,
                 dimensions: dimensions,
                 cssTransform: cssTransform,
+                fillOpacity: (graffiti.useFilledStickers ? 1 : 0),
               });
               break;
             case 'rightTriangle':
@@ -1548,7 +1565,18 @@ define([
                 dashed: pen.dash, 
                 dimensions: dimensions,
                 strokeWidth: 4,
-                cssTransform: cssTransform
+                cssTransform: cssTransform,
+                fillOpacity: (graffiti.useFilledStickers ? 1 : 0),
+              });
+              break;
+            case 'ellipse':
+              generatedStickerHtml = stickerLib.makeEllipse({
+                color:  pen.color,
+                dashed: pen.dash, 
+                strokeWidth:3,
+                dimensions: dimensions,
+                fillOpacity: (graffiti.useFilledStickers ? 1 : 0),
+                buffer: 4,
               });
               break;
             case 'checkmark':
@@ -1648,15 +1676,6 @@ define([
                 dashed: pen.dash, 
                 strokeWidth:3,
                 dimensions: dimensions,
-              });
-              break;
-            case 'ellipse':
-              generatedStickerHtml = stickerLib.makeEllipse({
-                color:  pen.color,
-                dashed: pen.dash, 
-                strokeWidth:3,
-                dimensions: dimensions,
-                buffer: 4,
               });
               break;
             case 'pi':

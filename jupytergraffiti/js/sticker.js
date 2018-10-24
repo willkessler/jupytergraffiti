@@ -241,7 +241,7 @@ define([
                        ry: Math.max(0,dimensions.height / 2 - opts.buffer),
                        stroke: opts.color,
                        "stroke-width": opts.strokeWidth,
-                       "fill-opacity":0
+                       "fill-opacity":opts.fillOpacity,
       };
       sticker.interpretDashing(opts, shapeObj);
 
@@ -312,6 +312,11 @@ define([
 
         if (opts.transform !== undefined) {
           pathObj.transform = opts.transform;
+        }
+
+        if (opts.fillOpacity !== undefined) {
+          pathObj['fill-opacity'] = opts.fillOpacity;
+          pathObj.fill = opts.color;
         }
 
         sticker.interpretDashing(opts, pathObj);
@@ -517,8 +522,9 @@ define([
                        width: dimensions.width,
                        height: dimensions.height,
                        stroke: opts.color,
+                       fill: opts.color,
                        "stroke-width": opts.strokeWidth,
-                       "fill-opacity":0
+                       "fill-opacity":opts.fillOpacity
       };
       sticker.interpretDashing(opts, shapeObj);
       if (opts.rx !== undefined) { // check for roundrect
