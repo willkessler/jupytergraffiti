@@ -57,19 +57,27 @@ define([
       const basePath = storage.constructBasePath();
       const graffitiPath = basePath + 
                            'cells/' + pathParts.recordingCellId + '/' + 
-                           'graffitis/' + pathParts.recordingKey + '/';
+                           'graffitis/' + pathParts.recordingKey + '/' +
+                           'takes/' + pathParts.activeTakeId + '/';
       return graffitiPath;
     },
 
     clearStorageInProcess: () => {
       const recordingCellInfo = state.getRecordingCellInfo();
       const recording = state.getManifestSingleRecording(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
+      const hasMovie = state.getMovieRecordingStarted();
+      // recording is a pointer into the live manifest hash, so beware that we are modifying state directly when changing it.
       if (recording !== undefined) {
         recording.inProgress = false;
-        recording.hasMovie = state.getMovieRecordingStarted();
+        recording.hasMovie = hasMovie;
       }
-      if (recordingCellInfo.hasOwnProperty('duration')) {
-        recording.duration = recordingCellInfo.duration;
+      if (hasMovie) {
+        // Store the latest take information in the current take for this recording.
+        if (!recording.takes.hasOwnProperty(recording.activeTakeId)) {
+          recording.takes[recording.activeTakeId] = {};
+        }
+        recording.takes[recording.activeTakeId].duration = recordingCellInfo.duration;
+        recording.takes[recording.activeTakeId].createDate = utils.getNow();
       }
       state.setStorageInProcess(false);
       state.setMovieRecordingStarted(false);
@@ -92,7 +100,8 @@ define([
         const numCells = Jupyter.notebook.get_cells().length;
         const graffitiPath = storage.constructGraffitiPath({
           recordingCellId: recordingCellInfo.recordingCellId,
-          recordingKey: recordingCellInfo.recordingKey
+          recordingKey: recordingCellInfo.recordingKey,
+          activeTakeId: recordingCellInfo.recordingRecord.activeTakeId
         });
         let bashScript = "import os\n";
         bashScript += 'os.system("mkdir -p ' + graffitiPath + '")' + "\n";
@@ -175,11 +184,12 @@ define([
     // Load a movie.
     // Returns a promise.
     //
-    loadMovie: (recordingCellId, recordingKey) => {
+    loadMovie: (recordingCellId, recordingKey, activeTakeId) => {
       const notebookRecordingId = Jupyter.notebook.metadata['graffitiId'];
       const graffitiPath = storage.constructGraffitiPath( {
         recordingCellId: recordingCellId,
-        recordingKey: recordingKey
+        recordingKey: recordingKey,
+        activeTakeId: activeTakeId,
       });
       const credentials = { credentials: 'include'};
       storage.successfulLoad = false; /* assume we cannot fetch this recording ok */
