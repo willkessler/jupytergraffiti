@@ -3513,6 +3513,7 @@ define([
         graffiti.cancelPlaybackNoVisualUpdates();
         state.setDontRestoreCellContentsAfterPlayback(false);
         graffiti.resetStickerCanvases();
+        graffiti.cancelRapidPlay();
         graffiti.graffitiCursor.hide();
         graffiti.clearCanvases('all');
         graffiti.refreshAllGraffitiHighlights();
