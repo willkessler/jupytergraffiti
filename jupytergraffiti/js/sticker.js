@@ -686,9 +686,9 @@ define([
       } else {
         dimensions = { x: opts.dimensions.x, 
                        y: opts.dimensions.y,
-                       width:  Math.max(opts.dimensions.width, 25)
+                       width:  Math.max(opts.dimensions.width, 25),
+                       height: Math.max(opts.dimensions.height, 25)
         };
-        dimensions.height = dimensions.width * 1.5;
       }
       return sticker.makeSimplePath(
         $.extend({}, true, opts, {
@@ -712,9 +712,9 @@ define([
         strokeWidth = 5;
         dimensions = { x: opts.dimensions.x, 
                        y: opts.dimensions.y,
-                       width:  Math.max(opts.dimensions.width, 25)
+                       width:  Math.max(opts.dimensions.width, 25),
+                       height:  Math.max(opts.dimensions.height, 25)
         };
-        dimensions.height = dimensions.width;
       }
       return sticker.makeSimplePath(
         $.extend({}, true, opts, {

@@ -67,7 +67,8 @@ define([
           'purple' : '8a2be2',
           'brown'  : '996600',
         };
-        graffiti.minimumStickerSize = 40; // pixels
+        graffiti.minimumStickerSize = 20; // pixels
+        graffiti.minimumStickerSizeWithBuffer = graffiti.minimumStickerSize + 10;
 
         if (currentAccessLevel === 'create') {
           storage.ensureNotebookGetsGraffitiId();
@@ -1193,9 +1194,6 @@ define([
             const drawingActivity = state.getDrawingStateField('drawingActivity');
             if ((drawingActivity === 'sticker') && (e.type === 'mouseup')) {
               graffiti.clearAnyActiveStickerStages();
-              if (graffiti.shiftKeyIsDown) {
-                state.storeLastStickerPositions(); // this will only store on the first sticker we draw after the shift key is pressed down
-              }
             }
             if (state.getDrawingPenAttribute('isDown')) {
               state.updateDrawingState( [ { change: 'isDown',  data: false } ]);
@@ -1516,35 +1514,23 @@ define([
           }
           stickerWidth =  Math.abs(positions.end.x - positions.start.x);
           stickerHeight = Math.abs(positions.end.y - positions.start.y);
-          if (activity === 'recording') {
-            if (graffiti.shiftKeyIsDown) {
-              // Make things square when shift key is down, except for checkmark and xmark, 
-              // where shift key means align with previous xmark/checkmark.
-              if ((type == 'checkmark') || (type == 'xmark')) {
-                const lastStickerPositions = state.getLastStickerPositions();
-                console.log('lastStickerPositions:', lastStickerPositions);
-                if (lastStickerPositions !== undefined) {
-                  const xDistance = Math.abs(lastStickerPositions.start.x - stickerX);
-                  const yDistance = Math.abs(lastStickerPositions.start.y - stickerY);
-                  if (xDistance > yDistance) {
-                    stickerY = lastStickerPositions.start.y;
-                  } else {
-                    stickerX = lastStickerPositions.start.x;
-                  }
-                  stickerWidth = lastStickerPositions.width;
-                  stickerHeight = lastStickerPositions.height;
-                  console.log('Fixed stickerHeight:', stickerHeight);
-                } else {
-                  stickerHeight = stickerWidth;
-                }
-              } else {
-                stickerHeight = stickerWidth; 
-              }
-            }
-          }
           const transformX = Math.sign(positions.end.x - positions.start.x);
           const transformY = Math.sign(positions.end.y - positions.start.y);
-          const cssTransform = 'scale(' + transformX + ',' + transformY + ')';
+          let cssTransform = 'scale(' + transformX + ',' + transformY + ')';
+          if (activity === 'recording') {
+            if (graffiti.shiftKeyIsDown) {
+              // Make things square when shift key is down, except for certain items,
+              // where shift key means align with a fixed grid and fixed graffiti size.
+              if ( (type === 'checkmark') || (type === 'xmark') || (type === 'bomb') || (type === 'trophy') || (type === 'smiley') ||
+                   (type === 'pi') || (type === 'alpha') || (type === 'beta') || (type === 'sigma') || (type == 'theta') || (type === 'angle') ) {
+                stickerX = parseInt(positions.start.x / graffiti.minimumStickerSizeWithBuffer) * graffiti.minimumStickerSizeWithBuffer;
+                stickerY = parseInt(positions.start.y / graffiti.minimumStickerSizeWithBuffer) * graffiti.minimumStickerSizeWithBuffer;
+                stickerWidth = graffiti.minimumStickerSize;
+                cssTransform = undefined; // don't allow transforms while on the fixed grid
+              } 
+              stickerHeight = stickerWidth;
+            }
+          }
           const dimensions = {
             x: stickerX,
             y: stickerY,
