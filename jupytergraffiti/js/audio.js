@@ -139,6 +139,7 @@ define([
         //console.log(base64String);
         audio.storeRecordedAudio(base64String);
         if (audio.executeCallback) {
+          // This callback is actually: storage:storeMovie().
           audio.audioStorageCallback();
         }
       });

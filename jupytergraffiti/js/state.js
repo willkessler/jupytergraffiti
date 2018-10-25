@@ -596,6 +596,10 @@ define([
     },
 
     getRecordingCellInfo: () => {
+      // Copy the latest duration into the recordingCellInfo so we persist it in the manifest, if we have it.
+      if ((state.history !== undefined) && (state.history.duration !== undefined)) {
+        state.recordingCellInfo.duration = state.history.duration;
+      }
       return state.recordingCellInfo;
     },
 
