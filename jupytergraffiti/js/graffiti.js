@@ -1517,19 +1517,17 @@ define([
           const transformX = Math.sign(positions.end.x - positions.start.x);
           const transformY = Math.sign(positions.end.y - positions.start.y);
           let cssTransform = 'scale(' + transformX + ',' + transformY + ')';
-          if (activity === 'recording') {
-            if (graffiti.shiftKeyIsDown) {
-              // Make things square when shift key is down, except for certain items,
-              // where shift key means align with a fixed grid and fixed graffiti size.
-              if ( (type === 'checkmark') || (type === 'xmark') || (type === 'bomb') || (type === 'trophy') || (type === 'smiley') ||
-                   (type === 'pi') || (type === 'alpha') || (type === 'beta') || (type === 'sigma') || (type == 'theta') || (type === 'angle') ) {
-                stickerX = parseInt(positions.start.x / graffiti.minimumStickerSizeWithBuffer) * graffiti.minimumStickerSizeWithBuffer;
-                stickerY = parseInt(positions.start.y / graffiti.minimumStickerSizeWithBuffer) * graffiti.minimumStickerSizeWithBuffer;
-                stickerWidth = graffiti.minimumStickerSize;
-                cssTransform = undefined; // don't allow transforms while on the fixed grid
-              } 
-              stickerHeight = stickerWidth;
-            }
+          if (stickerRecord.stickerOnGrid) {
+            // Make things square when shift key is down, except for certain items,
+            // where shift key means align with a fixed grid and fixed graffiti size.
+            if ( (type === 'checkmark') || (type === 'xmark') || (type === 'bomb') || (type === 'trophy') || (type === 'smiley') ||
+                 (type === 'pi') || (type === 'alpha') || (type === 'beta') || (type === 'sigma') || (type == 'theta') || (type === 'angle') ) {
+              stickerX = parseInt(positions.start.x / graffiti.minimumStickerSizeWithBuffer) * graffiti.minimumStickerSizeWithBuffer;
+              stickerY = parseInt(positions.start.y / graffiti.minimumStickerSizeWithBuffer) * graffiti.minimumStickerSizeWithBuffer;
+              stickerWidth = graffiti.minimumStickerSize;
+              cssTransform = undefined; // don't allow transforms while on the fixed grid
+            } 
+            stickerHeight = stickerWidth;
           }
           const dimensions = {
             x: stickerX,
@@ -1775,6 +1773,7 @@ define([
         // Replace active sticker if there is one, or add a new active sticker
         const stickers = graffiti.stickers[stickerPermanence][cellId].stickers;
         let stickerRecord = state.createDrawingRecord();
+        console.log('stickerRecord', stickerRecord);
         //console.log('stickerRecordEnd:', stickerRecord.positions.start.x, stickerRecord.positions.start.y, stickerRecord.positions.end.x, stickerRecord.positions.end.y);
         stickerRecord.active = true;
         let replaced = false;
@@ -2245,7 +2244,8 @@ define([
               break;
             case 16: // shift key
               graffiti.shiftKeyIsDown = true;
-              console.log('shiftKeyIsDown');
+              state.updateDrawingState([ { change: 'stickerOnGrid', data: true } ]);
+              console.log('Graffiti: shiftKeyIsDown');
               break;
               // case 13: // enter key
               //            break;
@@ -2270,9 +2270,9 @@ define([
           //console.log('keyUp e.which:', e.which);
           switch (e.which) {
             case 16:
+              console.log('Graffiti: shiftKeyIsUp');
               graffiti.shiftKeyIsDown = false;
-              state.clearLastStickerPositions();
-              console.log('shiftKeyIsUp');
+              state.updateDrawingState([ { change: 'stickerOnGrid', data: false } ]);
               break;
           }
         });
