@@ -50,6 +50,7 @@ define([
       state.hidePlayerAfterPlayback = false;
       state.dontRestoreCellContentsAfterPlayback = false; // this is something the author can decide with an API call.
       state.cellOutputsSent = {};
+      state.lastStickerPositions = undefined;
       state.cellStates = {
         contents: {},
         changedCells: {},
@@ -210,6 +211,25 @@ define([
       return state.displayedTipInfo;
     },
 
+    storeLastStickerPositions: () => {
+      if (state.lastStickerPositions === undefined) {
+        state.lastStickerPositions = {
+          start: { x: state.drawingState.positions.start.x, y: state.drawingState.positions.start.y },
+          end:   { x: state.drawingState.positions.end.x, y: state.drawingState.positions.end.y },
+          width: Math.abs(state.drawingState.positions.end.x - state.drawingState.positions.start.x),
+          height: Math.abs(state.drawingState.positions.end.y - state.drawingState.positions.start.y)
+        }
+      }
+    },
+
+    getLastStickerPositions: () => {
+      return state.lastStickerPositions;
+    },
+
+    clearLastStickerPositions: () => {
+      state.lastStickerPositions = undefined;
+    },
+
     saveSelectedCellId: (cellId) => {
       state.selectedCellId = cellId;
     },
@@ -291,9 +311,6 @@ define([
       if ((stickers !== undefined) && (stickers.length > 0)) {
         stickersRecords = [];
         for (let sticker of stickers) {
-          if (sticker === undefined) {
-            debugger;
-          }
           stickersRecords.push({
             positions: { start: { x: sticker.positions.start.x, y: sticker.positions.start.y },
                          end:   { x: sticker.positions.end.x, y: sticker.positions.end.y } },
@@ -673,6 +690,7 @@ define([
           height: cellRects.innerCellRect.height
         }
       }, state.drawingState);
+
       // Remove statuses that are not needed in history records
       delete(record.drawingModeActivated);
       delete(record.pen.isDown);

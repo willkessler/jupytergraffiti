@@ -1193,6 +1193,9 @@ define([
             const drawingActivity = state.getDrawingStateField('drawingActivity');
             if ((drawingActivity === 'sticker') && (e.type === 'mouseup')) {
               graffiti.clearAnyActiveStickerStages();
+              if (graffiti.shiftKeyIsDown) {
+                state.storeLastStickerPositions(); // this will only store on the first sticker we draw after the shift key is pressed down
+              }
             }
             if (state.getDrawingPenAttribute('isDown')) {
               state.updateDrawingState( [ { change: 'isDown',  data: false } ]);
@@ -1484,6 +1487,7 @@ define([
 
       // calculate correct offsets based on innerCellRect / dx, dy etc
       drawStickersForCell: (cellId, stickerPermanence,record) => {
+        const activity = state.getActivity();
         graffiti.placeStickerCanvas(cellId, stickerPermanence);
         let stickerX, stickerY, width, height, stickerWidth, stickerHeight, generatedStickerElem, pen, type, positions, p1x,p1y,p2x,p2y;
         let newInnerHtml = [];
@@ -1498,7 +1502,7 @@ define([
         for (let stickerRecord of stickersRecords) {
           pen = stickerRecord.pen;
           type = pen.stickerType;
-          if (state.getActivity() === 'recording') {
+          if (activity === 'recording') {
             positions = stickerRecord.positions;
           } else {
             positions = graffiti.computeStickersOffsetPositions(cellId, record, stickerRecord);
@@ -1512,8 +1516,31 @@ define([
           }
           stickerWidth =  Math.abs(positions.end.x - positions.start.x);
           stickerHeight = Math.abs(positions.end.y - positions.start.y);
-          if (graffiti.shiftKeyIsDown) {
-            stickerHeight = stickerWidth; // make things square when shift key is down
+          if (activity === 'recording') {
+            if (graffiti.shiftKeyIsDown) {
+              // Make things square when shift key is down, except for checkmark and xmark, 
+              // where shift key means align with previous xmark/checkmark.
+              if ((type == 'checkmark') || (type == 'xmark')) {
+                const lastStickerPositions = state.getLastStickerPositions();
+                console.log('lastStickerPositions:', lastStickerPositions);
+                if (lastStickerPositions !== undefined) {
+                  const xDistance = Math.abs(lastStickerPositions.start.x - stickerX);
+                  const yDistance = Math.abs(lastStickerPositions.start.y - stickerY);
+                  if (xDistance > yDistance) {
+                    stickerY = lastStickerPositions.start.y;
+                  } else {
+                    stickerX = lastStickerPositions.start.x;
+                  }
+                  stickerWidth = lastStickerPositions.width;
+                  stickerHeight = lastStickerPositions.height;
+                  console.log('Fixed stickerHeight:', stickerHeight);
+                } else {
+                  stickerHeight = stickerWidth;
+                }
+              } else {
+                stickerHeight = stickerWidth; 
+              }
+            }
           }
           const transformX = Math.sign(positions.end.x - positions.start.x);
           const transformY = Math.sign(positions.end.y - positions.start.y);
@@ -1524,6 +1551,7 @@ define([
             width: stickerWidth,
             height: stickerHeight
           };
+          //console.log('drawing to dimensions:', dimensions);
           //console.log('Processing stickerRecord:', stickerRecord);
           switch (type) {
             case 'rectangle':
@@ -1761,6 +1789,7 @@ define([
         // Replace active sticker if there is one, or add a new active sticker
         const stickers = graffiti.stickers[stickerPermanence][cellId].stickers;
         let stickerRecord = state.createDrawingRecord();
+        //console.log('stickerRecordEnd:', stickerRecord.positions.start.x, stickerRecord.positions.start.y, stickerRecord.positions.end.x, stickerRecord.positions.end.y);
         stickerRecord.active = true;
         let replaced = false;
         if (stickers.length > 0) {
@@ -2230,8 +2259,9 @@ define([
               break;
             case 16: // shift key
               graffiti.shiftKeyIsDown = true;
+              console.log('shiftKeyIsDown');
               break;
-              //          case 13: // enter key
+              // case 13: // enter key
               //            break;
               // case 18: // meta key
               // break;
@@ -2255,6 +2285,8 @@ define([
           switch (e.which) {
             case 16:
               graffiti.shiftKeyIsDown = false;
+              state.clearLastStickerPositions();
+              console.log('shiftKeyIsUp');
               break;
           }
         });
