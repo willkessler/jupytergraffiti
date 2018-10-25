@@ -596,9 +596,10 @@ define([
     },
 
     getRecordingCellInfo: () => {
-      // Copy the latest duration into the recordingCellInfo so we persist it in the manifest, if we have it.
-      if ((state.history !== undefined) && (state.history.duration !== undefined)) {
-        state.recordingCellInfo.duration = state.history.duration;
+      // Copy the latest duration into the recordingCellInfo so we persist it in the manifest, if we have it (for the activeTake only)
+      if ((state.history !== undefined) && (state.history.duration !== undefined) &&
+          (state.recordingCellInfo.takes !== undefined) && (state.recordingCellInfo.activeTakeId !== undefined)) {
+        state.recordingCellInfo.takes[state.recordingCellInfo.activeTakeId].duration = state.history.duration;
       }
       return state.recordingCellInfo;
     },
@@ -612,9 +613,9 @@ define([
       return state.playableMovies[kind];
     },
 
-    setPlayableMovie: (kind, cellId, recordingKey) => {
+    setPlayableMovie: (kind, cellId, recordingKey, activeTakeId) => {
       const cell = utils.findCellByCellId(cellId);
-      state.playableMovies[kind] = { cellId: cellId, recordingKey: recordingKey, cell: cell, cellType: cell.cell_type };
+      state.playableMovies[kind] = { cellId: cellId, recordingKey: recordingKey, activeTakeId: activeTakeId, cell: cell, cellType: cell.cell_type, };
     },
 
     clearPlayableMovie: (kind) => {

@@ -804,7 +804,8 @@ define([
                 if (graffiti.selectedTokens.hasMovie) {
                   state.setPlayableMovie('cursorActivity', graffiti.selectedTokens.recordingCellId,graffiti.selectedTokens.recordingKey);
                   graffiti.recordingAPIKey = graffiti.selectedTokens.recordingCellId.replace('id_','') + '_' + 
-                                             graffiti.selectedTokens.recordingKey.replace('id_','');
+                                             graffiti.selectedTokens.recordingKey.replace('id_','') +
+                                             graffiti.selectedTokens.activeTakeId.replace('id_','');
                   visibleControlPanels.push('graffiti-access-api');
                   visibleControlPanels.push('graffiti-notifier');
                   //console.log('this recording has a movie');
@@ -1955,9 +1956,10 @@ define([
         graffiti.tokenRanges[cellId] = {};
         if (recordings !== undefined) {
           if (Object.keys(recordings).length > 0) {
-            let keyParts,recording, recordingKey, tokens, firstToken, marker, range;
+            let keyParts,recording, recordingKey, tokens, firstToken, marker, range, activeTakeId;
             for (recordingKey of Object.keys(recordings)) {
               recording = recordings[recordingKey];
+              activeTakeId = recording.activeTakeId;
               tokens = recording.tokens;
               //console.log('recordingKey:', recordingKey);
               range = utils.getCMTokenRange(cm, tokens, allTokens);
@@ -1966,7 +1968,7 @@ define([
                 graffiti.tokenRanges[cellId][recordingKey] = range;
                 if (params.clear || (!params.clear && markClasses !== undefined && markClasses.indexOf(recordingKey) === -1)) {
                   // don't call markText twice on a previously marked range
-                  marker = 'graffiti-' + recording.cellId + '-' + recordingKey;
+                  marker = 'graffiti-' + recording.cellId + '-' + recordingKey + '-' + activeTakeId;
                   cm.markText({ line:range.start.line, ch:range.start.ch},
                               { line:range.end.line,   ch:range.end.ch  },
                               { className: 'graffiti-highlight ' + marker });
@@ -2008,10 +2010,11 @@ define([
             const highlightElemRect = highlightElem[0].getBoundingClientRect();
             const highlightElemMaxDimension = Math.max(highlightElemRect.width, highlightElemRect.height);
             const highlightElemMaxDimensionSquared = highlightElemMaxDimension * highlightElemMaxDimension;
-            const idMatch = highlightElem.attr('class').match(/graffiti-(id_.[^\-]+)-(id_[^\s]+)/);
+            const idMatch = highlightElem.attr('class').match(/graffiti-(id_.[^\-]+)-(id_[^\s]+)-(id_[^\s]+)/);
             if (idMatch !== null) {
               const cellId = idMatch[1];
               const recordingKey = idMatch[2];
+              const activeTakeId = idMatch[3];
               const hoverCell = utils.findCellByCellId(cellId);
               const hoverCellElement = hoverCell.element[0];
               const hoverCellElementPosition = $(hoverCellElement).position();
@@ -2060,7 +2063,7 @@ define([
                     let tooltipContents = headlineMarkdown + '<div class="parts">' + '<div class="info">' + contentMarkdown + '</div>';
                     if (recording.hasMovie) {
                       const buttonName = (((tooltipCommands !== undefined) && (tooltipCommands.buttonName !== undefined)) ? tooltipCommands.buttonName : 'Play Movie');
-                      state.setPlayableMovie('tip', cellId, recordingKey);
+                      state.setPlayableMovie('tip', cellId, recordingKey, activeTakeId);
                       tooltipContents +=
                         '   <div class="movie"><button class="btn btn-default btn-small" id="graffiti-movie-play-btn">' + buttonName + '</button></div>';
                     }
@@ -2114,7 +2117,7 @@ define([
                               click: (e) => {
                                 console.log('Graffiti: you want to preserve cell contents after playback.');
                                 // Must restore playable movie values because jupyter dialog causes the tip to hide, which clears the playableMovie
-                                state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey);
+                                state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey, playableMovie.activeTakeId);
                                 state.setDontRestoreCellContentsAfterPlayback(false);
                                 graffiti.loadAndPlayMovie('tip');
                               }
@@ -2122,7 +2125,7 @@ define([
                             'Let this Movie Permanently Set Cell Contents': { 
                               click: (e) => { 
                                 // Must restore playable movie values because jupyter dialog causes the tip to hide, which clears the playableMovie
-                                state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey);
+                                state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey, playableMovie.activeTakeId);
                                 graffiti.loadAndPlayMovie('tip'); 
                               }
                             }
@@ -2379,7 +2382,9 @@ define([
             markdown: '',
             authorId: state.getAuthorId(),
             authorType: state.getAuthorType(), // one of "creator" (eg teacher), "viewer" (eg student)
-            hasMovie: false
+            hasMovie: false,
+            takes: {},
+            activeTakeId:utils.generateUniqueId() // will be used if a recording is put in place later
           }
           state.setSingleManifestRecording(recordingCellId, recordingKey, recordingRecord);
         }
@@ -2719,15 +2724,16 @@ define([
         // Preserve the state of all cells and selections before we begin recording so we can restore when the recording is done.
         state.storeCellStates();
         graffiti.preRecordingScrollTop = state.getScrollTop();
-        if (graffiti.selectedTokens.isIntersecting) {
-          const recordingRecord = graffiti.storeRecordingInfoInCell();
-          if (recordingRecord.cellType === 'markdown') {
-            graffiti.selectedTokens.recordingCell.render();
-          }
-          graffiti.setPendingRecording();
-        } else {
-          graffiti.editGraffiti('recordingLabelling');
+        const recordingRecord = graffiti.storeRecordingInfoInCell();
+        if (recordingRecord.hasMovie) {
+          // If we already have a movie, then we need to generate a new take
+          recordingRecord.activeTakeId = utils.generateUniqueId();
+          recordingRecord.takes[recordingRecord.activeTakeId] = {};
         }
+        if (recordingRecord.cellType === 'markdown') {
+          graffiti.selectedTokens.recordingCell.render();
+        }
+        graffiti.setPendingRecording();
       },
 
       addCMEventsToSingleCell: (cell) => {
@@ -3612,7 +3618,7 @@ define([
         // next line seems to be extraneous and buggy because we create a race condition with the control panel. however what happens if a movie cannot be loaded?
         // graffiti.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
 
-        storage.loadMovie(playableMovie.cellId, playableMovie.recordingKey).then( () => {
+        storage.loadMovie(playableMovie.cellId, playableMovie.recordingKey, playableMovie.activeTakeId).then( () => {
           console.log('Graffiti: Movie loaded for cellId, recordingKey:', playableMovie.cellId, playableMovie.recordingKey);
           if (playableMovie.cellType === 'markdown') {
             playableMovie.cell.render(); // always render a markdown cell first before playing a movie on a graffiti inside it
@@ -3643,7 +3649,8 @@ define([
         const parts = recordingFullId.split('_');
         const cellId = 'id_' + parts[0];
         const recordingKey = 'id_' + parts[1];
-        state.setPlayableMovie('api', cellId, recordingKey);
+        const activeTakeId = 'id_' + parts[2];
+        state.setPlayableMovie('api', cellId, recordingKey, activeTakeId);
         graffiti.loadAndPlayMovie('api');
       },
 

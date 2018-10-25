@@ -241,11 +241,12 @@ define([
         let tags = [], match, tag;
         let idMatch;
         while ((match = tagsRe.exec(contents)) !== null) { 
-          idMatch = match[1].match(/graffiti-(id_.[^\-]+)-(id_[^\s]+)/);
+          idMatch = match[1].match(/graffiti-(id_.[^\-]+)-(id_[^\s]+)-(id_[^\s]+)/);
           tags.push({
             fullMatch: match[0],
             recordingCellId: idMatch[1],
             recordingKey: idMatch[2],
+            activeTakeId: idMatch[3],
             innerText: match[2],
             startRange: match.index,
             endRange: match.index + match[0].length
@@ -273,6 +274,7 @@ define([
               recordingCell: recordingCell,
               recordingCellId: recordingCellId,
               recordingKey: tag.recordingKey, 
+              activeTakeId: tag.activeTakeId, 
               hasMovie: hasMovie,
               allTokensString: tag.innerText,
               markdown: tag.innerText,
@@ -356,6 +358,7 @@ define([
                     recordingCell: recordingCell,
                     recordingCellId: recordingCellId,
                     recordingKey: recordingKey, 
+                    activeTakeId: recording.activeTakeId, 
                     markdown: markdown,
                     hasMovie: hasMovie,
                     range: {
