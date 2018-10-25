@@ -68,6 +68,9 @@ define([
         recording.inProgress = false;
         recording.hasMovie = state.getMovieRecordingStarted();
       }
+      if (recordingCellInfo.hasOwnProperty('duration')) {
+        recording.duration = recordingCellInfo.duration;
+      }
       state.setStorageInProcess(false);
       state.setMovieRecordingStarted(false);
       console.log('Graffiti: clearStorageInProcess saving manifest.');
@@ -81,36 +84,33 @@ define([
 
       const notebook = Jupyter.notebook;
       const jsonHistory = state.getJSONHistory();
-      //console.log(jsonHistory);
-      const base64CompressedHistory = LZString.compressToBase64(jsonHistory);
-      const encodedAudio = audio.getRecordedAudio();
+      if (jsonHistory !== undefined) {
+        //console.log(jsonHistory);
+        const base64CompressedHistory = LZString.compressToBase64(jsonHistory);
+        const encodedAudio = audio.getRecordedAudio();
 
-      const numCells = Jupyter.notebook.get_cells().length;
-      const recordingMetaData = {
-        duration: state.getHistoryDuration()
-      };
-      const graffitiPath = storage.constructGraffitiPath({
-        recordingCellId: recordingCellInfo.recordingCellId,
-        recordingKey: recordingCellInfo.recordingKey
-      });
-      const jsonMeta = JSON.stringify(recordingMetaData).replace(/\"/g,'\\"');
-      let bashScript = "import os\n";
-      bashScript += 'os.system("mkdir -p ' + graffitiPath + '")' + "\n";
-      bashScript += "with open('" + graffitiPath + "audio.txt', 'w') as f:\n";
-      bashScript += "    f.write('" + encodedAudio + "')\n";
-      bashScript += "with open('" + graffitiPath + "history.txt', 'w') as f:\n";
-      bashScript += "    f.write('" + base64CompressedHistory + "')\n";
-      bashScript += "with open('" + graffitiPath + "meta.json', 'w') as f:\n";
-      bashScript += "    f.write('" + jsonMeta + "')\n";
-      //console.log(bashScript);
-      Jupyter.notebook.kernel.execute(bashScript,
-                                      undefined,
-                                      {
-                                        silent: false,
-                                        store_history: false,
-                                        stop_on_error : true
-                                      });
-
+        const numCells = Jupyter.notebook.get_cells().length;
+        const graffitiPath = storage.constructGraffitiPath({
+          recordingCellId: recordingCellInfo.recordingCellId,
+          recordingKey: recordingCellInfo.recordingKey
+        });
+        let bashScript = "import os\n";
+        bashScript += 'os.system("mkdir -p ' + graffitiPath + '")' + "\n";
+        bashScript += "with open('" + graffitiPath + "audio.txt', 'w') as f:\n";
+        bashScript += "    f.write('" + encodedAudio + "')\n";
+        bashScript += "with open('" + graffitiPath + "history.txt', 'w') as f:\n";
+        bashScript += "    f.write('" + base64CompressedHistory + "')\n";
+        //console.log(bashScript);
+        Jupyter.notebook.kernel.execute(bashScript,
+                                        undefined,
+                                        {
+                                          silent: false,
+                                          store_history: false,
+                                          stop_on_error : true
+                                        });
+      } else {
+        console.log('Graffiti: could not fetch JSON history.');
+      }
     },
 
     // Load the manifest for this notebook.
@@ -144,12 +144,14 @@ define([
           //console.log('uncompressed manifest:', uncompressedManifestString);
           const manifestDataParsed = JSON.parse(uncompressedManifestString);
           state.setManifest(manifestDataParsed);
+          console.log('Manifest:', manifestDataParsed);
         }
       });
     },
 
     storeManifest: () => {
       const manifest = state.getManifest();
+      console.log('saving manifest:', manifest);
       const manifestInfo = storage.constructManifestPath();
       console.log('Graffiti: Saving manifest to:', manifestInfo.file);
       let bashScript = "import os\n";
@@ -174,59 +176,50 @@ define([
     // Returns a promise.
     //
     loadMovie: (recordingCellId, recordingKey) => {
-
       const notebookRecordingId = Jupyter.notebook.metadata['graffitiId'];
       const graffitiPath = storage.constructGraffitiPath( {
         recordingCellId: recordingCellId,
         recordingKey: recordingKey
       });
-      const metaUrl = graffitiPath + 'meta.json';
       const credentials = { credentials: 'include'};
       storage.successfulLoad = false; /* assume we cannot fetch this recording ok */
-      console.log('Graffiti storage: loading movie from metaUrl:', metaUrl);
-      return fetch(metaUrl, credentials).then((response) => {
+      console.log('Graffiti: storage is loading movie from path:', graffitiPath);
+      const historyUrl = graffitiPath + 'history.txt';
+      return fetch(historyUrl, credentials).then((response) => {
         if (!response.ok) {
           throw Error(response.statusText);
         }
-        return response.json();
-      }).then((metaInfo) => {
-        const historyUrl = graffitiPath + 'history.txt';
-        return fetch(historyUrl, credentials).then((response) => {
-          if (!response.ok) {
-            throw Error(response.statusText);
-          }
-          return response.text();
-        }).then(function(base64CompressedHistory) {
-          try {
-            //console.log('Loaded history:', base64CompressedHistory);
-            const uncompressedHistory = LZString.decompressFromBase64(base64CompressedHistory);
-            const parsedHistory = JSON.parse(uncompressedHistory);
-            state.storeWholeHistory(parsedHistory);
-            console.log('Graffiti: Loaded previous history.');
-            console.log(parsedHistory);
-            const audioUrl = graffitiPath + 'audio.txt';
-            return fetch(audioUrl, { credentials: 'include' }).then((response) => {
-              if (!response.ok) {
-                throw Error(response.statusText);
-              }
-              return response.text();
-            }).then(function(base64CompressedAudio) {
-              try {
-                audio.setRecordedAudio(base64CompressedAudio);
-                storage.successfulLoad = true;
-              } catch(ex) {
-                console.log('Graffiti: Could not parse saved audio, ex:', ex);
-                return Promise.reject('Could not parse saved audio, ex :' + ex);
-              }
-            });
-          } catch (ex) {
-            console.log('Graffiti: Could not parse previous history, ex :',ex);
-            return Promise.reject('Could not parse previous history, ex :' + ex);
-          }
-        });
+        return response.text();
+      }).then(function(base64CompressedHistory) {
+        try {
+          //console.log('Loaded history:', base64CompressedHistory);
+          const uncompressedHistory = LZString.decompressFromBase64(base64CompressedHistory);
+          const parsedHistory = JSON.parse(uncompressedHistory);
+          state.storeWholeHistory(parsedHistory);
+          console.log('Graffiti: Loaded previous history.');
+          console.log(parsedHistory);
+          const audioUrl = graffitiPath + 'audio.txt';
+          return fetch(audioUrl, { credentials: 'include' }).then((response) => {
+            if (!response.ok) {
+              throw Error(response.statusText);
+            }
+            return response.text();
+          }).then(function(base64CompressedAudio) {
+            try {
+              audio.setRecordedAudio(base64CompressedAudio);
+              storage.successfulLoad = true;
+            } catch(ex) {
+              console.log('Graffiti: Could not parse saved audio, ex:', ex);
+              return Promise.reject('Could not parse saved audio, ex :' + ex);
+            }
+          });
+        } catch (ex) {
+          console.log('Graffiti: Could not parse previous history, ex :',ex);
+          return Promise.reject('Could not parse previous history, ex :' + ex);
+        }
       }).catch((ex) => {
-        console.log('Graffiti: Could not fetch metadata file for history, ex:', ex);
-        return Promise.reject('Could not fetch metadata file');
+        console.log('Graffiti: Could not fetch history file for history, ex:', ex);
+        return Promise.reject('Could not fetch history file');
       });
     },
 

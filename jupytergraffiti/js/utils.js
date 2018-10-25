@@ -550,7 +550,6 @@ define([
     },
 
     formatTime: (currentTimeMilliseconds) => {
-      //const currentTimeMilliseconds = duration * proportion;
       const currentTimeSeconds = currentTimeMilliseconds / 1000;
       const computedHour = Math.floor(currentTimeSeconds / 3600);
       const computedMinutes = Math.floor((currentTimeSeconds - (computedHour * 3600)) / 60);
