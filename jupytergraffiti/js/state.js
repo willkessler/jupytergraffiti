@@ -75,6 +75,7 @@ define([
           dash: 'solid', // one of 'solid', 'dashed'
           fill: 'none' // one of 'none', '#xyz'
         },
+        stickerOnGrid: false,
         stickersRecords: {}, // This contains records of all stickers drawn to date during a recording, or since the last fadeout in a recording.
         opacity: state.maxDrawingOpacity
       };
@@ -320,7 +321,8 @@ define([
               dash:  sticker.pen.dash,
               fill:  sticker.pen.fill,
               permanence: sticker.pen.permanence,
-            }
+            },
+            stickerOnGrid: sticker.stickerOnGrid
           });
         }
       }
@@ -349,6 +351,9 @@ define([
             break;
           case 'isDown':
             drawingState.pen.isDown = data;
+            break;
+          case 'stickerOnGrid':
+            drawingState.stickerOnGrid = data;
             break;
           case 'penType':
             drawingState.pen.type = data;  // one of 'line', 'highlight', 'eraser', or 'sticker'
