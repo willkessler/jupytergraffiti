@@ -73,11 +73,14 @@ define([
       }
       if (hasMovie) {
         // Store the latest take information in the current take for this recording.
-        if (!recording.takes.hasOwnProperty(recording.activeTakeId)) {
-          recording.takes[recording.activeTakeId] = {};
+        recording.activeTakeId = recordingCellInfo.recordingRecord.activeTakeId;
+        if (!recording.hasOwnProperty('takes')) {
+          recording.takes = {};
         }
-        recording.takes[recording.activeTakeId].duration = recordingCellInfo.duration;
-        recording.takes[recording.activeTakeId].createDate = utils.getNow();
+        recording.takes[recording.activeTakeId] = { 
+          duration: state.getHistoryDuration(),
+          createDate: utils.getNow()
+        };
       }
       state.setStorageInProcess(false);
       state.setMovieRecordingStarted(false);
@@ -156,6 +159,12 @@ define([
           console.log('Manifest:', manifestDataParsed);
         }
       });
+    },
+
+    updateSingleManifestRecordingField: (recordingCellId, recordingKey, field, data) => {
+      const recording = state.getManifestSingleRecording(recordingCellId, recordingKey);
+      recording[field] = data;
+      storage.storeManifest();
     },
 
     storeManifest: () => {
