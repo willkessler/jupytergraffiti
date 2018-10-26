@@ -750,9 +750,9 @@ define([
 
       updateTakesPanel: (recordingCellId, recordingKey, activeTakeId) => {
         const recording = state.getManifestSingleRecording(recordingCellId, recordingKey);
-        console.log('we got these takes:', recording.takes);
+        //console.log('we got these takes:', recording.takes);
         const sortedRecs = _.sortBy($.map(recording.takes, (val,key) => { return $.extend(true, {}, val, { key: key }) }), 'createDate')
-        console.log('sorted recs are:', sortedRecs);
+        //console.log('sorted recs are:', sortedRecs);
         let recIndex, recIndexZerobased, renderedTakes = '', createDateFormatted, renderedDate, rec, takeClass;
         for (recIndex = sortedRecs.length; recIndex > 0; --recIndex) {
           recIndexZerobased = recIndex - 1;
@@ -2981,9 +2981,9 @@ define([
         console.log('Graffiti: stopRecordingCore is refreshing.');
         state.restoreCellStates('contents');
         graffiti.updateAllGraffitiDisplays();
-        graffiti.sitePanel.animate({ scrollTop: graffiti.preRecordingScrollTop }, 750);
         graffiti.wipeAllStickerDomCanvases();
         state.restoreCellStates('selections');
+        graffiti.sitePanel.animate({ scrollTop: graffiti.preRecordingScrollTop }, 750);
         graffiti.selectIntersectingGraffitiRange();
         state.deleteTrackingArrays();
         state.clearDisplayedTipInfo();
@@ -3026,12 +3026,14 @@ define([
         const currentActivity = state.getActivity();
         if (currentActivity !== 'playing') {
           if (currentActivity === 'recording') {
+            state.blockRecording(); // this is here because a race condition can happen right at the end of recording
             graffiti.setNotifier('Please wait, storing this movie...');
             graffiti.showControlPanels(['graffiti-notifier']);
             graffiti.savingScrim.css({display:'flex'});
             graffiti.deactivateAllPens();
             graffiti.resetStickerCanvases();
             graffiti.stopRecordingCore(true);
+            state.unblockRecording();
             console.log('Graffiti: Stopped recording.');
           } else {
 
