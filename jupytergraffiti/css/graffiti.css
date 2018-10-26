@@ -270,6 +270,41 @@
   height:32px;
 }
 
+#graffiti-takes-controls-outer,  #graffiti-takes-list {
+  display:flex;
+  align-items:top;
+  font-size:14px;
+}
+
+#graffiti-takes-title {
+  margin-top:2px;
+}
+
+#graffiti-takes-list {
+  max-width:122px;
+  overflow-x: auto;
+  height:34px;
+}
+
+.graffiti-take-selected {
+  border: 1px solid #222;
+}
+
+.graffiti-take-unselected {
+  border: 1px solid #222;
+  border:1px dotted rgba(245,245,245,0.9);
+}
+
+#graffiti-takes-list div {
+  padding:2px;
+  cursor:pointer;
+  height:24px;
+}
+
+#graffiti-takes-list div:hover {
+  border:1px dotted #888;
+}
+
 #graffiti-recording-status {
   display:flex;
   justify-content:left;

@@ -265,6 +265,35 @@ define([
                                       ]
         );
 
+        // controls which recording takes are the activeTake
+        graffiti.setupOneControlPanel('graffiti-takes-controls',
+                                      '<div id="graffiti-takes-controls-outer">' +
+                                      '  <div id="graffiti-takes-title">Takes:</div>' +
+                                      '  <div id="graffiti-takes-list"></div>' +
+                                      '</div>',
+                                      [
+                                        {
+                                          ids: ['graffiti-takes-list'],
+                                          event: 'click',
+                                          fn: (e) => {
+                                            const target = $(e.target);
+                                            let choice;
+                                            if (target.attr('id') === 'graffiti-takes-list') {
+                                              choice = target.find('.graffiti-take-item:first');
+                                            } else {
+                                              choice = target;
+                                            }
+                                            if (choice.length > 0) {
+                                              const newTakeId = choice.attr('id');
+                                              const recordingCellId = choice.attr('recordingCellId');
+                                              const recordingKey = choice.attr('recordingKey');
+                                              graffiti.updateActiveTakeId(recordingCellId, recordingKey, newTakeId);
+                                            }
+                                          }
+                                        }
+                                      ]
+        );
+
         graffiti.setupOneControlPanel('graffiti-playback-controls', 
                                       '<div id="graffiti-narrator-info">' +
                                       '  <div id="graffiti-narrator-pic"></div>' +
@@ -709,6 +738,35 @@ define([
         }
       },
 
+      updateActiveTakeId: (recordingCellId, recordingKey, newTakeId) => {
+        const recording = state.getManifestSingleRecording(recordingCellId, recordingKey);
+        recording.activeCellId = newTakeId;
+        state.setSingleManifestRecording(recordingCellId, recordingKey, recording);
+        graffiti.updateTakesPanel(recordingCellId, recordingKey, newTakeId);
+      },
+
+      updateTakesPanel: (recordingCellId, recordingKey, activeTakeId) => {
+        const recording = state.getManifestSingleRecording(recordingCellId, recordingKey);
+        console.log('we got these takes:', recording.takes);
+        const sortedRecs = _.sortBy($.map(recording.takes, (val,key) => { return $.extend(true, {}, val, { key: key }) }), 'createDate')
+        console.log('sorted recs are:', sortedRecs);
+        let recIndex, recIndexZerobased, renderedTakes = '', createDateFormatted, renderedDate, rec, takeClass;
+        for (recIndex = sortedRecs.length; recIndex > 0; --recIndex) {
+          recIndexZerobased = recIndex - 1;
+          rec = sortedRecs[recIndexZerobased];
+          renderedDate = 'Recorded: ' + new Date(rec.createDate);
+          takeClass = ((rec.key === activeTakeId) ? 'graffiti-take-selected' : 'graffiti-take-unselected');
+          renderedTakes += '<div ' +
+                           'class="' + takeClass + ' graffiti-take-item" ' +
+                           'id="' + rec.key + '" ' +
+                           'recordingCellId="' + recordingCellId + '" ' +
+                           'recordingKey="' + recordingKey + '" ' +
+                           'title="' + renderedDate + '">' + recIndex + 
+                           '</div>';
+        }
+        $('#graffiti-takes-list').html(renderedTakes);
+      },
+
       updateControlPanels: (cm) => {
         // When we transition to a new state, control panel tweaks need to be made
         const activity = state.getActivity();
@@ -760,13 +818,14 @@ define([
               activeCell = utils.findCellByCodeMirror(cm);
             }
             graffiti.selectedTokens = utils.findSelectionTokens(activeCell, graffiti.tokenRanges, state);
-            //console.log('Graffiti: graffiti.selectedTokens:', graffiti.selectedTokens);
+            const selectedTokens = graffiti.selectedTokens;
+            //console.log('Graffiti: selectedTokens:', selectedTokens);
             graffiti.highlightIntersectingGraffitiRange();
             let visibleControlPanels;
             const isMarkdownCell = activeCell.cell_type === 'markdown';
-            if ((graffiti.selectedTokens.noTokensPresent) ||
-                (!isMarkdownCell && (graffiti.selectedTokens.range.selectionStart === graffiti.selectedTokens.range.selectionEnd) && 
-                 (!graffiti.selectedTokens.isIntersecting)) ||
+            if ((selectedTokens.noTokensPresent) ||
+                (!isMarkdownCell && (selectedTokens.range.selectionStart === selectedTokens.range.selectionEnd) && 
+                 (!selectedTokens.isIntersecting)) ||
                 (isMarkdownCell && activeCell.rendered)) {
               //console.log('Graffiti: no tokens present, or no text selected.');
               visibleControlPanels = ['graffiti-notifier']; // hide all control panels if in view only mode and not play mode
@@ -791,7 +850,7 @@ define([
               graffiti.controlPanelIds['graffiti-record-controls'].
                        find('#graffiti-create-btn').show().
                        parent().find('#graffiti-edit-btn').hide();
-              if (graffiti.selectedTokens.isIntersecting) {
+              if (selectedTokens.isIntersecting) {
                 console.log('Graffiti: updating recording controls');
                 graffiti.highlightIntersectingGraffitiRange();
                 graffiti.controlPanelIds['graffiti-record-controls'].
@@ -799,15 +858,20 @@ define([
                          parent().find('#graffiti-edit-btn').show().
                          parent().find('#graffiti-begin-recording-btn').show().
                          parent().find('#graffiti-remove-btn').show();
-                //console.log('selectedTokens:', graffiti.selectedTokens);
+                //console.log('selectedTokens:', selectedTokens);
                 state.clearPlayableMovie('cursorActivity');
-                if (graffiti.selectedTokens.hasMovie) {
-                  state.setPlayableMovie('cursorActivity', graffiti.selectedTokens.recordingCellId,graffiti.selectedTokens.recordingKey);
-                  graffiti.recordingAPIKey = graffiti.selectedTokens.recordingCellId.replace('id_','') + '_' + 
-                                             graffiti.selectedTokens.recordingKey.replace('id_','') +
-                                             graffiti.selectedTokens.activeTakeId.replace('id_','');
+                if (selectedTokens.hasMovie) {
+                  const recordingCellId = selectedTokens.recordingCellId;
+                  const recordingKey = selectedTokens.recordingKey;
+                  const activeTakeId = selectedTokens.activeTakeId;
+                  state.setPlayableMovie('cursorActivity', recordingCellId, recordingKey);
+                  graffiti.recordingAPIKey = recordingCellId.replace('id_','') + '_' + 
+                                             recordingKey.replace('id_','') +
+                                             activeTakeId.replace('id_','');
                   visibleControlPanels.push('graffiti-access-api');
                   visibleControlPanels.push('graffiti-notifier');
+                  visibleControlPanels.push('graffiti-takes-controls');
+                  graffiti.updateTakesPanel(recordingCellId, recordingKey, activeTakeId);
                   //console.log('this recording has a movie');
                   graffiti.controlPanelIds['graffiti-record-controls'].find('#graffiti-begin-recording-btn').hide().parent().
                            find('#graffiti-begin-rerecording-btn').show();
