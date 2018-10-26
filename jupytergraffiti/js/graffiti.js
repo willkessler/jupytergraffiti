@@ -685,6 +685,8 @@ define([
                                       ]
         );
         
+// Will return to this code soon.
+/*
         const creatorsTitle = 'Graffitis by:'.split('').join('&nbsp;');
         graffiti.setupOneControlPanel('graffiti-creators-chooser',
                                       '<div id="graffiti-creators-chooser">' +
@@ -722,6 +724,7 @@ define([
                                       ' </div>' +
                                       '</div>'
         );
+*/
 
       },
 
@@ -3908,7 +3911,7 @@ define([
       cancelPlayback: () => { graffiti.cancelPlayback({cancelAnimation:false}) },
       removeAllGraffiti: graffiti.removeAllGraffitisWithConfirmation,
       disableGraffiti: graffiti.disableGraffitiWithConfirmation,
-      showCreatorsChooser: graffiti.showCreatorsChooser,
+      // showCreatorsChooser: graffiti.showCreatorsChooser,
       setAccessLevel: (level) => { graffiti.toggleAccessLevel(level) },
       setAuthorId: (authorId) => { state.setAuthorId(authorId) },
       transferGraffitis: () => { graffiti.transferGraffitis() },
