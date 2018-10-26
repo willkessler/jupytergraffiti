@@ -73,7 +73,8 @@ define([
           type: 'line', // one of 'line', 'highlight', 'eraser', 'sticker'
           color: 'black',
           dash: 'solid', // one of 'solid', 'dashed'
-          fill: 'none' // one of 'none', '#xyz'
+          fill: 'none', // one of 'none', '#xyz'
+          fillOpacity: 0
         },
         stickerOnGrid: false,
         stickersRecords: {}, // This contains records of all stickers drawn to date during a recording, or since the last fadeout in a recording.
@@ -320,6 +321,7 @@ define([
               color: sticker.pen.color,
               dash:  sticker.pen.dash,
               fill:  sticker.pen.fill,
+              fillOpacity:  sticker.pen.fillOpacity,
               permanence: sticker.pen.permanence,
             },
             stickerOnGrid: sticker.stickerOnGrid
@@ -355,12 +357,15 @@ define([
           case 'stickerOnGrid':
             drawingState.stickerOnGrid = data;
             break;
+          case 'fillOpacity': // if sticker fill is actually visible
+            drawingState.pen.fillOpacity = data;
+            break;
           case 'penType':
             drawingState.pen.type = data;  // one of 'line', 'highlight', 'eraser', or 'sticker'
             break;
           case 'stickerType':
             drawingState.pen.stickerType = data; // one of many sticker types. if this is set that penType will not be set, and vice versa
-            let fill = 'none';
+            let fill = 'none'; // fill color. this is confusing and needs to be cleaned up a lot
             switch (data) {
               case 'isocelesTriangle':
               case 'rightTriangle':
@@ -394,7 +399,7 @@ define([
                 fill = '000000';
                 break;
             }
-            drawingState.pen.fill = fill;
+            drawingState.pen.fill = fill; // fill color, if opacity == 1
             break;
           case 'permanence':
             drawingState.pen.permanence = data; // one of 'permanent', 'temporary'

@@ -11,19 +11,27 @@ define([
   // jupytergraffiti_data/
   //   notebooks/
   //     id_1234/
-  //     authors/
-  //      id_0 (creator)/
-  //        manifest.json
-  //        cells/
-  //          id_1234/
-  //             graffitis/
-  //               id_1234/
-  //      id_123 (viewer)/
-  //        manifest.json
-  //        cells/
-  //          id_1234/
-  //            graffitis/
-  //              id_1234
+  //       authors/
+  //        id_0 (creator)/
+  //          manifest.json
+  //          cells/
+  //            id_1234/
+  //               graffitis/
+  //                 id_1234/
+  //                   takes/
+  //                     id_1234/
+  //                       audio.txt
+  //                       history.txt  
+  //        id_123 (viewer)/
+  //          manifest.json
+  //          cells/
+  //            id_1234/
+  //              graffitis/
+  //                id_1234
+  //                   takes/
+  //                     id_1234/
+  //                       audio.txt
+  //                       history.txt  
 
   const storage = {
 

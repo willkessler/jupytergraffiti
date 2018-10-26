@@ -48,7 +48,6 @@ define([
           permanent: {}, // these stickers persist throughout the lifespan of the recording
           temporary: {}  // these stickers fade out a couple seconds after the person finishes placing them
         };
-        graffiti.useFilledStickers = false;
 
         graffiti.lastUpdateControlsTime = utils.getNow();
         graffiti.notificationMsgs = {};
@@ -69,6 +68,7 @@ define([
         };
         graffiti.minimumStickerSize = 20; // pixels
         graffiti.minimumStickerSizeWithBuffer = graffiti.minimumStickerSize + 10;
+        graffiti.previousActiveTakeId = undefined;
 
         if (currentAccessLevel === 'create') {
           storage.ensureNotebookGetsGraffitiId();
@@ -663,7 +663,8 @@ define([
                                           ids: [ 'graffiti-sticker-fill-control', 'graffiti-sticker-fill-control-label' ],
                                           event: 'click',
                                           fn: (e) => {
-                                            graffiti.useFilledStickers = $('#graffiti-sticker-fill-control').is(':checked');
+                                            state.updateDrawingState([ { change: 'fillOpacity', 
+                                                                         data: $('#graffiti-sticker-fill-control').is(':checked') ? 1 : 0 } ]);
                                           }
                                         }
                                       ]
@@ -1551,7 +1552,7 @@ define([
       drawStickersForCell: (cellId, stickerPermanence,record) => {
         const activity = state.getActivity();
         graffiti.placeStickerCanvas(cellId, stickerPermanence);
-        let stickerX, stickerY, width, height, stickerWidth, stickerHeight, generatedStickerElem, pen, type, positions, p1x,p1y,p2x,p2y;
+        let stickerX, stickerY, fillOpacity, width, height, stickerWidth, stickerHeight, generatedStickerElem, pen, type, positions, p1x,p1y,p2x,p2y;
         let newInnerHtml = [];
         let stickersRecords;
         let canvasElem = graffiti.stickers[stickerPermanence][cellId].canvas;
@@ -1566,8 +1567,12 @@ define([
           type = pen.stickerType;
           if (activity === 'recording') {
             positions = stickerRecord.positions;
+            fillOpacity = state.getDrawingPenAttribute('fillOpacity');
+            //console.log('Recording, Computed fillOpacity:', fillOpacity);
           } else {
             positions = graffiti.computeStickersOffsetPositions(cellId, record, stickerRecord);
+            fillOpacity = stickerRecord.pen.fillOpacity;
+            //console.log('playbac Computed fillOpacity:', fillOpacity, stickerRecord);
           }
           if (type === 'lineWithArrow') {
             stickerX = positions.start.x;
@@ -1609,7 +1614,7 @@ define([
                 dashed: pen.dash, 
                 strokeWidth: 4,
                 dimensions: dimensions,
-                fillOpacity: (graffiti.useFilledStickers ? 1 : 0),
+                fillOpacity: fillOpacity,
               });
               break;
             case 'roundRectangle':
@@ -1621,7 +1626,7 @@ define([
                 rx: 8,
                 ry: 8,
                 dimensions: dimensions,
-                fillOpacity: (graffiti.useFilledStickers ? 1 : 0),
+                fillOpacity: fillOpacity,
               });
               break;
             case 'isocelesTriangle':
@@ -1632,7 +1637,7 @@ define([
                 strokeWidth: 4,
                 dimensions: dimensions,
                 cssTransform: cssTransform,
-                fillOpacity: (graffiti.useFilledStickers ? 1 : 0),
+                fillOpacity: fillOpacity,
               });
               break;
             case 'rightTriangle':
@@ -1643,7 +1648,7 @@ define([
                 dimensions: dimensions,
                 strokeWidth: 4,
                 cssTransform: cssTransform,
-                fillOpacity: (graffiti.useFilledStickers ? 1 : 0),
+                fillOpacity: fillOpacity,
               });
               break;
             case 'ellipse':
@@ -1652,7 +1657,7 @@ define([
                 dashed: pen.dash, 
                 strokeWidth:3,
                 dimensions: dimensions,
-                fillOpacity: (graffiti.useFilledStickers ? 1 : 0),
+                fillOpacity: fillOpacity,
                 buffer: 4,
               });
               break;
@@ -2427,10 +2432,12 @@ define([
           recordingCellId = graffiti.selectedTokens.recordingCellId;
           recordingKey = graffiti.selectedTokens.recordingKey;
           recordingRecord = state.getManifestSingleRecording(recordingCellId, recordingKey);
+          graffiti.previousActiveTakeId = recordingRecord.activeTakeId;
           recordingRecord.activeTakeId = utils.generateUniqueId();
           newRecording = false;
         } else { 
           // Prepare to create a new recording
+          graffiti.previousActiveTakeId = undefined;
           recordingCell = Jupyter.notebook.get_selected_cell();
           recordingCellId = utils.getMetadataCellId(recordingCell.metadata);
           recordingKey = utils.generateUniqueId();
@@ -2993,8 +3000,17 @@ define([
         console.log('Graffiti: canceling recording, current activity:', currentActivity);
         if (currentActivity === 'recording') {
           const recordingCellInfo = state.getRecordingCellInfo();
+          let mustStoreManifest = false;
           if (recordingCellInfo.newRecording) {
             state.removeManifestEntry(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
+            mustStoreManifest = true;
+          }
+          if (graffiti.previousActiveTakeId !== undefined) {
+            storage.updateSingleManifestRecordingField(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey, 
+                                                       'activeTakeId', graffiti.previousActiveTakeId);
+            mustStoreManifest = false; // updateSingleManifestRecordingField does manifest store for us.
+          }
+          if (mustStoreManifest) {
             storage.storeManifest();
           }
           graffiti.stopRecordingCore(false);
