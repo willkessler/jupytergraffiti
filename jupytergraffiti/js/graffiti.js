@@ -2446,6 +2446,7 @@ define([
             markdown: '',
             authorId: state.getAuthorId(),
             authorType: state.getAuthorType(), // one of "creator" (eg teacher), "viewer" (eg student)
+            activeTakeId: utils.generateUniqueId(), // this is throwaway and will be replaced with the first recording made
             hasMovie: false
           }
           state.setSingleManifestRecording(recordingCellId, recordingKey, recordingRecord);
