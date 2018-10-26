@@ -11,6 +11,7 @@ define([
       state.authorId = 0; // defaults to the creator(teacher) in v1 of Graffiti but eventually this will be (potentially) set to a viewer(student) id.
       state.authorType = 'creator';  // currently hardwired to be creator (teacher).
       state.audioInitialized = false;
+      state.recordingBlocked = false;
       state.activity = 'idle'; // one of "recording", "playing", "idle"
       state.pointer = { x : 0, y: 0 };
       state.playbackTimeElapsed = 0;
@@ -290,6 +291,14 @@ define([
       }
       state.history.processed[kind] = frameIndex.index;
       return true;
+    },
+
+    blockRecording: () => {
+      state.recordingBlocked = true;
+    },
+
+    unblockRecording: () => {
+      state.recordingBlocked = false;
     },
 
     //
@@ -812,10 +821,11 @@ define([
     createContentsRecord: (doBackRefStore) => {
       let cellId, cell, contents, outputs, contentsBackRefRecord, outputsBackRefRecord;
       const cells = Jupyter.notebook.get_cells();
-      let cellsContent = {};
+      let cellsContent = {}, cellIdsList = [];
       for (let i = 0; i < cells.length; ++i) {
         cell = cells[i];
         cellId = utils.getMetadataCellId(cell.metadata);
+        cellIdsList.push(cellId);
         contents = cell.get_text();
         outputs = undefined;
         // Store the DOM contents of the code cells for rerendering.
@@ -842,11 +852,11 @@ define([
         cellsContent[cellId] = cellContent;
       }
 
-      return { cellsContent: cellsContent };
+      return { cellsContent: cellsContent, cellIdsList: cellIdsList };
     },
 
     storeHistoryRecord: (type, time) => {
-      if (state.activity !== 'recording')
+      if (state.activity !== 'recording' || state.recordingBlocked)
         return;
 
       let record;
@@ -957,6 +967,7 @@ define([
     normalizeTimeframes: () => {
       const recordingStartTime = state.history.recordingStartTime;
       const now = state.utils.getNow();
+      debugger;
       for (let arrName of state.frameArrays) {
         let historyArray = state.history[arrName];
         let max = historyArray.length - 1;
@@ -966,9 +977,10 @@ define([
           } else {
             historyArray[i].endTime = historyArray[i+1].startTime;
           }
-          historyArray[i].endTime = historyArray[i].endTime - recordingStartTime;
           historyArray[i].startTime = historyArray[i].startTime - recordingStartTime;
+          historyArray[i].endTime = historyArray[i].endTime - recordingStartTime;
         }
+        // console.log('normalized ', historyArray.length, 'records for array', arrName);
       }
     },
 
