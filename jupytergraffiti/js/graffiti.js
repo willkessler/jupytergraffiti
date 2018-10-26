@@ -738,11 +738,10 @@ define([
         }
       },
 
-      updateActiveTakeId: (recordingCellId, recordingKey, newTakeId) => {
-        const recording = state.getManifestSingleRecording(recordingCellId, recordingKey);
-        recording.activeCellId = newTakeId;
-        state.setSingleManifestRecording(recordingCellId, recordingKey, recording);
-        graffiti.updateTakesPanel(recordingCellId, recordingKey, newTakeId);
+      updateActiveTakeId: (recordingCellId, recordingKey, activeTakeId) => {
+        storage.updateSingleManifestRecordingField(recordingCellId, recordingKey, 'activeTakeId', activeTakeId);
+        state.setPlayableMovie('cursorActivity', recordingCellId, recordingKey, activeTakeId);
+        graffiti.updateTakesPanel(recordingCellId, recordingKey, activeTakeId);
       },
 
       updateTakesPanel: (recordingCellId, recordingKey, activeTakeId) => {
@@ -864,7 +863,7 @@ define([
                   const recordingCellId = selectedTokens.recordingCellId;
                   const recordingKey = selectedTokens.recordingKey;
                   const activeTakeId = selectedTokens.activeTakeId;
-                  state.setPlayableMovie('cursorActivity', recordingCellId, recordingKey);
+                  state.setPlayableMovie('cursorActivity', recordingCellId, recordingKey, activeTakeId);
                   graffiti.recordingAPIKey = recordingCellId.replace('id_','') + '_' + 
                                              recordingKey.replace('id_','') +
                                              activeTakeId.replace('id_','');
@@ -1838,7 +1837,7 @@ define([
         // Replace active sticker if there is one, or add a new active sticker
         const stickers = graffiti.stickers[stickerPermanence][cellId].stickers;
         let stickerRecord = state.createDrawingRecord();
-        console.log('stickerRecord', stickerRecord);
+        // console.log('stickerRecord', stickerRecord);
         //console.log('stickerRecordEnd:', stickerRecord.positions.start.x, stickerRecord.positions.start.y, stickerRecord.positions.end.x, stickerRecord.positions.end.y);
         stickerRecord.active = true;
         let replaced = false;
@@ -2428,6 +2427,7 @@ define([
           recordingCellId = graffiti.selectedTokens.recordingCellId;
           recordingKey = graffiti.selectedTokens.recordingKey;
           recordingRecord = state.getManifestSingleRecording(recordingCellId, recordingKey);
+          recordingRecord.activeTakeId = utils.generateUniqueId();
           newRecording = false;
         } else { 
           // Prepare to create a new recording
@@ -2446,9 +2446,7 @@ define([
             markdown: '',
             authorId: state.getAuthorId(),
             authorType: state.getAuthorType(), // one of "creator" (eg teacher), "viewer" (eg student)
-            hasMovie: false,
-            takes: {},
-            activeTakeId:utils.generateUniqueId() // will be used if a recording is put in place later
+            hasMovie: false
           }
           state.setSingleManifestRecording(recordingCellId, recordingKey, recordingRecord);
         }
@@ -2789,11 +2787,6 @@ define([
         state.storeCellStates();
         graffiti.preRecordingScrollTop = state.getScrollTop();
         const recordingRecord = graffiti.storeRecordingInfoInCell();
-        if (recordingRecord.hasMovie) {
-          // If we already have a movie, then we need to generate a new take
-          recordingRecord.activeTakeId = utils.generateUniqueId();
-          recordingRecord.takes[recordingRecord.activeTakeId] = {};
-        }
         if (recordingRecord.cellType === 'markdown') {
           graffiti.selectedTokens.recordingCell.render();
         }
