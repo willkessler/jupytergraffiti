@@ -52,7 +52,7 @@ define([
       state.dontRestoreCellContentsAfterPlayback = false; // this is something the author can decide with an API call.
       state.cellOutputsSent = {};
       state.lastStickerPositions = undefined;
-      state.cellIdsAddedDuringPlayback = {};
+      state.cellIdsAddedDuringRecording = {};
       state.cellStates = {
         contents: {},
         changedCells: {},
@@ -673,13 +673,19 @@ define([
       state.cellOutputsSent = {};
     },
 
-    recordCellIdAddedDuringPlayback: (cellId) => {
-      state.cellIdsAddedDuringPlayback[cellId] = true;
-      console.log('cellIdsAddedDuringPlayback:', state.cellIdsAddedDuringPlayback);
+    getCellAdditions: () => {
+      return state.history.cellAdditions;
     },
 
-    clearCellIdsAddedDuringPlayback: () => {
-      state.cellsIdsAddedDuringPlayback = {};
+    storeCellAddition: (cellId, position) => {
+      if (state.activity === 'recording') {
+        state.history.cellAdditions[cellId] = position;
+        console.log('cellAdditions:', state.cellAdditions);
+      }
+    },
+
+    clearCellAdditions: () => {
+      state.history.cellAdditions = {};
     },
 
     // In any history:
@@ -831,11 +837,11 @@ define([
     createContentsRecord: (doBackRefStore) => {
       let cellId, cell, contents, outputs, contentsBackRefRecord, outputsBackRefRecord;
       const cells = Jupyter.notebook.get_cells();
-      let cellsContent = {}, cellIdsList = [];
+      let cellsContent = {}, cellsPresentThisFrame = {};
       for (let i = 0; i < cells.length; ++i) {
         cell = cells[i];
         cellId = utils.getMetadataCellId(cell.metadata);
-        cellIdsList.push(cellId);
+        cellsPresentThisFrame[cellId] = utils.findCellIndexByCellId(cellId);
         contents = cell.get_text();
         outputs = undefined;
         // Store the DOM contents of the code cells for rerendering.
@@ -862,7 +868,7 @@ define([
         cellsContent[cellId] = cellContent;
       }
 
-      return { cellsContent: cellsContent, cellIdsList: cellIdsList };
+      return { cellsContent: cellsContent, cellsPresentThisFrame: cellsPresentThisFrame };
     },
 
     storeHistoryRecord: (type, time) => {
@@ -933,6 +939,7 @@ define([
         
         cellContentsTracking: {},                  // this enables back-referencing to reduce storage costs on content recording
         cellOutputsTracking:  {},                  // this enables back-referencing to reduce storage costs on output recording
+        cellAdditions: {}                          // id's and positions of any cells added during the recording.
       }
 
       // Store initial state records at the start of recording.
@@ -977,7 +984,6 @@ define([
     normalizeTimeframes: () => {
       const recordingStartTime = state.history.recordingStartTime;
       const now = state.utils.getNow();
-      debugger;
       for (let arrName of state.frameArrays) {
         let historyArray = state.history[arrName];
         let max = historyArray.length - 1;
@@ -1067,18 +1073,19 @@ define([
     getIndexUpToTime: (kind, t) => {
       let i;
       const historyArray = state.history[kind];
-      for (i = 0; i < historyArray.length; ++i) {
-        if (historyArray[i].startTime >= t) {
+      if (historyArray.length > 0) {
+        for (i = 0; i < historyArray.length; ++i) {
+          if (historyArray[i].startTime >= t) {
+            return i;
+          }
+        }
+        // check to see if time is on or past the last known record.
+        i = historyArray.length - 1;
+        if (((historyArray[i].startTime < t) && (historyArray[i].endTime >= t)) ||
+            (historyArray[i].endTime < t)) {
           return i;
         }
       }
-      // check to see if time is on or past the last known record.
-      i = historyArray.length - 1;
-      if (((historyArray[i].startTime < t) && (historyArray[i].endTime >= t)) ||
-          (historyArray[i].endTime < t)) {
-        return i;
-      }
-
       return undefined;
     },
 
@@ -1149,30 +1156,37 @@ define([
       const affectedIds = Object.keys(state.cellStates.changedCells);
       let selections,cellContents,cellOutputs;
       if (affectedIds.length > 0) {
-        let cell, cellState;
+        let cell, cellState, cellsContent, contentsRecord;
         for (let cellId of affectedIds) {
           // console.log('affectedid:', cellId);
           cell = utils.findCellByCellId(cellId);
           if (cell !== undefined) {
             selections = state.cellStates.selections.cellsSelections[cellId];
             if (which === 'contents') {
-              cellContents = state.extractDataFromContentRecord(state.cellStates.contents.cellsContent[cellId].contentsRecord, cellId);
-              if (cellContents !== undefined) {
-                cell.set_text(state.cellStates.contents.cellsContent[cellId].contentsRecord.data);
+              cellsContent = state.cellStates.contents.cellsContent[cellId];
+              if (cellsContent !== undefined) {
+                contentsRecord = cellsContent.contentsRecord;
+                cellContents = state.extractDataFromContentRecord(contentsRecord, cellId);
+                if (cellContents !== undefined) {
+                  cell.set_text(contentsRecord.data);
+                }
+                cell.clear_output();
+                cellOutputs = state.extractDataFromContentRecord(cellsContent.outputsRecord, cellId);
+                state.restoreCellOutputs(cell, cellOutputs);
               }
-              cell.clear_output();
-              cellOutputs = state.extractDataFromContentRecord(state.cellStates.contents.cellsContent[cellId].outputsRecord, cellId);
-              state.restoreCellOutputs(cell, cellOutputs);
             } else {
-              if ((cell.cell_type === 'code') && (selections.active)) {
-                cell.code_mirror.focus();
+              if (selections !== undefined) {
+                if ((cell.cell_type === 'code') && (selections.active)) {
+                  cell.code_mirror.focus();
+                }
+                // console.log('setting selection to :', selections.selections);
+                cell.code_mirror.setSelections(selections.selections);
               }
-              // console.log('setting selection to :', selections.selections);
-              cell.code_mirror.setSelections(selections.selections);
             }
           }
         }
       }
+      // Now delete any cells created during playback.
     },
 
     getScrollTop: () => {

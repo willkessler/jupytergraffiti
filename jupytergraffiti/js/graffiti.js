@@ -69,7 +69,6 @@ define([
         graffiti.minimumStickerSize = 20; // pixels
         graffiti.minimumStickerSizeWithBuffer = graffiti.minimumStickerSize + 10;
         graffiti.previousActiveTakeId = undefined;
-        graffiti.cellsAddedDuringPlayback = {};
 
         if (currentAccessLevel === 'create') {
           storage.ensureNotebookGetsGraffitiId();
@@ -1311,24 +1310,25 @@ define([
       
       resizeCanvases: () => {
         const canvasTypes = ['permanent','temporary'];
-        const cells = Jupyter.notebook.get_cells();
         let cellElement, cellRect, canvasStyle, canvas, cellCanvas;
         for (let canvasType of canvasTypes) {
           for (let cellId of Object.keys(graffiti.canvases[canvasType])) {
             canvas = graffiti.canvases[canvasType][cellId];
             cell = utils.findCellByCellId(cellId);
-            cellElement = cell.element[0];
-            cellRect = cellElement.getBoundingClientRect();
-            canvasStyle = {
-              width:  cellRect.width + 'px',
-              height: cellRect.height + 'px'
-            };
-            canvas.div.css(canvasStyle);
-            cellCanvas = canvas.canvas;
-            cellCanvas.width = cellRect.width;
-            cellCanvas.height = cellRect.height;
-            canvas.cellRect = cellRect;
-            // console.log('resized height of ',cellId, 'to ', cellRect.height);
+            if (cell !== undefined) {
+              cellElement = cell.element[0];
+              cellRect = cellElement.getBoundingClientRect();
+              canvasStyle = {
+                width:  cellRect.width + 'px',
+                height: cellRect.height + 'px'
+              };
+              canvas.div.css(canvasStyle);
+              cellCanvas = canvas.canvas;
+              cellCanvas.width = cellRect.width;
+              cellCanvas.height = cellRect.height;
+              canvas.cellRect = cellRect;
+              // console.log('resized height of ',cellId, 'to ', cellRect.height);
+            }
           }
         }
         const notebookHeight = $('#notebook').outerHeight(true);
@@ -1930,8 +1930,6 @@ define([
             record = state.getHistoryItem('drawings', index);
             graffiti.updateDrawingCore(record);
           }
-        } else {
-          console.log('frame index undefined');
         }
       },
 
@@ -2375,6 +2373,7 @@ define([
 
         // if we were playing a recording when they hit reload, we need to cancel it, restore, and save before we continue
         window.onbeforeunload = (e) => {
+          console.log('Graffiti: befreo unload');
           graffiti.cancelPlaybackNoVisualUpdates();
         };
 
@@ -2901,16 +2900,15 @@ define([
           //console.log(results);
           const newCell = results.cell;
           const newCellIndex = results.index;
-          const cellId = utils.setMetadataCellId(newCell.metadata,utils.generateUniqueId());
+          const newCellId = utils.setMetadataCellId(newCell.metadata,utils.generateUniqueId());
           utils.refreshCellMaps();
           graffiti.addCMEventsToSingleCell(newCell);
-          state.recordCellIdAddedDuringPlayback(cellId);
+          state.storeCellAddition(newCellId, newCellIndex);
           state.storeHistoryRecord('contents');
         });
 
         Jupyter.notebook.events.on('delete.Cell', (e) => {
           utils.refreshCellMaps();
-          graffiti.pausePlayback();
           state.storeHistoryRecord('contents');
         });
 
@@ -3058,6 +3056,7 @@ define([
             state.initHistory({
               storageCellId: recordingCellInfo.recordingCellId,
             });
+            state.clearCellAdditions();
 
             audio.startRecording();
             state.setScrollTop(graffiti.sitePanel.scrollTop());
@@ -3439,7 +3438,57 @@ define([
         }
       },
 
-      applyCellListToNotebook: () => {
+      // After playback finishes, delete any cells added during playback.
+      removeCellsAddedByPlayback: () => {
+        const cellAdditions = state.getCellAdditions(); // all cells added during this recording
+        let deleteCellIndex;
+        for (let cellId of Object.keys(cellAdditions)) {
+          deleteCellIndex = utils.findCellIndexByCellId(cellId);
+          if (deleteCellIndex !== undefined) {
+            console.log('Going to delete:', cellId, 'at index:', deleteCellIndex);
+            Jupyter.notebook.delete_cell(deleteCellIndex);
+          }
+        }
+      },
+
+      // At any timeframe add cells that were present during recording but aren't now, and remove any that were added by playback/scrub
+      // but aren't present at this timeframe.
+      applyCellListToNotebook: (record) => {
+        const cellsPresentThisFrame = record.cellsPresentThisFrame;
+        const cellsPresentIds = Object.keys(cellsPresentThisFrame);
+        const numCellsPresent = cellsPresentIds.length;
+        let mustRefreshCellMaps = false;
+        if (numCellsPresent > 0) {
+          // First figure out which cells are extra and need to be deleted on this cell
+          let checkCellId, deleteCellId, deleteCellIndex, foundCell, cellPosition, newCell;
+          const cellAdditions = state.getCellAdditions(); // all cells added during this recording
+          const cellAdditionsIds = Object.keys(cellAdditions);
+          // Any cells that may have been added during the movie, not present in this timeframe, must be deleted.
+          const deletableCellIds = _.difference(cellAdditionsIds, cellsPresentIds); 
+          console.log('deletableCellIds', deletableCellIds, cellAdditions, cellsPresentIds);
+          for (deleteCellId of deletableCellIds) {
+            deleteCellIndex = utils.findCellIndexByCellId(deleteCellId);
+            if (deleteCellIndex !== undefined) {
+              console.log('Going to delete:', deleteCellId, 'at index:', deleteCellIndex);
+              Jupyter.notebook.delete_cell(deleteCellIndex);
+            }
+          }
+
+          // Now figure out which cells are missing and need to be added in. Add them in above whatever position 
+          // they were recorded in, which will be approximate.
+          for (checkCellId of cellsPresentIds) {
+            foundCell = utils.findCellByCellId(checkCellId);
+            if (foundCell === undefined) {
+              cellPosition = cellsPresentThisFrame[checkCellId];
+              newCell = Jupyter.notebook.insert_cell_above('code', cellPosition);
+              newCell.metadata.graffitiCellId = checkCellId;
+              mustRefreshCellMaps = true;
+            }
+          }
+        }
+        if (mustRefreshCellMaps) {
+          utils.refreshCellMaps();
+        }
       },
 
       // set_text() causes jupyter to scroll to top of cell so we need to restore scrollTop after calling this fn.
@@ -3447,6 +3496,7 @@ define([
         const contentsRecord = state.getHistoryItem('contents', index);
         const cells = Jupyter.notebook.get_cells();
         let cellId, contents, outputs, frameContents, frameOutputs;
+        graffiti.applyCellListToNotebook(contentsRecord);
         for (let cell of cells) {
           if (cell.cell_type === 'code') {
             cellId = utils.getMetadataCellId(cell.metadata);
@@ -3589,6 +3639,7 @@ define([
           state.restoreCellStates('contents');
           utils.saveNotebook();
           state.restoreCellStates('selections');
+          graffiti.removeCellsAddedByPlayback();
         }
       },
 
@@ -3631,7 +3682,6 @@ define([
           graffiti.lastDrawingEraseIndex = undefined;
           state.storeCellStates();
           state.clearCellOutputsSent();
-          state.clearCellIdsAddedDuringPlayback();
           graffiti.scrollNudgeAverages = [];
         }
 
