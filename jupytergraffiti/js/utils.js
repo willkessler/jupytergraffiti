@@ -25,6 +25,7 @@ define([
 
     setMetadataCellId: (metadata, cellId) => {
       metadata.graffitiCellId = cellId;
+      return cellId;
     },
 
     computeArrayAverage: (array) => {
