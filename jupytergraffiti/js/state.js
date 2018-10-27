@@ -52,6 +52,7 @@ define([
       state.dontRestoreCellContentsAfterPlayback = false; // this is something the author can decide with an API call.
       state.cellOutputsSent = {};
       state.lastStickerPositions = undefined;
+      state.cellIdsAddedDuringPlayback = {};
       state.cellStates = {
         contents: {},
         changedCells: {},
@@ -670,6 +671,15 @@ define([
 
     clearCellOutputsSent: () => {
       state.cellOutputsSent = {};
+    },
+
+    recordCellIdAddedDuringPlayback: (cellId) => {
+      state.cellIdsAddedDuringPlayback[cellId] = true;
+      console.log('cellIdsAddedDuringPlayback:', state.cellIdsAddedDuringPlayback);
+    },
+
+    clearCellIdsAddedDuringPlayback: () => {
+      state.cellsIdsAddedDuringPlayback = {};
     },
 
     // In any history:

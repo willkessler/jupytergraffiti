@@ -69,6 +69,7 @@ define([
         graffiti.minimumStickerSize = 20; // pixels
         graffiti.minimumStickerSizeWithBuffer = graffiti.minimumStickerSize + 10;
         graffiti.previousActiveTakeId = undefined;
+        graffiti.cellsAddedDuringPlayback = {};
 
         if (currentAccessLevel === 'create') {
           storage.ensureNotebookGetsGraffitiId();
@@ -2900,9 +2901,10 @@ define([
           //console.log(results);
           const newCell = results.cell;
           const newCellIndex = results.index;
-          utils.setMetadataCellId(newCell.metadata,utils.generateUniqueId());
+          const cellId = utils.setMetadataCellId(newCell.metadata,utils.generateUniqueId());
           utils.refreshCellMaps();
           graffiti.addCMEventsToSingleCell(newCell);
+          state.recordCellIdAddedDuringPlayback(cellId);
           state.storeHistoryRecord('contents');
         });
 
@@ -3437,6 +3439,9 @@ define([
         }
       },
 
+      applyCellListToNotebook: () => {
+      },
+
       // set_text() causes jupyter to scroll to top of cell so we need to restore scrollTop after calling this fn.
       updateContents: (index, currentScrollTop) => {
         const contentsRecord = state.getHistoryItem('contents', index);
@@ -3626,6 +3631,7 @@ define([
           graffiti.lastDrawingEraseIndex = undefined;
           state.storeCellStates();
           state.clearCellOutputsSent();
+          state.clearCellIdsAddedDuringPlayback();
           graffiti.scrollNudgeAverages = [];
         }
 
