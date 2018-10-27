@@ -93,13 +93,21 @@ define([
       }
     },
 
-    findCellByCellId: (cellId) => {
-      return utils.cellMaps.cells[utils.cellMaps.maps[cellId]];
+    findCellIndexByCellId: (cellId) => {
+      if (utils.cellMaps !== undefined && utils.cellMaps.maps !== undefined && utils.cellMaps.maps.hasOwnProperty(cellId)) {
+        return utils.cellMaps.maps[cellId];
+      }
+      return undefined;
     },
 
-    findCellIndexByCellId: (cellId) => {
-      return utils.cellMaps.maps[cellId];
+    findCellByCellId: (cellId) => {
+      const index = utils.findCellIndexByCellId(cellId);
+      if (index !== undefined) {
+        return utils.cellMaps.cells[index];
+      }
+      return undefined;
     },
+
 
     findCellByCodeMirror: (cm) => {
       for (let cell of utils.cellMaps.cells) {
