@@ -1953,8 +1953,8 @@ define([
       //
 
       extractTooltipCommands: (markdown) => {
-        const commandParts = markdown.match(/^%%(([^\s]*)\s(.*))$/mig);
-        let partsRecord;
+        const commandParts = markdown.match(/^\s*%%(([^\s]*)\s(.*))$/mig);
+        let partsRecord, part, parts0;
         if (commandParts === null)
           return undefined;
         if (commandParts.length > 0) {
@@ -1968,8 +1968,10 @@ define([
           };
           let parts;
           for (let i = 0; i < commandParts.length; ++i) {
-            parts = commandParts[i].match(/^(\S+)\s(.*)/).slice(1);
-            switch (parts[0].toLowerCase()) {
+            part = $.trim(commandParts[i]);
+            parts = part.match(/^(\S+)\s*(.*)/).slice(1);
+            parts0 = $.trim(parts[0]).toLowerCase();
+            switch (parts0) {
               case '%%comment':
                 break; // we just ignore these. Used to instruct content creators how to use the editing tip cells.
               case '%%button_name':
@@ -2452,7 +2454,9 @@ define([
           recordingKey = graffiti.selectedTokens.recordingKey;
           recordingRecord = state.getManifestSingleRecording(recordingCellId, recordingKey);
           graffiti.previousActiveTakeId = recordingRecord.activeTakeId;
-          recordingRecord.activeTakeId = utils.generateUniqueId();
+          if (!recordingRecord.hasMovie || recordingRecord.activeTakeId === undefined) {
+            recordingRecord.activeTakeId = utils.generateUniqueId(); // do not set a new activeTakeId if there was already a valid one set for the movie
+          }
           newRecording = false;
         } else { 
           // Prepare to create a new recording
@@ -3794,7 +3798,7 @@ define([
           if (recordingKeys.length > 0) {
             for (recordingKey of recordingKeys) {
               recording = manifest[recordingCellId][recordingKey];
-              console.log('rec:', recording);
+              // console.log('Graffiti autoplay rec:', recording);
               if (recording.autoplay !== undefined) {
                 if (autoplayGraffiti === undefined) {
                   if (recording.autoplay === 'always') {
