@@ -1076,6 +1076,7 @@ define([
         graffiti.updateControlPanels();
         graffiti.setupDrawingScreen();
         graffiti.setupSavingScrim();
+        graffiti.playAutoplayGraffiti(); // play any autoplay graffiti if there is one set up
       },
 
       setGraffitiPenColor: (colorVal) => {
@@ -1962,7 +1963,8 @@ define([
             captionPic: '',
             captionVideo: undefined,
             caption: '',
-            playback_pic: undefined
+            playback_pic: undefined,
+            autoplay: 'never'
           };
           let parts;
           for (let i = 0; i < commandParts.length; ++i) {
@@ -2006,6 +2008,11 @@ define([
                 break;
               case '%%dont_restore_cell_contents_after_playback': // if the user hasn't changed cell contents, don't restore the cell contents when playback finishes
                 state.setDontRestoreCellContentsAfterPlayback(true);
+                break;
+              case '%%autoplay': // 'never' (optional), 'once', 'always'
+                if (parts[1].length > 0) {
+                  partsRecord.autoplay = parts[1].toLowerCase();
+                }
                 break;
             }
           }
@@ -2382,7 +2389,7 @@ define([
 
         // if we were playing a recording when they hit reload, we need to cancel it, restore, and save before we continue
         window.onbeforeunload = (e) => {
-          console.log('Graffiti: befreo unload');
+          console.log('Graffiti: before unload');
           graffiti.cancelPlaybackNoVisualUpdates();
         };
 
@@ -2570,6 +2577,14 @@ define([
               recordings[recordingCellInfo.recordingKey] = recordingCellInfo.recordingRecord;
             }
             recordings[recordingCellInfo.recordingKey].markdown = editCellContents;
+
+            const tooltipCommands = graffiti.extractTooltipCommands(editCellContents);
+            recordings[recordingCellInfo.recordingKey].autoplay = 'never';
+            if (tooltipCommands.autoplay === 'always') {
+              recordings[recordingCellInfo.recordingKey].autoplay = 'always';
+            } else if (tooltipCommands.autoplay === 'once') {
+              recordings[recordingCellInfo.recordingKey].autoplay = 'once';
+            }
           } else {
             if (recordingCellInfo.newRecording) {
               state.removeManifestEntry(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
@@ -2817,9 +2832,15 @@ define([
         graffiti.CMEvents[utils.getMetadataCellId(cell.metadata)] = true;
         const cm = cell.code_mirror;
         cm.on('focus', (cm, e) => {
-          console.log('Graffiti: CM focus:' , cm, e);
+          // console.log('Graffiti: CM focus:' , cm, e);
           // Check to see if we jumped from another cell to this cell with the arrow keys. If we did and we're recording, we need to
           // create a focus history record because jupyter is not firing the select cell event in those cases.
+
+          // debugging lack of focus in input text field
+          //          const focusCell = utils.findCellByCodeMirror(cm);
+          //          const focusCellId = utils.getMetadataCellId(focusCell.metadata);
+          //          console.log('focus cellId:', focusCellId);
+
           const activity = state.getActivity();
           if (activity === 'recording') {
             const cellId = utils.getMetadataCellId(cell.metadata);
@@ -3332,7 +3353,7 @@ define([
           graffiti.dimGraffitiCursor();
           if (record.hoverCell !== undefined) {
             if (record.subType === 'focus') {
-              console.log('processing focus');
+              // console.log('processing focus');
               record.hoverCell.focus_cell();
               const code_mirror = record.hoverCell.code_mirror;
               if (!code_mirror.state.focused) {
@@ -3458,12 +3479,14 @@ define([
       // After playback finishes, delete any cells added during playback.
       removeCellsAddedByPlaybackOrRecording: () => {
         const cellAdditions = state.getCellAdditions(); // all cells added during this recording
-        let deleteCellIndex;
-        for (let cellId of Object.keys(cellAdditions)) {
-          deleteCellIndex = utils.findCellIndexByCellId(cellId);
-          if (deleteCellIndex !== undefined) {
-            //console.log('Going to delete:', cellId, 'at index:', deleteCellIndex);
-            Jupyter.notebook.delete_cell(deleteCellIndex);
+        if (cellAdditions !== undefined) {
+          let deleteCellIndex;
+          for (let cellId of Object.keys(cellAdditions)) {
+            deleteCellIndex = utils.findCellIndexByCellId(cellId);
+            if (deleteCellIndex !== undefined) {
+              //console.log('Going to delete:', cellId, 'at index:', deleteCellIndex);
+              Jupyter.notebook.delete_cell(deleteCellIndex);
+            }
           }
         }
       },
@@ -3521,6 +3544,7 @@ define([
             if (contentsRecord.cellsContent.hasOwnProperty(cellId)) {
               frameContents = state.extractDataFromContentRecord(contentsRecord.cellsContent[cellId].contentsRecord, cellId);
               if (frameContents !== undefined && frameContents !== contents) {
+                //console.log('Setting text on cellid:', utils.getMetadataCellId(cell.metadata));
                 cell.set_text(frameContents);
               }
               frameOutputs = state.extractDataFromContentRecord(contentsRecord.cellsContent[cellId].outputsRecord, cellId);
@@ -3653,10 +3677,10 @@ define([
           console.log('Graffiti: not restoring cell contents since this recording specifies not to.');
           utils.saveNotebook();
         } else {
+          graffiti.removeCellsAddedByPlaybackOrRecording();
           state.restoreCellStates('contents');
           utils.saveNotebook();
           state.restoreCellStates('selections');
-          graffiti.removeCellsAddedByPlaybackOrRecording();
         }
       },
 
@@ -3760,6 +3784,41 @@ define([
         }
       },
 
+      // If there is a graffiti that has the autoplayAlways attribute set to true, play it immediately.
+      // Otherwise, if there is one with autoplayOnce attribute set to true and it hasn't been played previously, play it immediately.
+      playAutoplayGraffiti: () => {
+        const manifest = state.getManifest();
+        let recordingCellId, recordingKeys, recording, autoplayGraffiti, autoplayedOnce = false;
+        for (recordingCellId of Object.keys(manifest)) {
+          recordingKeys = Object.keys(manifest[recordingCellId]);
+          if (recordingKeys.length > 0) {
+            for (recordingKey of recordingKeys) {
+              recording = manifest[recordingCellId][recordingKey];
+              console.log('rec:', recording);
+              if (recording.autoplay !== undefined) {
+                if (autoplayGraffiti === undefined) {
+                  if (recording.autoplay === 'always') {
+                    autoplayGraffiti = { recordingCellId: recordingCellId, recordingKey: recordingKey, activeTakeId: recording.activeTakeId };
+                  } else if (recording.autoplay === 'once') {
+                    if (!recording.playedOnce) {
+                      autoplayGraffiti = { recordingCellId: recordingCellId, recordingKey: recordingKey, activeTakeId: recording.activeTakeId };
+                      recording.playedOnce = true;
+                      autoplayedOnce = true;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        if (autoplayGraffiti !== undefined) {
+          graffiti.playRecordingById(recordingCellId, recordingKey, recording.activeTakeId);
+          if (autoplayedOnce) {
+            storage.storeManifest();
+          }
+        }
+      },
+
       loadAndPlayMovie: (kind) => {
         const playableMovie = state.getPlayableMovie(kind);
         if (playableMovie === undefined) {
@@ -3797,13 +3856,17 @@ define([
 
       },
 
-      playRecordingById: (recordingFullId) => {
+      playRecordingById: (cellId, recordingKey, activeTakeId) => {
+        state.setPlayableMovie('api', cellId, recordingKey, activeTakeId);
+        graffiti.loadAndPlayMovie('api');
+      },      
+
+      playRecordingByIdString: (recordingFullId) => {
         const parts = recordingFullId.split('_');
         const cellId = 'id_' + parts[0];
         const recordingKey = 'id_' + parts[1];
         const activeTakeId = 'id_' + parts[2];
-        state.setPlayableMovie('api', cellId, recordingKey, activeTakeId);
-        graffiti.loadAndPlayMovie('api');
+        graffiti.playRecordingById(cellId, recordingKey, activeTakeId);
       },
 
       playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => {
@@ -3816,7 +3879,7 @@ define([
                                  ids: ['graffiti-notifier-prompt'],
                                  event: 'click',
                                  fn: (e) => {
-                                   graffiti.playRecordingById(recordingFullId);
+                                   graffiti.playRecordingByIdString(recordingFullId);
                                  }
                                }
                              ]);
@@ -3981,7 +4044,7 @@ define([
       init: graffiti.init,
       graffiti:graffiti, // remove me
       state: state, // remove me
-      playRecordingById: (recordingFullId) => { graffiti.playRecordingById(recordingFullId) },
+      playRecordingById: (recordingFullId) => { graffiti.playRecordingByIdString(recordingFullId) },
       playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => { graffiti.playRecordingByIdWithPrompt(recordingFullId, promptMarkdown) },
       cancelPlayback: () => { graffiti.cancelPlayback({cancelAnimation:false}) },
       removeAllGraffiti: graffiti.removeAllGraffitisWithConfirmation,

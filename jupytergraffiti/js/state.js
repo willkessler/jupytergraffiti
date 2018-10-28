@@ -674,7 +674,10 @@ define([
     },
 
     getCellAdditions: () => {
-      return state.history.cellAdditions;
+      if (state.history !== undefined) {
+        return state.history.cellAdditions;
+      }
+      return undefined;
     },
 
     storeCellAddition: (cellId, position) => {
