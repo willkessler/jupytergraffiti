@@ -887,6 +887,15 @@ define([
       return sprayCanIcon;
     },
 
+    makeSmallUdacityIcon: (opts) => {
+      const udacityHtml = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" x="0px" y="0px" width="' +
+                          opts.width + 'px" height="' + opts.height + 'px" viewBox="0 0 32 32" ' +
+                          'enable-background="new 0 0 32 32">' +
+                          '<image x="0" y="0" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAABGdBTUEAALGPC/xhBQAAACBjSFJN AAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAABOFBMVEUAs+YAsuYKvOkSveo1 xezR8vv6/v6I3PQowuu+7Pn///+V4PUCu+my6Pgdv+u66/ln0/Hv+v31/P531/P9/v8At+j3/f7a 9PxLy+/+//8twuzM8Pv8/v9t1fLt+v3u+v1v1fIAtOeY4fXg9vxKy+6S3/UAuOgAtecAs+f2/P4g v+ut5/d21/NXzvCg4/ZWzvDi9/zT8vs9yO3l+PwAuenc9fuX4fWG3PPC7frD7fpHyu4zxez7/v84 xu3s+f0MvOp42POo5fdUzu/U8vxZz/CR3/Wr5vfS8vvn+P0rw+wPvOokwOv5/f606fgAuunX8/xr 1PLQ8ftSze8AtugnwuuU4PUEu+nW8/yJ3PQYv+qQ3/TP8fuq5vfh9vzB7fq/7Pn0/P5w1fI3xu2s 5/fm+PyN3vQ5x+0xxOwxFuTVAAAAAWJLR0QKaND0VgAAAAlwSFlzAAAWJQAAFiUBSVIk8AAAAAd0 SU1FB+IKHAUqGL3rdjoAAAFBSURBVDjL5dPZUsIwFAbgBMTqj6BiF0FcsGLdEaniUtwVVMR93/f3 fwPbkpS0Os5wbW7Sk/NN0ov/EEL/XIQ0AUgo0Az7QUukVRLbbe2ICqAjBns12vHOes0A6epGokf2 gCKp0HqTHkj1AbEQTXPQP4DBoQz1wLAMfcQ+9wCQHbU3DwCSQf3ArQUwRv8RUINgPAB0TIhAgRYA k5gSwTRmGEgj457nMOt+EBeQPOYYKMCsR2oeC85uwn6cFrHIE7WE5frVKxaydl1CnpJicnWNg3Vs sN/ftLC1bexgN1dGZc8L7b4lHzBR0oGq5aTtsCakOoojhQnj+MRpF059sT8rIxLmeTyvQL7gnof2 8grq9Y07C7dV3KV+Do5yb9/78PikAc8v4rA1Buf1LeE8/v5h+qZLHD0j/vlVo4HV1PD+Dr4BCLwn yyZy1tMAAAAldEVYdGRhdGU6Y3JlYXRlADIwMTgtMTAtMjhUMTI6NDI6MjQtMDc6MDC16UJJAAAA JXRFWHRkYXRlOm1vZGlmeQAyMDE4LTEwLTI4VDEyOjQyOjI0LTA3OjAwxLT69QAAAABJRU5ErkJg gg==" width="32" height="32"></image>' + 
+                          '</svg>';
+      return udacityHtml;
+    },
+
   }
 
   sticker.minBracketWidth = 4;

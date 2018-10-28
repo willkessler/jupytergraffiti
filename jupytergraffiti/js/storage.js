@@ -43,7 +43,7 @@ define([
       }
       utils.assignCellIds();
       utils.refreshCellMaps();
-      console.log('Notebook is now ready to use Graffiti.');
+      console.log('Graffiti: Notebook is now ready to use Graffiti.');
     },
 
     constructBasePath: () => {
