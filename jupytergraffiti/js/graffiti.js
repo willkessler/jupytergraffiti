@@ -2336,7 +2336,7 @@ define([
             case 16: // shift key
               graffiti.shiftKeyIsDown = true;
               state.updateDrawingState([ { change: 'stickerOnGrid', data: true } ]);
-              console.log('Graffiti: shiftKeyIsDown');
+              //console.log('Graffiti: shiftKeyIsDown');
               break;
               // case 13: // enter key
               //            break;
@@ -2361,7 +2361,7 @@ define([
           //console.log('keyUp e.which:', e.which);
           switch (e.which) {
             case 16:
-              console.log('Graffiti: shiftKeyIsUp');
+              //console.log('Graffiti: shiftKeyIsUp');
               graffiti.shiftKeyIsDown = false;
               state.updateDrawingState([ { change: 'stickerOnGrid', data: false } ]);
               break;
@@ -3976,6 +3976,25 @@ define([
         });
       },
 
+      packageGraffitis: () => {
+        storage.packageGraffitis().then((fileName) => {
+          dialog.modal({
+            title: 'Packaging Complete',
+            body: 'Your Notebook\'s Graffitis, and your notebook, have been copied into a archive file.<br><br>' +
+                  'Now you can copy and unpack that archive file anywhere Graffiti is supported, using the shell command: ' +
+                  '<code>tar zxf ' + fileName + '</code>',
+            sanitize:false,
+            buttons: {
+              'OK': {
+                click: (e) => {
+                  console.log('Graffiti: You clicked ok');
+                }
+              }
+            }
+          });
+        });
+      },
+
       updateSetupButton: () => {
         const notebook = Jupyter.notebook;
         const sprayCanIcon = stickerLib.makeSprayCanIcon();
@@ -4057,6 +4076,7 @@ define([
       setAccessLevel: (level) => { graffiti.toggleAccessLevel(level) },
       setAuthorId: (authorId) => { state.setAuthorId(authorId) },
       transferGraffitis: () => { graffiti.transferGraffitis() },
+      packageGraffitis: () => { graffiti.packageGraffitis() },
       selectionSerializer: selectionSerializer
     }
 
