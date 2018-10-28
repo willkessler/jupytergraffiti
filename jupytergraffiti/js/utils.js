@@ -133,7 +133,7 @@ define([
 
     renderMarkdown: (contents) => {
       // Strip out special commands eg. headline commands and make all hrefs pop new tabs
-      const cleanedContents = contents.replace(/^%%(.*)$/mg, '');
+      const cleanedContents = contents.replace(/^\s*%%(.*)$/mg, '');
       return marked(cleanedContents).replace(/(href=".*")>/g, "$1 target=\"_blank\">");
     },
 
