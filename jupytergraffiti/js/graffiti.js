@@ -2583,11 +2583,13 @@ define([
             recordings[recordingCellInfo.recordingKey].markdown = editCellContents;
 
             const tooltipCommands = graffiti.extractTooltipCommands(editCellContents);
-            recordings[recordingCellInfo.recordingKey].autoplay = 'never';
+            const recording = recordings[recordingCellInfo.recordingKey];
+            recording.autoplay = 'never';
             if (tooltipCommands.autoplay === 'always') {
-              recordings[recordingCellInfo.recordingKey].autoplay = 'always';
+              recording.autoplay = 'always';
             } else if (tooltipCommands.autoplay === 'once') {
-              recordings[recordingCellInfo.recordingKey].autoplay = 'once';
+              recording.autoplay = 'once';
+              recording.playedOnce = false;
             }
           } else {
             if (recordingCellInfo.newRecording) {
