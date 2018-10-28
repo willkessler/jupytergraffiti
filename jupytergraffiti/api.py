@@ -45,3 +45,7 @@ def show_creators_chooser():
 # Set your access level to Graffiti, one of either "create" or "view".
 def set_access_level(level):
     run_js("window.Graffiti.setAccessLevel('" + level + "')", False)
+
+# Package up a zip of the jupytergraffiti_data with the current notebook, for easy portability
+def package_graffitis():
+    run_js("window.Graffiti.packageGraffitis()", False)
