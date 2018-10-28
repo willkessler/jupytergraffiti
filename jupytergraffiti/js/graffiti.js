@@ -177,7 +177,7 @@ define([
 
         const logoText = 'Graffiti'.split('').join('&nbsp;&nbsp;&nbsp;&nbsp;');
         graffiti.setupOneControlPanel('graffiti-control-panel-title', 
-                                      '<div><img src="../images/udacity_tiny_logo.png" /></div><div>' + logoText + '</div>');
+                                      '<div>' + stickerLib.makeSmallUdacityIcon({width:20,height:20}) + '</div><div>' + logoText + '</div>');
 
         const dragHandle = $('#graffiti-drag-handle,#graffiti-control-panel-title');
         dragHandle.on('mousedown', (e) => {
@@ -854,7 +854,7 @@ define([
                        find('#graffiti-create-btn').show().
                        parent().find('#graffiti-edit-btn').hide();
               if (selectedTokens.isIntersecting) {
-                console.log('Graffiti: updating recording controls');
+                // console.log('Graffiti: updating recording controls');
                 graffiti.highlightIntersectingGraffitiRange();
                 graffiti.controlPanelIds['graffiti-record-controls'].
                          find('#graffiti-create-btn').hide().
@@ -1390,7 +1390,7 @@ define([
           //console.log('not adding ' + drawingPermanence + ' canvas to this cell, already exists.');
           return cellRect;
         }
-        console.log('placing ', drawingPermanence, 'canvas for cellId:', cellId);
+        // console.log('Graffiti: placing ', drawingPermanence, 'canvas for cellId:', cellId);
         $('<div class="graffiti-canvas-outer graffiti-canvas-type-' + drawingPermanence + '"><canvas /></div>').appendTo(cellElement);
         const newCellCanvasDiv = cellElement.find('.graffiti-canvas-outer:last');
         const newCellCanvas = newCellCanvasDiv.find('canvas')[0];
@@ -1964,7 +1964,8 @@ define([
             captionVideo: undefined,
             caption: '',
             playback_pic: undefined,
-            autoplay: 'never'
+            autoplay: 'never',
+            play_on_click: false
           };
           let parts;
           for (let i = 0; i < commandParts.length; ++i) {
@@ -2014,6 +2015,11 @@ define([
               case '%%autoplay': // 'never' (optional), 'once', 'always'
                 if (parts[1].length > 0) {
                   partsRecord.autoplay = parts[1].toLowerCase();
+                }
+                break;
+              case '%%play_on_click': // if true, we will not render tooltip but rather use cursor:pointer and make click on the target initiate playback
+                if (parts[1].length > 0) {
+                  partsRecord.playOnClick = (parts[1].toLowerCase() === 'on');
                 }
                 break;
             }
@@ -2121,7 +2127,7 @@ define([
                 let currentPointerPosition = state.getPointerPosition();
                 // Only show tip if cursor rests on hover for a 1/2 second
                 state.setTipTimeout(() => {
-                  console.log('tip interval');
+                  //console.log('tip interval');
                   const newPointerPosition = state.getPointerPosition();
                   const cursorDistanceSquared = (newPointerPosition.x - currentPointerPosition.x) * (newPointerPosition.x - currentPointerPosition.x) +
                                                (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
@@ -2179,7 +2185,7 @@ define([
                         }
                       }
                       if (doUpdate) {
-                        console.log('replacing tooltip contents ');
+                        //console.log('replacing tooltip contents ');
                         existingTip.find('#graffiti-movie-play-btn').unbind('click');
                         existingTip.html(tooltipContents);
                         state.setDisplayedTipInfo(cellId,recordingKey);
@@ -2591,6 +2597,7 @@ define([
               recording.autoplay = 'once';
               recording.playedOnce = false;
             }
+            recording.playOnClick = tooltipCommands.playOnClick;
           } else {
             if (recordingCellInfo.newRecording) {
               state.removeManifestEntry(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
