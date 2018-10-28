@@ -1389,6 +1389,7 @@ define([
           //console.log('not adding ' + drawingPermanence + ' canvas to this cell, already exists.');
           return cellRect;
         }
+        console.log('placing ', drawingPermanence, 'canvas for cellId:', cellId);
         $('<div class="graffiti-canvas-outer graffiti-canvas-type-' + drawingPermanence + '"><canvas /></div>').appendTo(cellElement);
         const newCellCanvasDiv = cellElement.find('.graffiti-canvas-outer:last');
         const newCellCanvas = newCellCanvasDiv.find('canvas')[0];
@@ -1486,6 +1487,14 @@ define([
           state.updateDrawingState( [ { change: 'opacity', data: maxOpacity } ]);
           state.disableDrawingFadeClock();
         }
+      },
+
+      // If a cell is deleted by jupyter we need to forget any the canvases we were tracking for it.
+      removeCanvasRecordsForCell: (cellId) => {
+        delete(graffiti.canvases['permanent'][cellId]);
+        delete(graffiti.stickers['permanent'][cellId]);
+        delete(graffiti.canvases['temporary'][cellId]);
+        delete(graffiti.stickers['temporary'][cellId]);
       },
 
       updateDrawingOpacity: () => {
@@ -2907,8 +2916,15 @@ define([
           state.storeHistoryRecord('contents');
         });
 
-        Jupyter.notebook.events.on('delete.Cell', (e) => {
+        Jupyter.notebook.events.on('delete.Cell', (e,results) => {
           utils.refreshCellMaps();
+          const deletedCell = results.cell;
+          if (deletedCell !== undefined) {
+            const deletedCellId = utils.getMetadataCellId(deletedCell.metadata);
+            if (deletedCellId !== undefined) {
+              graffiti.removeCanvasRecordsForCell(deletedCellId);              
+            }
+          }
           state.storeHistoryRecord('contents');
         });
 
@@ -2982,6 +2998,7 @@ define([
         state.restoreCellStates('contents');
         graffiti.updateAllGraffitiDisplays();
         graffiti.wipeAllStickerDomCanvases();
+        graffiti.removeCellsAddedByPlaybackOrRecording();
         state.restoreCellStates('selections');
         graffiti.sitePanel.animate({ scrollTop: graffiti.preRecordingScrollTop }, 750);
         graffiti.selectIntersectingGraffitiRange();
@@ -3439,13 +3456,13 @@ define([
       },
 
       // After playback finishes, delete any cells added during playback.
-      removeCellsAddedByPlayback: () => {
+      removeCellsAddedByPlaybackOrRecording: () => {
         const cellAdditions = state.getCellAdditions(); // all cells added during this recording
         let deleteCellIndex;
         for (let cellId of Object.keys(cellAdditions)) {
           deleteCellIndex = utils.findCellIndexByCellId(cellId);
           if (deleteCellIndex !== undefined) {
-            console.log('Going to delete:', cellId, 'at index:', deleteCellIndex);
+            //console.log('Going to delete:', cellId, 'at index:', deleteCellIndex);
             Jupyter.notebook.delete_cell(deleteCellIndex);
           }
         }
@@ -3465,11 +3482,11 @@ define([
           const cellAdditionsIds = Object.keys(cellAdditions);
           // Any cells that may have been added during the movie, not present in this timeframe, must be deleted.
           const deletableCellIds = _.difference(cellAdditionsIds, cellsPresentIds); 
-          console.log('deletableCellIds', deletableCellIds, cellAdditions, cellsPresentIds);
+          //console.log('deletableCellIds', deletableCellIds, cellAdditions, cellsPresentIds);
           for (deleteCellId of deletableCellIds) {
             deleteCellIndex = utils.findCellIndexByCellId(deleteCellId);
             if (deleteCellIndex !== undefined) {
-              console.log('Going to delete:', deleteCellId, 'at index:', deleteCellIndex);
+              //console.log('Going to delete:', deleteCellId, 'at index:', deleteCellIndex);
               Jupyter.notebook.delete_cell(deleteCellIndex);
             }
           }
@@ -3639,7 +3656,7 @@ define([
           state.restoreCellStates('contents');
           utils.saveNotebook();
           state.restoreCellStates('selections');
-          graffiti.removeCellsAddedByPlayback();
+          graffiti.removeCellsAddedByPlaybackOrRecording();
         }
       },
 
