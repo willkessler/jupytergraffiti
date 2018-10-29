@@ -2017,7 +2017,7 @@ define([
                 break;
               case '%%play_on_click': // if true, we will not render tooltip but rather use cursor:pointer and make click on the target initiate playback
                 if (parts[1].length > 0) {
-                  partsRecord.playOnClick = (parts[1].toLowerCase() === 'on');
+                  partsRecord.playOnClick = ((parts[1].toLowerCase() === 'on') || (parts[1].toLowerCase() === 'true'));
                 }
                 break;
             }
@@ -2048,7 +2048,7 @@ define([
         graffiti.tokenRanges[cellId] = {};
         if (recordings !== undefined) {
           if (Object.keys(recordings).length > 0) {
-            let keyParts,recording, recordingKey, tokens, firstToken, marker, range, activeTakeId;
+            let keyParts,recording, recordingKey, tokens, firstToken, marker, range;
             for (recordingKey of Object.keys(recordings)) {
               recording = recordings[recordingKey];
               tokens = recording.tokens;
@@ -2060,6 +2060,9 @@ define([
                 if (params.clear || (!params.clear && markClasses !== undefined && markClasses.indexOf(recordingKey) === -1)) {
                   // don't call markText twice on a previously marked range
                   marker = 'graffiti-' + recording.cellId + '-' + recordingKey;
+                  if (recording.playOnClick) {
+                    marker += ' graffiti-play-on-click';
+                  }                    
                   cm.markText({ line:range.start.line, ch:range.start.ch},
                               { line:range.end.line,   ch:range.end.ch  },
                               { className: 'graffiti-highlight ' + marker });
@@ -2119,7 +2122,8 @@ define([
               const activeTakeId = recording.activeTakeId;
               console.log('refreshGraffitiTooltips: recording=', recording);
               if (recording.playOnClick) {
-                console.log('recording is set to play on click');
+                console.log('Graffiti: recording is set to play on click, so not displaying tip.');
+                return;
               }
               let existingTip = graffiti.notebookContainer.find('.graffiti-tip');
               if (e.type === 'mouseleave') {
