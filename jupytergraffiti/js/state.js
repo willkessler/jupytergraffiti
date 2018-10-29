@@ -620,7 +620,7 @@ define([
     },
 
     storeRecordingCellInfo: (cellInfo) => {
-      console.log('storeRecordingCellInfo:', cellInfo);
+      console.trace('storeRecordingCellInfo:', cellInfo);
       state.recordingCellInfo = cellInfo;
     },
 
@@ -628,9 +628,12 @@ define([
       return state.playableMovies[kind];
     },
 
-    setPlayableMovie: (kind, cellId, recordingKey, activeTakeId) => {
+    setPlayableMovie: (kind, cellId, recordingKey) => {
       const cell = utils.findCellByCellId(cellId);
+      const recording = state.getManifestSingleRecording(cellId, recordingKey);
+      const activeTakeId = recording.activeTakeId;
       state.playableMovies[kind] = { cellId: cellId, recordingKey: recordingKey, activeTakeId: activeTakeId, cell: cell, cellType: cell.cell_type, };
+      return recording;
     },
 
     clearPlayableMovie: (kind) => {

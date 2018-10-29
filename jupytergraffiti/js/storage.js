@@ -61,12 +61,18 @@ define([
       return { path: basePath, file: 'manifest.json' };
     },
 
-    constructGraffitiPath: (pathParts) => {
+    constructGraffitiMoviePath: (pathParts) => {
       const basePath = storage.constructBasePath();
       const graffitiPath = basePath + 
                            'cells/' + pathParts.recordingCellId + '/' + 
-                           'graffitis/' + pathParts.recordingKey + '/' +
-                           'takes/' + pathParts.activeTakeId + '/';
+                           'graffitis/' + pathParts.recordingKey + '/';
+      return graffitiPath;
+    },
+
+    constructGraffitiTakePath: (pathParts) => {
+      const basePath = storage.constructBasePath();
+      let graffitiPath = basePath + storage.constructGraffitiMoviePath(pathParts) + 
+                         'takes/' + pathParts.activeTakeId + '/';
       return graffitiPath;
     },
 
@@ -109,7 +115,7 @@ define([
         const encodedAudio = audio.getRecordedAudio();
 
         const numCells = Jupyter.notebook.get_cells().length;
-        const graffitiPath = storage.constructGraffitiPath({
+        const graffitiPath = storage.constructGraffitiTakePath({
           recordingCellId: recordingCellInfo.recordingCellId,
           recordingKey: recordingCellInfo.recordingKey,
           activeTakeId: recordingCellInfo.recordingRecord.activeTakeId
@@ -203,7 +209,7 @@ define([
     //
     loadMovie: (recordingCellId, recordingKey, activeTakeId) => {
       const notebookRecordingId = Jupyter.notebook.metadata['graffitiId'];
-      const graffitiPath = storage.constructGraffitiPath( {
+      const graffitiPath = storage.constructGraffitiTakePath( {
         recordingCellId: recordingCellId,
         recordingKey: recordingKey,
         activeTakeId: activeTakeId,
@@ -251,7 +257,7 @@ define([
     },
 
     deleteMovie: (recordingCellId, recordingKey) => {
-      const graffitiPath = storage.constructGraffitiPath({ 
+      const graffitiPath = storage.constructGraffitiMoviePath({ 
         recordingCellId: recordingCellId, 
         recordingKey: recordingKey 
       });

@@ -866,15 +866,13 @@ define([
                 if (selectedTokens.hasMovie) {
                   const recordingCellId = selectedTokens.recordingCellId;
                   const recordingKey = selectedTokens.recordingKey;
-                  const activeTakeId = selectedTokens.activeTakeId;
-                  state.setPlayableMovie('cursorActivity', recordingCellId, recordingKey, activeTakeId);
+                  const recording = state.setPlayableMovie('cursorActivity', recordingCellId, recordingKey);
                   graffiti.recordingAPIKey = recordingCellId.replace('id_','') + '_' + 
-                                             recordingKey.replace('id_','') +
-                                             activeTakeId.replace('id_','');
+                                             recordingKey.replace('id_','');
                   visibleControlPanels.push('graffiti-access-api');
                   visibleControlPanels.push('graffiti-notifier');
                   visibleControlPanels.push('graffiti-takes-controls');
-                  graffiti.updateTakesPanel(recordingCellId, recordingKey, activeTakeId);
+                  graffiti.updateTakesPanel(recordingCellId, recordingKey, recording.activeTakeId);
                   //console.log('this recording has a movie');
                   graffiti.controlPanelIds['graffiti-record-controls'].find('#graffiti-begin-recording-btn').hide().parent().
                            find('#graffiti-begin-rerecording-btn').show();
@@ -1071,7 +1069,7 @@ define([
         }, 500); // this timeout avoids too-early rendering of hidden recorder controls
 
         graffiti.refreshAllGraffitiHighlights();
-        graffiti.refreshGraffitiTips();
+        graffiti.refreshGraffitiTooltips();
         graffiti.setupControlPanels();
         graffiti.updateControlPanels();
         graffiti.setupDrawingScreen();
@@ -2053,7 +2051,6 @@ define([
             let keyParts,recording, recordingKey, tokens, firstToken, marker, range, activeTakeId;
             for (recordingKey of Object.keys(recordings)) {
               recording = recordings[recordingKey];
-              activeTakeId = recording.activeTakeId;
               tokens = recording.tokens;
               //console.log('recordingKey:', recordingKey);
               range = utils.getCMTokenRange(cm, tokens, allTokens);
@@ -2062,7 +2059,7 @@ define([
                 graffiti.tokenRanges[cellId][recordingKey] = range;
                 if (params.clear || (!params.clear && markClasses !== undefined && markClasses.indexOf(recordingKey) === -1)) {
                   // don't call markText twice on a previously marked range
-                  marker = 'graffiti-' + recording.cellId + '-' + recordingKey + '-' + activeTakeId;
+                  marker = 'graffiti-' + recording.cellId + '-' + recordingKey;
                   cm.markText({ line:range.start.line, ch:range.start.ch},
                               { line:range.end.line,   ch:range.end.ch  },
                               { className: 'graffiti-highlight ' + marker });
@@ -2086,10 +2083,10 @@ define([
         state.clearPlayableMovie('tip');
       },
 
-      refreshGraffitiTips: () => {
+      refreshGraffitiTooltips: () => {
         const tips = $('.graffiti-highlight');
         //console.log('tips:', tips);
-        //console.log('refreshGraffitiTips: binding mousenter/mouseleave');
+        //console.log('refreshGraffitiTooltips: binding mousenter/mouseleave');
         tips.unbind('mouseenter mouseleave');
         if (state.getActivity() !== 'recording') {
           tips.bind('mouseenter mouseleave', (e) => {
@@ -2104,11 +2101,10 @@ define([
             const highlightElemRect = highlightElem[0].getBoundingClientRect();
             const highlightElemMaxDimension = Math.max(highlightElemRect.width, highlightElemRect.height);
             const highlightElemMaxDimensionSquared = highlightElemMaxDimension * highlightElemMaxDimension;
-            const idMatch = highlightElem.attr('class').match(/graffiti-(id_.[^\-]+)-(id_[^\s]+)-(id_[^\s]+)/);
+            const idMatch = highlightElem.attr('class').match(/graffiti-(id_.[^\-]+)-(id_[^\s]+)/);
             if (idMatch !== null) {
               const cellId = idMatch[1];
               const recordingKey = idMatch[2];
-              const activeTakeId = idMatch[3];
               const hoverCell = utils.findCellByCellId(cellId);
               const hoverCellElement = hoverCell.element[0];
               const hoverCellElementPosition = $(hoverCellElement).position();
@@ -2120,6 +2116,11 @@ define([
                 outerInputElement = $(hoverCellElement).find('.CodeMirror-lines');
               }
               const recording = state.getManifestSingleRecording(cellId, recordingKey);
+              const activeTakeId = recording.activeTakeId;
+              console.log('refreshGraffitiTooltips: recording=', recording);
+              if (recording.playOnClick) {
+                console.log('recording is set to play on click');
+              }
               let existingTip = graffiti.notebookContainer.find('.graffiti-tip');
               if (e.type === 'mouseleave') {
                 state.setTipTimeout(() => { graffiti.hideTip(); }, 500);
@@ -2157,7 +2158,7 @@ define([
                     let tooltipContents = headlineMarkdown + '<div class="parts">' + '<div class="info">' + contentMarkdown + '</div>';
                     if (recording.hasMovie) {
                       const buttonName = (((tooltipCommands !== undefined) && (tooltipCommands.buttonName !== undefined)) ? tooltipCommands.buttonName : 'Play Movie');
-                      state.setPlayableMovie('tip', cellId, recordingKey, activeTakeId);
+                      state.setPlayableMovie('tip', cellId, recordingKey);
                       tooltipContents +=
                         '   <div class="movie"><button class="btn btn-default btn-small" id="graffiti-movie-play-btn">' + buttonName + '</button></div>';
                     }
@@ -2211,7 +2212,7 @@ define([
                               click: (e) => {
                                 console.log('Graffiti: you want to preserve cell contents after playback.');
                                 // Must restore playable movie values because jupyter dialog causes the tip to hide, which clears the playableMovie
-                                state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey, playableMovie.activeTakeId);
+                                state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey);
                                 state.setDontRestoreCellContentsAfterPlayback(false);
                                 graffiti.loadAndPlayMovie('tip');
                               }
@@ -2219,7 +2220,7 @@ define([
                             'Let this Movie Permanently Set Cell Contents': { 
                               click: (e) => { 
                                 // Must restore playable movie values because jupyter dialog causes the tip to hide, which clears the playableMovie
-                                state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey, playableMovie.activeTakeId);
+                                state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey);
                                 graffiti.loadAndPlayMovie('tip'); 
                               }
                             }
@@ -2460,7 +2461,7 @@ define([
           recordingKey = graffiti.selectedTokens.recordingKey;
           recordingRecord = state.getManifestSingleRecording(recordingCellId, recordingKey);
           graffiti.previousActiveTakeId = recordingRecord.activeTakeId;
-          if (!recordingRecord.hasMovie || recordingRecord.activeTakeId === undefined) {
+          if (recordingRecord.hasMovie) { // if making a new take when there's a previous movie, must create a new activeTakeId
             recordingRecord.activeTakeId = utils.generateUniqueId(); // do not set a new activeTakeId if there was already a valid one set for the movie
           }
           newRecording = false;
@@ -2639,7 +2640,7 @@ define([
           } else {
             graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
           }
-          graffiti.refreshGraffitiTips();
+          graffiti.refreshGraffitiTooltips();
         }
       },
 
@@ -2667,7 +2668,7 @@ define([
       removeAllGraffitis: (graffitiDisabled) => {
         const manifest = state.getManifest(); // save manifest before we wipe it out
         state.setManifest({});
-        let recordingCellId, recordingCell, recordingIds, recordingKeys, destructions = 0;
+        let recording, recordingCellId, recordingCell, recordingIds, recordingKeys, destructions = 0;
         for (recordingCellId of Object.keys(manifest)) {
           console.log('Graffiti: Removing recordings from cell:', recordingCellId);
           recordingKeys = Object.keys(manifest[recordingCellId]);
@@ -2675,6 +2676,7 @@ define([
             recordingCell = utils.findCellByCellId(recordingCellId);
             for (recordingKey of recordingKeys) {
               console.log('Graffiti: Removing recording id:', recordingKey);
+              recording = manifest[recordingCellId][recordingKey];
               destructions++;
               graffiti.removeGraffitiCore(recordingCell, recordingKey);
               graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
@@ -2683,7 +2685,7 @@ define([
         }
         storage.storeManifest();
         graffiti.highlightIntersectingGraffitiRange();
-        graffiti.refreshGraffitiTips();
+        graffiti.refreshGraffitiTooltips();
         graffiti.updateControlPanels();
 
         if (graffitiDisabled) {
@@ -2730,7 +2732,7 @@ define([
         if (state.removeManifestEntry(utils.getMetadataCellId(recordingCell.metadata), recordingKey)) {
           graffiti.highlightIntersectingGraffitiRange();
           graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
-          graffiti.refreshGraffitiTips();
+          graffiti.refreshGraffitiTooltips();
           storage.storeManifest();
           utils.saveNotebook();
           graffiti.updateControlPanels();
@@ -2817,7 +2819,7 @@ define([
 
       updateAllGraffitiDisplays: () => {
         graffiti.refreshAllGraffitiHighlights();
-        graffiti.refreshGraffitiTips();
+        graffiti.refreshGraffitiTooltips();
       },
 
       //
@@ -2899,7 +2901,7 @@ define([
 
         cm.on('update', (cm, e) => {
           //console.log('**** CM update event ****');
-          graffiti.refreshGraffitiTips();
+          graffiti.refreshGraffitiTooltips();
         });
 
         cm.on('scroll', (cm, e) => {
@@ -2934,7 +2936,7 @@ define([
           //console.log('cell select event fired, e, cell:',e, cell.cell);
           //console.log('select cell store selections');
           state.storeHistoryRecord('focus');
-          graffiti.refreshGraffitiTips();
+          graffiti.refreshGraffitiTooltips();
           graffiti.updateControlPanels();
         });
 
@@ -3672,7 +3674,7 @@ define([
         graffiti.pausePlaybackNoVisualUpdates();
 
         graffiti.refreshAllGraffitiHighlights();
-        graffiti.refreshGraffitiTips();
+        graffiti.refreshGraffitiTooltips();
         //graffiti.cancelRapidPlay();
 
         // Save after play stops, so if the user reloads we don't get the annoying dialog box warning us changes were made.
@@ -3711,7 +3713,7 @@ define([
         graffiti.graffitiCursor.hide();
         graffiti.clearCanvases('all');
         graffiti.refreshAllGraffitiHighlights();
-        graffiti.refreshGraffitiTips(); 
+        graffiti.refreshGraffitiTooltips(); 
         graffiti.updateControlPanels();
         graffiti.highlightIntersectingGraffitiRange();
         graffiti.narratorName = undefined;
@@ -3811,10 +3813,10 @@ define([
               if (recording.autoplay !== undefined) {
                 if (autoplayGraffiti === undefined) {
                   if (recording.autoplay === 'always') {
-                    autoplayGraffiti = { recordingCellId: recordingCellId, recordingKey: recordingKey, activeTakeId: recording.activeTakeId };
+                    autoplayGraffiti = { recordingCellId: recordingCellId, recordingKey: recordingKey };
                   } else if (recording.autoplay === 'once') {
                     if (!recording.playedOnce) {
-                      autoplayGraffiti = { recordingCellId: recordingCellId, recordingKey: recordingKey, activeTakeId: recording.activeTakeId };
+                      autoplayGraffiti = { recordingCellId: recordingCellId, recordingKey: recordingKey };
                       recording.playedOnce = true;
                       autoplayedOnce = true;
                     }
@@ -3825,7 +3827,7 @@ define([
           }
         }
         if (autoplayGraffiti !== undefined) {
-          graffiti.playRecordingById(recordingCellId, recordingKey, recording.activeTakeId);
+          graffiti.playRecordingById(autoplayGraffiti.recordingCellId, autoplayGraffiti.recordingKey);
           if (autoplayedOnce) {
             storage.storeManifest();
           }
@@ -3869,8 +3871,8 @@ define([
 
       },
 
-      playRecordingById: (cellId, recordingKey, activeTakeId) => {
-        state.setPlayableMovie('api', cellId, recordingKey, activeTakeId);
+      playRecordingById: (cellId, recordingKey) => {
+        state.setPlayableMovie('api', cellId, recordingKey);
         graffiti.loadAndPlayMovie('api');
       },      
 
@@ -3878,8 +3880,7 @@ define([
         const parts = recordingFullId.split('_');
         const cellId = 'id_' + parts[0];
         const recordingKey = 'id_' + parts[1];
-        const activeTakeId = 'id_' + parts[2];
-        graffiti.playRecordingById(cellId, recordingKey, activeTakeId);
+        graffiti.playRecordingById(cellId, recordingKey);
       },
 
       playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => {
@@ -3931,7 +3932,7 @@ define([
           utils.assignCellIds();
           utils.saveNotebook();
           graffiti.refreshAllGraffitiHighlights();
-          graffiti.refreshGraffitiTips();
+          graffiti.refreshGraffitiTooltips();
         } else {
           graffiti.outerControlPanel.fadeOut(graffiti.panelFadeTime);          
         }
