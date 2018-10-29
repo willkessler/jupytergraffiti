@@ -116,6 +116,10 @@
   cursor:pointer;
 }
 
+.graffiti-play-on-click {
+  cursor:pointer;
+}
+
 .graffiti-selected {
   background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAAHUlEQVQYV2NkcP+/mWEnoy8DAwMDI4iACUA4UAEAoMMH/eJADr4AAAAASUVORK5CYII=) repeat;
 }
