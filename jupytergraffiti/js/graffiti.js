@@ -2456,7 +2456,7 @@ define([
           recordingKey = graffiti.selectedTokens.recordingKey;
           recordingRecord = state.getManifestSingleRecording(recordingCellId, recordingKey);
           graffiti.previousActiveTakeId = recordingRecord.activeTakeId;
-          if (recordingRecord.hasMovie) { // if making a new take when there's a previous movie, must create a new activeTakeId
+          if (recordingRecord.activeTakeId === undefined) { // if making a new take when there's a previous movie, must create a new activeTakeId
             recordingRecord.activeTakeId = utils.generateUniqueId(); // do not set a new activeTakeId if there was already a valid one set for the movie
           }
           newRecording = false;
@@ -2478,7 +2478,7 @@ define([
             markdown: '',
             authorId: state.getAuthorId(),
             authorType: state.getAuthorType(), // one of "creator" (eg teacher), "viewer" (eg student)
-            activeTakeId: utils.generateUniqueId(), // this is throwaway and will be replaced with the first recording made
+            activeTakeId: undefined, // this will be replaced with an id for the first movie recording made
             hasMovie: false
           }
           state.setSingleManifestRecording(recordingCellId, recordingKey, recordingRecord);
