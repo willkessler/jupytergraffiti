@@ -630,10 +630,13 @@ define([
 
     setPlayableMovie: (kind, cellId, recordingKey) => {
       const cell = utils.findCellByCellId(cellId);
-      const recording = state.getManifestSingleRecording(cellId, recordingKey);
-      const activeTakeId = recording.activeTakeId;
-      state.playableMovies[kind] = { cellId: cellId, recordingKey: recordingKey, activeTakeId: activeTakeId, cell: cell, cellType: cell.cell_type, };
-      return recording;
+      if (cell !== undefined) {
+        const recording = state.getManifestSingleRecording(cellId, recordingKey);
+        const activeTakeId = recording.activeTakeId;
+        state.playableMovies[kind] = { cellId: cellId, recordingKey: recordingKey, activeTakeId: activeTakeId, cell: cell, cellType: cell.cell_type, };
+        return recording;
+      }
+      return undefined;
     },
 
     clearPlayableMovie: (kind) => {
