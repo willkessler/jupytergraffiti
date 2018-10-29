@@ -744,12 +744,13 @@ define([
 
       updateActiveTakeId: (recordingCellId, recordingKey, activeTakeId) => {
         storage.updateSingleManifestRecordingField(recordingCellId, recordingKey, 'activeTakeId', activeTakeId);
-        state.setPlayableMovie('cursorActivity', recordingCellId, recordingKey, activeTakeId);
-        graffiti.updateTakesPanel(recordingCellId, recordingKey, activeTakeId);
+        state.setPlayableMovie('cursorActivity', recordingCellId, recordingKey);
+        graffiti.updateTakesPanel(recordingCellId, recordingKey);
       },
 
-      updateTakesPanel: (recordingCellId, recordingKey, activeTakeId) => {
+      updateTakesPanel: (recordingCellId, recordingKey) => {
         const recording = state.getManifestSingleRecording(recordingCellId, recordingKey);
+        const activeTakeId = recording.activeTakeId;
         //console.log('we got these takes:', recording.takes);
         const sortedRecs = _.sortBy($.map(recording.takes, (val,key) => { return $.extend(true, {}, val, { key: key }) }), 'createDate')
         //console.log('sorted recs are:', sortedRecs);
@@ -866,13 +867,13 @@ define([
                 if (selectedTokens.hasMovie) {
                   const recordingCellId = selectedTokens.recordingCellId;
                   const recordingKey = selectedTokens.recordingKey;
-                  const recording = state.setPlayableMovie('cursorActivity', recordingCellId, recordingKey);
+                  state.setPlayableMovie('cursorActivity', recordingCellId, recordingKey);
                   graffiti.recordingAPIKey = recordingCellId.replace('id_','') + '_' + 
                                              recordingKey.replace('id_','');
                   visibleControlPanels.push('graffiti-access-api');
                   visibleControlPanels.push('graffiti-notifier');
                   visibleControlPanels.push('graffiti-takes-controls');
-                  graffiti.updateTakesPanel(recordingCellId, recordingKey, recording.activeTakeId);
+                  graffiti.updateTakesPanel(recordingCellId, recordingKey);
                   //console.log('this recording has a movie');
                   graffiti.controlPanelIds['graffiti-record-controls'].find('#graffiti-begin-recording-btn').hide().parent().
                            find('#graffiti-begin-rerecording-btn').show();
@@ -3911,8 +3912,12 @@ define([
       },
 
       playRecordingById: (cellId, recordingKey) => {
-        state.setPlayableMovie('api', cellId, recordingKey);
-        graffiti.loadAndPlayMovie('api');
+        const recording = state.setPlayableMovie('api', cellId, recordingKey);
+        if (recording !== undefined) {
+          graffiti.loadAndPlayMovie('api');
+        } else {
+          console.log('Graffiti: not playing movie ' + cellId + ':' + recordingKey + ', as it was not available.');
+        }
       },      
 
       playRecordingByIdString: (recordingFullId) => {
