@@ -2015,10 +2015,8 @@ define([
                   partsRecord.autoplay = parts[1].toLowerCase();
                 }
                 break;
-              case '%%play_on_click': // if true, we will not render tooltip but rather use cursor:pointer and make click on the target initiate playback
-                if (parts[1].length > 0) {
-                  partsRecord.playOnClick = ((parts[1].toLowerCase() === 'on') || (parts[1].toLowerCase() === 'true'));
-                }
+              case '%%play_on_click': // if present, we will not render tooltip but rather use cursor:pointer and make click on the target initiate playback
+                partsRecord.playOnClick = true;
                 break;
             }
           }
