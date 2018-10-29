@@ -637,6 +637,7 @@ define([
     },
 
     clearPlayableMovie: (kind) => {
+      console.log('Graffiti: clearing playable movie');
       state.playableMovies[kind] = undefined;
     },
 

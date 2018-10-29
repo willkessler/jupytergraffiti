@@ -2087,7 +2087,8 @@ define([
       hideTip: (tip) => {
         graffiti.notebookContainer.find('.graffiti-tip .headline').remove();
         graffiti.notebookContainer.find('.graffiti-tip').hide();
-        state.clearPlayableMovie('tip');
+        // I think this is messing up clickable images.
+        //state.clearPlayableMovie('tip');
       },
 
       refreshGraffitiTooltips: () => {
@@ -2101,6 +2102,7 @@ define([
             if (activity === 'recording') {
               return; // do not show tooltips while recording
             }
+            console.log('Graffiti: mousenter/mouseleave:', e.type);
             let highlightElem = $(e.target);
             if (!highlightElem.hasClass('graffiti-highlight')) {
               highlightElem = highlightElem.parents('.graffiti-highlight');
@@ -2130,18 +2132,20 @@ define([
               }                
               if (recording.playOnClick) {
                 console.log('binding target for click', highlightElem);
-                highlightElem.off('dblclick').dblclick((e) => {
-                  return false;
-                });
-                highlightElem.off('mouseover').mouseover((e) => {
-                  state.setPlayableMovie('tip', cellId, recordingKey);
-                });
-                highlightElem.off('click').click((e) => {
-                  state.clearTipTimeout();
-                  e.stopPropagation(); // for reasons unknown event still propogates to the codemirror editing area undeneath...
-                  graffiti.playMovieViaUserClick();
-                  return false;
-                });
+                const imageOrButtons = highlightElem.find('img,button');
+                if (imageOrButtons.length > 0) {
+                  imageOrButtons.off('click').click((e) => {
+                    state.clearTipTimeout();
+                    e.stopPropagation(); // for reasons unknown event still propogates to the codemirror editing area undeneath...
+
+                    if (state.getActivity() === 'recordingPending') {
+                      graffiti.toggleRecording(); // we want clicks on playOnClick to be ignored if a recording is pending.
+                    } else {
+                      graffiti.playMovieViaUserClick();
+                    }
+                    return false;
+                  });
+                }
               }
               if (recording.hideTooltip) {
                 console.log('Graffiti: recording is set to hide tip.');
@@ -2856,7 +2860,6 @@ define([
             }
             state.storeHistoryRecord('focus');
           } else if (activity === 'recordingPending') {
-            console.log('Graffiti: Now starting movie recording');
             graffiti.toggleRecording();
           }
           graffiti.updateControlPanels(cm); // this is necessary since a focus change can happen when you arrow advance from one cell to the next cell
@@ -3071,6 +3074,7 @@ define([
         const currentActivity = state.getActivity();
         if (currentActivity !== 'playing') {
           if (currentActivity === 'recording') {
+            console.log('Graffiti: Now starting movie recording');
             state.blockRecording(); // this is here because a race condition can happen right at the end of recording
             graffiti.setNotifier('Please wait, storing this movie...');
             graffiti.showControlPanels(['graffiti-notifier']);
