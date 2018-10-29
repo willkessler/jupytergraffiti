@@ -1951,7 +1951,7 @@ define([
       //
 
       extractTooltipCommands: (markdown) => {
-        const commandParts = markdown.match(/^\s*%%(([^\s]*)\s(.*))$/mig);
+        const commandParts = markdown.match(/^\s*%%(([^\s]*)(\s*)(.*))$/mig);
         let partsRecord, part, parts0;
         if (commandParts === null)
           return undefined;
@@ -1963,26 +1963,28 @@ define([
             caption: '',
             playback_pic: undefined,
             autoplay: 'never',
-            play_on_click: false
+            hideTooltip: false,
+            playOnClick: false
           };
           let parts;
           for (let i = 0; i < commandParts.length; ++i) {
             part = $.trim(commandParts[i]);
-            parts = part.match(/^(\S+)\s*(.*)/).slice(1);
-            parts0 = $.trim(parts[0]).toLowerCase();
+            console.log('part:', part);
+            parts = part.match(/^(\S+)\s(.*)/).slice(1);
+            parts0 = $.trim(parts[0]).toLowerCase().replace('%%', '');
             switch (parts0) {
-              case '%%comment':
+              case 'comment':
                 break; // we just ignore these. Used to instruct content creators how to use the editing tip cells.
-              case '%%button_name':
+              case 'button_name':
                 partsRecord.buttonName = parts[1];
                 break;
-              case '%%caption': // you can make a special caption for this tip
+              case 'caption': // you can make a special caption for this tip
                 partsRecord.caption = parts[1];
                 break;
-              case '%%caption_pic': // you can put a tiny pic next to the caption (use markdown)
+              case 'caption_pic': // you can put a tiny pic next to the caption (use markdown)
                 partsRecord.captionPic = utils.renderMarkdown(parts[1]);
                 break;
-              case '%%caption_video_id': // you can put a tiny video next to the caption
+              case 'caption_video_id': // you can put a tiny video next to the caption
                 if (parts[1].indexOf('images/') === 0) {
                   partsRecord.captionVideo =
                     '<video width="150" height="75" autoplay><source src="' + parts[1] + '" type="video/mp4"></video>';
@@ -1992,31 +1994,38 @@ define([
                     '?rel=0&amp;controls=0&amp;showinfo=0" frameborder="0"></iframe>';
                 }
                 break;
-              case '%%narrator_name': // set the name of the narrator to display in the control panel during playback
+              case 'narrator_name': // set the name of the narrator to display in the control panel during playback
                 graffiti.narratorName = undefined;
                 if (parts[1].length > 0) {
                   graffiti.narratorName = parts[1];
                 }
                 break;
-              case '%%narrator_pic': // specify a picture to display in the control panel during playback
+              case 'narrator_pic': // specify a picture to display in the control panel during playback
                 graffiti.narratorPicture = undefined;
                 if (parts[1].length > 0) {
                   graffiti.narratorPicture = parts[1];
                 }
                 break;
-              case '%%hide_player_after_playback_complete':
+              case 'hide_player_after_playback_complete':
                 state.setHidePlayerAfterPlayback(true);
                 break;
-              case '%%dont_restore_cell_contents_after_playback': // if the user hasn't changed cell contents, don't restore the cell contents when playback finishes
+              case 'dont_restore_cell_contents_after_playback': // if the user hasn't changed cell contents, don't restore the cell contents when playback finishes
                 state.setDontRestoreCellContentsAfterPlayback(true);
                 break;
-              case '%%autoplay': // 'never' (optional), 'once', 'always'
+              case 'autoplay': // 'never' (optional), 'once', 'always'
                 if (parts[1].length > 0) {
                   partsRecord.autoplay = parts[1].toLowerCase();
                 }
                 break;
-              case '%%play_on_click': // if present, we will not render tooltip but rather use cursor:pointer and make click on the target initiate playback
-                partsRecord.playOnClick = true;
+              case 'play_on_click': // if present, we will make a click on the target initiate playback.
+                // Note: they must use a param for this to take due to the lame regex i have above
+                // e.g. '%%play_on_click on'
+                partsRecord.playOnClick = true; 
+                break;
+              case 'hide_tooltip': // if present, we will not render tooltip.
+                // Note: they must use a param for this to take due to the lame regex i have above
+                // e.g. '%%hide_tooltip on'
+                partsRecord.hideTooltip = true;
                 break;
             }
           }
@@ -2058,9 +2067,6 @@ define([
                 if (params.clear || (!params.clear && markClasses !== undefined && markClasses.indexOf(recordingKey) === -1)) {
                   // don't call markText twice on a previously marked range
                   marker = 'graffiti-' + recording.cellId + '-' + recordingKey;
-                  if (recording.playOnClick) {
-                    marker += ' graffiti-play-on-click';
-                  }                    
                   cm.markText({ line:range.start.line, ch:range.start.ch},
                               { line:range.end.line,   ch:range.end.ch  },
                               { className: 'graffiti-highlight ' + marker });
@@ -2118,9 +2124,27 @@ define([
               }
               const recording = state.getManifestSingleRecording(cellId, recordingKey);
               const activeTakeId = recording.activeTakeId;
-              console.log('refreshGraffitiTooltips: recording=', recording);
+              console.log('refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
+              if (recording.hasMovie) {
+                state.setPlayableMovie('tip', cellId, recordingKey);
+              }                
               if (recording.playOnClick) {
-                console.log('Graffiti: recording is set to play on click, so not displaying tip.');
+                console.log('binding target for click', highlightElem);
+                highlightElem.off('dblclick').dblclick((e) => {
+                  return false;
+                });
+                highlightElem.off('mouseover').mouseover((e) => {
+                  state.setPlayableMovie('tip', cellId, recordingKey);
+                });
+                highlightElem.off('click').click((e) => {
+                  state.clearTipTimeout();
+                  e.stopPropagation(); // for reasons unknown event still propogates to the codemirror editing area undeneath...
+                  graffiti.playMovieViaUserClick();
+                  return false;
+                });
+              }
+              if (recording.hideTooltip) {
+                console.log('Graffiti: recording is set to hide tip.');
                 return;
               }
               let existingTip = graffiti.notebookContainer.find('.graffiti-tip');
@@ -2160,7 +2184,6 @@ define([
                     let tooltipContents = headlineMarkdown + '<div class="parts">' + '<div class="info">' + contentMarkdown + '</div>';
                     if (recording.hasMovie) {
                       const buttonName = (((tooltipCommands !== undefined) && (tooltipCommands.buttonName !== undefined)) ? tooltipCommands.buttonName : 'Play Movie');
-                      state.setPlayableMovie('tip', cellId, recordingKey);
                       tooltipContents +=
                         '   <div class="movie"><button class="btn btn-default btn-small" id="graffiti-movie-play-btn">' + buttonName + '</button></div>';
                     }
@@ -2197,43 +2220,9 @@ define([
 
                     // Set up the call back for the play button on the tooltip that will actually play the movie.
                     existingTip.find('#graffiti-movie-play-btn').unbind('click').click((e) => {
-                      //console.log('click in tip');
                       state.clearTipTimeout();
-                      e.stopPropagation(); // for reasons unknown even still propogates to the codemirror editing area undeneath
-                      const playableMovie = state.getPlayableMovie('tip');
-                      //console.log('playableMovie', playableMovie);
-                      if (state.getDontRestoreCellContentsAfterPlayback()) {
-                        // If this movie is set to NOT restore cell contents, give the user a chance to opt-out of playback.
-                        const dialogContent = 'This Graffiti movie may replace the contents of code cells. After this movie plays, do you want to...';
-                        const confirmModal = dialog.modal({
-                          title: 'Are you sure you want to play this Graffiti?',
-                          body: dialogContent,
-                          sanitize:false,
-                          buttons: {
-                            'Restore Cell Contents After Playback Ends': {
-                              click: (e) => {
-                                console.log('Graffiti: you want to preserve cell contents after playback.');
-                                // Must restore playable movie values because jupyter dialog causes the tip to hide, which clears the playableMovie
-                                state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey);
-                                state.setDontRestoreCellContentsAfterPlayback(false);
-                                graffiti.loadAndPlayMovie('tip');
-                              }
-                            },
-                            'Let this Movie Permanently Set Cell Contents': { 
-                              click: (e) => { 
-                                // Must restore playable movie values because jupyter dialog causes the tip to hide, which clears the playableMovie
-                                state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey);
-                                graffiti.loadAndPlayMovie('tip'); 
-                              }
-                            }
-                          }
-                        });
-                        confirmModal.on('hidden.bs.modal', (e) => { 
-                          console.log('Graffiti: escaped the dontRestoreCellContents modal.');
-                        });
-                      } else {
-                        graffiti.loadAndPlayMovie('tip');
-                      }
+                      e.stopPropagation(); // for reasons unknown event still propogates to the codemirror editing area undeneath...
+                      graffiti.playMovieViaUserClick();
                       return false;
                     });
                     const outerInputOffset = outerInputElement.offset();
@@ -2601,6 +2590,7 @@ define([
               recording.playedOnce = false;
             }
             recording.playOnClick = tooltipCommands.playOnClick;
+            recording.hideTooltip = tooltipCommands.hideTooltip;
           } else {
             if (recordingCellInfo.newRecording) {
               state.removeManifestEntry(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
@@ -3833,6 +3823,49 @@ define([
           if (autoplayedOnce) {
             storage.storeManifest();
           }
+        }
+      },
+
+      playMovieViaUserClick: () => {
+        //console.log('click in tip');
+        graffiti.cancelPlayback({cancelAnimation:false});
+        const playableMovie = state.getPlayableMovie('tip');
+        if (playableMovie === undefined) {
+          console.log('Graffiti: no playable movie known.');
+          return;
+        }
+        //console.log('playableMovie', playableMovie);
+        if (state.getDontRestoreCellContentsAfterPlayback()) {
+          // If this movie is set to NOT restore cell contents, give the user a chance to opt-out of playback.
+          const dialogContent = 'This Graffiti movie may replace the contents of code cells. After this movie plays, do you want to...';
+          const confirmModal = dialog.modal({
+            title: 'Are you sure you want to play this Graffiti?',
+            body: dialogContent,
+            sanitize:false,
+            buttons: {
+              'Restore Cell Contents After Playback Ends': {
+                click: (e) => {
+                  console.log('Graffiti: you want to preserve cell contents after playback.');
+                  // Must restore playable movie values because jupyter dialog causes the tip to hide, which clears the playableMovie
+                  state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey);
+                  state.setDontRestoreCellContentsAfterPlayback(false);
+                  graffiti.loadAndPlayMovie('tip');
+                }
+              },
+              'Let this Movie Permanently Set Cell Contents': { 
+                click: (e) => { 
+                  // Must restore playable movie values because jupyter dialog causes the tip to hide, which clears the playableMovie
+                  state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey);
+                  graffiti.loadAndPlayMovie('tip'); 
+                }
+              }
+            }
+          });
+          confirmModal.on('hidden.bs.modal', (e) => { 
+            console.log('Graffiti: escaped the dontRestoreCellContents modal.');
+          });
+        } else {
+          graffiti.loadAndPlayMovie('tip');
         }
       },
 
