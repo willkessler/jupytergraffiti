@@ -4338,7 +4338,7 @@ define([
         const notebook = Jupyter.notebook;
         const sprayCanIcon = stickerLib.makeSprayCanIcon();
         let buttonLabel, setupForSetup = false;
-        let buttonContents = '<div id="graffiti-setup-button" class="btn-group"><button class="btn btn-default" title="Enable Graffiti">';
+        let buttonContents = '<div id="graffiti-setup-button" style="display:none;" class="btn-group"><button class="btn btn-default" title="Enable Graffiti">';
 
         if (!notebook.metadata.hasOwnProperty('graffitiId')) {
           // This notebook has never been graffiti-ized, or it just got un-graffiti-ized
@@ -4381,6 +4381,7 @@ define([
                 console.log('Graffiti: You clicked ok');
                 storage.ensureNotebookGetsGraffitiId();
                 utils.saveNotebook();
+                utils.createApiSymlink();
                 graffiti.initInteractivity();
                 graffiti.toggleAccessLevel('view');
                 graffiti.activateAudio(); // request microphone access in case switching to 'create' mode later

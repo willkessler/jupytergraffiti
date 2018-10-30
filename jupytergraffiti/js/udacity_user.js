@@ -3,7 +3,6 @@ const UdacityUser = (function(){
 		const executeCallbackObject = (callback) => ({
 		  iopub: {
 		    output: (data) => {
-		      console.log('get token result', data);
 		      data.content.text ? callback(data.content.text) : null
 		    }
 		  }
@@ -17,7 +16,6 @@ const UdacityUser = (function(){
 	}
 
   function getUdacityUser(token) {
-    const context = this;
     return new Promise((resolve, reject) => {
       var xhr = new XMLHttpRequest();
       xhr.open("POST", "https://nebula.udacity.com/api/v1/remote/me");
@@ -42,7 +40,17 @@ const UdacityUser = (function(){
     });
   }
 
+  // Display graffiti editor button only on Coco
+  function setCocoEnvironment() {
+    getToken()
+    .then(token => UdacityUser.getUdacityUser(token))
+    .then(user => {
+      user.coco && $('#graffiti-setup-button').css('display', 'inline-block');
+    })
+    .catch(err => console.error(err));
+  }
+
 	return {
-		getUdacityUser, getToken
+		getUdacityUser, getToken, setCocoEnvironment
 	}
 })();

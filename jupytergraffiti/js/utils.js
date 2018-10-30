@@ -633,6 +633,25 @@ define([
       }
     },
 
+    createApiSymlink: () => {
+      let importApiScript = '';
+      // Create a symlink to get 'import jupytergraffiti' working
+      importApiScript += '!ln -s /opt/jupytergraffiti jupytergraffiti\n';
+      // Adding /opt/jupytergraffiti to system path allows us to import it as a python module
+      importApiScript += 'import sys\n';
+      importApiScript += 'api_path=\'/opt/jupytergraffiti\'\n';
+      importApiScript += 'if api_path not in sys.path:\n';
+      importApiScript += '  sys.path.insert(0,api_path)\n';
+  
+      const scriptOptions = {
+        silent: false,
+        store_history: false,
+        stop_on_error : true
+      }
+      
+      Jupyter.notebook.kernel.execute(importApiScript, undefined, scriptOptions);
+    }
+
   }
 
   return(utils);
