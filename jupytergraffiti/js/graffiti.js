@@ -576,9 +576,12 @@ define([
           arrowHeadSize: 10,
         });
 
+        const stickersExpando = 
+          '<div id="graffiti-stickers-expando" class="graffiti-expando graffiti-expando-closed"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" x="0px" y="0px"><title>triangolo</title><g data-name="Livello 11"><polygon points="50 87.5 6.7 87.5 28.35 50 50 12.5 71.65 50 93.3 87.5 50 87.5"/></g></svg></div>';
+
         graffiti.setupOneControlPanel('graffiti-stickers-controls', 
                                       '<div id="graffiti-stickers-shell">' +
-                                      '  <div id="graffiti-stickers-header">Stickers <span>(Select, then click & drag)</span></div>' +
+                                      '  <div id="graffiti-stickers-header">' + stickersExpando + '<div>Stickers <span>(Select, then click & drag)</span></div></div>' +
                                       '  <div id="graffiti-stickers-body">' +
                                       '    <div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-lineWithArrow">' + lineWithArrow + '</div>' +
@@ -658,6 +661,18 @@ define([
                                             console.log('Sticker chosen:', cleanStickerId);
                                             graffiti.toggleGraffitiSticker(cleanStickerId);
                                           }
+                                        },
+                                        {
+                                          ids: [ 'graffiti-stickers-header' ],
+                                          event: 'click',
+                                          fn: (e) => {
+                                            $('#graffiti-stickers-body,#graffiti-sticker-style-controls').slideToggle(200);
+                                            if ($('#graffiti-stickers-expando').hasClass('graffiti-expando-closed')) {
+                                              $('#graffiti-stickers-expando').removeClass('graffiti-expando-closed').addClass('graffiti-expando-open');
+                                            } else {
+                                              $('#graffiti-stickers-expando').removeClass('graffiti-expando-open').addClass('graffiti-expando-closed');
+                                            }
+                                          },
                                         },
                                         {
                                           ids: [ 'graffiti-sticker-fill-control', 'graffiti-sticker-fill-control-label' ],
@@ -781,7 +796,9 @@ define([
           if (activity !== 'idle') {
             if (outerControlHidden) {
               //console.trace('fadeIn 1');
-              graffiti.outerControlPanel.fadeIn(graffiti.panelFadeTime);
+              // fadeins/fadeouts cause race conditions when you interrupt a movie in progress
+              //graffiti.outerControlPanel.fadeIn(graffiti.panelFadeTime);
+              graffiti.outerControlPanel.show();
             }
           } else if ((state.getPlayableMovie('tip') === undefined) && 
                      (state.getPlayableMovie('api') === undefined) && 
@@ -789,14 +806,18 @@ define([
                      (activity !== 'notifying') ) {
             if (!outerControlHidden) {
               //console.trace('fadeout');
-              graffiti.outerControlPanel.fadeOut(graffiti.panelFadeTime);
+              // fadeins/fadeouts cause race conditions when you interrupt a movie in progress
+              //graffiti.outerControlPanel.fadeOut(graffiti.panelFadeTime);
+              graffiti.outerControlPanel.hide();
             }
             return;
           }
         } else {
           if (outerControlHidden) {
             //console.trace('fadeIn 2');
-            graffiti.outerControlPanel.fadeIn(graffiti.panelFadeTime);
+              // fadeins/fadeouts cause race conditions when you interrupt a movie in progress
+            //graffiti.outerControlPanel.fadeIn(graffiti.panelFadeTime);
+            graffiti.outerControlPanel.show();
           }
         }
 
