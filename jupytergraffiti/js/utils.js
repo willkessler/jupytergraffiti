@@ -381,7 +381,7 @@ define([
           // we didn't find a match within existing recordings. See what tokens are selected overall in that case.
           // console.log('not intersecting, now checking for new graffiti creation');
           const allTokens = utils.collectCMTokens(cm);
-          let startCheck, endCheck, token, startToken, endToken, lastToken, startTokenIndex, tokenCount = 0, tokensString = '';
+          let startCheck, endCheck, token, startToken, endToken, lastToken, startTokenIndex, startTokenStringTrimmed, tokenCount = 0, tokensString = '';
           if (allTokens.length === 0) {
             // degnerate case 1: no tokens present at all in the cell
             results = noResults;
@@ -399,8 +399,10 @@ define([
                 endCheck = cm.indexFromPos({line: token.line, ch: token.end});
                 //console.log('startPos, endPos:', startPos, endPos, 'checking token:', token.string, startCheck, endCheck);
                 if (startToken === undefined) {
-                  if ((startPos >= startCheck && startPos <= endCheck) ||
-                      (endPos >= startCheck && endPos <= endCheck)) {
+                  startTokenStringTrimmed = $.trim(token.string);
+                  if ((startTokenStringTrimmed.length > 0) &&
+                      ((startPos >= startCheck && startPos <= endCheck) ||
+                       (endPos >= startCheck && endPos <= endCheck))) {
                     startToken = token;
                     startTokenIndex = i;
                     tokenCount = 1;

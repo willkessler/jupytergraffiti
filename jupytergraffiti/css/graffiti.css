@@ -445,6 +445,12 @@
   height:20px;
 }
 
+@media screen and (max-width: 850px) {
+  #graffiti-setup button svg {
+    display: none;
+  }
+}
+
 #graffiti-recording-pens-shell button svg {
   width:20px;
   height:20px;
