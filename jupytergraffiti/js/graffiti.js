@@ -1101,6 +1101,14 @@ define([
       },
 
       setGraffitiPenColor: (colorVal) => {
+        const activePenType = state.getDrawingPenAttribute('type');
+        if (activePenType === 'highlight') {
+          if (colorVal === 'black') {
+            console.log('Graffiti: black is not choosable when using the highlighter');
+            return;
+          }
+        }
+
         $('#graffiti-recording-colors-shell div').removeClass('graffiti-recording-color-active');
         console.log('Graffiti: you clicked color:', colorVal);
         state.updateDrawingState([ { change: 'color', data: colorVal } ]);
@@ -1689,6 +1697,7 @@ define([
             case 'ellipse':
               generatedStickerHtml = stickerLib.makeEllipse({
                 color:  pen.color,
+                fill:   pen.fill,
                 dashed: pen.dash, 
                 strokeWidth:3,
                 dimensions: dimensions,
