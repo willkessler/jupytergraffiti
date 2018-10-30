@@ -486,8 +486,8 @@ define([
     makeHorizontalBrackets: (opts) => {
       const width = opts.dimensions.width;
       const height = opts.dimensions.height;
-      const bracketHeight1 = Math.max(sticker.minBracketWidth, parseInt(height / 10));
-      const bracketHeight2 = Math.min(height - sticker.minBracketWidth, height - parseInt(height / 10));
+      const bracketHeight1 = Math.min(sticker.minBracketWidth, parseInt(height / 10));
+      const bracketHeight2 = Math.max(height - sticker.minBracketWidth, height - parseInt(height / 10));
       return sticker.makeSimplePath(
         $.extend({}, true, opts, {
           buffer:0,
@@ -499,10 +499,11 @@ define([
     },
 
     makeVerticalBrackets: (opts) => {
+      console.log('makeVerticalBrackets');
       const width = opts.dimensions.width;
       const height = opts.dimensions.height;
-      const bracketWidth1 = Math.max(sticker.minBracketWidth, parseInt(width / 10));
-      const bracketWidth2 = Math.min(width - sticker.minBracketWidth, width - parseInt(width / 10));
+      const bracketWidth1 = Math.min(sticker.minBracketWidth, parseInt(width / 10));
+      const bracketWidth2 = Math.max(width - sticker.minBracketWidth, width - parseInt(width / 10));
       return sticker.makeSimplePath(
         $.extend({}, true, opts, {
           viewBox: [0,0,width,height],
@@ -898,7 +899,7 @@ define([
 
   }
 
-  sticker.minBracketWidth = 4;
+  sticker.minBracketWidth = 6;
   return (sticker);
 
 });

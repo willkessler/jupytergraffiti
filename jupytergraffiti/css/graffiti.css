@@ -319,7 +319,6 @@
   margin-top:0px;
   margin-bottom:8px;
   font-size:.8em;
-  cursor:pointer;
 }
 
 #graffiti-stickers-shell {
@@ -328,6 +327,8 @@
 #graffiti-stickers-header {
   text-transform:uppercase;
   margin-bottom:2px;
+  display:flex;
+  cursor:pointer;
 }
 
 #graffiti-stickers-header span {
@@ -336,6 +337,7 @@
 }
 
 #graffiti-stickers-body {
+  display:none;
   align-items:left;
 }
 
@@ -345,6 +347,7 @@
 }
 
 .graffiti-sticker-button {
+  cursor:pointer;
   margin-right:4px;
   position:relative;
   padding:5px;
@@ -512,7 +515,7 @@
 
 #graffiti-sticker-style-controls {
   font-size: 12px !important;
-  display:block !important;
+  display:none;
   line-height:10px;
 }
 
@@ -626,5 +629,19 @@ http://www.patternify.com/
   position:absolute;
   left:0px;
   top:0px;
+}
+
+.graffiti-expando {
+  width:12px;
+  height:12px;
+  cursor:pointer;
+}
+
+.graffiti-expando-closed {
+  transform:rotate(90deg);
+}
+
+.graffiti-expando-open {
+  transform:rotate(180deg);
 }
 
