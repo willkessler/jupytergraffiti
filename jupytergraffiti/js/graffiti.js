@@ -2148,7 +2148,7 @@ define([
               }
               const recording = state.getManifestSingleRecording(cellId, recordingKey);
               const activeTakeId = recording.activeTakeId;
-              console.log('refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
+              //console.log('refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
               if (recording.hasMovie) {
                 state.setPlayableMovie('tip', cellId, recordingKey);
               }                
@@ -3906,6 +3906,7 @@ define([
         // next line seems to be extraneous and buggy because we create a race condition with the control panel. however what happens if a movie cannot be loaded?
         // graffiti.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
 
+        $('#graffiti-movie-play-btn').html('<i>Loading...</i>');
         storage.loadMovie(playableMovie.cellId, playableMovie.recordingKey, playableMovie.activeTakeId).then( () => {
           console.log('Graffiti: Movie loaded for cellId, recordingKey:', playableMovie.cellId, playableMovie.recordingKey);
           if (playableMovie.cellType === 'markdown') {
