@@ -27,6 +27,7 @@ define([
         graffiti.LZString = LZString;
         graffiti.rewindAmt = 2; /*seconds */
         graffiti.CMEvents = {};
+        graffiti.halfBullseye = 12;
         graffiti.sitePanel = $('#site');
         graffiti.notebookPanel = $('#notebook');
         graffiti.notebookContainer = $('#notebook-container');
@@ -1039,7 +1040,7 @@ define([
           case 'recording':
             graffiti.showControlPanels(['graffiti-recording-controls', 'graffiti-recording-pen-controls','graffiti-stickers-controls']);
             graffiti.setNotifier('<div>Your activities are being recorded.' + 
-                                 'Press ESC or click <span class="graffiti-notifier-link" id="graffiti-end-recording-link">End Recording</span> ' +
+                                 'Press ⌘-M or click <span class="graffiti-notifier-link" id="graffiti-end-recording-link">End Recording</span> ' +
                                  'to end recording.</div>' +
                                  '<div>Or, <span class="graffiti-notifier-link" id="graffiti-cancel-recording-link">Cancel recording</span></div>',
                                  [
@@ -2209,9 +2210,11 @@ define([
                     }
                     let tooltipContents = headlineMarkdown + '<div class="parts">' + '<div class="info">' + contentMarkdown + '</div>';
                     if (recording.hasMovie) {
-                      const buttonName = (((tooltipCommands !== undefined) && (tooltipCommands.buttonName !== undefined)) ? tooltipCommands.buttonName : 'Play Movie');
+                      graffiti.tooltipButtonLabel = (((tooltipCommands !== undefined) && (tooltipCommands.buttonName !== undefined)) ? 
+                                                     tooltipCommands.buttonName : 'Play Movie');
                       tooltipContents +=
-                        '   <div class="movie"><button class="btn btn-default btn-small" id="graffiti-movie-play-btn">' + buttonName + '</button></div>';
+                        '   <div class="movie"><button class="btn btn-default btn-small" id="graffiti-movie-play-btn">' + 
+                        graffiti.tooltipButtonLabel + '</button></div>';
                     }
                     tooltipContents += '</div>';
 
@@ -2241,6 +2244,10 @@ define([
                         existingTip.find('#graffiti-movie-play-btn').unbind('click');
                         existingTip.html(tooltipContents);
                         state.setDisplayedTipInfo(cellId,recordingKey);
+                      } else {
+                        if (graffiti.tooltipButtonLabel !== undefined) {
+                          $('#graffiti-movie-play-btn').html(graffiti.tooltipButtonLabel);
+                        }
                       }
                     }
 
@@ -2341,20 +2348,29 @@ define([
                 graffiti.togglePlayback();
               }
               break;
-            case 27: // escape key stops playback, cancels pendingRecording, and completes regular recording in process
+            case 27: // escape key stops playback
               stopProp = true;
               switch (activity) {
-                case 'recording':
-                  graffiti.toggleRecording();
-                  break;
-                case 'recordingPending':
-                  graffiti.changeActivity('idle');
-                  break;
                 case 'playing':
                 case 'playbackPaused':
                 case 'scrubbing':
                   graffiti.cancelPlayback({cancelAnimation:true});
                   break;
+              }
+              break;
+            case 77: // cmd-m key finishes a recording in progress or cancels a pending recording
+              // cf http://jsbin.com/vezof/1/edit?js,output
+              if (e.metaKey) { // may only work on Chrome
+                console.log('Graffiti: you pressed ⌘-m');
+                stopProp = true;
+                switch (activity) {
+                  case 'recording':
+                    graffiti.toggleRecording();
+                    break;
+                  case 'recordingPending':
+                    graffiti.changeActivity('idle');
+                    break;
+                }
               }
               break;
             case 16: // shift key
@@ -3258,8 +3274,8 @@ define([
           dyScaled = parseInt(cellRects.innerCellRect.height * dy);
         }
         const offsetPosition = {
-          x : cellRects.innerCellRect.left + dxScaled,
-          y : cellRects.innerCellRect.top + dyScaled
+          x : cellRects.innerCellRect.left + dxScaled - graffiti.halfBullseye,
+          y : cellRects.innerCellRect.top + dyScaled  - graffiti.halfBullseye
         };
         return offsetPosition;
       },
