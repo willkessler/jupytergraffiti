@@ -242,6 +242,7 @@ define([
                        stroke: opts.color,
                        "stroke-width": opts.strokeWidth,
                        "fill-opacity":opts.fillOpacity,
+                       fill: opts.color
       };
       sticker.interpretDashing(opts, shapeObj);
 
