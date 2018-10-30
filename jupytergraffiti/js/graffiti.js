@@ -2457,7 +2457,8 @@ define([
           recordingKey = graffiti.selectedTokens.recordingKey;
           recordingRecord = state.getManifestSingleRecording(recordingCellId, recordingKey);
           graffiti.previousActiveTakeId = recordingRecord.activeTakeId;
-          if (recordingRecord.activeTakeId === undefined) { // if making a new take when there's a previous movie, must create a new activeTakeId
+          if (recordingRecord.activeTakeId === undefined ||
+              state.getMovieRecordingStarted()) { // if making a new take, must create a new activeTakeId
             recordingRecord.activeTakeId = utils.generateUniqueId(); // do not set a new activeTakeId if there was already a valid one set for the movie
           }
           newRecording = false;
@@ -2833,6 +2834,7 @@ define([
         // Preserve the state of all cells and selections before we begin recording so we can restore when the recording is done.
         state.storeCellStates();
         graffiti.preRecordingScrollTop = state.getScrollTop();
+        state.setMovieRecordingStarted(true);
         const recordingRecord = graffiti.storeRecordingInfoInCell();
         if (recordingRecord.cellType === 'markdown') {
           graffiti.selectedTokens.recordingCell.render();
@@ -3101,7 +3103,6 @@ define([
 
             state.resetPlayState();
             graffiti.changeActivity('recording');
-            state.setMovieRecordingStarted(true);
             utils.assignCellIds();
             state.initHistory({
               storageCellId: recordingCellInfo.recordingCellId,
@@ -3916,6 +3917,9 @@ define([
         if (recording !== undefined) {
           graffiti.loadAndPlayMovie('api');
         } else {
+          // Putting an error message in console for this failure mode is gentler than the dialog box put up by loadAndPlayMovie(),
+          // because if we are being called by an autoplay movie that was on a delete cell, the
+          // endless dialog boxes would drive the user crazy (because they could not remove the graffiti from our manifest)
           console.log('Graffiti: not playing movie ' + cellId + ':' + recordingKey + ', as it was not available.');
         }
       },      

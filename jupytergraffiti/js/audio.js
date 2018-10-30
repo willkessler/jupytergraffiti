@@ -57,14 +57,28 @@ define([
       audio.audioObj.playbackRate = (state.getRapidPlay() ? state.getRapidPlayRate() : state.getRegularPlayRate());
     },
 
+    // Special thanks to: https://developers.google.com/web/updates/2017/06/play-request-was-interrupted 
+    // for handling of weird "play was interrupted" chrome exception.
     playAudio: (elapsedTime) => {
       audio.setAudioPosition(elapsedTime);
       audio.updateAudioPlaybackRate();
-      audio.audioObj.play();
+      let playPromise = audio.audioObj.play();
+      if (playPromise !== undefined) {
+        playPromise.then(_ => {
+          audio.playBeganOK = true;
+        })
+        .catch(error => {
+          audio.playBeganOK = false;
+        });
+      }
     },
 
     pauseAudio: () => {
-      audio.audioObj.pause();
+      if (audio.playBeganOK) {
+        audio.audioObj.pause();
+      } else {
+        console.log('Graffiti: cannot pause audio because audio playback did not begin successfully.');
+      }
     },
 
     // Set time of audio clip, cf:
