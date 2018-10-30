@@ -1992,7 +1992,7 @@ define([
           let parts;
           for (let i = 0; i < commandParts.length; ++i) {
             part = $.trim(commandParts[i]);
-            console.log('part:', part);
+            //console.log('part:', part);
             parts = part.match(/^(\S+)\s(.*)/).slice(1);
             parts0 = $.trim(parts[0]).toLowerCase().replace('%%', '');
             switch (parts0) {
