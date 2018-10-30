@@ -4,7 +4,6 @@ var replace = require('gulp-replace');
 gulp.task('extension', function() {
   gulp.src(['./js/*', './css/*', './fonts/*'])
     .pipe(replace(/\.\/.*\.js/gm, function(match) {
-      console.log(match);
       return '/nbextensions/graffiti_extension' + match.substring(1); 
     }))
     .pipe(replace('../fonts', function(match) {
