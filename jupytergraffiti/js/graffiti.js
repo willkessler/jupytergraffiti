@@ -1187,11 +1187,6 @@ define([
           // Deactivate any active pen
           $('.graffiti-active-pen').removeClass('graffiti-active-pen');
           const stickerControl = $('#graffiti-sticker-' + stickerType);
-          if (activePenType === 'highlight') {
-            // If we were highlighting, it was probably yellow. we probably don't want that color
-            // when switching back to stickering.
-            graffiti.setGraffitiPenColor('black'); 
-          }
           $('.graffiti-active-sticker').removeClass('graffiti-active-sticker');
           stickerControl.addClass('graffiti-active-sticker');
           state.updateDrawingState([
@@ -1199,6 +1194,11 @@ define([
             { change: 'stickerType', data: stickerType },
             { change: 'penType', data: 'sticker' } 
           ]);          
+          if (activePenType === 'highlight') {
+            // If we were highlighting, it was probably yellow. we probably don't want that color
+            // when switching back to stickering.
+            graffiti.setGraffitiPenColor('black'); 
+          }
         } else {
           // Turn off the active sticker.
           $('.graffiti-active-sticker').removeClass('graffiti-active-sticker');

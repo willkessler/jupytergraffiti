@@ -446,7 +446,7 @@
 }
 
 @media screen and (max-width: 850px) {
-  #graffiti-setup button svg {
+  #graffiti-setup-button svg {
     display: none;
   }
 }
