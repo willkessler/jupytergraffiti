@@ -1155,12 +1155,12 @@ define([
         const activePenType = state.getDrawingPenAttribute('type');
         if (activePenType !== penType) {
           // Activate a new active pen, unless this pen is already active, in which case, deactivate it
+          graffiti.activateGraffitiPen(penType);
           if (activePenType === 'highlight') {
             // When switching from highlight to pen or eraser, always go to black color because
             // usual color for highlighter is yellow which looks crappy in the line mode.
             graffiti.setGraffitiPenColor('black');
           }
-          graffiti.activateGraffitiPen(penType);
           $('.graffiti-active-sticker').removeClass('graffiti-active-sticker');
         } else {
           // turn off the active pen and drawing
@@ -3460,8 +3460,8 @@ define([
 
       updateCellSelections: (cell,cm, selections) => {
         const currentScrollTop = graffiti.sitePanel.scrollTop();
-        cell.focus_cell();
         cm.setSelections(selections);
+        utils.refreshCodeMirrorSelection(cell);
         graffiti.setSitePanelScrollTop(currentScrollTop);
       },
 
@@ -3471,7 +3471,7 @@ define([
         graffiti.setSitePanelScrollTop(currentScrollTop);
       },
 
-      updateSelections: (index,currentScrollTop) => {        
+      updateSelections: (index,currentScrollTop) => { 
         const record = state.getHistoryItem('selections', index);
         let cellId, cell, selectionRecord, selections, code_mirror, currentSelections, active;
 
