@@ -2892,7 +2892,7 @@ define([
         graffiti.CMEvents[utils.getMetadataCellId(cell.metadata)] = true;
         const cm = cell.code_mirror;
         cm.on('focus', (cm, e) => {
-          // console.log('Graffiti: CM focus:' , cm, e);
+          //console.log('Graffiti: CM focus:' , cm, e);
           // Check to see if we jumped from another cell to this cell with the arrow keys. If we did and we're recording, we need to
           // create a focus history record because jupyter is not firing the select cell event in those cases.
 
@@ -2977,9 +2977,9 @@ define([
         graffiti.addCMEventsToCells();
 
         Jupyter.notebook.events.on('select.Cell', (e, cell) => {
-          //console.log('cell select event fired, e, cell:',e, cell.cell);
+          console.log('cell select event fired, e, cell:',e, cell.cell);
           //console.log('select cell store selections');
-          state.storeHistoryRecord('focus');
+          state.storeHistoryRecord('selectCell');
           graffiti.refreshGraffitiTooltips();
           graffiti.updateControlPanels();
         });
@@ -3411,14 +3411,16 @@ define([
         } else {
           graffiti.dimGraffitiCursor();
           if (record.hoverCell !== undefined) {
-            if (record.subType === 'focus') {
-              // console.log('processing focus');
+            if ((record.subType === 'focus') || (record.subType === 'selectCell')) {
+              console.log('processing focus/selectCell, record:', record);
               record.hoverCell.focus_cell();
-              const code_mirror = record.hoverCell.code_mirror;
-              if (!code_mirror.state.focused) {
-                code_mirror.focus();
+              if (record.subType === 'focus') {
+                const code_mirror = record.hoverCell.code_mirror;
+                if (!code_mirror.state.focused) {
+                  code_mirror.focus();
+                }
+                code_mirror.getInputField().focus();
               }
-              code_mirror.getInputField().focus();
             }
           }
         }

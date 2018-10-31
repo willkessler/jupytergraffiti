@@ -904,6 +904,10 @@ define([
           record = state.createViewRecord('focus');
           type = 'view'; // override passed-in type: focus is a view type
           break;
+        case 'selectCell':
+          record = state.createViewRecord('selectCell');
+          type = 'view'; // override passed-in type: focus is a view type
+          break;
         case 'drawings':
         case 'stickers':
           record = state.createDrawingRecord(); // these are identical, except for the drawingActivity field and related data
