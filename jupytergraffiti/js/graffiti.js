@@ -126,6 +126,19 @@ define([
         graffiti.notificationMsgs[notificationMsg].show();
       },
 
+      setJupyterMenuHint: (hint) => {
+        if (graffiti.jupyterMenuHint === undefined) {
+          const jupyterMainToolbar = $('#maintoolbar-container');
+          const menuHintDiv = $('<span id="graffiti-jupyter-menu-hint"></span>');
+          graffiti.jupyterMenuHint = menuHintDiv.appendTo(jupyterMainToolbar);
+        }
+        graffiti.jupyterMenuHint.html(hint).show();
+      },
+
+      clearJupyterMenuHint: () => {
+        graffiti.jupyterMenuHint.hide();
+      },
+
       startPanelDragging: (e) => {
         console.log('Graffiti: dragging control panel');
         const controlPanelPosition = graffiti.outerControlPanel.position();
@@ -3764,6 +3777,7 @@ define([
         graffiti.highlightIntersectingGraffitiRange();
         graffiti.narratorName = undefined;
         graffiti.narratorPicture = undefined;
+        graffiti.clearJupyterMenuHint();
 
         if (opts.cancelAnimation) {
           graffiti.sitePanel.animate({ scrollTop: graffiti.prePlaybackScrolltop }, 750);
@@ -3785,6 +3799,7 @@ define([
           state.storeCellStates();
           state.clearCellOutputsSent();
           graffiti.scrollNudgeAverages = [];
+          graffiti.setJupyterMenuHint('Press ESC to end movie playback');
         }
 
         if ((activity === 'idle') || (activity === 'notifying') || (activity === 'playbackPaused')) {

@@ -651,3 +651,11 @@ http://www.patternify.com/
   transform:rotate(180deg);
 }
 
+#graffiti-jupyter-menu-hint {
+  padding:2px 6px;
+  margin-left:10px;
+  font-style:italic;
+  color:#00d;
+  background:#bbb;
+  border-radius:2px;
+}
