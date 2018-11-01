@@ -1126,8 +1126,8 @@ define([
         rapidPlayTimeSoFar += now - state.rapidPlayStartTime;
       }
       const realTimePlayedSoFar = now - state.playbackStartTime;
-      // Add half the rapid play time to the total because rapid play is 2x real time play.
-      const correctedTimeSoFar = realTimePlayedSoFar + rapidPlayTimeSoFar / 2;
+      // Add the rapid play time to the total to keep up with 2x
+      const correctedTimeSoFar = realTimePlayedSoFar + rapidPlayTimeSoFar;
       return correctedTimeSoFar;
     },
 

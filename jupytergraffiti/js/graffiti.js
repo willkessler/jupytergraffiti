@@ -59,6 +59,7 @@ define([
         graffiti.scrollNudge = undefined;
         graffiti.penColors = {
           'black'  : '000000',
+          'white'  : 'ffffff',
           'red'    : 'ff0000',
           'green'  : '00ff00',
           'blue'   : '0000ff',
@@ -2063,6 +2064,7 @@ define([
                 }
                 break;
               case 'play_on_click': // if present, we will make a click on the target initiate playback.
+              case 'click_to_play':
                 // Note: they must use a param for this to take due to the lame regex i have above
                 // e.g. '%%play_on_click on'
                 partsRecord.playOnClick = true; 
@@ -3091,6 +3093,7 @@ define([
         state.restoreCellStates('contents');
         graffiti.updateAllGraffitiDisplays();
         graffiti.wipeAllStickerDomCanvases();
+        graffiti.resetStickerCanvases();
         graffiti.removeCellsAddedByPlaybackOrRecording();
         state.restoreCellStates('selections');
         graffiti.sitePanel.animate({ scrollTop: graffiti.preRecordingScrollTop }, 750);
@@ -3734,7 +3737,6 @@ define([
 
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTooltips();
-        //graffiti.cancelRapidPlay();
 
         // Save after play stops, so if the user reloads we don't get the annoying dialog box warning us changes were made.
         // graffiti.saveNotebook();

@@ -511,6 +511,10 @@
   background-color:#000000;
 }
 
+#graffiti-recording-color-white {
+  background-color:#ffffff;
+}
+
 #graffiti-line-style-controls, #graffiti-sticker-style-controls {
   display:flex;
   align-items:center;
