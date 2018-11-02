@@ -199,18 +199,21 @@ define([
           graffiti.startPanelDragging(e); 
         });
 
-        graffiti.controlPanelAdjuster = () => {
-          const windowWidth = $(window).width();
-          const windowHeight = $(window).height();
-          console.log('new window width, height:', windowWidth, windowHeight);
-          const controlPanelPosition = graffiti.outerControlPanel.position();
-          const maxLeft = windowWidth - graffiti.outerControlPanel.width() - 20;
-          const maxTop = windowHeight - graffiti.outerControlPanel.height() - 20;
-          graffiti.updateControlPanelPosition({ left: Math.min(controlPanelPosition.left, maxLeft), top: Math.min(maxTop, controlPanelPosition.top) });
-          state.setControlPanelDragging(false);
+        graffiti.windowResizeHandler = () => {
+          console.log('Graffiti: windowResizeHandler');
+          graffiti.resizeCanvases();
+          if (graffiti.outerControlPanel.is(':visible')) {
+            const windowWidth = $(window).width();
+            const windowHeight = $(window).height();
+            const controlPanelPosition = graffiti.outerControlPanel.position();
+            const maxLeft = windowWidth - graffiti.outerControlPanel.width() - 20;
+            const maxTop = windowHeight - graffiti.outerControlPanel.height() - 20;
+            graffiti.updateControlPanelPosition({ left: Math.min(controlPanelPosition.left, maxLeft), top: Math.min(maxTop, controlPanelPosition.top) });
+            state.setControlPanelDragging(false);
+          }
         };
-        const controlPanelResizeHandler = _.debounce(graffiti.controlPanelAdjuster, 100);
-        $(window).resize(controlPanelResizeHandler);
+        const windowResizeDebounced = _.debounce(graffiti.windowResizeHandler, 100);
+        $(window).resize(windowResizeDebounced);
 
         graffiti.setupOneControlPanel('graffiti-record-controls', 
                                       '  <button class="btn btn-default" id="graffiti-create-btn">' +
@@ -698,7 +701,7 @@ define([
                                             if ($('#graffiti-stickers-expando').hasClass('graffiti-expando-closed')) {
                                               $('#graffiti-stickers-expando').removeClass('graffiti-expando-closed').addClass('graffiti-expando-open');
                                               setTimeout(() => {
-                                                graffiti.controlPanelAdjuster();
+                                                graffiti.windowResizeHandler();
                                               }, 400);
                                             } else {
                                               $('#graffiti-stickers-expando').removeClass('graffiti-expando-open').addClass('graffiti-expando-closed');
@@ -1094,6 +1097,8 @@ define([
             graffiti.showControlPanels(['graffiti-notifier']);
             break;
         }
+
+        graffiti.windowResizeHandler();
       },
 
       updateControlPanelPosition: (hardPosition) => {
@@ -3309,25 +3314,36 @@ define([
       },
 
       computeOffsetPosition: (record) => {
+        let offsetPosition;
         const cellRects = utils.getCellRects(record.hoverCell);        
-        //console.log('hoverCellId:', utils.getMetadataCellId(record.hoverCell.metadata), 'rect:', innerCellRect);
-        const dx = record.x / record.innerCellRect.width;
-        const dy = record.y / record.innerCellRect.height;
-        if (record.hoverCell.cell_type === 'code') {
-          let codeCellWidth = $('.code_cell:first').width();
-          if (record.innerCellRect.width !== undefined) {
-            codeCellWidth = record.innerCellRect.width;
-          }
-          dxScaled = parseInt(codeCellWidth * dx);
-          dyScaled = parseInt(cellRects.innerCellRect.height * dy);
+        if ((record.x < 0) || (record.x > record.innerCellRect.width) ||
+            (record.y < 0) || (record.y > record.innerCellRect.height)) {
+          // cursor was outside the innerCell, so we do not want to scale it, as only the innerCell gets resized by Jupyter
+          offsetPosition = {
+            x : cellRects.innerCellRect.left + record.x - graffiti.halfBullseye,
+            y : cellRects.innerCellRect.top + record.y  - graffiti.halfBullseye
+          };
+          console.log('absolute offsetPosition');
         } else {
-          dxScaled = parseInt(cellRects.innerCellRect.width * dx);
-          dyScaled = parseInt(cellRects.innerCellRect.height * dy);
+          //console.log('hoverCellId:', utils.getMetadataCellId(record.hoverCell.metadata), 'rect:', innerCellRect);
+          const dx = record.x / record.innerCellRect.width;
+          const dy = record.y / record.innerCellRect.height;
+          if (record.hoverCell.cell_type === 'code') {
+            let codeCellWidth = $('.code_cell:first').width();
+            if (record.innerCellRect.width !== undefined) {
+              codeCellWidth = record.innerCellRect.width;
+            }
+            dxScaled = parseInt(codeCellWidth * dx);
+            dyScaled = parseInt(cellRects.innerCellRect.height * dy);
+          } else {
+            dxScaled = parseInt(cellRects.innerCellRect.width * dx);
+            dyScaled = parseInt(cellRects.innerCellRect.height * dy);
+          }
+          offsetPosition = {
+            x : cellRects.innerCellRect.left + dxScaled - graffiti.halfBullseye,
+            y : cellRects.innerCellRect.top + dyScaled  - graffiti.halfBullseye
+          };
         }
-        const offsetPosition = {
-          x : cellRects.innerCellRect.left + dxScaled - graffiti.halfBullseye,
-          y : cellRects.innerCellRect.top + dyScaled  - graffiti.halfBullseye
-        };
         return offsetPosition;
       },
 
@@ -3454,7 +3470,7 @@ define([
           graffiti.dimGraffitiCursor();
           if (record.hoverCell !== undefined) {
             if ((record.subType === 'focus') || (record.subType === 'selectCell')) {
-              console.log('processing focus/selectCell, record:', record);
+              //console.log('processing focus/selectCell, record:', record);
               record.hoverCell.focus_cell();
               if (record.subType === 'focus') {
                 const code_mirror = record.hoverCell.code_mirror;

@@ -8,6 +8,7 @@
   pointer-events:none;
   opacity: 0.5;
   z-index:100;
+  border:2px solid green;
 }
 
 #graffiti-drawing-screen {
