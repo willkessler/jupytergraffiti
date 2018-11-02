@@ -199,6 +199,19 @@ define([
           graffiti.startPanelDragging(e); 
         });
 
+        const controlPanelAdjuster = () => {
+          const windowWidth = $(window).width();
+          const windowHeight = $(window).height();
+          console.log('new window width, height:', windowWidth, windowHeight);
+          const controlPanelPosition = graffiti.outerControlPanel.position();
+          const maxLeft = windowWidth - graffiti.outerControlPanel.width() - 20;
+          const maxTop = windowHeight - graffiti.outerControlPanel.height() - 20;
+          graffiti.updateControlPanelPosition({ left: Math.min(controlPanelPosition.left, maxLeft), top: Math.min(maxTop, controlPanelPosition.top) });
+          state.setControlPanelDragging(false);
+        };
+        const controlPanelResizeHandler = _.debounce(controlPanelAdjuster, 100);
+        $(window).resize(controlPanelResizeHandler);
+
         graffiti.setupOneControlPanel('graffiti-record-controls', 
                                       '  <button class="btn btn-default" id="graffiti-create-btn">' +
                                       '<i class="fa fa-edit"></i>&nbsp; <span>Create</span></button>' +
@@ -1080,13 +1093,18 @@ define([
         }
       },
 
-      updateControlPanelPosition: () => {
-        if (state.getControlPanelDragging()) {
-          const position = state.getPointerPosition();
-          const offset = state.getControlPanelDragOffset();
-          const newPosition =   { left: Math.max(0,position.x - offset.left), top: Math.max(0,position.y - offset.top) };
-          const newPositionPx = { top: newPosition.top + 'px', left: newPosition.left + 'px' };
+      updateControlPanelPosition: (hardPosition) => {
+        if (hardPosition !== undefined) {
+          const newPositionPx = { top: hardPosition.top + 'px', left: hardPosition.left + 'px' };
           graffiti.outerControlPanel.css(newPositionPx);
+        } else {
+          if (state.getControlPanelDragging()) {
+            const position = state.getPointerPosition();
+            const offset = state.getControlPanelDragOffset();
+            const newPosition =   { left: Math.max(0,position.x - offset.left), top: Math.max(0,position.y - offset.top) };
+            const newPositionPx = { top: newPosition.top + 'px', left: newPosition.left + 'px' };
+            graffiti.outerControlPanel.css(newPositionPx);
+          }
         }
       },
 
@@ -2606,8 +2624,8 @@ define([
           // use whatever author put into this graffiti previously
           editableText = recordingRecord.markdown; 
         } else {
-          editableText = "%% Below, type whatever markdown you want displayed in the Graffiti tip (markdown).\n" +
-                         "%% Then run this cell to save it. You can then add an optional recording to your Graffiti.\n" +
+          editableText = "%% Below, type any markdown to display in the Graffiti tip.\n" +
+                         "%% Then run this cell to save it.\n" +
                          graffiti.selectedTokens.allTokensString;
         }
 
@@ -2992,7 +3010,7 @@ define([
         graffiti.addCMEventsToCells();
 
         Jupyter.notebook.events.on('select.Cell', (e, cell) => {
-          console.log('cell select event fired, e, cell:',e, cell.cell);
+          // console.log('cell select event fired, e, cell:',e, cell.cell);
           //console.log('select cell store selections');
           state.storeHistoryRecord('selectCell');
           graffiti.refreshGraffitiTooltips();

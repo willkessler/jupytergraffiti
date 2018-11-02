@@ -78,6 +78,12 @@ define([
         audio.audioObj.pause();
       } else {
         console.log('Graffiti: cannot pause audio because audio playback did not begin successfully.');
+        // Try again in one second if we fail. Sometimes there's a race condition if audio is stopped really quickly after it begins
+        setTimeout(() => {
+          if (audio.playBeganOK) {
+            audio.audioObj.pause();
+          }
+        }, 1000);
       }
     },
 

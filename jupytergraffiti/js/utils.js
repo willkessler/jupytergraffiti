@@ -123,6 +123,7 @@ define([
       const cellRect = cellElement[0].getBoundingClientRect();
       const innerCell = cellElement.find('.inner_cell')[0];
       const innerCellRect = innerCell.getBoundingClientRect();
+      console.log(innerCellRect.width);
 
       return {
         cellRect: cellRect,
