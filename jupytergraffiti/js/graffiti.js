@@ -199,7 +199,7 @@ define([
           graffiti.startPanelDragging(e); 
         });
 
-        const controlPanelAdjuster = () => {
+        graffiti.controlPanelAdjuster = () => {
           const windowWidth = $(window).width();
           const windowHeight = $(window).height();
           console.log('new window width, height:', windowWidth, windowHeight);
@@ -209,7 +209,7 @@ define([
           graffiti.updateControlPanelPosition({ left: Math.min(controlPanelPosition.left, maxLeft), top: Math.min(maxTop, controlPanelPosition.top) });
           state.setControlPanelDragging(false);
         };
-        const controlPanelResizeHandler = _.debounce(controlPanelAdjuster, 100);
+        const controlPanelResizeHandler = _.debounce(graffiti.controlPanelAdjuster, 100);
         $(window).resize(controlPanelResizeHandler);
 
         graffiti.setupOneControlPanel('graffiti-record-controls', 
@@ -697,6 +697,9 @@ define([
                                             $('#graffiti-stickers-body,#graffiti-sticker-style-controls').slideToggle(200);
                                             if ($('#graffiti-stickers-expando').hasClass('graffiti-expando-closed')) {
                                               $('#graffiti-stickers-expando').removeClass('graffiti-expando-closed').addClass('graffiti-expando-open');
+                                              setTimeout(() => {
+                                                graffiti.controlPanelAdjuster();
+                                              }, 400);
                                             } else {
                                               $('#graffiti-stickers-expando').removeClass('graffiti-expando-open').addClass('graffiti-expando-closed');
                                             }
@@ -1101,7 +1104,12 @@ define([
           if (state.getControlPanelDragging()) {
             const position = state.getPointerPosition();
             const offset = state.getControlPanelDragOffset();
-            const newPosition =   { left: Math.max(0,position.x - offset.left), top: Math.max(0,position.y - offset.top) };
+            const controlPanelWidth = graffiti.outerControlPanel.width();
+            const controlPanelHeight = graffiti.outerControlPanel.height();
+            const panelBbox = graffiti.sitePanel[0].getBoundingClientRect();
+            const constrainedLeft = Math.min(panelBbox.right - controlPanelWidth - 20, Math.max(0,position.x - offset.left));
+            const constrainedTop = Math.min(panelBbox.bottom - controlPanelHeight - 20, Math.max(0,position.y - offset.top));
+            const newPosition =   { left: constrainedLeft, top: constrainedTop };
             const newPositionPx = { top: newPosition.top + 'px', left: newPosition.left + 'px' };
             graffiti.outerControlPanel.css(newPositionPx);
           }
@@ -2167,7 +2175,7 @@ define([
             if (activity === 'recording') {
               return; // do not show tooltips while recording
             }
-            console.log('Graffiti: mousenter/mouseleave:', e.type);
+            //console.log('Graffiti: mousenter/mouseleave:', e.type);
             let highlightElem = $(e.target);
             if (!highlightElem.hasClass('graffiti-highlight')) {
               highlightElem = highlightElem.parents('.graffiti-highlight');
