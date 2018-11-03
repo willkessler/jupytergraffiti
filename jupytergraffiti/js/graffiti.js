@@ -1658,7 +1658,7 @@ define([
             fillOpacity = state.getDrawingPenAttribute('fillOpacity');
             //console.log('Recording, Computed fillOpacity:', fillOpacity);
           } else {
-            positions = graffiti.computeStickersOffsetPositions(cellId, record, stickerRecord);
+            positions = graffiti.processPositionsForCellTypeScaling(record,'positions');
             fillOpacity = stickerRecord.pen.fillOpacity;
             //console.log('playbac Computed fillOpacity:', fillOpacity, stickerRecord);
           }
@@ -3400,37 +3400,68 @@ define([
         return offsetPosition;
       },
 
-      processPositionsForCellTypeScaling: (record) => {
-        let positions, scalarX, scalarY;
-        // If this drawing/sticker started in a markdown cell, we will attempt to scale both x and y coords in the inner_cell rect area but 
-        // NOT the prompt area.
+      processPositionsForCellTypeScaling: (record, type) => {
+        let positions, scalarX, scalarY, positionsRaw;
+        if (type === 'positions') {
+          positionsRaw = { start: { x: record.positions.start.x, y: record.positions.start.y },
+                           end:   { x: record.positions.end.x, y: record.positions.end.y }
+          };
+        } else {
+          positionsRaw = { start: { x: record.x, y: record.y },
+                           end:   { x: 0, y:0 }
+          };
+        }
         const cell = utils.findCellByCellId(record.cellId);
         const cellRects = utils.getCellRects(cell);
         const recordCellTotalWidth = record.promptWidth + record.innerCellRect.width;
-        scalarX = cellRects.innerCell.width / record.innerCellRect.width ;
-        scalarY = cellRects.innerCell.height / record.innerCellRect.height;
-        if (record.downInMarkdown) {
-          if (record.inPromptArea) {
-            // if in prompt area and started in a markdown cell, scale the Y value only. 
-            positions = { start: { x: record.positions.start.x,
-                                   y: record.positions.start.y * scalarY },
-                          end:   { x: record.positions.end.x,
-                                   y: record.positions.end.y * scalarY }
-            };
+        scalarX = cellRects.innerCellRect.width / record.innerCellRect.width ;
+        scalarY = cellRects.innerCellRect.height / record.innerCellRect.height;
+        if (type === 'cursor') {
+          // Scale the cursor position as appropriate
+          if (!record.inMarkdownCell) {
+            // in code cells, just use positions verbatim
+            positions = { start: { x: positionsRaw.start.x,
+                                   y: positionsRaw.start.y } };
           } else {
-            // In the inner_cell, scale both x and y. First subtract the historical prompt width, then scale the value up/down, and then
-            // add the current prompt width to calculate the final x. Y is just scaled by change in cell height.
-            positions = { start: { x: (record.positions.start.x - record.promptWidth) * scalarX + cellRects.promptRect.width,
-                                   y: record.positions.start.y * scalarY },
-                          end:   { x: (record.positions.end.x - record.promptWidth) * scalarX + cellRects.promptRect.width,
-                                   y: record.positions.end.y * scalarY }
-            };
+            if (record.inPromptArea) {
+              // in prompt area only scale y value
+              positions = { start: { x: positionsRaw.start.x,
+                                     y: positionsRaw.start.y * scalarY } };
+            } else {
+              // in markdown area, scale position.
+              positions = { start: { x: (positionsRaw.start.x - record.promptWidth) * scalarX + cellRects.promptRect.width,
+                                     y: positionsRaw.start.y * scalarY } };
+            }
           }
         } else {
-          // we don't scale anything if we started in a code cell. Just leave everything as recorded.
-          positions = { 
-            start: { x : record.positions.start.x, y: record.positions.start.y },
-            end: {   x : record.positions.end.x,   y: record.positions.end.y }
+          // If this drawing/sticker started in a markdown cell, we will attempt to scale both x and y coords in the inner_cell rect area but 
+          // NOT the prompt area.
+          if (record.pen.downInMarkdown) {
+            console.log('downInMarkdown');
+            if (record.pen.inPromptArea) {
+              console.log('inPromptArea');
+              // if in prompt area and started in a markdown cell, scale the Y value only. 
+              positions = { start: { x: positionsRaw.start.x,
+                                     y: positionsRaw.start.y * scalarY },
+                            end:   { x: positionsRaw.end.x,
+                                     y: positionsRaw.end.y * scalarY }
+              };
+            } else {
+              // In the inner_cell, scale both x and y. First subtract the historical prompt width, then scale the value up/down, and then
+              // add the current prompt width to calculate the final x. Y is just scaled by change in cell height.
+              console.log('scalarX', scalarX, 'scalarY', scalarY);
+              positions = { start: { x: (positionsRaw.start.x - record.promptWidth) * scalarX + cellRects.promptRect.width,
+                                     y: positionsRaw.start.y * scalarY },
+                            end:   { x: (positionsRaw.end.x - record.promptWidth) * scalarX + cellRects.promptRect.width,
+                                     y: positionsRaw.end.y * scalarY }
+              };
+            }
+          } else {
+            // we don't scale anything if we started in a code cell. Just leave everything as recorded.
+            positions = { 
+              start: { x : positionsRaw.start.x, y: positionsRaw.start.y },
+              end: {   x : positionsRaw.end.x,   y: positionsRaw.end.y }
+            }
           }
         }
         return positions;
@@ -3445,7 +3476,7 @@ define([
             graffiti.placeCanvas(record.cellId, record.pen.permanence);
             graffiti.setCanvasStyle(record.cellId, record.pen.type, record.pen.dash, record.pen.color, record.pen.permanence);
             console.log('inPromptArea:', record.pen.inPromptArea, 'downInMarkdown:', record.pen.downInMarkdown );
-            const positions = graffiti.processPositionsForCellTypeScaling(record);
+            const positions = graffiti.processPositionsForCellTypeScaling(record, 'positions');
             graffiti.updateDrawingDisplay(record.cellId, 
                                           positions.start.x, 
                                           positions.start.y,
@@ -3485,7 +3516,11 @@ define([
 
       updatePointer: (record) => {
         if (record.hoverCell !== undefined) {
-          const offsetPosition = graffiti.computeOffsetPosition(record);
+          const offsetPositionFull = graffiti.processPositionsForCellTypeScaling(record, 'cursor');
+          const cellRects = utils.getCellRects(record.hoverCell);        
+          const offsetPosition = { x: cellRects.innerCellRect.left + offsetPositionFull.start.x - graffiti.halfBullseye,
+                                   y: cellRects.innerCellRect.top + offsetPositionFull.start.y - graffiti.halfBullseye
+          };
           graffiti.applyScrollNudge(offsetPosition, record, true);
 
           const lastPosition = state.getLastRecordedCursorPosition();

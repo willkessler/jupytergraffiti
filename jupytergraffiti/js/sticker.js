@@ -500,7 +500,6 @@ define([
     },
 
     makeVerticalBrackets: (opts) => {
-      console.log('makeVerticalBrackets');
       const width = opts.dimensions.width;
       const height = opts.dimensions.height;
       const bracketWidth1 = Math.min(sticker.minBracketWidth, parseInt(width / 10));

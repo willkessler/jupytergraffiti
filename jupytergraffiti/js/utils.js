@@ -129,8 +129,8 @@ define([
       return {
         cellRect: cellRect,
         innerCell: innerCell,
-        promptRect:promptRect,
-        innerCellRect: innerCellRect
+        innerCellRect: innerCellRect,
+        promptRect:promptRect
       }
     },
 
