@@ -736,9 +736,13 @@ define([
     },
 
     createViewRecord: (subType) => {
+      const downInMarkdown = ((state.drawingState.pen.isDown) && state.drawingState.pen.downInMarkdown);
+      const downInPromptArea = ((state.drawingState.pen.isDown) && state.drawingState.pen.downInPromptArea);
       return $.extend({}, state.viewInfo, {
         x: state.pointer.x - parseInt(state.viewInfo.outerCellRect.left),
         y: state.pointer.y - parseInt(state.viewInfo.outerCellRect.top),
+        downInMarkdown: downInMarkdown,
+        downInPromptArea: downInPromptArea,
         subType: subType,
         scrollDiff: state.viewInfo.scrollDiff,
         selectedCellId: state.selectedCellId
