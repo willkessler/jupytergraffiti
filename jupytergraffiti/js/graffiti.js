@@ -446,7 +446,7 @@ define([
                                           ids: ['graffiti-recorder-range'],
                                           event: 'input',
                                           fn: (e) => {
-                                            graffiti.handleSliderDrag(e);
+                                            graffiti.handleSliderDragDebounced();
                                           }
                                         }
                                       ]
@@ -2558,6 +2558,8 @@ define([
           }
         });
 
+        graffiti.handleSliderDragDebounced = _.debounce(graffiti.handleSliderDrag, 20);
+
         console.log('Graffiti: Background setup complete.');
       },
 
@@ -3840,7 +3842,7 @@ define([
         // Handle slider drag
         const target = $('#graffiti-recorder-range');
         const timeLocation = target.val() / 1000;
-        //console.log('slider value:', timeLocation);
+        // console.log('slider value:', timeLocation);
         state.clearSetupForReset();
         state.resetRapidPlayTime();
         graffiti.undimGraffitiCursor();
