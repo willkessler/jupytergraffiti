@@ -897,12 +897,12 @@ define([
               visibleControlPanels = ['graffiti-notifier']; // hide all control panels if in view only mode and not play mode
               if (isMarkdownCell) {
                 if (!activeCell.rendered) {
-                  graffiti.setNotifier('<div>Select some text in this Markdown cell to add or modify Graffiti\'s, or click inside any existing Graffiti text to modify it.</div>');
+                  graffiti.setNotifier('<div>Select some text in this Markdown cell to add or modify Graffiti, or click inside any existing Graffiti text to modify it.</div>');
                 } else {
-                  graffiti.setNotifier('<div>Edit this Markdown cell to add or modify Graffiti\'s in the cell.</div>');
+                  graffiti.setNotifier('<div>Edit the Markdown cell to add or modify Graffiti in the cell.</div>');
                 }
               } else {
-                graffiti.setNotifier('<div>Select some text in a code cell to create or modify Graffiti\'s, or click inside any existing Graffiti text to modify it.</div>');
+                graffiti.setNotifier('<div>Select some text to create or modify Graffiti, or click inside any existing Graffiti text to modify that Graffiti.</div>');
               }
             } else if (accessLevel === 'view') {
               console.log('Graffiti: view only');
@@ -4223,7 +4223,7 @@ define([
       },
 
       showCreatorsChooser: () => {
-        graffiti.setNotifier('You can filter this Notebook\'s Graffiti\'s by clicking on creators in the list below.');
+        graffiti.setNotifier('You can filter this Notebook\'s Graffiti by clicking on creators in the list below.');
                              graffiti.showControlPanels(['graffiti-notifier','graffiti-creators-chooser']);
       },
 
