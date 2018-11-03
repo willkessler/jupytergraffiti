@@ -3193,6 +3193,11 @@ define([
         const currentActivity = state.getActivity();
         if (currentActivity !== 'playing') {
           if (currentActivity === 'recording') {
+
+            //
+            // End movie recording.
+            //
+
             console.log('Graffiti: Now starting movie recording');
             state.blockRecording(); // this is here because a race condition can happen right at the end of recording
             graffiti.setNotifier('Please wait, storing this movie...');

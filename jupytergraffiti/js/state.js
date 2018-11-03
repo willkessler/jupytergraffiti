@@ -636,7 +636,7 @@ define([
     },
 
     storeRecordingCellInfo: (cellInfo) => {
-      console.trace('storeRecordingCellInfo:', cellInfo);
+      // console.trace('storeRecordingCellInfo:', cellInfo);
       state.recordingCellInfo = cellInfo;
     },
 
