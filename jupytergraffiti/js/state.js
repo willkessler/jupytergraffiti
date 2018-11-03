@@ -68,9 +68,12 @@ define([
           start: { x: 0, y: 0 },
           end: { x: 0, y: 0 }
         },
+        promptWidth: 0,
         pen: {
           isDown: false, // becomes true when the pen is down, ie user has clicked and held the mouse button
           mouseDownPosition: { x : 0, y: 0 },
+          downInMarkdown: false,  // cell.cell_type. Makes it quicker to get to this info to decide whether to scale drawings and stickers
+          inPromptArea: false,    // True if you are drawing in Jupyter's "prompt" div. This part of drawings/stickers will not be scaled in X, only in Y, if in markdown.
           permanence: 'temporary', // default: ink disappears after a second of inactivity
           type: 'line', // one of 'line', 'highlight', 'eraser', 'sticker'
           color: 'black',
@@ -360,6 +363,15 @@ define([
             break;
           case 'mouseDownPosition':
             drawingState.pen.mouseDownPosition = { x: data.x, y: data.y };
+            break;
+          case 'downInMarkdown':
+            drawingState.pen.downInMarkdown = data; // whether the drawing/stickering started in a markdown cell
+            break;
+          case 'inPromptArea':
+            drawingState.pen.inPromptArea = data; // whether the drawing/stickering in the .prompt div
+            break;
+          case 'promptWidth':
+            drawingState.promptWidth = data;
             break;
           case 'isDown':
             drawingState.pen.isDown = data;

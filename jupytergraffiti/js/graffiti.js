@@ -1293,6 +1293,7 @@ define([
             state.disableDrawingFadeClock();
             const stickerType = state.getDrawingPenAttribute('stickerType');
             let drawingActivity = 'draw';
+            const viewInfo = state.getViewInfo();
             if (stickerType !== undefined) {
               console.log('mousedown with stickerType:', stickerType);
               drawingActivity = 'sticker';
@@ -1302,10 +1303,8 @@ define([
               }
               //graffiti.placeSticker({dynamic:true});
               const currentPointerPosition = state.getPointerPosition();
-              const viewInfo = state.getViewInfo();
               const penType = state.getDrawingPenAttribute('type');
               const minSize = (penType === 'lineWithArrow' ? 1 : graffiti.minimumStickerSize);
-              console.log('minSize:', minSize);
               state.updateDrawingState([
                 { change: 'mouseDownPosition',
                   data: {
@@ -1330,7 +1329,8 @@ define([
               { change: 'drawingModeActivated', data: true }, 
               { change: 'isDown',  data: true }, 
               { change: 'drawingActivity', data: drawingActivity },
-              { change: 'opacity', data: state.getMaxDrawingOpacity() } 
+              { change: 'opacity', data: state.getMaxDrawingOpacity() },
+              { change: 'downInMarkdown', data: viewInfo.inMarkdownCell }
             ]);
           } else if ((e.type === 'mouseup') || (e.type === 'mouseleave')) {
             console.log('drawingScreenHandler: ', e.type);
@@ -1974,7 +1974,14 @@ define([
                       end:   { x: bx - cellRect.left, y: by - cellRect.top }
                     }
                   }
-                } // note that we don't change the sticker cellId during mousemove. It's set once at mousedown and kept constant until mouse up.
+                },
+                { change: 'inPromptArea',
+                  data: viewInfo.inPromptArea
+                },
+                { change: 'promptWidth',
+                  data: viewInfo.promptWidth
+                }, 
+                // note that we don't change the sticker cellId during mousemove. It's set once at mousedown and kept constant until mouse up.
               ]);
               graffiti.updateStickerDisplayWhenRecording(drawingPermanence);
             } else {
@@ -1997,7 +2004,13 @@ define([
                 },
                 { change: 'cellId',
                   data: viewInfo.cellId
-                }
+                },
+                { change: 'inPromptArea',
+                  data: viewInfo.inPromptArea
+                },
+                { change: 'promptWidth',
+                  data: viewInfo.promptWidth
+                }, 
               ]);
             }
             state.storeHistoryRecord('drawings');
@@ -3323,7 +3336,6 @@ define([
             x : cellRects.innerCellRect.left + record.x - graffiti.halfBullseye,
             y : cellRects.innerCellRect.top + record.y  - graffiti.halfBullseye
           };
-          console.log('absolute offsetPosition');
         } else {
           //console.log('hoverCellId:', utils.getMetadataCellId(record.hoverCell.metadata), 'rect:', innerCellRect);
           const dx = record.x / record.innerCellRect.width;
@@ -3388,6 +3400,42 @@ define([
         return offsetPosition;
       },
 
+      processPositionsForCellTypeScaling: (record) => {
+        let positions, scalarX, scalarY;
+        // If this drawing/sticker started in a markdown cell, we will attempt to scale both x and y coords in the inner_cell rect area but 
+        // NOT the prompt area.
+        const cell = utils.findCellByCellId(record.cellId);
+        const cellRects = utils.getCellRects(cell);
+        const recordCellTotalWidth = record.promptWidth + record.innerCellRect.width;
+        scalarX = cellRects.innerCell.width / record.innerCellRect.width ;
+        scalarY = cellRects.innerCell.height / record.innerCellRect.height;
+        if (record.downInMarkdown) {
+          if (record.inPromptArea) {
+            // if in prompt area and started in a markdown cell, scale the Y value only. 
+            positions = { start: { x: record.positions.start.x,
+                                   y: record.positions.start.y * scalarY },
+                          end:   { x: record.positions.end.x,
+                                   y: record.positions.end.y * scalarY }
+            };
+          } else {
+            // In the inner_cell, scale both x and y. First subtract the historical prompt width, then scale the value up/down, and then
+            // add the current prompt width to calculate the final x. Y is just scaled by change in cell height.
+            positions = { start: { x: (record.positions.start.x - record.promptWidth) * scalarX + cellRects.promptRect.width,
+                                   y: record.positions.start.y * scalarY },
+                          end:   { x: (record.positions.end.x - record.promptWidth) * scalarX + cellRects.promptRect.width,
+                                   y: record.positions.end.y * scalarY }
+            };
+          }
+        } else {
+          // we don't scale anything if we started in a code cell. Just leave everything as recorded.
+          positions = { 
+            start: { x : record.positions.start.x, y: record.positions.start.y },
+            end: {   x : record.positions.end.x,   y: record.positions.end.y }
+          }
+        }
+        return positions;
+      },
+
       updateDrawingCore: (record) => {
         //console.log('updateDrawingCore:', record);
         record.hoverCell = utils.findCellByCellId(record.cellId);
@@ -3396,11 +3444,13 @@ define([
           case 'draw':
             graffiti.placeCanvas(record.cellId, record.pen.permanence);
             graffiti.setCanvasStyle(record.cellId, record.pen.type, record.pen.dash, record.pen.color, record.pen.permanence);
+            console.log('inPromptArea:', record.pen.inPromptArea, 'downInMarkdown:', record.pen.downInMarkdown );
+            const positions = graffiti.processPositionsForCellTypeScaling(record);
             graffiti.updateDrawingDisplay(record.cellId, 
-                                          record.positions.start.x, 
-                                          record.positions.start.y,
-                                          record.positions.end.x, 
-                                          record.positions.end.y,
+                                          positions.start.x, 
+                                          positions.start.y,
+                                          positions.end.x, 
+                                          positions.end.y,
                                           record.pen.type,
                                           record.pen.permanence);
             break;
@@ -3424,7 +3474,7 @@ define([
 
         // console.log('updateDrawings');
         // Need to process a range of records if that's required.
-        const startIndex = ((drawingFrameIndex.rangeStart == undefined) ? drawingFrameIndex.index : drawingFrameIndex.rangeStart);
+        const startIndex = ((drawingFrameIndex.rangeStart === undefined) ? drawingFrameIndex.index : drawingFrameIndex.rangeStart);
         const endIndex = drawingFrameIndex.index;
         let index, record;
         for (index = startIndex; index <= endIndex; ++index) {

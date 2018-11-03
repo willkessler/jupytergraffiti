@@ -123,10 +123,13 @@ define([
       const cellRect = cellElement[0].getBoundingClientRect();
       const innerCell = cellElement.find('.inner_cell')[0];
       const innerCellRect = innerCell.getBoundingClientRect();
+      const prompt = cellElement.find('.prompt')[0];
+      const promptRect = prompt.getBoundingClientRect();
 
       return {
         cellRect: cellRect,
         innerCell: innerCell,
+        promptRect:promptRect,
         innerCellRect: innerCellRect
       }
     },
@@ -143,12 +146,19 @@ define([
       const selectedCell = Jupyter.notebook.get_selected_cell();
       const selectedCellId = utils.getMetadataCellId(selectedCell.metadata);
       // handle case where pointer is above all cells or below all cells
-      let cellIndex, cellIndexStr, cell, innerCell, innerCellRect, innerCellRectRaw, pointerPosition, cellPosition, cm;
+      let cellIndex, cellIndexStr, cell, innerCell, innerCellRect, innerCellRectRaw, prompt, promptBbox, pointerPosition, pointerInsidePromptArea, cellPosition, cm;
       for (cellIndexStr in inputCells) {
         cellIndex = parseInt(cellIndexStr);
         cell = inputCells[cellIndex];
         cellElement = cell.element[0];
         cellRect = cellElement.getBoundingClientRect();
+        prompt = $(cellElement).find('.prompt');
+        pointerInsidePromptArea = false;
+        if ((prompt.length > 0) && (prompt.is(':visible'))) {
+          promptBbox = prompt[0].getBoundingClientRect();
+          pointerInsidePromptArea = ((clientX >= promptBbox.left) && (clientX < promptBbox.right) &&
+                                     (clientY >= promptBbox.top)  && (clientY < promptBbox.bottom));
+        }
         if ( ((cellRect.top <= clientY) && (clientY <= cellRect.bottom)) ||
              // These are the cases where the pointer is above the first cell or below the last cell
              (((cellIndex === 0) && (clientY < cellRect.top)) ||
@@ -169,6 +179,9 @@ define([
             cellId: utils.getMetadataCellId(cell.metadata), // The id of cell that the pointer is hovering over right now
             innerCellRect: innerCellRect,
             innerScroll: innerScroll,
+            inMarkdownCell: (cell.cell_type === 'markdown'),
+            inPromptArea: pointerInsidePromptArea,
+            promptWidth: promptBbox.width,
             selectedCellId: selectedCellId,
             notebookPanelHeight: notebookPanelHeight,
             scrollDiff: scrollDiff
