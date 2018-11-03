@@ -141,12 +141,13 @@ define([
     },
 
     collectViewInfo: (clientX, clientY, notebookPanelHeight, scrollDiff) => {
-      let cellElement, cellRect;
+      let cellElement, cellRect, outerCellRect;
       const inputCells = Jupyter.notebook.get_cells();
       const selectedCell = Jupyter.notebook.get_selected_cell();
       const selectedCellId = utils.getMetadataCellId(selectedCell.metadata);
       // handle case where pointer is above all cells or below all cells
-      let cellIndex, cellIndexStr, cell, innerCell, innerCellRect, innerCellRectRaw, prompt, promptBbox, pointerPosition, pointerInsidePromptArea, cellPosition, cm;
+      let cellIndex, cellIndexStr, cell, innerCell, innerCellRect, innerCellRectRaw, prompt, pointerPosition, pointerInsidePromptArea, cellPosition, cm;
+      let promptBbox = undefined;
       for (cellIndexStr in inputCells) {
         cellIndex = parseInt(cellIndexStr);
         cell = inputCells[cellIndex];
@@ -163,6 +164,10 @@ define([
              // These are the cases where the pointer is above the first cell or below the last cell
              (((cellIndex === 0) && (clientY < cellRect.top)) ||
               ((cellIndex === inputCells.length - 1) && (cellRect.bottom < clientY))) ) {
+          outerCellRect = {
+            top: cellRect.top,
+            left: cellRect.left
+          };
           innerCell = $(cellElement).find('.inner_cell')[0];
           innerCellRectRaw = innerCell.getBoundingClientRect();
           innerCellRect = { 
@@ -179,9 +184,10 @@ define([
             cellId: utils.getMetadataCellId(cell.metadata), // The id of cell that the pointer is hovering over right now
             innerCellRect: innerCellRect,
             innerScroll: innerScroll,
+            outerCellRect: outerCellRect,
             inMarkdownCell: (cell.cell_type === 'markdown'),
             inPromptArea: pointerInsidePromptArea,
-            promptWidth: promptBbox.width,
+            promptWidth: (promptBbox === undefined ? 0 : promptBbox.width),
             selectedCellId: selectedCellId,
             notebookPanelHeight: notebookPanelHeight,
             scrollDiff: scrollDiff

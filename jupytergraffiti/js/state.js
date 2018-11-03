@@ -72,8 +72,9 @@ define([
         pen: {
           isDown: false, // becomes true when the pen is down, ie user has clicked and held the mouse button
           mouseDownPosition: { x : 0, y: 0 },
-          downInMarkdown: false,  // cell.cell_type. Makes it quicker to get to this info to decide whether to scale drawings and stickers
-          inPromptArea: false,    // True if you are drawing in Jupyter's "prompt" div. This part of drawings/stickers will not be scaled in X, only in Y, if in markdown.
+          downInMarkdown: false,  // whether the pen went down in a markdown cell
+          downInPromptArea: false,  // whether the pen went down in the prompt area
+          inPromptArea: false,    // True if the pen is in Jupyter's "prompt" div. This part of drawings/stickers will not be scaled in X, only in Y (if in markdown cell)
           permanence: 'temporary', // default: ink disappears after a second of inactivity
           type: 'line', // one of 'line', 'highlight', 'eraser', 'sticker'
           color: 'black',
@@ -366,6 +367,9 @@ define([
             break;
           case 'downInMarkdown':
             drawingState.pen.downInMarkdown = data; // whether the drawing/stickering started in a markdown cell
+            break;
+          case 'downInPromptArea':
+            drawingState.pen.downInPromptArea = data; // whether the drawing/stickering started in the prompt area
             break;
           case 'inPromptArea':
             drawingState.pen.inPromptArea = data; // whether the drawing/stickering in the .prompt div
@@ -733,8 +737,8 @@ define([
 
     createViewRecord: (subType) => {
       return $.extend({}, state.viewInfo, {
-        x: state.pointer.x - parseInt(state.viewInfo.innerCellRect.left),
-        y: state.pointer.y - parseInt(state.viewInfo.innerCellRect.top),
+        x: state.pointer.x - parseInt(state.viewInfo.outerCellRect.left),
+        y: state.pointer.y - parseInt(state.viewInfo.outerCellRect.top),
         subType: subType,
         scrollDiff: state.viewInfo.scrollDiff,
         selectedCellId: state.selectedCellId

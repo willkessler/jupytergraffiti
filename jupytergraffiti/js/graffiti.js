@@ -208,7 +208,9 @@ define([
             const controlPanelPosition = graffiti.outerControlPanel.position();
             const maxLeft = windowWidth - graffiti.outerControlPanel.width() - 20;
             const maxTop = windowHeight - graffiti.outerControlPanel.height() - 20;
-            graffiti.updateControlPanelPosition({ left: Math.min(controlPanelPosition.left, maxLeft), top: Math.min(maxTop, controlPanelPosition.top) });
+            //graffiti.handleSliderDrag();  // force redraw of all drawings
+            graffiti.updateControlPanelPosition({ left: Math.max(0, Math.min(controlPanelPosition.left, maxLeft)),
+                                                  top: Math.max(0,Math.min(maxTop, controlPanelPosition.top)) });
             state.setControlPanelDragging(false);
           }
         };
@@ -1330,7 +1332,8 @@ define([
               { change: 'isDown',  data: true }, 
               { change: 'drawingActivity', data: drawingActivity },
               { change: 'opacity', data: state.getMaxDrawingOpacity() },
-              { change: 'downInMarkdown', data: viewInfo.inMarkdownCell }
+              { change: 'downInMarkdown', data: viewInfo.inMarkdownCell },
+              { change: 'downInPromptArea', data: viewInfo.inPromptArea }
             ]);
           } else if ((e.type === 'mouseup') || (e.type === 'mouseleave')) {
             console.log('drawingScreenHandler: ', e.type);
@@ -3416,6 +3419,7 @@ define([
         const recordCellTotalWidth = record.promptWidth + record.innerCellRect.width;
         scalarX = cellRects.innerCellRect.width / record.innerCellRect.width ;
         scalarY = cellRects.innerCellRect.height / record.innerCellRect.height;
+        // console.log('scalarX', scalarX, 'scalarY', scalarY);
         if (type === 'cursor') {
           // Scale the cursor position as appropriate
           if (!record.inMarkdownCell) {
@@ -3423,12 +3427,12 @@ define([
             positions = { start: { x: positionsRaw.start.x,
                                    y: positionsRaw.start.y } };
           } else {
-            if (record.inPromptArea) {
+            if (record.inPromptArea && !record.inMarkdownCell) {
               // in prompt area only scale y value
               positions = { start: { x: positionsRaw.start.x,
                                      y: positionsRaw.start.y * scalarY } };
             } else {
-              // in markdown area, scale position.
+              // in markdown area, scale full position.
               positions = { start: { x: (positionsRaw.start.x - record.promptWidth) * scalarX + cellRects.promptRect.width,
                                      y: positionsRaw.start.y * scalarY } };
             }
@@ -3438,9 +3442,9 @@ define([
           // NOT the prompt area.
           if (record.pen.downInMarkdown) {
             console.log('downInMarkdown');
-            if (record.pen.inPromptArea) {
-              console.log('inPromptArea');
-              // if in prompt area and started in a markdown cell, scale the Y value only. 
+            if (record.pen.downInPromptArea) {
+              console.log('inPromptArea and did not start in prompt area');
+              // if pen went down in prompt area of a markdown cell, scale the Y value only. 
               positions = { start: { x: positionsRaw.start.x,
                                      y: positionsRaw.start.y * scalarY },
                             end:   { x: positionsRaw.end.x,
@@ -3449,7 +3453,6 @@ define([
             } else {
               // In the inner_cell, scale both x and y. First subtract the historical prompt width, then scale the value up/down, and then
               // add the current prompt width to calculate the final x. Y is just scaled by change in cell height.
-              console.log('scalarX', scalarX, 'scalarY', scalarY);
               positions = { start: { x: (positionsRaw.start.x - record.promptWidth) * scalarX + cellRects.promptRect.width,
                                      y: positionsRaw.start.y * scalarY },
                             end:   { x: (positionsRaw.end.x - record.promptWidth) * scalarX + cellRects.promptRect.width,
@@ -3518,8 +3521,8 @@ define([
         if (record.hoverCell !== undefined) {
           const offsetPositionFull = graffiti.processPositionsForCellTypeScaling(record, 'cursor');
           const cellRects = utils.getCellRects(record.hoverCell);        
-          const offsetPosition = { x: cellRects.innerCellRect.left + offsetPositionFull.start.x - graffiti.halfBullseye,
-                                   y: cellRects.innerCellRect.top + offsetPositionFull.start.y - graffiti.halfBullseye
+          const offsetPosition = { x: cellRects.cellRect.left + offsetPositionFull.start.x - graffiti.halfBullseye,
+                                   y: cellRects.cellRect.top + offsetPositionFull.start.y - graffiti.halfBullseye
           };
           graffiti.applyScrollNudge(offsetPosition, record, true);
 
