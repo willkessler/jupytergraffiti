@@ -736,16 +736,31 @@ define([
     },
 
     createViewRecord: (subType) => {
-      const downInMarkdown = ((state.drawingState.pen.isDown) && state.drawingState.pen.downInMarkdown);
-      const downInPromptArea = ((state.drawingState.pen.isDown) && state.drawingState.pen.downInPromptArea);
+      const drawingState = state.drawingState;
+      const pen = drawingState.pen;
+      const downInMarkdown = ((pen.isDown) && pen.downInMarkdown);
+      const downInPromptArea = ((pen.isDown) && pen.downInPromptArea);
+      const drawingActivity = (pen.isDown ? drawingState.drawingActivity : undefined);
+      const stickerCellId = ((pen.isDown && drawingState.drawingActivity == 'sticker') ? drawingState.cellId : undefined);
+      let stickerInfo = undefined, stickerCellWidth = 0, stickerCellHeight = 0;
+      if (stickerCellId !== undefined) {
+        const stickerCell = utils.findCellByCellId(stickerCellId);
+        const stickerCellElement = $(stickerCell.element[0]).find('.inner_cell');
+        const bbox = stickerCellElement[0].getBoundingClientRect();
+        stickerCellWidth = bbox.width;
+        stickerCellHeight = bbox.height;
+        stickerInfo = { cellId: stickerCellId, width:stickerCellWidth, height: stickerCellHeight };
+      }
       return $.extend({}, state.viewInfo, {
         x: state.pointer.x - parseInt(state.viewInfo.outerCellRect.left),
         y: state.pointer.y - parseInt(state.viewInfo.outerCellRect.top),
         downInMarkdown: downInMarkdown,
         downInPromptArea: downInPromptArea,
+        drawingActivity: drawingActivity,
         subType: subType,
         scrollDiff: state.viewInfo.scrollDiff,
-        selectedCellId: state.selectedCellId
+        selectedCellId: state.selectedCellId,
+        stickerInfo: stickerInfo
       });
     },
 

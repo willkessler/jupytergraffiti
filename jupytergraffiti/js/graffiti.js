@@ -200,7 +200,7 @@ define([
         });
 
         graffiti.windowResizeHandler = () => {
-          console.log('Graffiti: windowResizeHandler');
+          //console.log('Graffiti: windowResizeHandler');
           graffiti.resizeCanvases();
           if (graffiti.outerControlPanel.is(':visible')) {
             const windowWidth = $(window).width();
@@ -1451,8 +1451,8 @@ define([
           return;
         }
         const cell = utils.findCellByCellId(cellId);
-        const cellElement = $(cell.element[0]);
-        const cellRect = cellElement[0].getBoundingClientRect();
+        const cellElement = cell.element[0];
+        const cellRect = cellElement.getBoundingClientRect();
 
         // Note that we inline all these styles because to include them from a stylesheet causes rendering jumps.
         const stickerDivId = 'graffiti-sticker-' + cellId;
@@ -3341,115 +3341,50 @@ define([
         }
       },
 
-      computeOffsetPosition: (record) => {
-        let offsetPosition;
-        const cellRects = utils.getCellRects(record.hoverCell);        
-        if ((record.x < 0) || (record.x > record.innerCellRect.width) ||
-            (record.y < 0) || (record.y > record.innerCellRect.height)) {
-          // cursor was outside the innerCell, so we do not want to scale it, as only the innerCell gets resized by Jupyter
-          offsetPosition = {
-            x : cellRects.innerCellRect.left + record.x - graffiti.halfBullseye,
-            y : cellRects.innerCellRect.top + record.y  - graffiti.halfBullseye
-          };
-        } else {
-          //console.log('hoverCellId:', utils.getMetadataCellId(record.hoverCell.metadata), 'rect:', innerCellRect);
-          const dx = record.x / record.innerCellRect.width;
-          const dy = record.y / record.innerCellRect.height;
-          if (record.hoverCell.cell_type === 'code') {
-            let codeCellWidth = $('.code_cell:first').width();
-            if (record.innerCellRect.width !== undefined) {
-              codeCellWidth = record.innerCellRect.width;
-            }
-            dxScaled = parseInt(codeCellWidth * dx);
-            dyScaled = parseInt(cellRects.innerCellRect.height * dy);
-          } else {
-            dxScaled = parseInt(cellRects.innerCellRect.width * dx);
-            dyScaled = parseInt(cellRects.innerCellRect.height * dy);
-          }
-          offsetPosition = {
-            x : cellRects.innerCellRect.left + dxScaled - graffiti.halfBullseye,
-            y : cellRects.innerCellRect.top + dyScaled  - graffiti.halfBullseye
-          };
-        }
-        return offsetPosition;
-      },
-
-      // This needs a rethink, it's too similar to the func above
-      computeStickersOffsetPositions: (cellId, record, stickerRecord) => {
-        const cell = utils.findCellByCellId(cellId);
-        //console.log('computeStickersOffsetPositions, cellId', cellId);
-        const cellRects = utils.getCellRects(cell);
-        const positions = stickerRecord.positions;
-        const ratio = { 
-          start: { x: positions.start.x / record.innerCellRect.width,
-                   y: positions.start.y / record.innerCellRect.height },
-          end:   { x: positions.end.x / record.innerCellRect.width,
-                   y: positions.end.y / record.innerCellRect.height }
-        };
-        posScaled = { start: {}, end: {} };
-        if (cell.cell_type === 'code') {
-          let codeCellWidth = $('.code_cell:first').width();
-          if (record.innerCellRect.width !== undefined) {
-            codeCellWidth = record.innerCellRect.width;
-          }
-          posScaled.start.x = parseInt(codeCellWidth * ratio.start.x);
-          posScaled.start.y = parseInt(cellRects.innerCellRect.height * ratio.start.y);
-          posScaled.end.x = parseInt(codeCellWidth * ratio.end.x);
-          posScaled.end.y = parseInt(cellRects.innerCellRect.height * ratio.end.y);
-        } else {
-          posScaled.start.x = parseInt(cellRects.innerCellRect.width * ratio.start.x);
-          posScaled.start.y = parseInt(cellRects.innerCellRect.height * ratio.start.y);
-          posScaled.end.x = parseInt(cellRects.innerCellRect.width * ratio.end.x);
-          posScaled.end.y = parseInt(cellRects.innerCellRect.height * ratio.end.y);
-        }
-        const offsetPosition = {
-          start: {
-            x : posScaled.start.x,
-            y : posScaled.start.y
-          },
-          end: {
-            x : posScaled.end.x,
-            y : posScaled.end.y
-          }
-        };
-        return offsetPosition;
-      },
-
       processPositionsForCellTypeScaling: (record, type) => {
-        let positions, scalarX, scalarY, positionsRaw;
-        if (type === 'positions') {
-          positionsRaw = { start: { x: record.positions.start.x, y: record.positions.start.y },
-                           end:   { x: record.positions.end.x, y: record.positions.end.y }
-          };
-        } else {
-          positionsRaw = { start: { x: record.x, y: record.y },
-                           end:   { x: 0, y:0 }
-          };
-        }
-        const cell = utils.findCellByCellId(record.cellId);
-        const cellRects = utils.getCellRects(cell);
-        const recordCellTotalWidth = record.promptWidth + record.innerCellRect.width;
-        scalarX = cellRects.innerCellRect.width / record.innerCellRect.width ;
-        scalarY = cellRects.innerCellRect.height / record.innerCellRect.height;
+        let positions, scalarX, scalarY, positionsRaw, cell, cellId, cellRects, denomWidth, denomHeight;
         // console.log('scalarX', scalarX, 'scalarY', scalarY);
         if (type === 'cursor') {
-          // Scale the cursor position as appropriate
+          // Scale the cursor position. The cell the cursor is hovering over is in the cellId field, unless the
+          // drawingActivity was 'sticker' when this record was made, in which case we'll scale to the cell under
+          // the starting coordinates of the sticker to match what happens when we scale the sticker itself.
+          if (record.stickerInfo !== undefined) {
+            cellId = record.stickerInfo.cellId;
+            denomWidth = record.stickerInfo.width;
+            denomHeight = record.stickerInfo.height;
+          } else {
+            cellId = record.cellId;
+            denomWidth = record.innerCellRect.width;
+            denomHeight = record.innerCellRect.height;
+          }
+          cell = utils.findCellByCellId(cellId);
+          cellRects = utils.getCellRects(cell);
+          scalarX = cellRects.innerCellRect.width / denomWidth;
+          scalarY = cellRects.innerCellRect.height / denomHeight;
+          positionsRaw = { x: record.x, y: record.y };
           if (!record.inMarkdownCell) {
             // in code cells, or if pen went down in prompt area, just use positions verbatim
-            positions = { start: { x: positionsRaw.start.x,
-                                   y: positionsRaw.start.y } };
+            positions = { start: { x: positionsRaw.x, y: positionsRaw.y } };
           } else {
             if (record.inPromptArea || record.downInPromptArea) {
               // in prompt area only scale y value
-              positions = { start: { x: positionsRaw.start.x,
-                                     y: positionsRaw.start.y * scalarY } };
+              positions = { start: { x: positionsRaw.x, y: positionsRaw.y * scalarY } };
             } else {
               // in markdown area, scale full position.
-              positions = { start: { x: (positionsRaw.start.x - record.promptWidth) * scalarX + cellRects.promptRect.width,
-                                     y: positionsRaw.start.y * scalarY } };
+              positions = { start: { x: (positionsRaw.x - record.promptWidth) * scalarX + cellRects.promptRect.width,
+                                     y: positionsRaw.y * scalarY } };
             }
           }
+          //if (record.drawingActivity === 'sticker') {
+          //console.log('cellId', cellId, 'hoverCellId', record.hoverCell.metadata.graffitiCellId, 'positions', positions.start.y, 'scalarX', scalarX, 'scalarY', scalarY);
+          //}
         } else {
+          positionsRaw = { start: { x: record.positions.start.x, y: record.positions.start.y },
+                           end:   { x: record.positions.end.x, y: record.positions.end.y } };
+          cell = utils.findCellByCellId(record.cellId);
+          cellRects = utils.getCellRects(cell);
+          scalarX = cellRects.innerCellRect.width / record.innerCellRect.width ;
+          scalarY = cellRects.innerCellRect.height / record.innerCellRect.height;
           // If this drawing/sticker started in a markdown cell, we will attempt to scale both x and y coords in the inner_cell rect area but 
           // NOT the prompt area.
           if (record.pen.downInMarkdown) {
