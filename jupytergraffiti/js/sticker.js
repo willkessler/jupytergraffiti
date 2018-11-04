@@ -897,6 +897,18 @@ define([
       return udacityHtml;
     },
 
+    makeCustom: (opts) => {
+      const dimensions = opts.dimensions;
+      let customHtml = '<img src="' + opts.imageUrl + '" style="width:' + dimensions.width + 'px;height:' + dimensions.height + 'px;' +
+                       'top:' + dimensions.y + 'px;left:' + dimensions.x + 'px;opacity:1.0;';
+      if (opts.cssTransform !== undefined) {
+        customHtml += 'transform:' + opts.cssTransform;
+      }
+      customHtml += '">';
+
+      return customHtml;
+    },
+
   }
 
   sticker.minBracketWidth = 6;

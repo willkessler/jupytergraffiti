@@ -652,6 +652,7 @@ define([
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-axis">' + axis + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-grid">' + grid + '</div>' +
                                       '      <div class="graffiti-sticker-button" id="graffiti-sticker-angle">' + angle + '</div>' +
+                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-custom">' + 'Cs' + '</div>' +
                                       '    </div>' +
                                       '  </div>' +
                                       '  <div id="graffiti-sticker-style-controls">' +
@@ -687,7 +688,8 @@ define([
                                             'graffiti-sticker-verticalBrackets',
                                             'graffiti-sticker-curlyBraces',
                                             'graffiti-sticker-ellipse',
-                                            'graffiti-sticker-pi'
+                                            'graffiti-sticker-pi',
+                                            'graffiti-sticker-custom'
                                           ],
                                           event: 'click',
                                           fn: (e) => {
@@ -1244,7 +1246,7 @@ define([
           state.updateDrawingState([
             { change: 'drawingModeActivated', data: true}, 
             { change: 'stickerType', data: stickerType },
-            { change: 'penType', data: 'sticker' } 
+            { change: 'penType', data: 'sticker' }
           ]);          
           if (activePenType === 'highlight') {
             // If we were highlighting, it was probably yellow. we probably don't want that color
@@ -1925,6 +1927,25 @@ define([
                 arrowHeadSize: 6
               });
               break;
+            case 'custom':
+              const recordingCellInfo = state.getRecordingCellInfo();
+              if (recordingCellInfo.recordingRecord.stickerImageUrl !== undefined) {
+                generatedStickerHtml = stickerLib.makeCustom({
+                  dimensions: dimensions,
+                  imageUrl: recordingCellInfo.recordingRecord.stickerImageUrl,
+                  cssTransform: cssTransform
+                });
+              } else {
+                generatedStickerHtml = stickerLib.makeRectangle({
+                  color:  'lightgrey',
+                  fill:   pen.fill,
+                  dashed: 'dashed',
+                  strokeWidth: 3,
+                  dimensions: dimensions,
+                  fillOpacity: 0,
+                });
+              }
+              break;
           }
           newInnerHtml.push(generatedStickerHtml);
         }
@@ -1968,10 +1989,6 @@ define([
             const drawingPermanence = state.getDrawingPenAttribute('permanence');
             const cellId = (drawingActivity === 'sticker' ? state.getDrawingStateField('cellId') : viewInfo.cellId);
             const cellRect = graffiti.placeCanvas(cellId, drawingPermanence);
-            const drawingPenType = state.getDrawingPenAttribute('type');
-            const drawingPenDash = state.getDrawingPenAttribute('dash');
-            const drawingPenColor = state.getDrawingPenAttribute('color');
-            //console.log('drawingActivity', drawingActivity, drawingPenType);
             if (drawingActivity === 'sticker') {
               const mouseDownPosition = state.getDrawingPenAttribute('mouseDownPosition');
               state.updateDrawingState([
@@ -1993,6 +2010,10 @@ define([
               ]);
               graffiti.updateStickerDisplayWhenRecording(drawingPermanence);
             } else {
+              const drawingPenType = state.getDrawingPenAttribute('type');
+              const drawingPenDash = state.getDrawingPenAttribute('dash');
+              const drawingPenColor = state.getDrawingPenAttribute('color');
+              // console.log('drawingActivity', drawingActivity, drawingPenType);
               graffiti.setCanvasStyle(viewInfo.cellId, drawingPenType, drawingPenDash, drawingPenColor, drawingPermanence);
               graffiti.updateDrawingDisplay(viewInfo.cellId, 
                                             ax - cellRect.left,
@@ -2125,6 +2146,13 @@ define([
                 // Note: they must use a param for this to take due to the lame regex i have above
                 // e.g. '%%hide_tooltip on'
                 partsRecord.hideTooltip = true;
+                break;
+              case 'custom_sticker':
+                // path to an image or svg that will be a custom sticker.
+                partsRecord.stickerImageUrl = undefined;
+                if (parts[1].length > 0) {
+                  partsRecord.stickerImageUrl = parts[1];
+                }
                 break;
             }
           }
@@ -2712,6 +2740,7 @@ define([
             }
             recording.playOnClick = tooltipCommands.playOnClick;
             recording.hideTooltip = tooltipCommands.hideTooltip;
+            recording.stickerImageUrl = tooltipCommands.stickerImageUrl;
           } else {
             if (recordingCellInfo.newRecording) {
               state.removeManifestEntry(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);

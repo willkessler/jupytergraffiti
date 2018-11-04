@@ -362,6 +362,16 @@
   border:1px solid black;
 }
 
+.graffiti-sticker-outer img {
+  position:absolute;
+  opacity:1.0 !important;
+}
+
+#graffiti-sticker-custom {
+  font-weight:bold;
+  font-size:14px;
+}
+
 #graffiti-stickers-shell .graffiti-active-sticker {
   outline:1px dashed red !important;
   outline-offset:1px;

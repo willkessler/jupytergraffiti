@@ -52,6 +52,7 @@ define([
       state.dontRestoreCellContentsAfterPlayback = false; // this is something the author can decide with an API call.
       state.cellOutputsSent = {};
       state.lastStickerPositions = undefined;
+      state.stickerImageUrl = undefined;
       state.cellIdsAddedDuringRecording = {};
       state.cellStates = {
         contents: {},
@@ -238,6 +239,14 @@ define([
       state.lastStickerPositions = undefined;
     },
 
+    getStickerImageUrl: (stickerImageUrl) => {
+      return state.stickerImageUrl;
+    },
+
+    setStickerImageUrl: (stickerImageUrl) => {
+      state.stickerImageUrl = stickerImageUrl;
+    },
+
     saveSelectedCellId: (cellId) => {
       state.selectedCellId = cellId;
     },
@@ -338,7 +347,8 @@ define([
               fillOpacity:  sticker.pen.fillOpacity,
               permanence: sticker.pen.permanence,
             },
-            stickerOnGrid: sticker.stickerOnGrid
+            stickerOnGrid: sticker.stickerOnGrid,
+            imageUrl: sticker.imageUrl,
           });
         }
       }
@@ -362,6 +372,9 @@ define([
           case 'cellId':
             drawingState.cellId = data;
             break;
+          case 'isDown':
+            drawingState.pen.isDown = data;
+            break;
           case 'mouseDownPosition':
             drawingState.pen.mouseDownPosition = { x: data.x, y: data.y };
             break;
@@ -377,8 +390,8 @@ define([
           case 'promptWidth':
             drawingState.promptWidth = data;
             break;
-          case 'isDown':
-            drawingState.pen.isDown = data;
+          case 'stickerImageUrl':
+            drawingState.pen.stickerImageUrl = data;
             break;
           case 'stickerOnGrid':
             drawingState.stickerOnGrid = data;
@@ -1219,9 +1232,11 @@ define([
                 if (cellContents !== undefined) {
                   cell.set_text(contentsRecord.data);
                 }
-                cell.clear_output();
-                cellOutputs = state.extractDataFromContentRecord(cellsContent.outputsRecord, cellId);
-                state.restoreCellOutputs(cell, cellOutputs);
+                if (typeof(cell.clear_output) === 'function') {
+                  cell.clear_output();
+                  cellOutputs = state.extractDataFromContentRecord(cellsContent.outputsRecord, cellId);
+                  state.restoreCellOutputs(cell, cellOutputs);
+                }
               }
             } else {
               if (selections !== undefined) {
