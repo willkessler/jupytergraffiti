@@ -73,9 +73,10 @@ define([
         pen: {
           isDown: false, // becomes true when the pen is down, ie user has clicked and held the mouse button
           mouseDownPosition: { x : 0, y: 0 },
-          downInMarkdown: false,  // whether the pen went down in a markdown cell
-          downInPromptArea: false,  // whether the pen went down in the prompt area
-          inPromptArea: false,    // True if the pen is in Jupyter's "prompt" div. This part of drawings/stickers will not be scaled in X, only in Y (if in markdown cell)
+          downInMarkdown: false,    // Whether the pen went down in a markdown cell
+          downInPromptArea: false,  // Whether the pen went down in the prompt area
+          inPromptArea: false,      // True if the pen is in Jupyter's "prompt" div. This part of drawings/stickers will not be scaled in X, only in Y (if in markdown cell)
+          useStickerImage: false,   // True if we are drawing with a custom image
           permanence: 'temporary', // default: ink disappears after a second of inactivity
           type: 'line', // one of 'line', 'highlight', 'eraser', 'sticker'
           color: 'black',
@@ -83,8 +84,8 @@ define([
           fill: 'none', // one of 'none', '#xyz'
           fillOpacity: 0
         },
-        stickerOnGrid: false,
         stickersRecords: {}, // This contains records of all stickers drawn to date during a recording, or since the last fadeout in a recording.
+        stickerOnGrid: false,
         opacity: state.maxDrawingOpacity
       };
 
@@ -332,6 +333,7 @@ define([
 
     // Store the stickers stages sticker lists for later redrawing during playing/scrubbing
     storeStickersStateForCell: (stickers, cellId) => {
+      const recordingCellInfo = state.getRecordingCellInfo();
       let stickersRecords = {};
       if ((stickers !== undefined) && (stickers.length > 0)) {
         stickersRecords = [];
@@ -347,8 +349,7 @@ define([
               fillOpacity:  sticker.pen.fillOpacity,
               permanence: sticker.pen.permanence,
             },
-            stickerOnGrid: sticker.stickerOnGrid,
-            imageUrl: sticker.imageUrl,
+            stickerOnGrid: sticker.stickerOnGrid
           });
         }
       }
@@ -390,8 +391,8 @@ define([
           case 'promptWidth':
             drawingState.promptWidth = data;
             break;
-          case 'stickerImageUrl':
-            drawingState.pen.stickerImageUrl = data;
+          case 'useStickerImage':
+            drawingState.pen.useStickerImage = data;
             break;
           case 'stickerOnGrid':
             drawingState.stickerOnGrid = data;
@@ -663,6 +664,9 @@ define([
         const recording = state.getManifestSingleRecording(cellId, recordingKey);
         const activeTakeId = recording.activeTakeId;
         state.playableMovies[kind] = { cellId: cellId, recordingKey: recordingKey, activeTakeId: activeTakeId, cell: cell, cellType: cell.cell_type, };
+        if (state.getActivity() === 'idle') {
+          state.setStickerImageUrl(recording.stickerImageUrl);
+        }
         return recording;
       }
       return undefined;
@@ -794,6 +798,7 @@ define([
       delete(record.pen.isDown);
       delete(record.wipe);
       delete(record.stickerActive);
+      delete(record.stickerOnGrid);
       //console.log('createDrawingRecord:', record);
       return record;
     },

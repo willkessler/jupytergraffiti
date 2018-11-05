@@ -1652,14 +1652,16 @@ define([
         graffiti.placeStickerCanvas(cellId, stickerPermanence);
         let stickerX, stickerY, fillOpacity, width, height, stickerWidth, stickerHeight, generatedStickerElem, pen, type, positions, p1x,p1y,p2x,p2y;
         let newInnerHtml = [];
-        let stickersRecords;
+        let stickersRecords, dimensions, stickerProcessingRecord;
         let canvasElem = graffiti.stickers[stickerPermanence][cellId].canvas;
+        let opacityOverride = canvasElem.css('opacity');
         canvasElem.empty();
         if (record !== undefined) {
           stickersRecords = record.stickersRecords;
         } else { 
           stickersRecords = graffiti.stickers[stickerPermanence][cellId].stickers; 
         }
+        //console.log('Graffiti: drawStickersForCell');
         for (let stickerRecord of stickersRecords) {
           pen = stickerRecord.pen;
           type = pen.stickerType;
@@ -1668,9 +1670,16 @@ define([
             fillOpacity = state.getDrawingPenAttribute('fillOpacity');
             //console.log('Recording, Computed fillOpacity:', fillOpacity);
           } else {
-            positions = graffiti.processPositionsForCellTypeScaling(record,'positions');
+            stickerProcessingRecord = {
+              positions: stickerRecord.positions,
+              pen: $.extend(true, {}, record.pen, stickerRecord.pen),
+              cellId: record.cellId,
+              innerCellRect: record.innerCellRect,
+            }
+            // console.log('Graffiti: sticker rendering.  record', record, 'stickerRecord', stickerRecord, 'stickerProcessingRecord', stickerProcessingRecord);
+            positions = graffiti.processPositionsForCellTypeScaling(stickerProcessingRecord,'positions');
             fillOpacity = stickerRecord.pen.fillOpacity;
-            //console.log('playbac Computed fillOpacity:', fillOpacity, stickerRecord);
+            // console.log('playback Computed fillOpacity:', fillOpacity, stickerRecord);
           }
           if (type === 'lineWithArrow') {
             stickerX = positions.start.x;
@@ -1696,7 +1705,7 @@ define([
             } 
             stickerHeight = stickerWidth;
           }
-          const dimensions = {
+          dimensions = {
             x: stickerX,
             y: stickerY,
             width: stickerWidth,
@@ -1928,13 +1937,20 @@ define([
               });
               break;
             case 'custom':
-              const recordingCellInfo = state.getRecordingCellInfo();
-              if (recordingCellInfo.recordingRecord.stickerImageUrl !== undefined) {
+              let stickerImageUrl;
+              if (activity === 'recording') {
+                const recordingCellInfo = state.getRecordingCellInfo();
+                stickerImageUrl = recordingCellInfo.recordingRecord.stickerImageUrl;
+              } else {
+                stickerImageUrl = state.getStickerImageUrl();
+              }
+              if (stickerImageUrl !== undefined) {
                 generatedStickerHtml = stickerLib.makeCustom({
                   dimensions: dimensions,
-                  imageUrl: recordingCellInfo.recordingRecord.stickerImageUrl,
+                  imageUrl: stickerImageUrl,
                   cssTransform: cssTransform
                 });
+                opacityOverride = 1.0; // make parent opacity maximum so child images are fully visible
               } else {
                 generatedStickerHtml = stickerLib.makeRectangle({
                   color:  'lightgrey',
@@ -1948,6 +1964,7 @@ define([
               break;
           }
           newInnerHtml.push(generatedStickerHtml);
+          canvasElem.css({opacity:opacityOverride});
         }
         const finalInnerHtml = newInnerHtml.join('');
         canvasElem.html(finalInnerHtml);
@@ -3408,6 +3425,9 @@ define([
           //console.log('cellId', cellId, 'hoverCellId', record.hoverCell.metadata.graffitiCellId, 'positions', positions.start.y, 'scalarX', scalarX, 'scalarY', scalarY);
           //}
         } else {
+          //
+          // Drawing and sticker scaling code begins here.
+          //
           positionsRaw = { start: { x: record.positions.start.x, y: record.positions.start.y },
                            end:   { x: record.positions.end.x, y: record.positions.end.y } };
           cell = utils.findCellByCellId(record.cellId);
