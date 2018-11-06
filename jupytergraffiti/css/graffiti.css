@@ -7,7 +7,7 @@
   left:0;
   pointer-events:none;
   opacity: 0.5;
-  z-index:100;
+  z-index:103;
 }
 
 #graffiti-drawing-screen {
@@ -347,7 +347,7 @@
   margin-bottom:2px;
 }
 
-.graffiti-sticker-button {
+.graffiti-stickers-button {
   cursor:pointer;
   margin-right:4px;
   position:relative;
@@ -358,13 +358,8 @@
   border:1px solid #ccc;
 }
 
-.graffiti-sticker-button:hover {
+.graffiti-stickers-button:hover {
   border:1px solid black;
-}
-
-.graffiti-sticker-outer img {
-  position:absolute;
-  opacity:1.0 !important;
 }
 
 #graffiti-sticker-custom {
@@ -638,7 +633,12 @@ http://www.patternify.com/
 .graffiti-sticker-outer {
   pointer-events:none;
   opacity:0.5;
-  z-index:10;
+  z-index:102;
+}
+
+.graffiti-sticker-outer img {
+  position:absolute;
+  opacity:1.0 !important;
 }
 
 .graffiti-sticker-inner {

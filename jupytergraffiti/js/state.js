@@ -76,7 +76,6 @@ define([
           downInMarkdown: false,    // Whether the pen went down in a markdown cell
           downInPromptArea: false,  // Whether the pen went down in the prompt area
           inPromptArea: false,      // True if the pen is in Jupyter's "prompt" div. This part of drawings/stickers will not be scaled in X, only in Y (if in markdown cell)
-          useStickerImage: false,   // True if we are drawing with a custom image
           permanence: 'temporary', // default: ink disappears after a second of inactivity
           type: 'line', // one of 'line', 'highlight', 'eraser', 'sticker'
           color: 'black',
@@ -390,9 +389,6 @@ define([
             break;
           case 'promptWidth':
             drawingState.promptWidth = data;
-            break;
-          case 'useStickerImage':
-            drawingState.pen.useStickerImage = data;
             break;
           case 'stickerOnGrid':
             drawingState.stickerOnGrid = data;
@@ -962,8 +958,12 @@ define([
           type = 'view'; // override passed-in type: focus is a view type
           break;
         case 'drawings':
+          record = state.createDrawingRecord(); 
+          break;
         case 'stickers':
-          record = state.createDrawingRecord(); // these are identical, except for the drawingActivity field and related data
+          record = state.createDrawingRecord(); 
+          delete(record.positions);             // unnecessary because stickerRecords each have their own positions
+          type = 'drawings';                    // stickers and drawings are identical except for the stickersOnGrid field and the positions data in stickerRecords
           break;
         case 'selections':
           record = state.createSelectionsRecord();

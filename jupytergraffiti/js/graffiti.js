@@ -622,37 +622,37 @@ define([
                                       '  <div id="graffiti-stickers-header">' + stickersExpando + '<div>Stickers <span>(Select, then click & drag)</span></div></div>' +
                                       '  <div id="graffiti-stickers-body">' +
                                       '    <div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-lineWithArrow">' + lineWithArrow + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-horizontalBrackets">' + horizontalBrackets + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-verticalBrackets">' + verticalBrackets + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-curlyBraces">' + curlyBraces + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-lineWithArrow">' + lineWithArrow + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-horizontalBrackets">' + horizontalBrackets + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-verticalBrackets">' + verticalBrackets + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-curlyBraces">' + curlyBraces + '</div>' +
                                       '    </div>' +
                                       '    <div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-rectangle">' + rectangle + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-roundRectangle">' + roundRectangle + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-ellipse">' + ellipse + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-rightTriangle">' + rightTriangle + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-isocelesTriangle">' + isocelesTriangle + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-rectangle">' + rectangle + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-roundRectangle">' + roundRectangle + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-ellipse">' + ellipse + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-rightTriangle">' + rightTriangle + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-isocelesTriangle">' + isocelesTriangle + '</div>' +
                                       '    </div>' +
                                       '    <div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-checkmark">' + checkMark + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-xmark">' + xMark + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-smiley">' + smiley + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-bomb">' + bomb + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-trophy">' + trophy + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-checkmark">' + checkMark + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-xmark">' + xMark + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-smiley">' + smiley + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-bomb">' + bomb + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-trophy">' + trophy + '</div>' +
                                       '    </div>' +
                                       '    <div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-pi">' + pi + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-alpha">' + alpha + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-beta">' + beta + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-sigma">' + sigma + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-theta">' + theta + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-pi">' + pi + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-alpha">' + alpha + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-beta">' + beta + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-sigma">' + sigma + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-theta">' + theta + '</div>' +
                                       '    </div>' +
                                       '    <div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-axis">' + axis + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-grid">' + grid + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-angle">' + angle + '</div>' +
-                                      '      <div class="graffiti-sticker-button" id="graffiti-sticker-custom">' + 'Cs' + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-axis">' + axis + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-grid">' + grid + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-angle">' + angle + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-custom">' + 'Cs' + '</div>' +
                                       '    </div>' +
                                       '  </div>' +
                                       '  <div id="graffiti-sticker-style-controls">' +
@@ -695,7 +695,7 @@ define([
                                           fn: (e) => {
                                             let stickerId = $(e.target).attr('id');
                                             if (stickerId === undefined) {
-                                              stickerId = $(e.target).parents('.graffiti-sticker-button').attr('id');
+                                              stickerId = $(e.target).parents('.graffiti-stickers-button').attr('id');
                                             }
                                             const cleanStickerId = stickerId.replace('graffiti-sticker-','');
                                             console.log('Sticker chosen:', cleanStickerId);
@@ -1646,6 +1646,88 @@ define([
         }
       },        
 
+      processPositionsForCellTypeScaling: (record, type) => {
+        let positions, scalarX, scalarY, positionsRaw, cell, cellId, cellRects, denomWidth, denomHeight;
+        // console.log('scalarX', scalarX, 'scalarY', scalarY);
+        if (type === 'cursor') {
+          // Scale the cursor position. The cell the cursor is hovering over is in the cellId field, unless the
+          // drawingActivity was 'sticker' when this record was made, in which case we'll scale to the cell under
+          // the starting coordinates of the sticker to match what happens when we scale the sticker itself.
+          if (record.stickerInfo !== undefined) {
+            cellId = record.stickerInfo.cellId;
+            denomWidth = record.stickerInfo.width;
+            denomHeight = record.stickerInfo.height;
+          } else {
+            cellId = record.cellId;
+            denomWidth = record.innerCellRect.width;
+            denomHeight = record.innerCellRect.height;
+          }
+          cell = utils.findCellByCellId(cellId);
+          cellRects = utils.getCellRects(cell);
+          scalarX = cellRects.innerCellRect.width / denomWidth;
+          scalarY = cellRects.innerCellRect.height / denomHeight;
+          positionsRaw = { x: record.x, y: record.y };
+          if (!record.inMarkdownCell) {
+            // in code cells, or if pen went down in prompt area, just use positions verbatim
+            positions = { start: { x: positionsRaw.x, y: positionsRaw.y } };
+          } else {
+            if (record.inPromptArea || record.downInPromptArea) {
+              // in prompt area only scale y value
+              positions = { start: { x: positionsRaw.x, y: positionsRaw.y * scalarY } };
+            } else {
+              // in markdown area, scale full position.
+              positions = { start: { x: (positionsRaw.x - record.promptWidth) * scalarX + cellRects.promptRect.width,
+                                     y: positionsRaw.y * scalarY } };
+            }
+          }
+          //if (record.drawingActivity === 'sticker') {
+          //console.log('cellId', cellId, 'hoverCellId', record.hoverCell.metadata.graffitiCellId, 'positions', positions.start.y, 'scalarX', scalarX, 'scalarY', scalarY);
+          //}
+        } else {
+          //
+          // Drawing and sticker scaling code begins here.
+          //
+          positionsRaw = { start: { x: record.positions.start.x, y: record.positions.start.y },
+                           end:   { x: record.positions.end.x, y: record.positions.end.y } };
+          cell = utils.findCellByCellId(record.cellId);
+          cellRects = utils.getCellRects(cell);
+          scalarX = cellRects.innerCellRect.width / record.innerCellRect.width ;
+          scalarY = cellRects.innerCellRect.height / record.innerCellRect.height;
+          // If this drawing/sticker started in a markdown cell, we will attempt to scale both x and y coords in the inner_cell rect area but 
+          // NOT the prompt area.
+          if (record.pen.downInMarkdown) {
+            if (record.pen.downInPromptArea) {
+              //console.log('inPromptArea and did not start in prompt area');
+              // if pen went down in prompt area of a markdown cell, scale the Y value only. 
+              positions = { start: { x: positionsRaw.start.x,
+                                     y: positionsRaw.start.y * scalarY },
+                            end:   { x: positionsRaw.end.x,
+                                     y: positionsRaw.end.y * scalarY }
+              };
+            } else {
+              if (record.pen.inPromptArea) {
+                scalarX = 1;
+              }
+              // In the inner_cell, scale both x and y. First subtract the historical prompt width, then scale the value up/down, and then
+              // add the current prompt width to calculate the final X (UNLESS we are drawing in the prompt area, then do not scale in X).
+              // Y is just scaled by change in cell height.
+              positions = { start: { x: (positionsRaw.start.x - record.promptWidth) * scalarX + cellRects.promptRect.width,
+                                     y: positionsRaw.start.y * scalarY },
+                            end:   { x: (positionsRaw.end.x - record.promptWidth) * scalarX + cellRects.promptRect.width,
+                                     y: positionsRaw.end.y * scalarY }
+              };
+            }
+          } else {
+            // we don't scale anything if we started in a code cell. Just leave everything as recorded.
+            positions = { 
+              start: { x : positionsRaw.start.x, y: positionsRaw.start.y },
+              end: {   x : positionsRaw.end.x,   y: positionsRaw.end.y }
+            }
+          }
+        }
+        return positions;
+      },
+
       // calculate correct offsets based on innerCellRect / dx, dy etc
       drawStickersForCell: (cellId, stickerPermanence,record) => {
         const activity = state.getActivity();
@@ -1977,6 +2059,7 @@ define([
         // Replace active sticker if there is one, or add a new active sticker
         const stickers = graffiti.stickers[stickerPermanence][cellId].stickers;
         let stickerRecord = state.createDrawingRecord();
+        stickerRecord.stickerOnGrid = state.getDrawingStateField('stickerOnGrid');
         // console.log('stickerRecord', stickerRecord);
         //console.log('stickerRecordEnd:', stickerRecord.positions.start.x, stickerRecord.positions.start.y, stickerRecord.positions.end.x, stickerRecord.positions.end.y);
         stickerRecord.active = true;
@@ -2006,7 +2089,9 @@ define([
             const drawingPermanence = state.getDrawingPenAttribute('permanence');
             const cellId = (drawingActivity === 'sticker' ? state.getDrawingStateField('cellId') : viewInfo.cellId);
             const cellRect = graffiti.placeCanvas(cellId, drawingPermanence);
+            let drawingRecordType;
             if (drawingActivity === 'sticker') {
+              drawingRecordType = 'stickers';
               const mouseDownPosition = state.getDrawingPenAttribute('mouseDownPosition');
               state.updateDrawingState([
                 { change:'positions', 
@@ -2027,6 +2112,7 @@ define([
               ]);
               graffiti.updateStickerDisplayWhenRecording(drawingPermanence);
             } else {
+              drawingRecordType = 'drawings';
               const drawingPenType = state.getDrawingPenAttribute('type');
               const drawingPenDash = state.getDrawingPenAttribute('dash');
               const drawingPenColor = state.getDrawingPenAttribute('color');
@@ -2059,7 +2145,7 @@ define([
                 }, 
               ]);
             }
-            state.storeHistoryRecord('drawings');
+            state.storeHistoryRecord(drawingRecordType);
           }
         }
       },
@@ -3385,88 +3471,6 @@ define([
             };
           }
         }
-      },
-
-      processPositionsForCellTypeScaling: (record, type) => {
-        let positions, scalarX, scalarY, positionsRaw, cell, cellId, cellRects, denomWidth, denomHeight;
-        // console.log('scalarX', scalarX, 'scalarY', scalarY);
-        if (type === 'cursor') {
-          // Scale the cursor position. The cell the cursor is hovering over is in the cellId field, unless the
-          // drawingActivity was 'sticker' when this record was made, in which case we'll scale to the cell under
-          // the starting coordinates of the sticker to match what happens when we scale the sticker itself.
-          if (record.stickerInfo !== undefined) {
-            cellId = record.stickerInfo.cellId;
-            denomWidth = record.stickerInfo.width;
-            denomHeight = record.stickerInfo.height;
-          } else {
-            cellId = record.cellId;
-            denomWidth = record.innerCellRect.width;
-            denomHeight = record.innerCellRect.height;
-          }
-          cell = utils.findCellByCellId(cellId);
-          cellRects = utils.getCellRects(cell);
-          scalarX = cellRects.innerCellRect.width / denomWidth;
-          scalarY = cellRects.innerCellRect.height / denomHeight;
-          positionsRaw = { x: record.x, y: record.y };
-          if (!record.inMarkdownCell) {
-            // in code cells, or if pen went down in prompt area, just use positions verbatim
-            positions = { start: { x: positionsRaw.x, y: positionsRaw.y } };
-          } else {
-            if (record.inPromptArea || record.downInPromptArea) {
-              // in prompt area only scale y value
-              positions = { start: { x: positionsRaw.x, y: positionsRaw.y * scalarY } };
-            } else {
-              // in markdown area, scale full position.
-              positions = { start: { x: (positionsRaw.x - record.promptWidth) * scalarX + cellRects.promptRect.width,
-                                     y: positionsRaw.y * scalarY } };
-            }
-          }
-          //if (record.drawingActivity === 'sticker') {
-          //console.log('cellId', cellId, 'hoverCellId', record.hoverCell.metadata.graffitiCellId, 'positions', positions.start.y, 'scalarX', scalarX, 'scalarY', scalarY);
-          //}
-        } else {
-          //
-          // Drawing and sticker scaling code begins here.
-          //
-          positionsRaw = { start: { x: record.positions.start.x, y: record.positions.start.y },
-                           end:   { x: record.positions.end.x, y: record.positions.end.y } };
-          cell = utils.findCellByCellId(record.cellId);
-          cellRects = utils.getCellRects(cell);
-          scalarX = cellRects.innerCellRect.width / record.innerCellRect.width ;
-          scalarY = cellRects.innerCellRect.height / record.innerCellRect.height;
-          // If this drawing/sticker started in a markdown cell, we will attempt to scale both x and y coords in the inner_cell rect area but 
-          // NOT the prompt area.
-          if (record.pen.downInMarkdown) {
-            if (record.pen.downInPromptArea) {
-              //console.log('inPromptArea and did not start in prompt area');
-              // if pen went down in prompt area of a markdown cell, scale the Y value only. 
-              positions = { start: { x: positionsRaw.start.x,
-                                     y: positionsRaw.start.y * scalarY },
-                            end:   { x: positionsRaw.end.x,
-                                     y: positionsRaw.end.y * scalarY }
-              };
-            } else {
-              if (record.pen.inPromptArea) {
-                scalarX = 1;
-              }
-              // In the inner_cell, scale both x and y. First subtract the historical prompt width, then scale the value up/down, and then
-              // add the current prompt width to calculate the final X (UNLESS we are drawing in the prompt area, then do not scale in X).
-              // Y is just scaled by change in cell height.
-              positions = { start: { x: (positionsRaw.start.x - record.promptWidth) * scalarX + cellRects.promptRect.width,
-                                     y: positionsRaw.start.y * scalarY },
-                            end:   { x: (positionsRaw.end.x - record.promptWidth) * scalarX + cellRects.promptRect.width,
-                                     y: positionsRaw.end.y * scalarY }
-              };
-            }
-          } else {
-            // we don't scale anything if we started in a code cell. Just leave everything as recorded.
-            positions = { 
-              start: { x : positionsRaw.start.x, y: positionsRaw.start.y },
-              end: {   x : positionsRaw.end.x,   y: positionsRaw.end.y }
-            }
-          }
-        }
-        return positions;
       },
 
       updateDrawingCore: (record) => {
