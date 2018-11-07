@@ -201,22 +201,25 @@ define([
 
         graffiti.windowResizeHandler = () => {
           //console.log('Graffiti: windowResizeHandler');
-          graffiti.resizeCanvases();
-          if (graffiti.outerControlPanel.is(':visible')) {
-            const windowWidth = $(window).width();
-            const windowHeight = $(window).height();
-            const controlPanelPosition = graffiti.outerControlPanel.position();
-            const maxLeft = windowWidth - graffiti.outerControlPanel.width() - 20;
-            const maxTop = windowHeight - graffiti.outerControlPanel.height() - 20;
-            graffiti.wipeAllStickerDomCanvases();
-            // need to redraw all current stickers here
-            const activity = state.getActivity();
-            if ((activity === 'playing') || (activity === 'playbackPaused')) {
-              graffiti.redrawAllDrawings();
+          if (state.windowSizeChanged()) {
+            graffiti.resizeCanvases();
+            if (graffiti.outerControlPanel.is(':visible')) {
+              const windowWidth = $(window).width();
+              const windowHeight = $(window).height();
+              const controlPanelPosition = graffiti.outerControlPanel.position();
+              const maxLeft = windowWidth - graffiti.outerControlPanel.width() - 20;
+              const maxTop = windowHeight - graffiti.outerControlPanel.height() - 20;
+              graffiti.wipeAllStickerDomCanvases();
+              // need to redraw all current stickers here
+              const activity = state.getActivity();
+              if ((activity === 'playing') || (activity === 'playbackPaused')) {
+                const timeElapsed = state.getPlaybackTimeElapsed();
+                graffiti.redrawAllDrawings(timeElapsed);
+              }
+              graffiti.updateControlPanelPosition({ left: Math.max(0, Math.min(controlPanelPosition.left, maxLeft)),
+                                                    top: Math.max(0,Math.min(maxTop, controlPanelPosition.top)) });
+              state.setControlPanelDragging(false);
             }
-            graffiti.updateControlPanelPosition({ left: Math.max(0, Math.min(controlPanelPosition.left, maxLeft)),
-                                                  top: Math.max(0,Math.min(maxTop, controlPanelPosition.top)) });
-            state.setControlPanelDragging(false);
           }
         };
         const windowResizeDebounced = _.debounce(graffiti.windowResizeHandler, 100);
@@ -1629,6 +1632,7 @@ define([
       },
       
       wipeAllStickerDomCanvases: () => {
+        console.log('wipeAllStickerDomCanvases');
         $('.graffiti-sticker-outer').empty();
       },
 
@@ -1729,39 +1733,38 @@ define([
       },
 
       // calculate correct offsets based on innerCellRect / dx, dy etc
-      drawStickersForCell: (cellId, stickerPermanence,record) => {
+      drawStickersForCell: (cellId,record) => {
         const activity = state.getActivity();
-        graffiti.placeStickerCanvas(cellId, stickerPermanence);
-        let stickerX, stickerY, fillOpacity, width, height, stickerWidth, stickerHeight, generatedStickerElem, pen, type, positions, p1x,p1y,p2x,p2y;
-        let newInnerHtml = [];
-        let stickersRecords, dimensions, stickerProcessingRecord;
-        let canvasElem = graffiti.stickers[stickerPermanence][cellId].canvas;
-        let opacityOverride = canvasElem.css('opacity');
-        canvasElem.empty();
+        const canvasTypes = ['temporary', 'permanent'], canvasElements = {};
+        let canvasType, newInnerHtml = {}, finalInnerHtml;
+        for (canvasType of canvasTypes) {
+          graffiti.placeStickerCanvas(cellId, canvasType);
+          canvasElements[canvasType] = {elem: graffiti.stickers[canvasType][cellId].canvas };
+          canvasElements[canvasType].opacityOverride = canvasElements[canvasType].elem.css('opacity');
+          newInnerHtml[canvasType] = [];
+        }
+        let stickerPermanence, stickerX, stickerY, fillOpacity, width, height, stickerWidth, stickerHeight, 
+            generatedStickerElem, pen, type, positions, p1x,p1y,p2x,p2y,
+            stickersRecords, dimensions, stickerProcessingRecord;
         if (record !== undefined) {
           stickersRecords = record.stickersRecords;
         } else { 
+          stickerPermanence = state.getDrawingPenAttribute('permanence');
           stickersRecords = graffiti.stickers[stickerPermanence][cellId].stickers; 
         }
-        //console.log('Graffiti: drawStickersForCell');
         for (let stickerRecord of stickersRecords) {
           pen = stickerRecord.pen;
           type = pen.stickerType;
+          stickerPermanence = pen.permanence;
           if (activity === 'recording') {
             positions = stickerRecord.positions;
             fillOpacity = state.getDrawingPenAttribute('fillOpacity');
             //console.log('Recording, Computed fillOpacity:', fillOpacity);
           } else {
-            stickerProcessingRecord = {
-              positions: stickerRecord.positions,
-              pen: $.extend(true, {}, record.pen, stickerRecord.pen),
-              cellId: record.cellId,
-              innerCellRect: record.innerCellRect,
-            }
+            stickerRecord.cellId = cellId;
             // console.log('Graffiti: sticker rendering.  record', record, 'stickerRecord', stickerRecord, 'stickerProcessingRecord', stickerProcessingRecord);
-            positions = graffiti.processPositionsForCellTypeScaling(stickerProcessingRecord,'positions');
+            positions = graffiti.processPositionsForCellTypeScaling(stickerRecord,'positions');
             fillOpacity = stickerRecord.pen.fillOpacity;
-            // console.log('playback Computed fillOpacity:', fillOpacity, stickerRecord);
           }
           if (type === 'lineWithArrow') {
             stickerX = positions.start.x;
@@ -2032,7 +2035,7 @@ define([
                   imageUrl: stickerImageUrl,
                   cssTransform: cssTransform
                 });
-                opacityOverride = 1.0; // make parent opacity maximum so child images are fully visible
+                canvasElements[stickerPermanence].opacityOverride = 1.0; // make parent opacity maximum so child images are fully visible
               } else {
                 generatedStickerHtml = stickerLib.makeRectangle({
                   color:  'lightgrey',
@@ -2045,11 +2048,17 @@ define([
               }
               break;
           }
-          newInnerHtml.push(generatedStickerHtml);
-          canvasElem.css({opacity:opacityOverride});
+          newInnerHtml[stickerPermanence].push(generatedStickerHtml);
         }
-        const finalInnerHtml = newInnerHtml.join('');
-        canvasElem.html(finalInnerHtml);
+        // Finally, render all sticker html now that it's built.
+        for (canvasType of canvasTypes) {
+          if (newInnerHtml[canvasType].length > 0) { // only redraw canvas that has elements drawn during this frame
+            canvasElements[canvasType].elem.empty();
+            finalInnerHtml = newInnerHtml[canvasType].join('');
+            canvasElements[canvasType].elem.html(finalInnerHtml);
+            canvasElements[canvasType].elem.css({opacity:canvasElements[canvasType].opacityOverride});
+          }
+        }
       },
 
       updateStickerDisplayWhenRecording: (stickerPermanence) => {
@@ -2058,8 +2067,8 @@ define([
 
         // Replace active sticker if there is one, or add a new active sticker
         const stickers = graffiti.stickers[stickerPermanence][cellId].stickers;
-        let stickerRecord = state.createDrawingRecord();
-        stickerRecord.stickerOnGrid = state.getDrawingStateField('stickerOnGrid');
+        let stickerRecord = state.createStickerRecord();
+        // stickerRecord.stickerOnGrid = state.getDrawingStateField('stickerOnGrid');
         // console.log('stickerRecord', stickerRecord);
         //console.log('stickerRecordEnd:', stickerRecord.positions.start.x, stickerRecord.positions.start.y, stickerRecord.positions.end.x, stickerRecord.positions.end.y);
         stickerRecord.active = true;
@@ -2078,7 +2087,7 @@ define([
         // Store the state for later redrawing.
         state.storeStickersStateForCell(graffiti.stickers[stickerPermanence][cellId].stickers, cellId);
         // Now rerender all stickers for this cell
-        graffiti.drawStickersForCell(cellId, stickerPermanence);
+        graffiti.drawStickersForCell(cellId);
       },
 
       // This fn is called on mousemove, which means fade counts always reset, and we clear the temporary ink completely if it was part way through a fade
@@ -2689,7 +2698,7 @@ define([
           }
         });
 
-        graffiti.handleSliderDragDebounced = _.debounce(graffiti.handleSliderDrag, 20);
+        graffiti.handleSliderDragDebounced = _.debounce(graffiti.handleSliderDrag, 20, true);
 
         console.log('Graffiti: Background setup complete.');
       },
@@ -3492,7 +3501,7 @@ define([
                                           record.pen.permanence);
             break;
           case 'sticker':
-            graffiti.drawStickersForCell(record.cellId, record.pen.permanence, record);
+            graffiti.drawStickersForCell(record.cellId, record);
             break;
           case 'fade':
             $('.graffiti-canvas-type-temporary').css({opacity: record.opacity });
@@ -3835,7 +3844,7 @@ define([
         // Handle slider drag
         const target = $('#graffiti-recorder-range');
         const timeLocation = target.val() / 1000;
-        // console.log('slider value:', timeLocation);
+        // console.log('handleSliderDrag, slider value:', timeLocation);
         state.clearSetupForReset();
         state.resetRapidPlayTime();
         graffiti.undimGraffitiCursor();
@@ -3935,6 +3944,12 @@ define([
           state.clearCellOutputsSent();
           graffiti.scrollNudgeAverages = [];
           graffiti.setJupyterMenuHint('Press ESC to end movie playback');
+          const stickerImageCandidateUrl = state.getStickerImageCandidateUrl();
+          if (stickerImageCandidateUrl !== undefined) {
+            state.setStickerImageUrl(stickerImageCandidateUrl);
+          } else {
+            state.setStickerImageUrl(undefined);
+          }
         }
 
         if ((activity === 'idle') || (activity === 'notifying') || (activity === 'playbackPaused')) {

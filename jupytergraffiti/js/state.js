@@ -53,6 +53,7 @@ define([
       state.cellOutputsSent = {};
       state.lastStickerPositions = undefined;
       state.stickerImageUrl = undefined;
+      state.stickerImageCandidateUrl = undefined;
       state.cellIdsAddedDuringRecording = {};
       state.cellStates = {
         contents: {},
@@ -196,6 +197,20 @@ define([
       return { width: $(window).width(), height: $(window).height() }
     },
 
+    getStoredWindowSize: () => {
+      return state.windowSize;
+    },
+
+    windowSizeChanged: () => {
+      const currentWindowSize = state.getWindowSize();
+      const previousWindowSize = state.getStoredWindowSize();
+      if ((previousWindowSize.width !== currentWindowSize.width) || (previousWindowSize.height !== currentWindowSize.height)) {
+        state.windowSize = state.getWindowSize();
+        return true;
+      }
+      return false;
+    },
+
     setTipTimeout: (tipFunc, t) => {
       state.clearTipTimeout();
       state.tipTimeout = setTimeout(tipFunc, t);
@@ -247,6 +262,16 @@ define([
       state.stickerImageUrl = stickerImageUrl;
     },
 
+    getStickerImageCandidateUrl: (stickerImageCandidateUrl) => {
+      return state.stickerImageCandidateUrl;
+    },
+
+    // We set this in setPlayableMovie(). 
+    // When we start playing a movie, we use this to set the final candidate for the movie, which was set by %%custom_sticker in tooltip.
+    setStickerImageCandidateUrl: (stickerImageCandidateUrl) => {
+      state.stickerImageCandidateUrl = stickerImageCandidateUrl;
+    },
+    
     saveSelectedCellId: (cellId) => {
       state.selectedCellId = cellId;
     },
@@ -337,9 +362,17 @@ define([
       if ((stickers !== undefined) && (stickers.length > 0)) {
         stickersRecords = [];
         for (let sticker of stickers) {
+          // Copy important fields from the "live" sticker records into the drawing state; these will be persisted as sticker records
+          // inside drawing records for later playback.
           stickersRecords.push({
             positions: { start: { x: sticker.positions.start.x, y: sticker.positions.start.y },
                          end:   { x: sticker.positions.end.x, y: sticker.positions.end.y } },
+            innerCellRect: {
+              left: sticker.innerCellRect.left,
+              top:  sticker.innerCellRect.top,
+              width:  sticker.innerCellRect.width,
+              height:  sticker.innerCellRect.height,
+            },
             pen: {
               stickerType: sticker.pen.stickerType,
               color: sticker.pen.color,
@@ -347,13 +380,17 @@ define([
               fill:  sticker.pen.fill,
               fillOpacity:  sticker.pen.fillOpacity,
               permanence: sticker.pen.permanence,
+              downInMarkdown: sticker.pen.downInMarkdown,
+              downInPromptArea: sticker.pen.downInPromptArea,
+              inPromptArea: sticker.pen.inPromptArea,
             },
-            stickerOnGrid: sticker.stickerOnGrid
+            stickerOnGrid: sticker.stickerOnGrid,
+            promptWidth: sticker.promptWidth,
           });
         }
       }
       state.drawingState.stickersRecords = stickersRecords;
-      // console.log('stickersRecords:', stickersRecords);
+      //console.log('stickersRecords:', stickersRecords);
     },
 
     updateDrawingState: (changeSets) => {
@@ -565,8 +602,8 @@ define([
       if (timeElapsed === undefined) {
         const timePlayedSoFar = state.getTimePlayedSoFar();
         state.playbackTimeElapsed = timePlayedSoFar;
-        console.log('Graffiti: setPlaybackTimeElapsed: playbackTimeElapsed=', state.playbackTimeElapsed,
-                    'timePlayedSoFar=', timePlayedSoFar, 'playbackStartTime', state.playbackStartTime);
+        // console.log('Graffiti: setPlaybackTimeElapsed: playbackTimeElapsed=', state.playbackTimeElapsed,
+        //     'timePlayedSoFar=', timePlayedSoFar, 'playbackStartTime', state.playbackStartTime);
       } else {
         state.playbackTimeElapsed = timeElapsed;
       }
@@ -660,16 +697,14 @@ define([
         const recording = state.getManifestSingleRecording(cellId, recordingKey);
         const activeTakeId = recording.activeTakeId;
         state.playableMovies[kind] = { cellId: cellId, recordingKey: recordingKey, activeTakeId: activeTakeId, cell: cell, cellType: cell.cell_type, };
-        if (state.getActivity() === 'idle') {
-          state.setStickerImageUrl(recording.stickerImageUrl);
-        }
+        state.setStickerImageCandidateUrl(recording.stickerImageUrl);
         return recording;
       }
       return undefined;
     },
 
     clearPlayableMovie: (kind) => {
-      console.log('Graffiti: clearing playable movie');
+      //console.log('Graffiti: clearing playable movie');
       state.playableMovies[kind] = undefined;
     },
 
@@ -719,7 +754,7 @@ define([
     storeCellAddition: (cellId, position) => {
       if (state.activity === 'recording') {
         state.history.cellAdditions[cellId] = position;
-        console.log('cellAdditions:', state.cellAdditions);
+        //console.log('cellAdditions:', state.cellAdditions);
       }
     },
 
@@ -777,7 +812,7 @@ define([
       });
     },
 
-    createDrawingRecord: () => {
+    createDrawingRecord: (opts) => {
       const cell = utils.findCellByCellId(state.drawingState.cellId);
       const cellRects = utils.getCellRects(cell);
       let record = $.extend(true, {}, {
@@ -789,15 +824,45 @@ define([
         }
       }, state.drawingState);
 
-      // Remove statuses that are not needed in history records
-      delete(record.drawingModeActivated);
-      delete(record.pen.isDown);
-      delete(record.wipe);
-      delete(record.stickerActive);
-      delete(record.stickerOnGrid);
+      // Remove drawing status fields that are not needed in history records
+      delete(record['drawingModeActivated']);
+      delete(record.pen['isDown']);
+      delete(record.pen['mouseDownPosition']);
+      delete(record['wipe']);
+      delete(record['stickerActive']);
+      delete(record['stickerOnGrid']);
+      if (opts.stickering) {
+        // Remove unnecessary items which have more precise info in each sticker record for this drawing frame.
+        delete(record['positions']);
+        delete(record['pen']);
+        delete(record['promptWidth']);
+        delete(record['innerCellRect']);
+      }
       //console.log('createDrawingRecord:', record);
       return record;
     },
+
+    createStickerRecord: () => {
+      const cell = utils.findCellByCellId(state.drawingState.cellId);
+      const cellRects = utils.getCellRects(cell);
+      let record = $.extend(true, {}, {
+        innerCellRect: { 
+          left: cellRects.innerCellRect.left, 
+          top: cellRects.innerCellRect.top,
+          width: cellRects.innerCellRect.width,
+          height: cellRects.innerCellRect.height
+        }
+      }, state.drawingState);
+
+      // Remove drawing status fields that are not needed in history records
+      delete(record.drawingModeActivated);
+      delete(record.pen.isDown);
+      delete(record.pen['mouseDownPosition']);
+      delete(record.wipe);
+      //console.log('createStickerRecord:', record);
+      return record;
+    },
+
 
     createSelectionsRecord: () => {
       const activeCell = Jupyter.notebook.get_selected_cell();
@@ -958,12 +1023,11 @@ define([
           type = 'view'; // override passed-in type: focus is a view type
           break;
         case 'drawings':
-          record = state.createDrawingRecord(); 
+          record = state.createDrawingRecord({stickering:false});
           break;
         case 'stickers':
-          record = state.createDrawingRecord(); 
-          delete(record.positions);             // unnecessary because stickerRecords each have their own positions
-          type = 'drawings';                    // stickers and drawings are identical except for the stickersOnGrid field and the positions data in stickerRecords
+          record = state.createDrawingRecord({stickering:true});
+          type = 'drawings'; // we store sticker records as arrays within drawing records.
           break;
         case 'selections':
           record = state.createSelectionsRecord();

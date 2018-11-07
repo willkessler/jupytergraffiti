@@ -42,7 +42,7 @@
 
 .graffiti-cursor {
   position: fixed;
-  z-index:101;
+  z-index:105;
   color:#fd5;
   text-shadow:3px 2px #000;
   top: 10px;
@@ -60,7 +60,7 @@
   background-color:#fff;
   color:#222;
   position:absolute;
-  z-index:102;
+  z-index:103;
   padding:10px;
   border:1px solid #ddd;
   border-radius:5px;
@@ -633,7 +633,7 @@ http://www.patternify.com/
 .graffiti-sticker-outer {
   pointer-events:none;
   opacity:0.5;
-  z-index:102;
+  z-index:99;
 }
 
 .graffiti-sticker-outer img {
