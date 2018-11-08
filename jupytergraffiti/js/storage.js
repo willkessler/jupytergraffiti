@@ -70,9 +70,7 @@ define([
     },
 
     constructGraffitiTakePath: (pathParts) => {
-      const basePath = storage.constructBasePath();
-      let graffitiPath = basePath + storage.constructGraffitiMoviePath(pathParts) + 
-                         'takes/' + pathParts.activeTakeId + '/';
+      let graffitiPath = storage.constructGraffitiMoviePath(pathParts) + 'takes/' + pathParts.activeTakeId + '/';
       return graffitiPath;
     },
 
