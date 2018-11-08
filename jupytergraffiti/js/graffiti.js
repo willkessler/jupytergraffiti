@@ -655,7 +655,7 @@ define([
                                       '      <div class="graffiti-stickers-button" id="graffiti-sticker-axis">' + axis + '</div>' +
                                       '      <div class="graffiti-stickers-button" id="graffiti-sticker-grid">' + grid + '</div>' +
                                       '      <div class="graffiti-stickers-button" id="graffiti-sticker-angle">' + angle + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-text">' + 'Tt' + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-label">' + 'Tt' + '</div>' +
                                       '      <div class="graffiti-stickers-button" id="graffiti-sticker-custom">' + 'Cs' + '</div>' +
                                       '    </div>' +
                                       '  </div>' +
@@ -693,7 +693,7 @@ define([
                                             'graffiti-sticker-curlyBraces',
                                             'graffiti-sticker-ellipse',
                                             'graffiti-sticker-pi',
-                                            'graffiti-sticker-text',
+                                            'graffiti-sticker-label',
                                             'graffiti-sticker-custom'
                                           ],
                                           event: 'click',
@@ -1741,6 +1741,7 @@ define([
       // calculate correct offsets based on innerCellRect / dx, dy etc
       drawStickersForCell: (cellId,record) => {
         const activity = state.getActivity();
+        const currentlyRecording = (activity === 'recording');
         const canvasTypes = ['temporary', 'permanent'], canvasElements = {};
         let canvasType, newInnerHtml = {}, finalInnerHtml;
         for (canvasType of canvasTypes) {
@@ -1762,7 +1763,7 @@ define([
           pen = stickerRecord.pen;
           type = pen.stickerType;
           stickerPermanence = pen.permanence;
-          if (activity === 'recording') {
+          if (currentlyRecording) {
             positions = stickerRecord.positions;
             fillOpacity = state.getDrawingPenAttribute('fillOpacity');
             //console.log('Recording, Computed fillOpacity:', fillOpacity);
@@ -2027,22 +2028,31 @@ define([
                 arrowHeadSize: 6
               });
               break;
-            case 'text':
+            case 'label':
               // Draw grey rectangle; 
               // If recording, on mouseup, we will put a centered input box in the space.
-              // If not recording, render a text label scaled by the size of this box.
-              generatedStickerHtml = stickerLib.makeRectangle({
-                color:  'lightgrey',
-                fill:   pen.fill,
-                dashed: 'dashed',
-                strokeWidth: 3,
-                dimensions: dimensions,
-                fillOpacity: 0,
-              });
+              if (currentlyRecording) {
+                generatedStickerHtml = stickerLib.makeRectangle({
+                  color:  'lightgrey',
+                  fill:   pen.fill,
+                  dashed: 'dashed',
+                  strokeWidth: 3,
+                  dimensions: dimensions,
+                  fillOpacity: 0,
+                });
+              } else {
+                // If not recording, render a text label scaled by the size of this box.
+                generatedStickerHtml = stickerLib.makeLabel({
+                  labelText:   'Hello Watson!',
+                  color:  pen.color,
+                  fill:   pen.fill,
+                  dimensions: dimensions,
+                });
+              }
               break;
             case 'custom':
               let stickerImageUrl;
-              if (activity === 'recording') {
+              if (currentlyRecording) {
                 const recordingCellInfo = state.getRecordingCellInfo();
                 stickerImageUrl = recordingCellInfo.recordingRecord.stickerImageUrl;
               } else {

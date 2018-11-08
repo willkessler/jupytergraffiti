@@ -367,6 +367,11 @@
   font-size:14px;
 }
 
+.graffiti-label {
+  position:absolute;
+  text-align:center;
+}
+
 #graffiti-stickers-shell .graffiti-active-sticker {
   outline:1px dashed red !important;
   outline-offset:1px;

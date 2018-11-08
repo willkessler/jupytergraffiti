@@ -897,6 +897,15 @@ define([
       return udacityHtml;
     },
 
+    makeLabel: (opts) => {
+      const dimensions = opts.dimensions;
+      let labelHtml = '<div class="graffiti-label" style="width:' + dimensions.width + 'px;height:' + dimensions.height + 'px;' +
+                       'top:' + dimensions.y + 'px;left:' + dimensions.x + 'px;opacity:1.0;">';
+      labelHtml += opts.labelText + '</div>';
+
+      return labelHtml;
+    },
+
     makeCustom: (opts) => {
       const dimensions = opts.dimensions;
       let customHtml = '<img src="' + opts.imageUrl + '" style="width:' + dimensions.width + 'px;height:' + dimensions.height + 'px;' +
