@@ -199,9 +199,9 @@ define([
           graffiti.startPanelDragging(e); 
         });
 
-        graffiti.windowResizeHandler = () => {
+        graffiti.windowResizeHandler = (opts) => {
           //console.log('Graffiti: windowResizeHandler');
-          if (state.windowSizeChanged()) {
+          if (state.windowSizeChanged() || (opts !== undefined && opts.force)) {
             graffiti.resizeCanvases();
             if (graffiti.outerControlPanel.is(':visible')) {
               const windowWidth = $(window).width();
@@ -713,7 +713,7 @@ define([
                                             if ($('#graffiti-stickers-expando').hasClass('graffiti-expando-closed')) {
                                               $('#graffiti-stickers-expando').removeClass('graffiti-expando-closed').addClass('graffiti-expando-open');
                                               setTimeout(() => {
-                                                graffiti.windowResizeHandler();
+                                                graffiti.windowResizeHandler({force:true});
                                               }, 400);
                                             } else {
                                               $('#graffiti-stickers-expando').removeClass('graffiti-expando-open').addClass('graffiti-expando-closed');
