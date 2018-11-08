@@ -2519,6 +2519,16 @@ define([
                     const positionPx = { left: tipPosition.left + 'px', top: tipPosition.top + 'px' };
                     existingTip.css(positionPx);
                     existingTip.show();
+
+                    // increase counter of total tips shown this session
+                    state.updateUsageStats({
+                      type:'tip',
+                      data: { 
+                        cellId: cellId,
+                        recordingKey: recordingKey
+                      }
+                    });
+
                   }
                 }, 425); // this number is how long user has to hover before we display the tooltip
               }

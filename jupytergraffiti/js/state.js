@@ -63,10 +63,14 @@ define([
       // Usage statistic gathering for the current session (since last load of the notebook)
       state.usageStats = {
         notebookLoadedAt: utils.getNow(),
-        created: {},  // how many graffiti were created
+        created: {},   // how many graffiti were created
         played: {},    // how much time and how many plays were done
+        totalTipsShown: 0,  // how many times we've shown tips
+        totalUniqueTipsShown: 0,
+        totalUniquePlays: 0,
         totalPlaysAllGraffiti: 0,
-        totalPlayTimeAllGraffiti: 0
+        totalPlayTimeAllGraffiti: 0,
+        uniqueTips: {},
       };        
       state.statsKey = undefined;
 
@@ -395,8 +399,13 @@ define([
     },
 
     getUsageStats: () => {
-      return $.extend(true, {}, state.usageStats, 
-                      state.computeManifestStats());
+      const usageStats = $.extend(true, {}, state.usageStats, 
+                                  state.computeManifestStats());
+      usageStats.totalUniqueTipsShown = Object.keys(state.usageStats.uniqueTips).length;
+      usageStats.statsGatheredAt = utils.getNow();
+      delete(usageStats['uniqueTips']);
+
+      return usageStats;
     },
 
     updateUsageStats: (opts) => {
@@ -418,6 +427,14 @@ define([
           }
           state.currentStatsKey = statsKey;
           break;
+        case 'tip':
+          state.usageStats.totalTipsShown++;
+          const tipKey = [data.cellId.replace('id_', ''), data.recordingKey.replace('id_', '')].join('_');
+          if (!state.usageStats.uniqueTips.hasOwnProperty(tipKey)) {
+            state.usageStats.uniqueTips[tipKey] = 0;
+          }
+          state.usageStats.uniqueTips[tipKey]++;
+          break;
         case 'play':
           const usageRecord = playStats[state.currentStatsKey];
           for (let action of data.actions) {
@@ -436,7 +453,7 @@ define([
               case 'incrementPlayCount':
                 usageRecord.totalPlays++;
                 state.usageStats.totalPlaysAllGraffiti++;
-                state.usageStats.uniquePlays = Object.keys(playStats).length;
+                state.usageStats.totalUniquePlays = Object.keys(playStats).length;
                 break;
             }
           }
