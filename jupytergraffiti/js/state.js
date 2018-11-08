@@ -60,6 +60,15 @@ define([
         changedCells: {},
         selections: {}
       };
+      // Usage statistic gathering for the current session (since last load of the notebook)
+      state.usageStats = {
+        notebookLoadedAt: utils.getNow(),
+        created: {},  // how many graffiti were created
+        played: {},    // how much time and how many plays were done
+        totalPlaysAllGraffiti: 0,
+        totalPlayTimeAllGraffiti: 0
+      };        
+      state.statsKey = undefined;
 
       // Set up a default version of the drawing state object. This gets updated during drawing activity.
       state.drawingState = {
@@ -130,6 +139,51 @@ define([
         state.manifest[recordingCellId] = {};
       }
       state.manifest[recordingCellId][recordingKey] = recordingData;
+    },
+
+    // compute aggregate stats for this manifest: total number and time of all graffitis, how many cells have graffitis, etc.
+    computeManifestStats: () => {
+      const manifest = state.manifest;
+      const cells = Jupyter.notebook.get_cells();
+      let totals = {
+        totalGraffitis: 0,          // how many graffitis in this notebook
+        totalCells: cells.length,   // how many cells in this notebook
+        totalCellsWithGraffitis: 0, // how many cells have graffitis
+        maxGraffitiPerCell: 0,      // the maximum number of graffitis in any one cell
+        maxTakesPerGraffiti: 0,     // the maximum number of takes for any one graffiti to date
+        totalRecordedTime: 0,       // total play time of all graffitis
+      }        
+      let recording, recordingCells, recordingCellId, recordingKeys;
+      let lenCheck, activeTakeId, takes;
+      recordingCells = Object.keys(manifest);
+      if (recordingCells.length > 0) {
+        for (recordingCellId of Object.keys(manifest)) {
+          if (recordingCellId !== 'stats') { // we don't want to gather stats on the stats themselves!
+            recordingKeys = Object.keys(manifest[recordingCellId]);
+            totals.totalCellsWithGraffitis++;
+            lenCheck = recordingKeys.length;
+            if (lenCheck > 0) {
+              if (lenCheck > totals.maxGraffitiPerCell) {
+                totals.maxGraffitiPerCell = lenCheck;
+              }
+              for (recordingKey of recordingKeys) {
+                recording = manifest[recordingCellId][recordingKey];
+                totals.totalGraffitis++;
+                takes = recording.takes;
+                if (takes !== undefined) {
+                  activeTakeId = recording.activeTakeId;
+                  totals.totalRecordedTime += takes[activeTakeId].duration;
+                  lenCheck = Object.keys(takes).length;
+                  if (lenCheck > totals.maxTakesPerGraffiti) {
+                    totals.maxTakesPerGraffiti = lenCheck;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return totals;
     },
 
     getAccessLevel: () => {
@@ -340,6 +394,56 @@ define([
       state.recordingBlocked = false;
     },
 
+    getUsageStats: () => {
+      return $.extend(true, {}, state.usageStats, 
+                      state.computeManifestStats());
+    },
+
+    updateUsageStats: (opts) => {
+      const data = opts.data;
+      const playStats = state.usageStats.played;
+      switch (opts.type) {
+        case 'create':
+          break;
+        case 'setup':
+          const cellId = data.cellId;
+          const recordingKey = data.recordingKey;
+          const activeTakeId = data.activeTakeId;
+          const statsKey = [cellId.replace('id_', ''),recordingKey.replace('id_', ''), activeTakeId.replace('id_','')].join('_');
+          if (!playStats.hasOwnProperty(statsKey)) {
+            playStats[statsKey] = {
+              totalTime: 0, 
+              totalPlays: 0
+            };
+          }
+          state.currentStatsKey = statsKey;
+          break;
+        case 'play':
+          const usageRecord = playStats[state.currentStatsKey];
+          for (let action of data.actions) {
+            switch (action) {
+              case 'resetCurrentPlayTime':
+                delete(usageRecord['currentPlayTime']);
+                break;
+              case 'updateCurrentPlayTime':
+                usageRecord.currentPlayTime = state.getTimePlayedSoFar();
+                break;
+              case 'updateTotalPlayTime':
+                usageRecord.totalTime += usageRecord.currentPlayTime;
+                state.usageStats.totalPlayTimeAllGraffiti += usageRecord.currentPlayTime;
+                delete(usageRecord['currentPlayTime']);
+                break;
+              case 'incrementPlayCount':
+                usageRecord.totalPlays++;
+                state.usageStats.totalPlaysAllGraffiti++;
+                state.usageStats.uniquePlays = Object.keys(playStats).length;
+                break;
+            }
+          }
+      }
+      //console.log('updateUsageStats:', state.usageStats);
+    },
+    
     //
     // Drawing utility fns
     //

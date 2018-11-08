@@ -3867,6 +3867,12 @@ define([
           state.setPlaybackTimeElapsed();
           // Make sure, if some markdown was selected, that the active code_mirror textarea reengages to get keystrokes.
           graffiti.updateSelectedCellSelections(graffiti.sitePanel.scrollTop()); 
+          state.updateUsageStats({
+            type:'play',
+            data: {
+              actions: ['updateCurrentPlayTime']
+            }
+          });
         }
       },
 
@@ -3900,6 +3906,13 @@ define([
           utils.saveNotebook();
           state.restoreCellStates('selections');
         }
+        state.updateUsageStats({
+          type:'play',
+          data: {
+            actions: ['updateTotalPlayTime']
+          }
+        });
+        console.log('Now we got these stats:', state.getUsageStats());
       },
 
       cancelPlayback: (opts) => {
@@ -4104,6 +4117,20 @@ define([
           if (playableMovie.cellType === 'markdown') {
             playableMovie.cell.render(); // always render a markdown cell first before playing a movie on a graffiti inside it
           }
+          state.updateUsageStats({
+            type: 'setup',
+            data: {
+              cellId:        playableMovie.cellId,
+              recordingKey:  playableMovie.recordingKey,
+              activeTakeId:  playableMovie.activeTakeId,
+            }
+          });            
+          state.updateUsageStats({
+            type:'play',
+            data: {
+              actions: ['resetCurrentPlayTime', 'incrementPlayCount']
+            }
+          });
           graffiti.togglePlayback();
           graffiti.hideTip();
         }).catch( (ex) => {
@@ -4349,6 +4376,7 @@ define([
       setAuthorId: (authorId) => { state.setAuthorId(authorId) },
       transferGraffitis: () => { graffiti.transferGraffitis() },
       packageGraffitis: () => { graffiti.packageGraffitis() },
+      getUsageStats: () => { return state.getUsageStats() },
       selectionSerializer: selectionSerializer
     }
 
