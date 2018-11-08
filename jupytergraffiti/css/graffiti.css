@@ -362,7 +362,7 @@
   border:1px solid black;
 }
 
-#graffiti-sticker-custom {
+#graffiti-sticker-custom, #graffiti-sticker-text {
   font-weight:bold;
   font-size:14px;
 }

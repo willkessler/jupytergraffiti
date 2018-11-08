@@ -655,6 +655,7 @@ define([
                                       '      <div class="graffiti-stickers-button" id="graffiti-sticker-axis">' + axis + '</div>' +
                                       '      <div class="graffiti-stickers-button" id="graffiti-sticker-grid">' + grid + '</div>' +
                                       '      <div class="graffiti-stickers-button" id="graffiti-sticker-angle">' + angle + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-text">' + 'Tt' + '</div>' +
                                       '      <div class="graffiti-stickers-button" id="graffiti-sticker-custom">' + 'Cs' + '</div>' +
                                       '    </div>' +
                                       '  </div>' +
@@ -692,6 +693,7 @@ define([
                                             'graffiti-sticker-curlyBraces',
                                             'graffiti-sticker-ellipse',
                                             'graffiti-sticker-pi',
+                                            'graffiti-sticker-text',
                                             'graffiti-sticker-custom'
                                           ],
                                           event: 'click',
@@ -1355,6 +1357,8 @@ define([
               state.updateDrawingState( [ { change: 'isDown',  data: false } ]);
               state.startDrawingFadeClock();
             }
+          } else if (e.type === 'keydown') {
+            console.log('drawingScreen got key:', e);
           }
           e.preventDefault();
           e.stopPropagation();
@@ -1374,7 +1378,7 @@ define([
       },
 
       showDrawingScreen: () => {
-        graffiti.drawingScreen.show();
+        graffiti.drawingScreen.show().focus();
       },
 
       hideDrawingScreen: () => {
@@ -1384,11 +1388,13 @@ define([
       // Inspired by https://www.codicode.com/art/how_to_draw_on_a_html5_canvas_with_a_mouse.aspx
       // and : http://perfectionkills.com/exploring-canvas-drawing-techniques/
       setupDrawingScreen: () => {
-        const graffitiDrawingScreen = $('<div id="graffiti-drawing-screen"></div>');
+        // Note that the tabindex is the key to capture the keydown/up events, 
+        // cf https://stackoverflow.com/questions/3149362/capture-key-press-or-keydown-event-on-div-element
+        const graffitiDrawingScreen = $('<div tabindex="0" id="graffiti-drawing-screen"></div>');
         graffiti.drawingScreen = graffitiDrawingScreen.prependTo(graffiti.notebookContainer);
         const notebookHeight = $('#notebook').outerHeight(true);
         graffiti.drawingScreen.css({height: notebookHeight + 'px'});
-        graffiti.drawingScreen.bind('mousedown mouseup mouseleave', (e) => { graffiti.drawingScreenHandler(e) });
+        graffiti.drawingScreen.bind('mousedown mouseup mouseleave keydown keyup', (e) => { graffiti.drawingScreenHandler(e) });
       },
 
       setupSavingScrim: () => {
@@ -1423,6 +1429,7 @@ define([
         graffiti.drawingScreen.css({height: notebookHeight + 'px'});
       },
 
+      // Remove "active" attribute from whatever sticker might have rt now.
       // Pretty inefficient, good enough for time being though.
       clearAnyActiveStickerStages: () => {
         let stickerStage, stickerIndex, sticker, canvasTypes = ['temporary', 'permanent'];
@@ -1645,7 +1652,6 @@ define([
               sticker.canvas.empty();
             }
             sticker.stickers = [];
-            sticker.activeStickerIndex = 0;
           }
         }
       },        
@@ -2021,6 +2027,19 @@ define([
                 arrowHeadSize: 6
               });
               break;
+            case 'text':
+              // Draw grey rectangle; 
+              // If recording, on mouseup, we will put a centered input box in the space.
+              // If not recording, render a text label scaled by the size of this box.
+              generatedStickerHtml = stickerLib.makeRectangle({
+                color:  'lightgrey',
+                fill:   pen.fill,
+                dashed: 'dashed',
+                strokeWidth: 3,
+                dimensions: dimensions,
+                fillOpacity: 0,
+              });
+              break;
             case 'custom':
               let stickerImageUrl;
               if (activity === 'recording') {
@@ -2037,6 +2056,7 @@ define([
                 });
                 canvasElements[stickerPermanence].opacityOverride = 1.0; // make parent opacity maximum so child images are fully visible
               } else {
+                // Sticker not set or not found; just draw grey rect to let user know
                 generatedStickerHtml = stickerLib.makeRectangle({
                   color:  'lightgrey',
                   fill:   pen.fill,

@@ -446,9 +446,11 @@ define([
                 usageRecord.currentPlayTime = state.getTimePlayedSoFar();
                 break;
               case 'updateTotalPlayTime':
-                usageRecord.totalTime += usageRecord.currentPlayTime;
-                state.usageStats.totalPlayTimeAllGraffiti += usageRecord.currentPlayTime;
-                delete(usageRecord['currentPlayTime']);
+                if (state.currentStatsKey !== undefined) {
+                  usageRecord.totalTime += usageRecord.currentPlayTime;
+                  state.usageStats.totalPlayTimeAllGraffiti += usageRecord.currentPlayTime;
+                  delete(usageRecord['currentPlayTime']);
+                }
                 break;
               case 'incrementPlayCount':
                 usageRecord.totalPlays++;
