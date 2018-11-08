@@ -40,10 +40,13 @@ const UdacityUser = (function(){
     });
   }
 
+  function getUser() {
+    return getToken().then(token => getUdacityUser(token))
+  }
+
   // Display graffiti editor button only on Coco
   function setCocoEnvironment() {
-    getToken()
-    .then(token => UdacityUser.getUdacityUser(token))
+    getUser()
     .then(user => {
       user.coco && $('#graffiti-setup-button').css('display', 'inline-block');
     })
@@ -51,6 +54,6 @@ const UdacityUser = (function(){
   }
 
 	return {
-		getUdacityUser, getToken, setCocoEnvironment
+		getUser, setCocoEnvironment
 	}
 })();
