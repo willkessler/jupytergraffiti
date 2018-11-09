@@ -1298,6 +1298,7 @@ define([
       },
 
       drawingScreenHandler: (e) => {
+        let drawingActivity = state.getDrawingStateField('drawingActivity');
         if (state.getActivity() === 'recording') {
           if (e.type === 'mousedown') {
             console.log('drawingScreenHandler: mousedown');
@@ -1306,16 +1307,15 @@ define([
             graffiti.resetTemporaryCanvases();
             state.disableDrawingFadeClock();
             const stickerType = state.getDrawingPenAttribute('stickerType');
-            let drawingActivity = 'draw';
+            drawingActivity = 'draw';
             const viewInfo = state.getViewInfo();
             if (stickerType !== undefined) {
               console.log('mousedown with stickerType:', stickerType);
               drawingActivity = 'sticker';
-              if (wasFading) {
+              if (wasFading) { // terminate any fading in progress when drawing a new sticker
                 graffiti.resetStickerCanvases('temporary');
                 graffiti.wipeTemporaryStickerDomCanvases();
               }
-              //graffiti.placeSticker({dynamic:true});
               const currentPointerPosition = state.getPointerPosition();
               const penType = state.getDrawingPenAttribute('type');
               const minSize = (penType === 'lineWithArrow' ? 1 : graffiti.minimumStickerSize);
@@ -1349,13 +1349,18 @@ define([
             ]);
           } else if ((e.type === 'mouseup') || (e.type === 'mouseleave')) {
             console.log('drawingScreenHandler: ', e.type);
-            const drawingActivity = state.getDrawingStateField('drawingActivity');
             if ((drawingActivity === 'sticker') && (e.type === 'mouseup')) {
               graffiti.clearAnyActiveStickerStages();
+              // If we are using a label-type sticker, then put the label input box where the mouse is
+              if (state.getDrawingPenAttribute('stickerType') === 'label') {
+                graffiti.showLabelInputBox();
+              }
             }
             if (state.getDrawingPenAttribute('isDown')) {
               state.updateDrawingState( [ { change: 'isDown',  data: false } ]);
-              state.startDrawingFadeClock();
+              if (state.getDrawingPenAttribute('permanence') === 'temporary') {
+                state.startDrawingFadeClock();
+              }
             }
           } else if (e.type === 'keydown') {
             console.log('drawingScreen got key:', e);
@@ -1395,6 +1400,53 @@ define([
         const notebookHeight = $('#notebook').outerHeight(true);
         graffiti.drawingScreen.css({height: notebookHeight + 'px'});
         graffiti.drawingScreen.bind('mousedown mouseup mouseleave keydown keyup', (e) => { graffiti.drawingScreenHandler(e) });
+      },
+      
+      placeLabelInputBox: () => {
+        const viewInfo = state.getViewInfo();
+        const cell = utils.findCellByCellId(viewInfo.cellId);
+        const elem = $(cell.element[0]);
+        let labelInputBox = elem.find('.graffiti-label-input');
+        if (labelInputBox.length === 0) {
+          labelInputBoxElem = $('<div tabindex="0" class="graffiti-label-input"><input type="text" maxlength="50" placeholder="Enter a label..."/></div>');
+          labelInputBox = labelInputBoxElem.appendTo(elem);
+          labelInputBox.bind('keydown keyup', (e) => { graffiti.handleLabelInput(e) });
+        }
+        return labelInputBox;
+      },
+
+      showLabelInputBox: () => {
+        const labelInputBox = graffiti.placeLabelInputBox(); // make sure there is a label box
+        const currentPointerPosition = state.getPointerPosition();
+        const viewInfo = state.getViewInfo();
+        const adjustedPosition = utils.subtractCoords(viewInfo.outerCellRect, currentPointerPosition);
+        labelInputBox.show().css({left:adjustedPosition.x + 'px', top:adjustedPosition.y + 'px'}).find('input').focus();
+      },
+
+      hideLabelInputBox: () => {
+        console.log('Ending labelling');
+        $('.graffiti-label-input').val('').hide();
+      },
+
+      handleLabelInput: (e) => {
+        if (e.which === 9) {
+          e.preventDefault(); // don't let tab key buble up
+        }
+        e.stopPropagation(); // make sure keystrokes in the label input box don't bubble up to jupyter
+        if (e.type === 'keyup') {
+          if (state.getActivity() === 'recording') {
+            // If user hits return tab, we "accept" this label, which simply means hide the input box. The rendered label should be underneath.
+            const labelText = $('#graffiti-label-input input').val();
+            state.updateDrawingState([ { change: 'label', data: labelText } ]);
+            const drawingPermanence = state.getDrawingPenAttribute('permanence');
+            graffiti.updateStickerDisplayWhenRecording(drawingPermanence);
+            state.storeHistoryRecord('stickers');
+            console.log('keycode',e.which);
+            if ((e.which === 13) || (e.which === 9)) {
+              graffiti.hideLabelInputBox();
+            }
+          }
+        }
       },
 
       setupSavingScrim: () => {
@@ -1751,7 +1803,7 @@ define([
           newInnerHtml[canvasType] = [];
         }
         let stickerPermanence, stickerX, stickerY, fillOpacity, width, height, stickerWidth, stickerHeight, 
-            generatedStickerElem, pen, type, positions, p1x,p1y,p2x,p2y,
+            generatedStickerHtml, generatedStickerElem, pen, type, positions, p1x,p1y,p2x,p2y,
             stickersRecords, dimensions, stickerProcessingRecord;
         if (record !== undefined) {
           stickersRecords = record.stickersRecords;
@@ -1805,6 +1857,7 @@ define([
           };
           //console.log('drawing to dimensions:', dimensions);
           //console.log('Processing stickerRecord:', stickerRecord);
+          generatedStickerHtml = undefined;
           switch (type) {
             case 'rectangle':
               generatedStickerHtml = stickerLib.makeRectangle({
@@ -2029,23 +2082,13 @@ define([
               });
               break;
             case 'label':
-              // Draw grey rectangle; 
-              // If recording, on mouseup, we will put a centered input box in the space.
-              if (currentlyRecording) {
-                generatedStickerHtml = stickerLib.makeRectangle({
-                  color:  'lightgrey',
-                  fill:   pen.fill,
-                  dashed: 'dashed',
-                  strokeWidth: 3,
-                  dimensions: dimensions,
-                  fillOpacity: 0,
-                });
-              } else {
+              // If we are recording, on mouseup, we will put a centered input box on screen. Otherwise render this label.
+              if (!currentlyRecording) {
                 // If not recording, render a text label scaled by the size of this box.
                 generatedStickerHtml = stickerLib.makeLabel({
-                  labelText:   'Hello Watson!',
-                  color:  pen.color,
-                  fill:   pen.fill,
+                  labelText:   pen.label,
+                  color:       pen.color,
+                  fill:        pen.fill,
                   dimensions: dimensions,
                 });
               }
@@ -2078,7 +2121,9 @@ define([
               }
               break;
           }
-          newInnerHtml[stickerPermanence].push(generatedStickerHtml);
+          if (generatedStickerHtml !== undefined) {
+            newInnerHtml[stickerPermanence].push(generatedStickerHtml);
+          }
         }
         // Finally, render all sticker html now that it's built.
         for (canvasType of canvasTypes) {
@@ -2098,7 +2143,6 @@ define([
         // Replace active sticker if there is one, or add a new active sticker
         const stickers = graffiti.stickers[stickerPermanence][cellId].stickers;
         let stickerRecord = state.createStickerRecord();
-        // stickerRecord.stickerOnGrid = state.getDrawingStateField('stickerOnGrid');
         // console.log('stickerRecord', stickerRecord);
         //console.log('stickerRecordEnd:', stickerRecord.positions.start.x, stickerRecord.positions.start.y, stickerRecord.positions.end.x, stickerRecord.positions.end.y);
         stickerRecord.active = true;
@@ -3330,6 +3374,7 @@ define([
         graffiti.wipeAllStickerDomCanvases();
         graffiti.resetStickerCanvases();
         graffiti.removeCellsAddedByPlaybackOrRecording();
+        graffiti.hideLabelInputBox();
         state.restoreCellStates('selections');
         graffiti.sitePanel.animate({ scrollTop: graffiti.preRecordingScrollTop }, 750);
         graffiti.selectIntersectingGraffitiRange();

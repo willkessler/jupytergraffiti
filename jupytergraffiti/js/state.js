@@ -480,13 +480,18 @@ define([
 
     // Store the stickers stages sticker lists for later redrawing during playing/scrubbing
     storeStickersStateForCell: (stickers, cellId) => {
-      const recordingCellInfo = state.getRecordingCellInfo();
       let stickersRecords = {};
       if ((stickers !== undefined) && (stickers.length > 0)) {
         stickersRecords = [];
         for (let sticker of stickers) {
           // Copy important fields from the "live" sticker records into the drawing state; these will be persisted as sticker records
           // inside drawing records for later playback.
+          // NB: we don't include label stickers that don't have text labels at all, these are just displayed for guidance while placing the sticker
+
+          console.log('sticker:', sticker);
+          if ((sticker.pen.stickerType === 'label') && (sticker.pen.label === undefined)) {
+            continue;
+          }
           stickersRecords.push({
             positions: { start: { x: sticker.positions.start.x, y: sticker.positions.start.y },
                          end:   { x: sticker.positions.end.x, y: sticker.positions.end.y } },
@@ -503,6 +508,7 @@ define([
               fill:  sticker.pen.fill,
               fillOpacity:  sticker.pen.fillOpacity,
               permanence: sticker.pen.permanence,
+              label: sticker.pen.label,
               downInMarkdown: sticker.pen.downInMarkdown,
               downInPromptArea: sticker.pen.downInPromptArea,
               inPromptArea: sticker.pen.inPromptArea,
@@ -583,6 +589,9 @@ define([
               case 'star':
               case 'line':
               case 'lineWithArrow':
+              case 'label':
+              case 'custom':
+                // all these cases have an implicit fill type of 'none'
                 break;
               case 'checkMark':
                 fill = '00aa00'; // hardwired to green
@@ -596,6 +605,10 @@ define([
                 break;
             }
             drawingState.pen.fill = fill; // fill color, if opacity == 1
+            break;
+          case 'label':
+            // a label is actually a sticker that's just typed text
+            drawingState.pen.label = data;
             break;
           case 'permanence':
             drawingState.pen.permanence = data; // one of 'permanent', 'temporary'
@@ -961,10 +974,11 @@ define([
         delete(record['promptWidth']);
         delete(record['innerCellRect']);
       }
-      //console.log('createDrawingRecord:', record);
+      console.log('createDrawingRecord:', record);
       return record;
     },
 
+    // drawingRecords (above) contain a hash of stickerRecords, below: all stickers on display during that drawing frame
     createStickerRecord: () => {
       const cell = utils.findCellByCellId(state.drawingState.cellId);
       const cellRects = utils.getCellRects(cell);

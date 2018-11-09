@@ -372,6 +372,19 @@
   text-align:center;
 }
 
+.graffiti-label-input {
+  position:absolute;
+  width:200px;
+  z-index:110;
+}
+
+.graffiti-label-input input {
+  border:1px dashed grey;
+  padding:4px;
+  color:black;
+  width:100%;
+}
+
 #graffiti-stickers-shell .graffiti-active-sticker {
   outline:1px dashed red !important;
   outline-offset:1px;
