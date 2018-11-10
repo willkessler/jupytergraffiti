@@ -60,6 +60,8 @@ define([
         changedCells: {},
         selections: {}
       };
+      state.animationIntervalIds = {};
+
       // Usage statistic gathering for the current session (since last load of the notebook)
       state.usageStats = {
         notebookLoadedAt: utils.getNow(),
@@ -714,20 +716,21 @@ define([
       state.playbackStartTime = startTime;
     },
 
-    getRecordingInterval: () => {
-      return state.recordingInterval;
+    setAnimationInterval: (name, cb) => {
+      if (state.animationIntervalIds[name] !== undefined) {
+        cancelAnimationFrame(state.animationIntervalIds[name]);
+      }
+      state.animationIntervalIds[name] = requestAnimationFrame(cb);
     },
 
-    setRecordingInterval: (interval) => {
-      state.recordingInterval = interval;
-    },
-
-    getPlaybackInterval: () => {
-      return state.playbackInterval;
-    },
-
-    setPlaybackInterval: (interval) => {
-      state.playbackInterval = interval;
+    clearAnimationRequests: () => {
+      const ids = Object.keys(state.animationIntervalIds);
+      for (let id of ids) {
+        if (state.animationIntervalIds[id] !== undefined) {
+          cancelAnimationFrame(state.animationIntervalIds[id]);
+          delete(state.animationIntervalIds[id]);
+        }
+      }
     },
 
     getPlaybackTimeElapsed: () => {
@@ -974,7 +977,7 @@ define([
         delete(record['promptWidth']);
         delete(record['innerCellRect']);
       }
-      console.log('createDrawingRecord:', record);
+      //console.log('createDrawingRecord:', record);
       return record;
     },
 
@@ -1324,7 +1327,7 @@ define([
                 if ((indexes[arrName] !== undefined) && (indexes[arrName].index !== previousFrameIndex) && (indexes[arrName].index > previousFrameIndex)) {
                   // If we skipped forward a bunch of records to catch up with real time, remember how far we skipped. 
                   // This is needed to make sure we (re)draw everything we recorded during the time that was skipped over.
-                  // Time skipping happens because browser setInterval timing isn't that reliable, so to avoid desynching
+                  // Time skipping happens because browser animationFrame timing isn't that reliable, so to avoid desynching
                   // with the audio track, we sometimes need to skip records.
                   indexes[arrName].rangeStart = previousFrameIndex + 1;
                 }                
