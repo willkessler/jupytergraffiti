@@ -69,6 +69,11 @@ define([
       for (let k in attrs) {
         el.setAttribute(k, attrs[k]);
       }
+      if (attrs.text !== undefined) { 
+        // Handle svg text content as a special case b/c it's not an attribute, cf :
+        // https://stackoverflow.com/questions/14758125/setting-text-svg-element-dynamically-via-javascript
+        el.textContent = attrs.text;
+      }
       return el;
     },
 
@@ -904,6 +909,37 @@ define([
       labelHtml += opts.labelText + '</div>';
 
       return labelHtml;
+    },
+
+    makeLabelSvg: (opts) => {
+      const dimensions = opts.dimensions;
+      const buffer = opts.buffer || 4;
+      const viewBoxRaw = '0 0 ' + dimensions.width + ' ' + dimensions.height;
+      const viewBox = sticker.makeBufferedViewBox({buffer:buffer, bufferAllSides: true, viewBox: viewBoxRaw });
+      let shapeObj = { x: 0,
+                       y: 10, 
+                       text: opts.label,
+                       "font-size": 18,
+                       width: dimensions.width,
+                       height: dimensions.height,
+                       stroke: opts.color,
+                       fill: opts.color,
+                       "stroke-width": opts.strokeWidth,
+                       "fill-opacity":opts.fillOpacity
+      };
+      sticker.interpretDashing(opts, shapeObj);
+      const theLabel = sticker.makeSvgElement('text', shapeObj);
+      const parmBlock = {          
+        el: theLabel,
+        x: dimensions.x,
+        y : dimensions.y,
+        width: dimensions.width,
+        height: dimensions.height,
+        viewBox: viewBox
+      };
+
+      const renderedSvg = sticker.renderSvg([parmBlock]);
+      return renderedSvg;
     },
 
     makeCustom: (opts) => {

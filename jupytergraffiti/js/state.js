@@ -491,9 +491,9 @@ define([
           // NB: we don't include label stickers that don't have text labels at all, these are just displayed for guidance while placing the sticker
 
           console.log('sticker:', sticker);
-          if ((sticker.pen.stickerType === 'label') && (sticker.pen.label === undefined)) {
-            continue;
-          }
+//          if ((sticker.pen.stickerType === 'label') && (sticker.pen.label === undefined)) {
+//            continue;
+//          }
           stickersRecords.push({
             positions: { start: { x: sticker.positions.start.x, y: sticker.positions.start.y },
                          end:   { x: sticker.positions.end.x, y: sticker.positions.end.y } },
@@ -999,7 +999,7 @@ define([
       delete(record.pen.isDown);
       delete(record.pen['mouseDownPosition']);
       delete(record.wipe);
-      //console.log('createStickerRecord:', record);
+      console.log('createStickerRecord:', record);
       return record;
     },
 

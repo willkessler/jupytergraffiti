@@ -365,6 +365,7 @@
 #graffiti-sticker-custom, #graffiti-sticker-text {
   font-weight:bold;
   font-size:14px;
+  border:2px solid red;
 }
 
 .graffiti-label {
@@ -660,7 +661,7 @@ http://www.patternify.com/
 }
 
 .graffiti-sticker-inner {
-/*  border:1px dashed red;*/
+  border:2px dashed red;
   pointer-events:none;
 }
 
