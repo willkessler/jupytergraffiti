@@ -1422,6 +1422,28 @@ define([
         const viewInfo = state.getViewInfo();
         const adjustedPosition = utils.subtractCoords(viewInfo.outerCellRect, currentPointerPosition);
         labelInputBox.show().css({left:adjustedPosition.x + 'px', top:adjustedPosition.y + 'px'}).find('input').val('').focus();
+        const outerCellRect = viewInfo.outerCellRect;
+        const mouseDownPosition = state.getDrawingPenAttribute('mouseDownPosition');
+        state.updateDrawingState([
+          { change: 'positions', 
+            data: {
+              positions: {
+                start: { x: mouseDownPosition.x - outerCellRect.left, y: mouseDownPosition.y - outerCellRect.top },
+                end:   { x: mouseDownPosition.x + 1 - outerCellRect.left, y: mouseDownPosition.y + 1 - outerCellRect.top }
+              }
+            }
+          },
+
+          { change: 'downInPromptArea',
+            data: viewInfo.inPromptArea
+          },
+          { change: 'downInMarkdown',
+            data: viewInfo.downInMarkdown
+          }, 
+          { change: 'promptWidth',
+            data: viewInfo.promptWidth
+          }
+        ]);
       },
 
       hideLabelInputBoxes: () => {
@@ -1437,29 +1459,17 @@ define([
         if (e.type === 'keyup') {
           if (state.getActivity() === 'recording') {
             // If user hits return tab, we "accept" this label, which simply means hide the input box. The rendered label should be underneath.
+            state.disableDrawingFadeClock();
             const inputBox = $(e.target);
             const labelText = inputBox.val();
-            const parentCellDom = inputBox.parents('.cell');
-            const parentCellId = parentCellDom.attr('graffiti-cell-id');
-            const parentCell = utils.findCellByCellId(parentCellId);
-            const cellRects = utils.getCellRects(parentCell);
-            const cellRect = cellRects.cellRect;
-            const mouseDownPosition = state.getDrawingPenAttribute('mouseDownPosition');
-            state.updateDrawingState([ { change: 'label', data: '' + labelText },
-                                       { change: 'positions', 
-                                         data: {
-                                           positions: {
-                                             start: { x: mouseDownPosition.x - cellRect.left, y: mouseDownPosition.y - cellRect.top },
-                                             end:   { x: mouseDownPosition.x + 1 - cellRect.left, y: mouseDownPosition.y + 1 - cellRect.top }
-                                           }
-                                         }
-                                       }]);
+            state.updateDrawingState([ { change: 'label', data: '' + labelText }]);
             const drawingPermanence = state.getDrawingPenAttribute('permanence');
             graffiti.updateStickerDisplayWhenRecording(drawingPermanence);
             state.storeHistoryRecord('stickers');
             console.log('keycode',e.which);
             if ((e.which === 13) || (e.which === 9)) {
               graffiti.hideLabelInputBoxes();
+              state.startDrawingFadeClock();
             }
           }
         }
@@ -1871,8 +1881,8 @@ define([
             width: stickerWidth,
             height: stickerHeight
           };
-          console.log('Processing stickerRecord:', stickerRecord);
-          console.log('Drawing to dimensions:', dimensions);
+          //console.log('Processing stickerRecord:', stickerRecord);
+          //console.log('Drawing to dimensions:', dimensions);
           generatedStickerHtml = undefined;
           //console.log('processing type:', type);
           switch (type) {
@@ -2102,8 +2112,8 @@ define([
               // If we are recording, on mouseup, we will put a centered input box on screen. Otherwise render this label.
               // If not recording, render a text label scaled by the size of this box.
               if (pen.label !== undefined) {
-                dimensions.width = 8 * pen.label.length; // large enough for the label
-                dimensions.height = 30;
+                dimensions.width = 15 * pen.label.length; // large enough for the label
+                dimensions.height = 18;
                 generatedStickerHtml = stickerLib.makeLabelSvg({
                   color:  pen.color,
                   fill:   pen.fill,
@@ -2113,7 +2123,7 @@ define([
                   dimensions: dimensions,
                   fillOpacity: 1,
                 });
-                console.log('generatedStickerHtml:', generatedStickerHtml);
+                //console.log('generatedStickerHtml:', generatedStickerHtml);
                 canvasElements[stickerPermanence].opacityOverride = 1.0; // make parent opacity maximum so child images are fully visible
               }
               break;

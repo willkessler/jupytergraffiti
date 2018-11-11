@@ -661,7 +661,7 @@ http://www.patternify.com/
 }
 
 .graffiti-sticker-inner {
-  border:2px dashed red;
+/*  border:2px dashed red;*/
   pointer-events:none;
 }
 

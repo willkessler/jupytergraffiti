@@ -97,6 +97,14 @@ define([
         if (svgChild.hasOwnProperty('cssTransform')) {
           transform = 'transform:' + svgChild.cssTransform;
         }
+        let backgroundColor = '';
+        if (svgChild.hasOwnProperty('backgroundColor')) {
+          backgroundColor = 'background:' + svgChild.backgroundColor + ';';
+        }
+        let border = '';
+        if (svgChild.hasOwnProperty('border')) {
+          border = 'border:' + svgChild.border + ';';
+        }
         containerDiv =
           sticker.makeDomElement('div',
                                  {
@@ -104,7 +112,9 @@ define([
                                    'style' : 'position:absolute;' +
                                              'left:' + parseInt(svgChild.x) + 'px;top:' + parseInt(svgChild.y) + 'px;' +
                                              'width:' + parseInt(svgChild.width) + 'px;height:' + parseInt(svgChild.height) + 'px;' +
-                                             transform
+                                             transform +
+                                             backgroundColor +
+                                             border
                                  });
         containerSticker =
           sticker.makeSvgElement('svg',
@@ -917,7 +927,7 @@ define([
       const viewBoxRaw = '0 0 ' + dimensions.width + ' ' + dimensions.height;
       const viewBox = sticker.makeBufferedViewBox({buffer:buffer, bufferAllSides: true, viewBox: viewBoxRaw });
       let shapeObj = { x: 0,
-                       y: 10, 
+                       y: 12, 
                        text: opts.label,
                        "font-size": 18,
                        width: dimensions.width,
@@ -935,7 +945,7 @@ define([
         y : dimensions.y,
         width: dimensions.width,
         height: dimensions.height,
-        viewBox: viewBox
+        viewBox: viewBox,
       };
 
       const renderedSvg = sticker.renderSvg([parmBlock]);
