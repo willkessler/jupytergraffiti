@@ -43,20 +43,20 @@ define([
     },
     
     makeElementHtml: (tag, attr, innerHtml) => {
-      let svgHtml = '<' + tag + ' ';
+      let elementHtml = '<' + tag + ' ';
       if (tag === 'svg') {
-        svgHtml += 'xmlns="http://www.w3.org/2000/svg" version="1.1" class="graffitiSvg" ';
+        elementHtml += 'xmlns="http://www.w3.org/2000/svg" version="1.1" class="graffitiSvg" ';
       }
       let attrHtml = '';
       if (attr !== undefined) {
         attrHtml = $.map(attr, (val, key) => { return (key + '="' + val + '"') } ).join(' ');
       }
       if (innerHtml !== undefined) {
-        svgHtml += attrHtml + '>' + innerHtml + '</' + tag + '>';
+        elementHtml += attrHtml + '>' + innerHtml + '</' + tag + '>';
       } else {
-        svgHtml += attrHtml + '></' + tag + '>';
+        elementHtml += attrHtml + '></' + tag + '>';
       }
-      return svgHtml;
+      return elementHtml;
     },
 
     makeSvgElement: (tag, attrs) => {
@@ -912,12 +912,17 @@ define([
       return udacityHtml;
     },
 
-    makeLabel: (opts) => {
+    makeLabelHtml: (opts) => {
       const dimensions = opts.dimensions;
-      let labelHtml = '<div class="graffiti-label" style="width:' + dimensions.width + 'px;height:' + dimensions.height + 'px;' +
-                       'top:' + dimensions.y + 'px;left:' + dimensions.x + 'px;opacity:1.0;">';
-      labelHtml += opts.labelText + '</div>';
-
+      
+      const labelAttr = {
+        style: 'width:' + dimensions.width + 'px;' + 'height:' + dimensions.height + 'px;' + 'left:' + dimensions.x + 'px;' + 'top:' + dimensions.y + 'px;' +
+               'opacity:' + opts.opacity + ';color:' + opts.color + ';padding-top:10px;'
+      };
+      
+      const labelHtml = '<div class="graffiti-sticker-inner">' + 
+                        sticker.makeElementHtml('div', labelAttr, '<div>' + opts.label + '</div>') + 
+                        '</div>';
       return labelHtml;
     },
 
@@ -927,13 +932,14 @@ define([
       const viewBoxRaw = '0 0 ' + dimensions.width + ' ' + dimensions.height;
       const viewBox = sticker.makeBufferedViewBox({buffer:buffer, bufferAllSides: true, viewBox: viewBoxRaw });
       let shapeObj = { x: 0,
-                       y: 12, 
+                       y: 16, 
                        text: opts.label,
                        "font-size": 18,
                        width: dimensions.width,
                        height: dimensions.height,
                        stroke: opts.color,
                        fill: opts.color,
+                       dashed: opts.dashed,
                        "stroke-width": opts.strokeWidth,
                        "fill-opacity":opts.fillOpacity
       };

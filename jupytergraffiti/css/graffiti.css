@@ -365,7 +365,6 @@
 #graffiti-sticker-custom, #graffiti-sticker-text {
   font-weight:bold;
   font-size:14px;
-  border:2px solid red;
 }
 
 .graffiti-label {
@@ -375,7 +374,7 @@
 
 .graffiti-label-input {
   position:absolute;
-  width:200px;
+  width:300px;
   z-index:110;
 }
 
@@ -665,10 +664,13 @@ http://www.patternify.com/
   pointer-events:none;
 }
 
-.graffiti-sticker-inner svg {
+.graffiti-sticker-inner svg,
+.graffiti-sticker-inner div {
   position:absolute;
   left:0px;
   top:0px;
+  margin-top:3px;
+  margin-left:2px;
 }
 
 .graffiti-expando {

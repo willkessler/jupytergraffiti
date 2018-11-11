@@ -1212,6 +1212,7 @@ define([
           return; // Pens can only be used while recording
         }
         const activePenType = state.getDrawingPenAttribute('type');
+        graffiti.hideLabelInputBoxes();
         if (activePenType !== penType) {
           // Activate a new active pen, unless this pen is already active, in which case, deactivate it
           graffiti.activateGraffitiPen(penType);
@@ -1242,6 +1243,7 @@ define([
         const activeStickerType = state.getDrawingPenAttribute('stickerType');
         if (activeStickerType !== stickerType) {
           // Activate a new sticker, unless sticker is already active, in which case, deactivate it
+          graffiti.hideLabelInputBoxes();
           graffiti.showDrawingScreen();
           // Deactivate any active pen
           $('.graffiti-active-pen').removeClass('graffiti-active-pen');
@@ -1259,7 +1261,8 @@ define([
             graffiti.setGraffitiPenColor('black'); 
           }
         } else {
-          // Turn off the active sticker.
+          // Turn off the active sticker control.
+          graffiti.hideLabelInputBoxes();
           $('.graffiti-active-sticker').removeClass('graffiti-active-sticker');
           // Disable stickering
           state.updateDrawingState([ 
@@ -2114,6 +2117,7 @@ define([
               if (pen.label !== undefined) {
                 dimensions.width = 15 * pen.label.length; // large enough for the label
                 dimensions.height = 18;
+/*
                 generatedStickerHtml = stickerLib.makeLabelSvg({
                   color:  pen.color,
                   fill:   pen.fill,
@@ -2122,6 +2126,13 @@ define([
                   strokeWidth: 0.5,
                   dimensions: dimensions,
                   fillOpacity: 1,
+                });
+ */
+                generatedStickerHtml = stickerLib.makeLabelHtml({
+                  color:  pen.color,
+                  label: pen.label,
+                  dimensions: dimensions,
+                  opacity: 1.0,
                 });
                 //console.log('generatedStickerHtml:', generatedStickerHtml);
                 canvasElements[stickerPermanence].opacityOverride = 1.0; // make parent opacity maximum so child images are fully visible
