@@ -3411,6 +3411,7 @@ define([
         graffiti.updateAllGraffitiDisplays();
         graffiti.wipeAllStickerDomCanvases();
         graffiti.resetStickerCanvases();
+        graffiti.deactivateAllPens();
         graffiti.removeCellsAddedByPlaybackOrRecording();
         graffiti.hideLabelInputBoxes();
         state.restoreCellStates('selections');
@@ -3467,8 +3468,6 @@ define([
             graffiti.setNotifier('Please wait, storing this movie...');
             graffiti.showControlPanels(['graffiti-notifier']);
             graffiti.savingScrim.css({display:'flex'});
-            graffiti.deactivateAllPens();
-            graffiti.resetStickerCanvases();
             graffiti.stopRecordingCore(true);
             state.unblockRecording();
             console.log('Graffiti: Stopped recording.');
