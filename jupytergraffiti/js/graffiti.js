@@ -3403,7 +3403,7 @@ define([
         if (useCallback) {
           state.dumpHistory();
         }
-        state.clearAnimationRequests();
+        state.clearAnimationIntervals();
         // This will use the callback defined in setAudioStorageCallback to actually persist the whole recording, if useCallback is true
         audio.stopRecording();
         console.log('Graffiti: stopRecordingCore is refreshing.');
@@ -3502,28 +3502,28 @@ define([
             graffiti.resetDrawingPen();
             state.disableDrawingFadeClock(); // initially, we don't fade since nothing drawn yet
 
-            const recordingInterval = () => {
-              //console.log('Moving recording time ahead');
-              state.setAnimationInterval('recording',recordingInterval);
-              if (graffiti.runOnceOnNextRecordingTick !== undefined) {
-                graffiti.runOnceOnNextRecordingTick();
-                graffiti.runOnceOnNextRecordingTick = undefined;
-              }
-              graffiti.updateTimeDisplay(state.getTimeRecordedSoFar());
-              graffiti.updateDrawingOpacity();
-            };
-            state.setAnimationInterval('recording',recordingInterval);
+            state.startAnimationInterval('recording',
+                                         () => {
+                                           //console.log('Moving recording time ahead');
+                                           if (graffiti.runOnceOnNextRecordingTick !== undefined) {
+                                             graffiti.runOnceOnNextRecordingTick();
+                                             graffiti.runOnceOnNextRecordingTick = undefined;
+                                           }
+                                           graffiti.updateTimeDisplay(state.getTimeRecordedSoFar());
+                                           graffiti.updateDrawingOpacity();
+                                         },
+                                         graffiti.recordingIntervalMs);
 
             // Flash a red recording bullet while recording is ongoing, every second. 
-            const recordingIndicatorInterval = () => {
-              state.setAnimationInterval('recordingIndicator', recordingIndicatorInterval);
-              if (state.getTimeRecordedSoFar() % 2000 > 1000) {
-                $('#graffiti-recording-flash-icon').css({background:'rgb(245,245,245)'});
-              } else {
-                $('#graffiti-recording-flash-icon').css({background:'rgb(255,0,0)'});
-              }
-            };
-            state.setAnimationInterval('recordingIndicator', recordingIndicatorInterval);
+            state.startAnimationInterval('recordingIndicator',
+                                         () => {
+                                           if (state.getTimeRecordedSoFar() % 2000 > 1000) {
+                                             $('#graffiti-recording-flash-icon').css({background:'rgb(245,245,245)'});
+                                           } else {
+                                             $('#graffiti-recording-flash-icon').css({background:'rgb(255,0,0)'});
+                                           }
+                                         },
+                                         graffiti.recordingIntervalMs);
             
             console.log('Graffiti: Started recording');
           }
@@ -4009,7 +4009,7 @@ define([
 
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTooltips();
-        state.clearAnimationRequests();
+        state.clearAnimationIntervals();
 
         // Save after play stops, so if the user reloads we don't get the annoying dialog box warning us changes were made.
         // graffiti.saveNotebook();
@@ -4048,7 +4048,7 @@ define([
 
         console.log('Graffiti: Cancelling playback');
         graffiti.cancelPlaybackNoVisualUpdates();
-        state.clearAnimationRequests();
+        state.clearAnimationIntervals();
         state.setDontRestoreCellContentsAfterPlayback(false);
         graffiti.resetStickerCanvases();
         graffiti.cancelRapidPlay();
@@ -4115,31 +4115,31 @@ define([
         }
 
         // Set up main playback loop
-        const playbackInterval = () => {
-          //console.log('Moving playback time ahead.');
-          const playedSoFar = state.getTimePlayedSoFar();
-          if (playedSoFar >= state.getHistoryDuration()) {
-            // reached end of recording naturally, so set up for restart on next press of play button
-            state.setupForReset();
-            graffiti.togglePlayback();
-          } else {
-            state.setAnimationInterval('playback', playbackInterval);
-            graffiti.updateSlider(playedSoFar);
-            graffiti.updateTimeDisplay(playedSoFar);
-            const frameIndexes = state.getHistoryRecordsAtTime(playedSoFar);
-            graffiti.updateDisplay(frameIndexes);
-            //console.log('play interval, now=', utils.getNow());
-            //
-          }
-        };
-        state.setAnimationInterval('playback',playbackInterval);;
+        state.startAnimationInterval('playback',        
+                                     () => {
+                                       //console.log('Moving playback time ahead.');
+                                       const playedSoFar = state.getTimePlayedSoFar();
+                                       if (playedSoFar >= state.getHistoryDuration()) {
+                                         // reached end of recording naturally, so set up for restart on next press of play button
+                                         state.setupForReset();
+                                         graffiti.togglePlayback();
+                                       } else {
+                                         graffiti.updateSlider(playedSoFar);
+                                         graffiti.updateTimeDisplay(playedSoFar);
+                                         const frameIndexes = state.getHistoryRecordsAtTime(playedSoFar);
+                                         graffiti.updateDisplay(frameIndexes);
+                                         //console.log('play interval, now=', utils.getNow());
+                                         //
+                                       }
+                                     },
+                                     graffiti.playbackIntervalMs);
       },
 
       togglePlayback: () => {
         const activity = state.getActivity();
         if (activity !== 'recording') {
           if (activity === 'playing') {
-            state.clearAnimationRequests();
+            state.clearAnimationIntervals();
             if (state.getHidePlayerAfterPlayback() && state.getSetupForReset()) {
               graffiti.cancelPlayback({ cancelAnimation: true});
             } else {

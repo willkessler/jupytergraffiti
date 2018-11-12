@@ -51,7 +51,6 @@ define([
       state.hidePlayerAfterPlayback = false;
       state.dontRestoreCellContentsAfterPlayback = false; // this is something the author can decide with an API call.
       state.cellOutputsSent = {};
-      state.lastStickerPositions = undefined;
       state.stickerImageUrl = undefined;
       state.stickerImageCandidateUrl = undefined;
       state.cellIdsAddedDuringRecording = {};
@@ -293,25 +292,6 @@ define([
 
     getDisplayedTipInfo: () => {
       return state.displayedTipInfo;
-    },
-
-    storeLastStickerPositions: () => {
-      if (state.lastStickerPositions === undefined) {
-        state.lastStickerPositions = {
-          start: { x: state.drawingState.positions.start.x, y: state.drawingState.positions.start.y },
-          end:   { x: state.drawingState.positions.end.x, y: state.drawingState.positions.end.y },
-          width: Math.abs(state.drawingState.positions.end.x - state.drawingState.positions.start.x),
-          height: Math.abs(state.drawingState.positions.end.y - state.drawingState.positions.start.y)
-        }
-      }
-    },
-
-    getLastStickerPositions: () => {
-      return state.lastStickerPositions;
-    },
-
-    clearLastStickerPositions: () => {
-      state.lastStickerPositions = undefined;
     },
 
     getStickerImageUrl: (stickerImageUrl) => {
@@ -716,18 +696,18 @@ define([
       state.playbackStartTime = startTime;
     },
 
-    setAnimationInterval: (name, cb) => {
+    startAnimationInterval: (name, cb, timing) => {
       if (state.animationIntervalIds[name] !== undefined) {
-        cancelAnimationFrame(state.animationIntervalIds[name]);
+        clearInterval(state.animationIntervalIds[name]);
       }
-      state.animationIntervalIds[name] = requestAnimationFrame(cb);
+      state.animationIntervalIds[name] = setInterval(cb, timing);      
     },
 
-    clearAnimationRequests: () => {
+    clearAnimationIntervals: () => {
       const ids = Object.keys(state.animationIntervalIds);
       for (let id of ids) {
         if (state.animationIntervalIds[id] !== undefined) {
-          cancelAnimationFrame(state.animationIntervalIds[id]);
+          clearInterval(state.animationIntervalIds[id]);
           delete(state.animationIntervalIds[id]);
         }
       }
