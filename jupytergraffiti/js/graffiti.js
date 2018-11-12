@@ -1431,7 +1431,9 @@ define([
         const labelInputBox = graffiti.placeLabelInputBox(); // make sure there is a label box
         const currentPointerPosition = state.getPointerPosition();
         const viewInfo = state.getViewInfo();
-        const adjustedPosition = utils.subtractCoords(viewInfo.outerCellRect, currentPointerPosition);
+        let adjustedPosition = utils.subtractCoords(viewInfo.outerCellRect, currentPointerPosition);
+        const verticalAdjust = parseInt(labelInputBox.height() / 2);
+        adjustedPosition.y = adjustedPosition.y - verticalAdjust;
         labelInputBox.show().css({left:adjustedPosition.x + 'px', top:adjustedPosition.y + 'px'}).find('input').val('').focus();
         const outerCellRect = viewInfo.outerCellRect;
         const mouseDownPosition = state.getDrawingPenAttribute('mouseDownPosition');
@@ -1439,8 +1441,8 @@ define([
           { change: 'positions', 
             data: {
               positions: {
-                start: { x: mouseDownPosition.x - outerCellRect.left, y: mouseDownPosition.y - outerCellRect.top },
-                end:   { x: mouseDownPosition.x + 1 - outerCellRect.left, y: mouseDownPosition.y + 1 - outerCellRect.top }
+                start: { x: mouseDownPosition.x - outerCellRect.left, y: mouseDownPosition.y - outerCellRect.top - verticalAdjust },
+                end:   { x: mouseDownPosition.x + 1 - outerCellRect.left, y: mouseDownPosition.y + 1 - outerCellRect.top - verticalAdjust }
               }
             }
           },
@@ -4499,12 +4501,12 @@ define([
       cancelPlayback: () => { graffiti.cancelPlayback({cancelAnimation:false}) },
       removeAllGraffiti: graffiti.removeAllGraffitisWithConfirmation,
       disableGraffiti: graffiti.disableGraffitiWithConfirmation,
-      // showCreatorsChooser: graffiti.showCreatorsChooser,
       setAccessLevel: (level) => { graffiti.toggleAccessLevel(level) },
       transferGraffitis: () => { graffiti.transferGraffitis() },
       packageGraffitis: () => { graffiti.packageGraffitis() },
       getUsageStats: () => { return state.getUsageStats() },
-      selectionSerializer: selectionSerializer
+      selectionSerializer: selectionSerializer,
+      // showCreatorsChooser: graffiti.showCreatorsChooser, // demo only
     }
 
   })();
