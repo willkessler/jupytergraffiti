@@ -926,6 +926,7 @@ define([
       return labelHtml;
     },
 
+    // create label with SVG. legacy code in case i ever need it but now using the above fn makeLabelHtml since more efficient.
     makeLabelSvg: (opts) => {
       const dimensions = opts.dimensions;
       const buffer = opts.buffer || 4;

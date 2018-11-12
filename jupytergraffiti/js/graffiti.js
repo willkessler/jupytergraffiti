@@ -946,16 +946,22 @@ define([
                   //console.log('this recording has a movie');
                   graffiti.controlPanelIds['graffiti-record-controls'].find('#graffiti-begin-recording-btn').hide().parent().
                            find('#graffiti-begin-rerecording-btn').show();
+                  // This "play" link is not reliable because its info is only updated by mousing over tooltips, yet you may be editing
+                  // a graffiti that you did not show the tooltip on, making it play the wrong movie. Therefore instruct users to use the tooltip. 
+                  /*
                   graffiti.setNotifier('<div>You can <span class="graffiti-notifier-link" id="graffiti-idle-play-link">play</span> this movie any time.</div>',
                                        [
                                          {
                                            ids: ['graffiti-idle-play-link'],
                                            event: 'click',
                                            fn: (e) => {
+                                             state.setPlayableMovie('cursorActivity', recordingCellId, recordingKey);
                                              graffiti.loadAndPlayMovie('cursorActivity');
                                            }
                                          },
                                        ]);
+                  */
+                  graffiti.setNotifier('<div>You can play this movie any time via its tooltip.</div>');
                 }
               }
             }
@@ -1415,6 +1421,8 @@ define([
           labelInputBox = labelInputBoxElem.appendTo(elem);
           labelInputBox.bind('keydown keyup', (e) => { graffiti.handleLabelInput(e) });
         }
+        const penColor = state.getDrawingPenAttribute('color');
+        labelInputBox.find('input').css({color:penColor});
         return labelInputBox;
       },
 
@@ -2117,17 +2125,6 @@ define([
               if (pen.label !== undefined) {
                 dimensions.width = 15 * pen.label.length; // large enough for the label
                 dimensions.height = 18;
-/*
-                generatedStickerHtml = stickerLib.makeLabelSvg({
-                  color:  pen.color,
-                  fill:   pen.fill,
-                  dashed: pen.dash, 
-                  label: pen.label,
-                  strokeWidth: 0.5,
-                  dimensions: dimensions,
-                  fillOpacity: 1,
-                });
- */
                 generatedStickerHtml = stickerLib.makeLabelHtml({
                   color:  pen.color,
                   label: pen.label,
