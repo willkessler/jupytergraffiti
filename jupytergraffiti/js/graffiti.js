@@ -79,7 +79,7 @@ define([
         // Set up the button that activates Graffiti on new notebooks and controls visibility of the control panel if the notebook has already been graffiti-ized.
         graffiti.updateSetupButton();
 
-        if (Jupyter.notebook.metadata.hasOwnProperty('graffitiId')) { // do not try to load the manifest if this notebook has not yet been graffiti-ized.
+        if (Jupyter.notebook.metadata.hasOwnProperty('graffiti')) { // do not try to load the manifest if this notebook has not yet been graffiti-ized.
           storage.loadManifest(currentAccessLevel).then(() => {
             graffiti.initInteractivity();
           }).catch((ex) => {
@@ -3069,8 +3069,8 @@ define([
         graffiti.updateControlPanels();
 
         if (graffitiDisabled) {
-          if (Jupyter.notebook.metadata.hasOwnProperty('graffitiId')) {
-            storage.deleteDataDirectory(Jupyter.notebook.metadata.graffitiId);
+          if (Jupyter.notebook.metadata.hasOwnProperty('graffiti')) {
+            storage.deleteDataDirectory(Jupyter.notebook.metadata.graffiti.id);
             storage.removeGraffitiIds();
             graffiti.changeAccessLevel('view');
             graffiti.updateSetupButton();
@@ -4343,9 +4343,8 @@ define([
         if (level === 'create') {
           graffiti.cancelPlayback({cancelAnimation:true});
           graffiti.activateAudio(); // we need to activate audio to create the audio object, even if microphone access was previously granted.
-          state.setAuthorId(0); // currently hardwiring this to creator(teacher) ID, which is always 0. Eventually we will replace this with 
-          // individual author ids
           storage.ensureNotebookGetsGraffitiId();
+          storage.ensureNotebookGetsFirstAuthorId();
           utils.assignCellIds();
           utils.saveNotebook();
           graffiti.refreshAllGraffitiHighlights();
@@ -4429,7 +4428,7 @@ define([
         //sprayCanIcon = '<img src="jupytergraffiti/css/spray_can_icon.png">';
         let buttonContents = '<div id="graffiti-setup-button" class="btn-group"><button class="btn btn-default" title="Enable Graffiti">';
 
-        if (!notebook.metadata.hasOwnProperty('graffitiId')) {
+        if (!notebook.metadata.hasOwnProperty('graffiti')) {
           // This notebook has never been graffiti-ized, or it just got un-graffiti-ized
           const existingSetupButton = $('#graffiti-setup-button');
           if (existingSetupButton.length > 0) {
@@ -4469,6 +4468,7 @@ define([
               click: (e) => {
                 console.log('Graffiti: You clicked ok');
                 storage.ensureNotebookGetsGraffitiId();
+                storage.ensureNotebookGetsFirstAuthorId();
                 utils.saveNotebook();
                 graffiti.initInteractivity();
                 graffiti.toggleAccessLevel('view');
@@ -4501,7 +4501,6 @@ define([
       disableGraffiti: graffiti.disableGraffitiWithConfirmation,
       // showCreatorsChooser: graffiti.showCreatorsChooser,
       setAccessLevel: (level) => { graffiti.toggleAccessLevel(level) },
-      setAuthorId: (authorId) => { state.setAuthorId(authorId) },
       transferGraffitis: () => { graffiti.transferGraffitis() },
       packageGraffitis: () => { graffiti.packageGraffitis() },
       getUsageStats: () => { return state.getUsageStats() },
