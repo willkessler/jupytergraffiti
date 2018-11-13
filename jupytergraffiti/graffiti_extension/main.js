@@ -6,11 +6,13 @@ window.Graffiti = null;
 define([
   'base/js/namespace',
   '/nbextensions/graffiti_extension/js/graffiti.js',
-  '/nbextensions/graffiti_extension/js/utils.js'
-], (Jupyter, Graffiti, utils) => {
+  '/nbextensions/graffiti_extension/js/utils.js',
+  '/nbextensions/graffiti_extension/js/udacityUser.js'
+], (Jupyter, Graffiti, utils, udacityUser) => {
   function load_ipython_extension() {
     console.log('Graffiti loaded:', Graffiti);
     window.Graffiti = Graffiti;
+    udacityUser.setUser();
     Graffiti.init();
     utils.saveNotebook();
 

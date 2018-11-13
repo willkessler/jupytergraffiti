@@ -1,10 +1,12 @@
 if (window.Graffiti === undefined) {
   define([
     './graffiti.js',
-    './utils.js'
-  ], (Graffiti,utils) => {
+    './utils.js',
+    './udacityUser.js'
+  ], (Graffiti,utils, udacityUser) => {
     console.log('Graffiti loaded:', Graffiti);
     window.Graffiti = Graffiti;
+    udacityUser.setUser();
     Graffiti.init();
     utils.saveNotebook();
 

@@ -54,6 +54,7 @@ define([
       state.stickerImageUrl = undefined;
       state.stickerImageCandidateUrl = undefined;
       state.cellIdsAddedDuringRecording = {};
+      state.userId = undefined;
       state.cellStates = {
         contents: {},
         changedCells: {},
@@ -213,6 +214,14 @@ define([
 
     setAuthorType: (authorType) => {
       state.authorType = authorType;
+    },
+
+    getUserId: () => {
+      return state.userId;
+    },
+
+    setUserId: (userId) => {
+      state.userId = userId;
     },
 
     getAudioInitialized: () => {
