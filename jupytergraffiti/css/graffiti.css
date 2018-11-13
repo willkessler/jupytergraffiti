@@ -647,9 +647,13 @@ http://www.patternify.com/
   background-color:white;
 }
 
+#graffiti-sticker-label {
+  font-size:1.2em;
+}
+
 .graffiti-sticker-outer {
   pointer-events:none;
-  opacity:0.5;
+  opacity:0.75;
   z-index:99;
 }
 
@@ -663,7 +667,6 @@ http://www.patternify.com/
   pointer-events:none;
 }
 
-.graffiti-sticker-inner svg,
 .graffiti-sticker-inner div {
   position:absolute;
   left:0px;

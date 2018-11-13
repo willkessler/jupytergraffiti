@@ -178,7 +178,9 @@ define([
                 takes = recording.takes;
                 if (takes !== undefined) {
                   activeTakeId = recording.activeTakeId;
-                  totals.totalRecordedTime += takes[activeTakeId].duration;
+                  if (takes[activeTakeId] !== undefined) {
+                    totals.totalRecordedTime += takes[activeTakeId].duration;
+                  }
                   lenCheck = Object.keys(takes).length;
                   if (lenCheck > totals.maxTakesPerGraffiti) {
                     totals.maxTakesPerGraffiti = lenCheck;
