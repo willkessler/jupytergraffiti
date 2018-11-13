@@ -79,7 +79,7 @@ define([
         // Set up the button that activates Graffiti on new notebooks and controls visibility of the control panel if the notebook has already been graffiti-ized.
         graffiti.updateSetupButton();
 
-        if (Jupyter.notebook.metadata.hasOwnProperty('graffitiId')) { // do not try to load the manifest if this notebook has not yet been graffiti-ized.
+        if (Jupyter.notebook.metadata.hasOwnProperty('graffiti')) { // do not try to load the manifest if this notebook has not yet been graffiti-ized.
           storage.loadManifest(currentAccessLevel).then(() => {
             graffiti.initInteractivity();
           }).catch((ex) => {
@@ -946,16 +946,22 @@ define([
                   //console.log('this recording has a movie');
                   graffiti.controlPanelIds['graffiti-record-controls'].find('#graffiti-begin-recording-btn').hide().parent().
                            find('#graffiti-begin-rerecording-btn').show();
+                  // This "play" link is not reliable because its info is only updated by mousing over tooltips, yet you may be editing
+                  // a graffiti that you did not show the tooltip on, making it play the wrong movie. Therefore instruct users to use the tooltip. 
+                  /*
                   graffiti.setNotifier('<div>You can <span class="graffiti-notifier-link" id="graffiti-idle-play-link">play</span> this movie any time.</div>',
                                        [
                                          {
                                            ids: ['graffiti-idle-play-link'],
                                            event: 'click',
                                            fn: (e) => {
+                                             state.setPlayableMovie('cursorActivity', recordingCellId, recordingKey);
                                              graffiti.loadAndPlayMovie('cursorActivity');
                                            }
                                          },
                                        ]);
+                  */
+                  graffiti.setNotifier('<div>You can play this movie any time via its tooltip.</div>');
                 }
               }
             }
@@ -1212,6 +1218,7 @@ define([
           return; // Pens can only be used while recording
         }
         const activePenType = state.getDrawingPenAttribute('type');
+        graffiti.hideLabelInputBoxes();
         if (activePenType !== penType) {
           // Activate a new active pen, unless this pen is already active, in which case, deactivate it
           graffiti.activateGraffitiPen(penType);
@@ -1242,6 +1249,7 @@ define([
         const activeStickerType = state.getDrawingPenAttribute('stickerType');
         if (activeStickerType !== stickerType) {
           // Activate a new sticker, unless sticker is already active, in which case, deactivate it
+          graffiti.hideLabelInputBoxes();
           graffiti.showDrawingScreen();
           // Deactivate any active pen
           $('.graffiti-active-pen').removeClass('graffiti-active-pen');
@@ -1259,7 +1267,8 @@ define([
             graffiti.setGraffitiPenColor('black'); 
           }
         } else {
-          // Turn off the active sticker.
+          // Turn off the active sticker control.
+          graffiti.hideLabelInputBoxes();
           $('.graffiti-active-sticker').removeClass('graffiti-active-sticker');
           // Disable stickering
           state.updateDrawingState([ 
@@ -1298,6 +1307,7 @@ define([
       },
 
       drawingScreenHandler: (e) => {
+        let drawingActivity = state.getDrawingStateField('drawingActivity');
         if (state.getActivity() === 'recording') {
           if (e.type === 'mousedown') {
             console.log('drawingScreenHandler: mousedown');
@@ -1306,16 +1316,15 @@ define([
             graffiti.resetTemporaryCanvases();
             state.disableDrawingFadeClock();
             const stickerType = state.getDrawingPenAttribute('stickerType');
-            let drawingActivity = 'draw';
+            drawingActivity = 'draw';
             const viewInfo = state.getViewInfo();
             if (stickerType !== undefined) {
               console.log('mousedown with stickerType:', stickerType);
               drawingActivity = 'sticker';
-              if (wasFading) {
+              if (wasFading) { // terminate any fading in progress when drawing a new sticker
                 graffiti.resetStickerCanvases('temporary');
                 graffiti.wipeTemporaryStickerDomCanvases();
               }
-              //graffiti.placeSticker({dynamic:true});
               const currentPointerPosition = state.getPointerPosition();
               const penType = state.getDrawingPenAttribute('type');
               const minSize = (penType === 'lineWithArrow' ? 1 : graffiti.minimumStickerSize);
@@ -1349,13 +1358,18 @@ define([
             ]);
           } else if ((e.type === 'mouseup') || (e.type === 'mouseleave')) {
             console.log('drawingScreenHandler: ', e.type);
-            const drawingActivity = state.getDrawingStateField('drawingActivity');
             if ((drawingActivity === 'sticker') && (e.type === 'mouseup')) {
               graffiti.clearAnyActiveStickerStages();
+              // If we are using a label-type sticker, then put the label input box where the mouse is
+              if (state.getDrawingPenAttribute('stickerType') === 'label') {
+                graffiti.showLabelInputBox();
+              }
             }
             if (state.getDrawingPenAttribute('isDown')) {
               state.updateDrawingState( [ { change: 'isDown',  data: false } ]);
-              state.startDrawingFadeClock();
+              if (state.getDrawingPenAttribute('permanence') === 'temporary') {
+                state.startDrawingFadeClock();
+              }
             }
           } else if (e.type === 'keydown') {
             console.log('drawingScreen got key:', e);
@@ -1395,6 +1409,83 @@ define([
         const notebookHeight = $('#notebook').outerHeight(true);
         graffiti.drawingScreen.css({height: notebookHeight + 'px'});
         graffiti.drawingScreen.bind('mousedown mouseup mouseleave keydown keyup', (e) => { graffiti.drawingScreenHandler(e) });
+      },
+      
+      placeLabelInputBox: () => {
+        const viewInfo = state.getViewInfo();
+        const cell = utils.findCellByCellId(viewInfo.cellId);
+        const elem = $(cell.element[0]);
+        let labelInputBox = elem.find('.graffiti-label-input');
+        if (labelInputBox.length === 0) {
+          labelInputBoxElem = $('<div tabindex="0" class="graffiti-label-input"><input type="text" maxlength="50" placeholder="Enter a label..."/></div>');
+          labelInputBox = labelInputBoxElem.appendTo(elem);
+          labelInputBox.bind('keydown keyup', (e) => { graffiti.handleLabelInput(e) });
+        }
+        const penColor = state.getDrawingPenAttribute('color');
+        labelInputBox.find('input').css({color:penColor});
+        return labelInputBox;
+      },
+
+      showLabelInputBox: () => {
+        graffiti.hideLabelInputBoxes();
+        const labelInputBox = graffiti.placeLabelInputBox(); // make sure there is a label box
+        const currentPointerPosition = state.getPointerPosition();
+        const viewInfo = state.getViewInfo();
+        let adjustedPosition = utils.subtractCoords(viewInfo.outerCellRect, currentPointerPosition);
+        const verticalAdjust = parseInt(labelInputBox.height() / 2);
+        adjustedPosition.y = adjustedPosition.y - verticalAdjust;
+        labelInputBox.show().css({left:adjustedPosition.x + 'px', top:adjustedPosition.y + 'px'}).find('input').val('').focus();
+        const outerCellRect = viewInfo.outerCellRect;
+        const mouseDownPosition = state.getDrawingPenAttribute('mouseDownPosition');
+        state.updateDrawingState([
+          { change: 'positions', 
+            data: {
+              positions: {
+                start: { x: mouseDownPosition.x - outerCellRect.left, y: mouseDownPosition.y - outerCellRect.top - verticalAdjust },
+                end:   { x: mouseDownPosition.x + 1 - outerCellRect.left, y: mouseDownPosition.y + 1 - outerCellRect.top - verticalAdjust }
+              }
+            }
+          },
+
+          { change: 'downInPromptArea',
+            data: viewInfo.inPromptArea
+          },
+          { change: 'downInMarkdown',
+            data: viewInfo.downInMarkdown
+          }, 
+          { change: 'promptWidth',
+            data: viewInfo.promptWidth
+          }
+        ]);
+      },
+
+      hideLabelInputBoxes: () => {
+        console.log('Ending labelling');
+        $('.graffiti-label-input').val('').hide();
+      },
+
+      handleLabelInput: (e) => {
+        if (e.which === 9) {
+          e.preventDefault(); // don't let tab key buble up
+        }
+        e.stopPropagation(); // make sure keystrokes in the label input box don't bubble up to jupyter
+        if (e.type === 'keyup') {
+          if (state.getActivity() === 'recording') {
+            // If user hits return tab, we "accept" this label, which simply means hide the input box. The rendered label should be underneath.
+            state.disableDrawingFadeClock();
+            const inputBox = $(e.target);
+            const labelText = inputBox.val();
+            state.updateDrawingState([ { change: 'label', data: '' + labelText }]);
+            const drawingPermanence = state.getDrawingPenAttribute('permanence');
+            graffiti.updateStickerDisplayWhenRecording(drawingPermanence);
+            state.storeHistoryRecord('stickers');
+            console.log('keycode',e.which);
+            if ((e.which === 13) || (e.which === 9)) {
+              graffiti.hideLabelInputBoxes();
+              state.startDrawingFadeClock();
+            }
+          }
+        }
       },
 
       setupSavingScrim: () => {
@@ -1639,7 +1730,7 @@ define([
       },
       
       wipeAllStickerDomCanvases: () => {
-        console.log('wipeAllStickerDomCanvases');
+        //console.log('wipeAllStickerDomCanvases');
         $('.graffiti-sticker-outer').empty();
       },
 
@@ -1751,7 +1842,7 @@ define([
           newInnerHtml[canvasType] = [];
         }
         let stickerPermanence, stickerX, stickerY, fillOpacity, width, height, stickerWidth, stickerHeight, 
-            generatedStickerElem, pen, type, positions, p1x,p1y,p2x,p2y,
+            generatedStickerHtml, generatedStickerElem, pen, type, positions, p1x,p1y,p2x,p2y,
             stickersRecords, dimensions, stickerProcessingRecord;
         if (record !== undefined) {
           stickersRecords = record.stickersRecords;
@@ -1803,8 +1894,10 @@ define([
             width: stickerWidth,
             height: stickerHeight
           };
-          //console.log('drawing to dimensions:', dimensions);
           //console.log('Processing stickerRecord:', stickerRecord);
+          //console.log('Drawing to dimensions:', dimensions);
+          generatedStickerHtml = undefined;
+          //console.log('processing type:', type);
           switch (type) {
             case 'rectangle':
               generatedStickerHtml = stickerLib.makeRectangle({
@@ -2029,25 +2122,19 @@ define([
               });
               break;
             case 'label':
-              // Draw grey rectangle; 
-              // If recording, on mouseup, we will put a centered input box in the space.
-              if (currentlyRecording) {
-                generatedStickerHtml = stickerLib.makeRectangle({
-                  color:  'lightgrey',
-                  fill:   pen.fill,
-                  dashed: 'dashed',
-                  strokeWidth: 3,
-                  dimensions: dimensions,
-                  fillOpacity: 0,
-                });
-              } else {
-                // If not recording, render a text label scaled by the size of this box.
-                generatedStickerHtml = stickerLib.makeLabel({
-                  labelText:   'Hello Watson!',
+              // If we are recording, on mouseup, we will put a centered input box on screen. Otherwise render this label.
+              // If not recording, render a text label scaled by the size of this box.
+              if (pen.label !== undefined) {
+                dimensions.width = 15 * pen.label.length; // large enough for the label
+                dimensions.height = 18;
+                generatedStickerHtml = stickerLib.makeLabelHtml({
                   color:  pen.color,
-                  fill:   pen.fill,
+                  label: pen.label,
                   dimensions: dimensions,
+                  opacity: 1.0,
                 });
+                //console.log('generatedStickerHtml:', generatedStickerHtml);
+                canvasElements[stickerPermanence].opacityOverride = 1.0; // make parent opacity maximum so child images are fully visible
               }
               break;
             case 'custom':
@@ -2078,7 +2165,9 @@ define([
               }
               break;
           }
-          newInnerHtml[stickerPermanence].push(generatedStickerHtml);
+          if (generatedStickerHtml !== undefined) {
+            newInnerHtml[stickerPermanence].push(generatedStickerHtml);
+          }
         }
         // Finally, render all sticker html now that it's built.
         for (canvasType of canvasTypes) {
@@ -2098,7 +2187,6 @@ define([
         // Replace active sticker if there is one, or add a new active sticker
         const stickers = graffiti.stickers[stickerPermanence][cellId].stickers;
         let stickerRecord = state.createStickerRecord();
-        // stickerRecord.stickerOnGrid = state.getDrawingStateField('stickerOnGrid');
         // console.log('stickerRecord', stickerRecord);
         //console.log('stickerRecordEnd:', stickerRecord.positions.start.x, stickerRecord.positions.start.y, stickerRecord.positions.end.x, stickerRecord.positions.end.y);
         stickerRecord.active = true;
@@ -2983,8 +3071,8 @@ define([
         graffiti.updateControlPanels();
 
         if (graffitiDisabled) {
-          if (Jupyter.notebook.metadata.hasOwnProperty('graffitiId')) {
-            storage.deleteDataDirectory(Jupyter.notebook.metadata.graffitiId);
+          if (Jupyter.notebook.metadata.hasOwnProperty('graffiti')) {
+            storage.deleteDataDirectory(Jupyter.notebook.metadata.graffiti.id);
             storage.removeGraffitiIds();
             graffiti.changeAccessLevel('view');
             graffiti.updateSetupButton();
@@ -3317,11 +3405,7 @@ define([
         if (useCallback) {
           state.dumpHistory();
         }
-        if (graffiti.recordingIndicatorInterval !== undefined) {
-          clearInterval(graffiti.recordingIndicatorInterval);
-          graffiti.recordingIndicatorInterval = undefined;
-        }
-        clearInterval(state.getRecordingInterval());
+        state.clearAnimationIntervals();
         // This will use the callback defined in setAudioStorageCallback to actually persist the whole recording, if useCallback is true
         audio.stopRecording();
         console.log('Graffiti: stopRecordingCore is refreshing.');
@@ -3329,7 +3413,9 @@ define([
         graffiti.updateAllGraffitiDisplays();
         graffiti.wipeAllStickerDomCanvases();
         graffiti.resetStickerCanvases();
+        graffiti.deactivateAllPens();
         graffiti.removeCellsAddedByPlaybackOrRecording();
+        graffiti.hideLabelInputBoxes();
         state.restoreCellStates('selections');
         graffiti.sitePanel.animate({ scrollTop: graffiti.preRecordingScrollTop }, 750);
         graffiti.selectIntersectingGraffitiRange();
@@ -3384,8 +3470,6 @@ define([
             graffiti.setNotifier('Please wait, storing this movie...');
             graffiti.showControlPanels(['graffiti-notifier']);
             graffiti.savingScrim.css({display:'flex'});
-            graffiti.deactivateAllPens();
-            graffiti.resetStickerCanvases();
             graffiti.stopRecordingCore(true);
             state.unblockRecording();
             console.log('Graffiti: Stopped recording.');
@@ -3420,26 +3504,29 @@ define([
             graffiti.resetDrawingPen();
             state.disableDrawingFadeClock(); // initially, we don't fade since nothing drawn yet
 
-            state.setRecordingInterval(
-              setInterval(() => {
-                //console.log('Moving recording time ahead');
-                if (graffiti.runOnceOnNextRecordingTick !== undefined) {
-                  graffiti.runOnceOnNextRecordingTick();
-                  graffiti.runOnceOnNextRecordingTick = undefined;
-                }
-                graffiti.updateTimeDisplay(state.getTimeRecordedSoFar());
-                graffiti.updateDrawingOpacity();
-              }, graffiti.recordingIntervalMs)
-            );
-            // Flash a red recording bullet while recording is ongoing, every second. 
-            graffiti.recordingIndicatorInterval = setInterval(() => {
-              if (state.getTimeRecordedSoFar() % 2000 > 1000) {
-                $('#graffiti-recording-flash-icon').css({background:'rgb(245,245,245)'});
-              } else {
-                $('#graffiti-recording-flash-icon').css({background:'rgb(255,0,0)'});
-              }
-            }, 1000);
+            state.startAnimationInterval('recording',
+                                         () => {
+                                           //console.log('Moving recording time ahead');
+                                           if (graffiti.runOnceOnNextRecordingTick !== undefined) {
+                                             graffiti.runOnceOnNextRecordingTick();
+                                             graffiti.runOnceOnNextRecordingTick = undefined;
+                                           }
+                                           graffiti.updateTimeDisplay(state.getTimeRecordedSoFar());
+                                           graffiti.updateDrawingOpacity();
+                                         },
+                                         graffiti.recordingIntervalMs);
 
+            // Flash a red recording bullet while recording is ongoing, every second. 
+            state.startAnimationInterval('recordingIndicator',
+                                         () => {
+                                           if (state.getTimeRecordedSoFar() % 2000 > 1000) {
+                                             $('#graffiti-recording-flash-icon').css({background:'rgb(245,245,245)'});
+                                           } else {
+                                             $('#graffiti-recording-flash-icon').css({background:'rgb(255,0,0)'});
+                                           }
+                                         },
+                                         graffiti.recordingIntervalMs);
+            
             console.log('Graffiti: Started recording');
           }
         }
@@ -3900,7 +3987,6 @@ define([
 
       pausePlaybackNoVisualUpdates: () => {
         if (state.getActivity() === 'playing') {
-          clearInterval(state.getPlaybackInterval());
           graffiti.changeActivity('playbackPaused');
           audio.pausePlayback();
           console.log('Graffiti: pausePlaybackNoVisualUpdates');
@@ -3925,6 +4011,7 @@ define([
 
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTooltips();
+        state.clearAnimationIntervals();
 
         // Save after play stops, so if the user reloads we don't get the annoying dialog box warning us changes were made.
         // graffiti.saveNotebook();
@@ -3963,6 +4050,7 @@ define([
 
         console.log('Graffiti: Cancelling playback');
         graffiti.cancelPlaybackNoVisualUpdates();
+        state.clearAnimationIntervals();
         state.setDontRestoreCellContentsAfterPlayback(false);
         graffiti.resetStickerCanvases();
         graffiti.cancelRapidPlay();
@@ -4028,30 +4116,32 @@ define([
           audio.startPlayback(state.getPlaybackTimeElapsed());
         }
 
-        // Set up main playback loop on a 10ms interval
-        state.setPlaybackInterval(
-          setInterval(() => {
-            //console.log('Moving playback time ahead.');
-            const playedSoFar = state.getTimePlayedSoFar();
-            if (playedSoFar >= state.getHistoryDuration()) {
-              // reached end of recording naturally, so set up for restart on next press of play button
-              state.setupForReset();
-              graffiti.togglePlayback();
-            } else {
-              graffiti.updateSlider(playedSoFar);
-              graffiti.updateTimeDisplay(playedSoFar);
-              const frameIndexes = state.getHistoryRecordsAtTime(playedSoFar);
-              graffiti.updateDisplay(frameIndexes);
-              //console.log('play interval, now=', utils.getNow());
-            }
-          }, graffiti.playbackIntervalMs)
-        );
+        // Set up main playback loop
+        state.startAnimationInterval('playback',        
+                                     () => {
+                                       //console.log('Moving playback time ahead.');
+                                       const playedSoFar = state.getTimePlayedSoFar();
+                                       if (playedSoFar >= state.getHistoryDuration()) {
+                                         // reached end of recording naturally, so set up for restart on next press of play button
+                                         state.setupForReset();
+                                         graffiti.togglePlayback();
+                                       } else {
+                                         graffiti.updateSlider(playedSoFar);
+                                         graffiti.updateTimeDisplay(playedSoFar);
+                                         const frameIndexes = state.getHistoryRecordsAtTime(playedSoFar);
+                                         graffiti.updateDisplay(frameIndexes);
+                                         //console.log('play interval, now=', utils.getNow());
+                                         //
+                                       }
+                                     },
+                                     graffiti.playbackIntervalMs);
       },
 
       togglePlayback: () => {
         const activity = state.getActivity();
         if (activity !== 'recording') {
           if (activity === 'playing') {
+            state.clearAnimationIntervals();
             if (state.getHidePlayerAfterPlayback() && state.getSetupForReset()) {
               graffiti.cancelPlayback({ cancelAnimation: true});
             } else {
@@ -4255,9 +4345,8 @@ define([
         if (level === 'create') {
           graffiti.cancelPlayback({cancelAnimation:true});
           graffiti.activateAudio(); // we need to activate audio to create the audio object, even if microphone access was previously granted.
-          state.setAuthorId(0); // currently hardwiring this to creator(teacher) ID, which is always 0. Eventually we will replace this with 
-          // individual author ids
           storage.ensureNotebookGetsGraffitiId();
+          storage.ensureNotebookGetsFirstAuthorId();
           utils.assignCellIds();
           utils.saveNotebook();
           graffiti.refreshAllGraffitiHighlights();
@@ -4340,7 +4429,7 @@ define([
         let buttonLabel, setupForSetup = false;
         let buttonContents = '<div id="graffiti-setup-button" style="display:none;" class="btn-group"><button class="btn btn-default" title="Enable Graffiti">';
 
-        if (!notebook.metadata.hasOwnProperty('graffitiId')) {
+        if (!notebook.metadata.hasOwnProperty('graffiti')) {
           // This notebook has never been graffiti-ized, or it just got un-graffiti-ized
           const existingSetupButton = $('#graffiti-setup-button');
           if (existingSetupButton.length > 0) {
@@ -4380,6 +4469,7 @@ define([
               click: (e) => {
                 console.log('Graffiti: You clicked ok');
                 storage.ensureNotebookGetsGraffitiId();
+                storage.ensureNotebookGetsFirstAuthorId();
                 utils.saveNotebook();
                 utils.createApiSymlink();
                 graffiti.initInteractivity();
@@ -4411,13 +4501,12 @@ define([
       cancelPlayback: () => { graffiti.cancelPlayback({cancelAnimation:false}) },
       removeAllGraffiti: graffiti.removeAllGraffitisWithConfirmation,
       disableGraffiti: graffiti.disableGraffitiWithConfirmation,
-      // showCreatorsChooser: graffiti.showCreatorsChooser,
       setAccessLevel: (level) => { graffiti.toggleAccessLevel(level) },
-      setAuthorId: (authorId) => { state.setAuthorId(authorId) },
       transferGraffitis: () => { graffiti.transferGraffitis() },
       packageGraffitis: () => { graffiti.packageGraffitis() },
       getUsageStats: () => { return state.getUsageStats() },
-      selectionSerializer: selectionSerializer
+      selectionSerializer: selectionSerializer,
+      // showCreatorsChooser: graffiti.showCreatorsChooser, // demo only
     }
 
   })();

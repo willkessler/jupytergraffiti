@@ -37,6 +37,17 @@ define([
       return average;      
     },
 
+    subtractCoords: (c1, c2) => {
+      const x1 = (c1.x !== undefined ? c1.x : c1.left);
+      const y1 = (c1.y !== undefined ? c1.y : c1.top);
+      const x2 = (c2.x !== undefined ? c2.x : c2.left);
+      const y2 = (c2.y !== undefined ? c2.y : c2.top);
+      return { 
+        x: x2 - x1, 
+        y: y2 - y1
+      }
+    },
+
     refreshCodeMirrorSelection: (cell) => {
       if ((cell.cell_type === 'code') && (cell.selected)) {
         cm = cell.code_mirror;

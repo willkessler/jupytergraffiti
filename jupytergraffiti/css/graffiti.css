@@ -372,6 +372,18 @@
   text-align:center;
 }
 
+.graffiti-label-input {
+  position:absolute;
+  width:300px;
+  z-index:110;
+}
+
+.graffiti-label-input input {
+  padding:4px;
+  color:black;
+  width:100%;
+}
+
 #graffiti-stickers-shell .graffiti-active-sticker {
   outline:1px dashed red !important;
   outline-offset:1px;
@@ -647,14 +659,17 @@ http://www.patternify.com/
 }
 
 .graffiti-sticker-inner {
-/*  border:1px dashed red;*/
+/*  border:2px dashed red;*/
   pointer-events:none;
 }
 
-.graffiti-sticker-inner svg {
+.graffiti-sticker-inner svg,
+.graffiti-sticker-inner div {
   position:absolute;
   left:0px;
   top:0px;
+  margin-top:3px;
+  margin-left:3px;
 }
 
 .graffiti-expando {

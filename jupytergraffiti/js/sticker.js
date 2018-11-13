@@ -43,20 +43,20 @@ define([
     },
     
     makeElementHtml: (tag, attr, innerHtml) => {
-      let svgHtml = '<' + tag + ' ';
+      let elementHtml = '<' + tag + ' ';
       if (tag === 'svg') {
-        svgHtml += 'xmlns="http://www.w3.org/2000/svg" version="1.1" class="graffitiSvg" ';
+        elementHtml += 'xmlns="http://www.w3.org/2000/svg" version="1.1" class="graffitiSvg" ';
       }
       let attrHtml = '';
       if (attr !== undefined) {
         attrHtml = $.map(attr, (val, key) => { return (key + '="' + val + '"') } ).join(' ');
       }
       if (innerHtml !== undefined) {
-        svgHtml += attrHtml + '>' + innerHtml + '</' + tag + '>';
+        elementHtml += attrHtml + '>' + innerHtml + '</' + tag + '>';
       } else {
-        svgHtml += attrHtml + '></' + tag + '>';
+        elementHtml += attrHtml + '></' + tag + '>';
       }
-      return svgHtml;
+      return elementHtml;
     },
 
     makeSvgElement: (tag, attrs) => {
@@ -68,6 +68,11 @@ define([
       }
       for (let k in attrs) {
         el.setAttribute(k, attrs[k]);
+      }
+      if (attrs.text !== undefined) { 
+        // Handle svg text content as a special case b/c it's not an attribute, cf :
+        // https://stackoverflow.com/questions/14758125/setting-text-svg-element-dynamically-via-javascript
+        el.textContent = attrs.text;
       }
       return el;
     },
@@ -92,6 +97,14 @@ define([
         if (svgChild.hasOwnProperty('cssTransform')) {
           transform = 'transform:' + svgChild.cssTransform;
         }
+        let backgroundColor = '';
+        if (svgChild.hasOwnProperty('backgroundColor')) {
+          backgroundColor = 'background:' + svgChild.backgroundColor + ';';
+        }
+        let border = '';
+        if (svgChild.hasOwnProperty('border')) {
+          border = 'border:' + svgChild.border + ';';
+        }
         containerDiv =
           sticker.makeDomElement('div',
                                  {
@@ -99,7 +112,9 @@ define([
                                    'style' : 'position:absolute;' +
                                              'left:' + parseInt(svgChild.x) + 'px;top:' + parseInt(svgChild.y) + 'px;' +
                                              'width:' + parseInt(svgChild.width) + 'px;height:' + parseInt(svgChild.height) + 'px;' +
-                                             transform
+                                             transform +
+                                             backgroundColor +
+                                             border
                                  });
         containerSticker =
           sticker.makeSvgElement('svg',
@@ -897,13 +912,51 @@ define([
       return udacityHtml;
     },
 
-    makeLabel: (opts) => {
+    makeLabelHtml: (opts) => {
       const dimensions = opts.dimensions;
-      let labelHtml = '<div class="graffiti-label" style="width:' + dimensions.width + 'px;height:' + dimensions.height + 'px;' +
-                       'top:' + dimensions.y + 'px;left:' + dimensions.x + 'px;opacity:1.0;">';
-      labelHtml += opts.labelText + '</div>';
-
+      
+      const labelAttr = {
+        style: 'width:' + dimensions.width + 'px;' + 'height:' + dimensions.height + 'px;' + 'left:' + dimensions.x + 'px;' + 'top:' + dimensions.y + 'px;' +
+               'opacity:' + opts.opacity + ';color:' + opts.color + ';padding-top:10px;'
+      };
+      
+      const labelHtml = '<div class="graffiti-sticker-inner">' + 
+                        sticker.makeElementHtml('div', labelAttr, '<div>' + opts.label + '</div>') + 
+                        '</div>';
       return labelHtml;
+    },
+
+    // create label with SVG. legacy code in case i ever need it but now using the above fn makeLabelHtml since more efficient.
+    makeLabelSvg: (opts) => {
+      const dimensions = opts.dimensions;
+      const buffer = opts.buffer || 4;
+      const viewBoxRaw = '0 0 ' + dimensions.width + ' ' + dimensions.height;
+      const viewBox = sticker.makeBufferedViewBox({buffer:buffer, bufferAllSides: true, viewBox: viewBoxRaw });
+      let shapeObj = { x: 0,
+                       y: 16, 
+                       text: opts.label,
+                       "font-size": 18,
+                       width: dimensions.width,
+                       height: dimensions.height,
+                       stroke: opts.color,
+                       fill: opts.color,
+                       dashed: opts.dashed,
+                       "stroke-width": opts.strokeWidth,
+                       "fill-opacity":opts.fillOpacity
+      };
+      sticker.interpretDashing(opts, shapeObj);
+      const theLabel = sticker.makeSvgElement('text', shapeObj);
+      const parmBlock = {          
+        el: theLabel,
+        x: dimensions.x,
+        y : dimensions.y,
+        width: dimensions.width,
+        height: dimensions.height,
+        viewBox: viewBox,
+      };
+
+      const renderedSvg = sticker.renderSvg([parmBlock]);
+      return renderedSvg;
     },
 
     makeCustom: (opts) => {

@@ -2,8 +2,9 @@ define([
   './state.js',
   './audio.js',
   './utils.js',
+  './udacityUser.js',
   './LZString.js'
-], function (state,audio,utils, LZString) {
+], function (state,audio,utils, udacityUser, LZString) {
 
   //
   // Storage tree is organized like this:
@@ -12,7 +13,7 @@ define([
   //   notebooks/
   //     id_1234/
   //       authors/
-  //        id_0 (creator)/
+  //        id_1234 (creator)/
   //          manifest.json
   //          cells/
   //            id_1234/
@@ -22,37 +23,50 @@ define([
   //                     id_1234/
   //                       audio.txt
   //                       history.txt  
-  //        id_123 (viewer)/
-  //          manifest.json
-  //          cells/
-  //            id_1234/
-  //              graffitis/
-  //                id_1234
-  //                   takes/
-  //                     id_1234/
-  //                       audio.txt
-  //                       history.txt  
+  // Inside the notebook's graffiti metadata, firstAuthorId records the author id of the creator of the very first graffiti in this notebook.
+  // For notebooks created at Udacity, these are usually graffiti created by instructors and we use a Udacity id. Otherwise we use a randomly generated id. 
 
   const storage = {
 
     ensureNotebookGetsGraffitiId: () => {
-      // make sure a new notebook gets a recording id
+      // Make sure a new notebook gets a recording id
       const notebook = Jupyter.notebook;
-      if (!notebook.metadata.hasOwnProperty('graffitiId')) {
-        notebook.metadata['graffitiId'] = utils.generateUniqueId();
+      if (!notebook.metadata.hasOwnProperty('graffiti')) {
+        notebook.metadata['graffiti'] = { 
+          id: utils.generateUniqueId()
+        }
       }
       utils.assignCellIds();
       utils.refreshCellMaps();
       console.log('Graffiti: Notebook is now ready to use Graffiti.');
     },
 
+    ensureNotebookGetsFirstAuthorId: () => {
+      // Make sure a new notebook gets a first author id, from whatever auth system is in use.
+      const notebook = Jupyter.notebook;
+      let metadata = notebook.metadata;
+      let firstAuthorId;
+      if (!metadata.hasOwnProperty('graffiti')) {
+        storage.ensureNotebookGetsGraffitiId();
+      }
+      if (!metadata.graffiti.hasOwnProperty('firstAuthorId')) {
+        firstAuthorId = udacityUser.getUser();
+        metadata.graffiti.firstAuthorId = firstAuthorId;
+        state.setAuthorId(firstAuthorId);
+      } else {
+        firstAuthorId = metadata.graffiti.firstAuthorId;
+      }
+
+      return firstAuthorId;
+    },
+
     constructBasePath: () => {
       const notebook = Jupyter.notebook;
-      if (!notebook.metadata.hasOwnProperty('graffitiId')) {
-        notebook.metadata['graffitiId'] = graffitiId;
+      if (!notebook.metadata.hasOwnProperty('graffiti')) {
+        storage.ensureNotebookGetsGraffitiId();
       }
       // hardwired to only load author recordings for now
-      const basePath = 'jupytergraffiti_data/notebooks/' + notebook.metadata['graffitiId'] + '/authors/id_' + state.getAuthorId() + '/';
+      const basePath = 'jupytergraffiti_data/notebooks/' + notebook.metadata.graffiti.id + '/authors/' + state.getAuthorId() + '/';
       return basePath;
     },
 
@@ -142,14 +156,17 @@ define([
     // This version of the system only supports author manifests.
     loadManifest: (currentAccessLevel) => {
       const notebook = Jupyter.notebook;
-      if (!notebook.metadata.hasOwnProperty('graffitiId')) {
+      if (!notebook.metadata.hasOwnProperty('graffiti')) {
         if (currentAccessLevel !== 'create') {
-          console.log('Graffiti: loadManifest is bailing early because we are not in "create" mode and this notebook has no graffitiId.');
+          console.log('Graffiti: loadManifest is bailing early because we are not in "create" mode and this notebook has no graffiti id.');
           return Promise.reject();
         } else {
           storage.ensureNotebookGetsGraffitiId();
         }
       }
+      const authorId = storage.ensureNotebookGetsFirstAuthorId();
+      state.setAuthorId(authorId);
+
       const credentials = { credentials: 'include' };
       const manifestInfo = storage.constructManifestPath();
       console.log('Graffiti: Loading manifest from:', manifestInfo);
@@ -206,7 +223,7 @@ define([
     // Returns a promise.
     //
     loadMovie: (recordingCellId, recordingKey, activeTakeId) => {
-      const notebookRecordingId = Jupyter.notebook.metadata['graffitiId'];
+      const notebookRecordingId = Jupyter.notebook.metadata.graffiti.id;
       const graffitiPath = storage.constructGraffitiTakePath( {
         recordingCellId: recordingCellId,
         recordingKey: recordingKey,
@@ -276,13 +293,14 @@ define([
     transferGraffitis: () => {
       const notebook = Jupyter.notebook;
       let originalGraffitiId;
-      if (notebook.metadata.hasOwnProperty('graffitiId')) {
-        originalGraffitiId = notebook.metadata.graffitiId;
-        delete(notebook.metadata['graffitiId']);
+      if (notebook.metadata.hasOwnProperty('graffiti')) {
+        originalGraffitiId = $.extend(true, {},notebook.metadata.graffiti);
+        delete(notebook.metadata['graffiti']);
       }
       storage.ensureNotebookGetsGraffitiId();
+      storage.ensureNotebookGetsFirstAuthorId();
       utils.saveNotebook();
-      const newGraffitiId = notebook.metadata.graffitiId;
+      const newGraffitiId = notebook.metadata.graffiti.id;
       const notebookPath = "jupytergraffiti_data/notebooks/";
       const sourceTree = notebookPath + originalGraffitiId;
       const destTree = notebookPath + newGraffitiId;
@@ -326,8 +344,7 @@ define([
           delete(cell.metadata.graffitiCellId)
         }
       }
-      const notebookGraffitiId = Jupyter.notebook.metadata.graffitiId;
-      delete(Jupyter.notebook.metadata.graffitiId);
+      delete(Jupyter.notebook.metadata.graffiti);
       utils.saveNotebook();
     },
 

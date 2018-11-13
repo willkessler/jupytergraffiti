@@ -8,7 +8,7 @@ define([
       state.manifest = {};
       state.utils = utils;
       state.accessLevel = 'view'; // one of 'create' or 'view'. If 'create' then we can create new graffitis, otherwise we can only view them
-      state.authorId = 0; // defaults to the creator(teacher) in v1 of Graffiti but eventually this will be (potentially) set to a viewer(student) id.
+      state.authorId = undefined; // set when we activivateGraffiti or load a manifest
       state.authorType = 'creator';  // currently hardwired to be creator (teacher).
       state.audioInitialized = false;
       state.recordingBlocked = false;
@@ -51,7 +51,6 @@ define([
       state.hidePlayerAfterPlayback = false;
       state.dontRestoreCellContentsAfterPlayback = false; // this is something the author can decide with an API call.
       state.cellOutputsSent = {};
-      state.lastStickerPositions = undefined;
       state.stickerImageUrl = undefined;
       state.stickerImageCandidateUrl = undefined;
       state.cellIdsAddedDuringRecording = {};
@@ -60,6 +59,8 @@ define([
         changedCells: {},
         selections: {}
       };
+      state.animationIntervalIds = {};
+
       // Usage statistic gathering for the current session (since last load of the notebook)
       state.usageStats = {
         notebookLoadedAt: utils.getNow(),
@@ -293,25 +294,6 @@ define([
       return state.displayedTipInfo;
     },
 
-    storeLastStickerPositions: () => {
-      if (state.lastStickerPositions === undefined) {
-        state.lastStickerPositions = {
-          start: { x: state.drawingState.positions.start.x, y: state.drawingState.positions.start.y },
-          end:   { x: state.drawingState.positions.end.x, y: state.drawingState.positions.end.y },
-          width: Math.abs(state.drawingState.positions.end.x - state.drawingState.positions.start.x),
-          height: Math.abs(state.drawingState.positions.end.y - state.drawingState.positions.start.y)
-        }
-      }
-    },
-
-    getLastStickerPositions: () => {
-      return state.lastStickerPositions;
-    },
-
-    clearLastStickerPositions: () => {
-      state.lastStickerPositions = undefined;
-    },
-
     getStickerImageUrl: (stickerImageUrl) => {
       return state.stickerImageUrl;
     },
@@ -480,13 +462,18 @@ define([
 
     // Store the stickers stages sticker lists for later redrawing during playing/scrubbing
     storeStickersStateForCell: (stickers, cellId) => {
-      const recordingCellInfo = state.getRecordingCellInfo();
       let stickersRecords = {};
       if ((stickers !== undefined) && (stickers.length > 0)) {
         stickersRecords = [];
         for (let sticker of stickers) {
           // Copy important fields from the "live" sticker records into the drawing state; these will be persisted as sticker records
           // inside drawing records for later playback.
+          // NB: we don't include label stickers that don't have text labels at all, these are just displayed for guidance while placing the sticker
+
+          console.log('sticker:', sticker);
+//          if ((sticker.pen.stickerType === 'label') && (sticker.pen.label === undefined)) {
+//            continue;
+//          }
           stickersRecords.push({
             positions: { start: { x: sticker.positions.start.x, y: sticker.positions.start.y },
                          end:   { x: sticker.positions.end.x, y: sticker.positions.end.y } },
@@ -503,6 +490,7 @@ define([
               fill:  sticker.pen.fill,
               fillOpacity:  sticker.pen.fillOpacity,
               permanence: sticker.pen.permanence,
+              label: sticker.pen.label,
               downInMarkdown: sticker.pen.downInMarkdown,
               downInPromptArea: sticker.pen.downInPromptArea,
               inPromptArea: sticker.pen.inPromptArea,
@@ -583,6 +571,9 @@ define([
               case 'star':
               case 'line':
               case 'lineWithArrow':
+              case 'label':
+              case 'custom':
+                // all these cases have an implicit fill type of 'none'
                 break;
               case 'checkMark':
                 fill = '00aa00'; // hardwired to green
@@ -596,6 +587,10 @@ define([
                 break;
             }
             drawingState.pen.fill = fill; // fill color, if opacity == 1
+            break;
+          case 'label':
+            // a label is actually a sticker that's just typed text
+            drawingState.pen.label = data;
             break;
           case 'permanence':
             drawingState.pen.permanence = data; // one of 'permanent', 'temporary'
@@ -701,20 +696,21 @@ define([
       state.playbackStartTime = startTime;
     },
 
-    getRecordingInterval: () => {
-      return state.recordingInterval;
+    startAnimationInterval: (name, cb, timing) => {
+      if (state.animationIntervalIds[name] !== undefined) {
+        clearInterval(state.animationIntervalIds[name]);
+      }
+      state.animationIntervalIds[name] = setInterval(cb, timing);      
     },
 
-    setRecordingInterval: (interval) => {
-      state.recordingInterval = interval;
-    },
-
-    getPlaybackInterval: () => {
-      return state.playbackInterval;
-    },
-
-    setPlaybackInterval: (interval) => {
-      state.playbackInterval = interval;
+    clearAnimationIntervals: () => {
+      const ids = Object.keys(state.animationIntervalIds);
+      for (let id of ids) {
+        if (state.animationIntervalIds[id] !== undefined) {
+          clearInterval(state.animationIntervalIds[id]);
+          delete(state.animationIntervalIds[id]);
+        }
+      }
     },
 
     getPlaybackTimeElapsed: () => {
@@ -965,6 +961,7 @@ define([
       return record;
     },
 
+    // drawingRecords (above) contain a hash of stickerRecords, below: all stickers on display during that drawing frame
     createStickerRecord: () => {
       const cell = utils.findCellByCellId(state.drawingState.cellId);
       const cellRects = utils.getCellRects(cell);
@@ -982,7 +979,7 @@ define([
       delete(record.pen.isDown);
       delete(record.pen['mouseDownPosition']);
       delete(record.wipe);
-      //console.log('createStickerRecord:', record);
+      console.log('createStickerRecord:', record);
       return record;
     },
 
@@ -1310,7 +1307,7 @@ define([
                 if ((indexes[arrName] !== undefined) && (indexes[arrName].index !== previousFrameIndex) && (indexes[arrName].index > previousFrameIndex)) {
                   // If we skipped forward a bunch of records to catch up with real time, remember how far we skipped. 
                   // This is needed to make sure we (re)draw everything we recorded during the time that was skipped over.
-                  // Time skipping happens because browser setInterval timing isn't that reliable, so to avoid desynching
+                  // Time skipping happens because browser animationFrame timing isn't that reliable, so to avoid desynching
                   // with the audio track, we sometimes need to skip records.
                   indexes[arrName].rangeStart = previousFrameIndex + 1;
                 }                
