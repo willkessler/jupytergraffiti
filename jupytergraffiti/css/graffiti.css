@@ -648,7 +648,10 @@ http://www.patternify.com/
 }
 
 #graffiti-sticker-label {
-  font-size:1.2em;
+  font-size:1.5em;
+  padding-top:3px;
+  padding-left:7px;
+  font-weight:bold;
 }
 
 .graffiti-sticker-outer {

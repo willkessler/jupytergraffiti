@@ -626,44 +626,49 @@ define([
                                       '  <div id="graffiti-stickers-header">' + stickersExpando + '<div>Stickers <span>(Select, then click & drag)</span></div></div>' +
                                       '  <div id="graffiti-stickers-body">' +
                                       '    <div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-lineWithArrow">' + lineWithArrow + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-horizontalBrackets">' + horizontalBrackets + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-verticalBrackets">' + verticalBrackets + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-curlyBraces">' + curlyBraces + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-lineWithArrow" title="Line with arrow at tip">' + 
+                                      lineWithArrow + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-horizontalBrackets" title="Horizontal brackets">' +
+                                      horizontalBrackets + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-verticalBrackets" title="Vertical brackets">' + 
+                                      verticalBrackets + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-curlyBraces" title="Curly braces">' + curlyBraces + '</div>' +
                                       '    </div>' +
                                       '    <div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-rectangle">' + rectangle + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-roundRectangle">' + roundRectangle + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-ellipse">' + ellipse + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-rightTriangle">' + rightTriangle + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-isocelesTriangle">' + isocelesTriangle + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-rectangle" title="Rectangle">' + rectangle + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-roundRectangle" title="Rounded corners rectangle">' +
+                                      roundRectangle + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-ellipse" title="Ellipse">' + ellipse + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-rightTriangle" title="Right triangle">' + rightTriangle + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-isocelesTriangle" title="Isoceles triangle">' + 
+                                      isocelesTriangle + '</div>' +
                                       '    </div>' +
                                       '    <div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-checkmark">' + checkMark + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-xmark">' + xMark + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-smiley">' + smiley + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-bomb">' + bomb + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-trophy">' + trophy + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-checkmark" title="Checkmark">' + checkMark + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-xmark" title="X mark">' + xMark + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-smiley" title="Smiley face">' + smiley + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-bomb" title="Bomb">' + bomb + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-trophy" title="Trophy">' + trophy + '</div>' +
                                       '    </div>' +
                                       '    <div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-pi">' + pi + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-alpha">' + alpha + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-beta">' + beta + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-sigma">' + sigma + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-theta">' + theta + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-pi" title="Pi symbol">' + pi + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-alpha"  title="Alpha symbol">' + alpha + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-beta" title="Beta symbol">' + beta + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-sigma" title="Sigma symbol">' + sigma + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-theta"  title="Theta symbol">' + theta + '</div>' +
                                       '    </div>' +
                                       '    <div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-axis">' + axis + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-grid">' + grid + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-angle">' + angle + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-label">' + 'Tt' + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-custom">' + 'Cs' + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-axis" title="X-y axis">' + axis + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-grid" title="Square grid">' + grid + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-angle" title="Angle">' + angle + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-label" title="Text label">' + 'Tt' + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-custom" title="Custom sticker">' + 'Cs' + '</div>' +
                                       '    </div>' +
                                       '  </div>' +
                                       '  <div id="graffiti-sticker-style-controls">' +
                                       '    <div id="graffiti-sticker-fill">' +
                                       '     <input type="checkbox" id="graffiti-sticker-fill-control" />' +
-                                      '     <label id="graffiti-sticker-fill-control-label" for="graffiti-sticker-fill-control">Solid Fill</label>' +
+                                      '     <label id="graffiti-sticker-fill-control-label" for="graffiti-sticker-fill-control" title="Fill shapes with chosen color">Solid Fill</label>' +
                                       '    </div>' +
                                       '    <div id="graffiti-sticker-hint">Shift-key: align items to grid / keep items square</div>' +
                                       '  </div>' +
