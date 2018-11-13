@@ -7,8 +7,8 @@ define([
   'base/js/namespace',
   '/nbextensions/graffiti_extension/graffiti.js',
   '/nbextensions/graffiti_extension/utils.js',
-  '/nbextensions/graffiti_extension/udacity_user.js'
-], (Jupyter, Graffiti, utils) => {
+  '/nbextensions/graffiti_extension/udacityUser.js'
+], (Jupyter, Graffiti, utils, UdacityUser) => {
   function load_ipython_extension() {
     console.log('Graffiti loaded:', Graffiti);
     window.Graffiti = Graffiti;
