@@ -2,9 +2,8 @@ define([
   './state.js',
   './audio.js',
   './utils.js',
-  './udacityUser.js',
   './LZString.js'
-], function (state,audio,utils, udacityUser, LZString) {
+], function (state,audio,utils, LZString) {
 
   //
   // Storage tree is organized like this:
@@ -50,7 +49,7 @@ define([
         storage.ensureNotebookGetsGraffitiId();
       }
       if (!metadata.graffiti.hasOwnProperty('firstAuthorId')) {
-        firstAuthorId = udacityUser.getUser();
+        firstAuthorId = state.getUserId();
         metadata.graffiti.firstAuthorId = firstAuthorId;
         state.setAuthorId(firstAuthorId);
       } else {

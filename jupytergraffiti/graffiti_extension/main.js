@@ -4,17 +4,17 @@
 window.Graffiti = null; 
 
 define([
-  'base/js/namespace',
+  'base/js/namespace', 
   '/nbextensions/graffiti_extension/graffiti.js',
   '/nbextensions/graffiti_extension/utils.js',
   '/nbextensions/graffiti_extension/udacityUser.js'
-], (Jupyter, Graffiti, utils, UdacityUser) => {
+], (Jupyter, Graffiti, utils, udacityUser) => {
   function load_ipython_extension() {
     console.log('Graffiti loaded:', Graffiti);
     window.Graffiti = Graffiti;
+    udacityUser.setUser();
     Graffiti.init();
     utils.saveNotebook();
-    UdacityUser.setCocoEnvironment();
 
     Jupyter.notebook.events.on('kernel_restarting.Kernel', (e) => {
       console.log('Graffiti: kernel restarted, so rerunning require', e);

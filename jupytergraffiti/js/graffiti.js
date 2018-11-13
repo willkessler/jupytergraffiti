@@ -74,6 +74,7 @@ define([
 
         if (currentAccessLevel === 'create') {
           storage.ensureNotebookGetsGraffitiId();
+          storage.ensureNotebookGetsFirstAuthorId();
         }
 
         // Set up the button that activates Graffiti on new notebooks and controls visibility of the control panel if the notebook has already been graffiti-ized.
@@ -1250,6 +1251,7 @@ define([
         if (activeStickerType !== stickerType) {
           // Activate a new sticker, unless sticker is already active, in which case, deactivate it
           graffiti.hideLabelInputBoxes();
+          graffiti.clearAnyActiveStickerStages();
           graffiti.showDrawingScreen();
           // Deactivate any active pen
           $('.graffiti-active-pen').removeClass('graffiti-active-pen');
@@ -1347,6 +1349,12 @@ define([
                   data: viewInfo.cellId
                 }
               ]);
+
+              // If we are using a label-type sticker, then put the label input box where the mousedown happened.
+              if (stickerType === 'label') {
+                graffiti.showLabelInputBox();
+              }
+
             }
             state.updateDrawingState( [ 
               { change: 'drawingModeActivated', data: true }, 
@@ -1360,10 +1368,6 @@ define([
             console.log('drawingScreenHandler: ', e.type);
             if ((drawingActivity === 'sticker') && (e.type === 'mouseup')) {
               graffiti.clearAnyActiveStickerStages();
-              // If we are using a label-type sticker, then put the label input box where the mouse is
-              if (state.getDrawingPenAttribute('stickerType') === 'label') {
-                graffiti.showLabelInputBox();
-              }
             }
             if (state.getDrawingPenAttribute('isDown')) {
               state.updateDrawingState( [ { change: 'isDown',  data: false } ]);
@@ -1422,11 +1426,16 @@ define([
           labelInputBox.bind('keydown keyup', (e) => { graffiti.handleLabelInput(e) });
         }
         const penColor = state.getDrawingPenAttribute('color');
-        labelInputBox.find('input').css({color:penColor});
+        if (penColor === 'white') {
+          labelInputBox.find('input').css({color:'black'});
+        } else {
+          labelInputBox.find('input').css({color:penColor});
+        }
         return labelInputBox;
       },
 
       showLabelInputBox: () => {
+        graffiti.clearAnyActiveStickerStages();
         graffiti.hideLabelInputBoxes();
         const labelInputBox = graffiti.placeLabelInputBox(); // make sure there is a label box
         const currentPointerPosition = state.getPointerPosition();
@@ -2134,7 +2143,6 @@ define([
                   opacity: 1.0,
                 });
                 //console.log('generatedStickerHtml:', generatedStickerHtml);
-                canvasElements[stickerPermanence].opacityOverride = 1.0; // make parent opacity maximum so child images are fully visible
               }
               break;
             case 'custom':
@@ -2767,7 +2775,21 @@ define([
           state.storeViewInfo(viewInfo);
           state.storeHistoryRecord('pointer');
 
-          graffiti.updateDrawingDisplayWhenRecording(previousPointerX, previousPointerY, e.clientX, e.clientY, viewInfo );
+
+          let doDrawingDisplayUpdate = true;
+          const drawingActivity = state.getDrawingStateField('drawingActivity');
+          if (drawingActivity === 'sticker') {
+            const stickerType = state.getDrawingPenAttribute('stickerType');
+            if (stickerType === 'label') {
+              // We do not want to update the label during recording because this fn is called via onmousemove.
+              // We update the label directly from handleLabelInput(), above, for that special case. Otherwise, we
+              // will end up dragging the label around the screen while the mousebutton is down.
+              doDrawingDisplayUpdate = false;
+            }
+          }
+          if (doDrawingDisplayUpdate) {
+              graffiti.updateDrawingDisplayWhenRecording(previousPointerX, previousPointerY, e.clientX, e.clientY, viewInfo );
+          }
 
           graffiti.updateControlPanelPosition();
           return true;

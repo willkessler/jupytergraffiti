@@ -1,6 +1,7 @@
 define([
-  './utils.js'
-], function(utils) {
+  './utils.js',
+  './state.js'
+], function(utils, state) {
 
   function getToken() {
 		const executeCallbackObject = (callback) => ({
@@ -43,14 +44,14 @@ define([
     });
   }
         
-  // Stub function, in Udacity usage we use a Udacity id instead.
   const udacityUser = {
     getUser: () => {
       return getToken().then(token => getUdacityUser(token));
     },
-    setCocoEnvironment: () => {
+    setUser: () => {
       udacityUser.getUser()
       .then(user => {
+        state.setUserId(user.userId);
         user.coco && $('#graffiti-setup-button').css('display', 'inline-block');
       })
       .catch(err => console.error(err));

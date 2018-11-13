@@ -54,6 +54,7 @@ define([
       state.stickerImageUrl = undefined;
       state.stickerImageCandidateUrl = undefined;
       state.cellIdsAddedDuringRecording = {};
+      state.userId = undefined;
       state.cellStates = {
         contents: {},
         changedCells: {},
@@ -177,7 +178,9 @@ define([
                 takes = recording.takes;
                 if (takes !== undefined) {
                   activeTakeId = recording.activeTakeId;
-                  totals.totalRecordedTime += takes[activeTakeId].duration;
+                  if (takes[activeTakeId] !== undefined) {
+                    totals.totalRecordedTime += takes[activeTakeId].duration;
+                  }
                   lenCheck = Object.keys(takes).length;
                   if (lenCheck > totals.maxTakesPerGraffiti) {
                     totals.maxTakesPerGraffiti = lenCheck;
@@ -213,6 +216,14 @@ define([
 
     setAuthorType: (authorType) => {
       state.authorType = authorType;
+    },
+
+    getUserId: () => {
+      return state.userId;
+    },
+
+    setUserId: (userId) => {
+      state.userId = userId;
     },
 
     getAudioInitialized: () => {
