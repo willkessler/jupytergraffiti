@@ -2306,6 +2306,9 @@ define([
       },
 
       redrawAllDrawingsWhenRecording: () => {
+        if (state.getActivity() !== 'recording') {
+          return;
+        }
         const lastDrawFrameIndex = state.getLastFrameIndex('drawings');
         if (lastDrawFrameIndex !== undefined) {
           for (let index = 0; index < lastDrawFrameIndex; ++index) {
