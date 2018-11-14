@@ -1351,6 +1351,10 @@ define([
       return undefined;
     },
 
+    getLastFrameIndex: (kind) => {
+      return state.history[kind].length;
+    },
+
     getHistoryItem: (kind, index) => {
       if ((index < state.history[kind].length) && (index >= 0)) {
         return state.history[kind][index];
@@ -1400,11 +1404,11 @@ define([
     restoreCellOutputs: (cell, frameOutputs) => {
       const cellId = utils.getMetadataCellId(cell.metadata);
       if (frameOutputs === undefined)
-        return; // no output found, so don't update DOM (e.g. markdown cell)
+        return false; // no output found, so don't update DOM (e.g. markdown cell)
       if (state.cellOutputsSent[cellId] !== undefined) {
         if (state.cellOutputsSent[cellId] === frameOutputs) {
           // no change to cell output, so don't rerender
-          return;
+          return false;
         }
       }
       const cellDom = $(cell.element);
@@ -1412,6 +1416,7 @@ define([
       //console.log('Sending this output to cellid:', cellId, frameOutputs);
       outputArea.html(frameOutputs).show();
       state.cellOutputsSent[cellId] = frameOutputs;
+      return true;
     },
 
     restoreCellStates: (which) => {

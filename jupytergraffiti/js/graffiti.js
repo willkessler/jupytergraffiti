@@ -214,8 +214,7 @@ define([
               // need to redraw all current stickers here
               const activity = state.getActivity();
               if ((activity === 'playing') || (activity === 'playbackPaused')) {
-                const timeElapsed = state.getPlaybackTimeElapsed();
-                graffiti.redrawAllDrawings(timeElapsed);
+                graffiti.redrawAllDrawings();
               }
               graffiti.updateControlPanelPosition({ left: Math.max(0, Math.min(controlPanelPosition.left, maxLeft)),
                                                     top: Math.max(0,Math.min(maxTop, controlPanelPosition.top)) });
@@ -465,7 +464,7 @@ define([
 
         graffiti.setupOneControlPanel('graffiti-recording-pen-controls', 
                                       '<div id="graffiti-recording-pens-shell">' +
-                                      ' <button class="btn btn-default" id="graffiti-line-pen" title="Line tool">' +
+                                      ' <button class="btn btn-default" id="graffiti-line-pen" title="Freeform pen tool">' +
                                       '<svg class="svg-inline--fa fa-pen-alt fa-w-16" aria-hidden="true" data-prefix="fa" data-icon="pen-alt" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" data-fa-i2svg=""><path fill="currentColor" d="M497.94 74.17l-60.11-60.11c-18.75-18.75-49.16-18.75-67.91 0l-56.55 56.55 128.02 128.02 56.55-56.55c18.75-18.75 18.75-49.15 0-67.91zm-246.8-20.53c-15.62-15.62-40.94-15.62-56.56 0L75.8 172.43c-6.25 6.25-6.25 16.38 0 22.62l22.63 22.63c6.25 6.25 16.38 6.25 22.63 0l101.82-101.82 22.63 22.62L93.95 290.03A327.038 327.038 0 0 0 .17 485.11l-.03.23c-1.7 15.28 11.21 28.2 26.49 26.51a327.02 327.02 0 0 0 195.34-93.8l196.79-196.79-82.77-82.77-84.85-84.85z"></path></svg>' +
                                       '</button>' +
                                       ' <button class="btn btn-default" id="graffiti-highlight-pen" title="Highlighter tool">' +
@@ -481,11 +480,11 @@ define([
                                       }).join('') +
                                       '</div>' +
                                       '<div id="graffiti-line-style-controls">' +
-                                      '  <div id="graffiti-temporary-ink">' +
+                                      '  <div id="graffiti-temporary-ink" title="Use disappearing ink">' +
                                       '   <input type="checkbox" id="graffiti-temporary-ink-control" checked />' +
                                       '   <label id="graffiti-temporary-ink-label" for="graffiti-temporary-ink-control">Temporary Ink</label>' +
                                       '  </div>' +
-                                      '  <div id="graffiti-dashed-line">' +
+                                      '  <div id="graffiti-dashed-line" title="Use dashed lines">' +
                                       '   <input type="checkbox" id="graffiti-dashed-line-control" />' +
                                       '   <label id="graffiti-dashed-line-label" for="graffiti-dashed-line-control">Dashed lines</label>' +
                                       '  </div>' +
@@ -1149,7 +1148,7 @@ define([
 
       initInteractivity: () => {
         graffiti.notebookContainer.click((e) => {
-          console.log('Graffiti: clicked container');
+          // console.log('Graffiti: clicked container');
           if (state.getActivity() === 'recordingPending') {
             console.log('Graffiti: Now starting movie recording');
             graffiti.toggleRecording();
@@ -1512,9 +1511,9 @@ define([
         let cellElement, cellRect, canvasStyle, canvas, cellCanvas;
         for (let canvasType of canvasTypes) {
           for (let cellId of Object.keys(graffiti.canvases[canvasType])) {
-            canvas = graffiti.canvases[canvasType][cellId];
             cell = utils.findCellByCellId(cellId);
             if (cell !== undefined) {
+              canvas = graffiti.canvases[canvasType][cellId];
               cellElement = cell.element[0];
               cellRect = cellElement.getBoundingClientRect();
               canvasStyle = {
@@ -2292,10 +2291,26 @@ define([
 
       // Rerun all drawings up to time t. Used after scrubbing.
       redrawAllDrawings: (targetTime) => {
+        if (targetTime === undefined) {
+          targetTime = state.getTimePlayedSoFar();
+        }
         graffiti.clearCanvases('all');
         const lastDrawFrameIndex = state.getIndexUpToTime('drawings', targetTime);
         if (lastDrawFrameIndex !== undefined) {
           // First, final last opacity reset before the target time. We will start redrawing drawings from this point forward.
+          for (let index = 0; index < lastDrawFrameIndex; ++index) {
+            record = state.getHistoryItem('drawings', index);
+            graffiti.updateDrawingCore(record);
+          }
+        }
+      },
+
+      redrawAllDrawingsWhenRecording: () => {
+        if (state.getActivity() !== 'recording') {
+          return;
+        }
+        const lastDrawFrameIndex = state.getLastFrameIndex('drawings');
+        if (lastDrawFrameIndex !== undefined) {
           for (let index = 0; index < lastDrawFrameIndex; ++index) {
             record = state.getHistoryItem('drawings', index);
             graffiti.updateDrawingCore(record);
@@ -3378,6 +3393,7 @@ define([
           utils.refreshCellMaps();
           state.storeHistoryRecord('contents');
           graffiti.resizeCanvases();
+          graffiti.redrawAllDrawingsWhenRecording(); // need to do this because resizeCanvases erases all canvases
         });
 
         // Because we get this event when output is sent but before it's rendered into the dom, we set up to collect
@@ -3908,7 +3924,7 @@ define([
       updateContents: (index, currentScrollTop) => {
         const contentsRecord = state.getHistoryItem('contents', index);
         const cells = Jupyter.notebook.get_cells();
-        let cellId, contents, outputs, frameContents, frameOutputs;
+        let cellId, contents, outputs, frameContents, frameOutputs, renderedFrameOutput = false;
         graffiti.applyCellListToNotebook(contentsRecord);
         for (let cell of cells) {
           if (cell.cell_type === 'code') {
@@ -3921,12 +3937,15 @@ define([
                 cell.set_text(frameContents);
               }
               frameOutputs = state.extractDataFromContentRecord(contentsRecord.cellsContent[cellId].outputsRecord, cellId);
-              state.restoreCellOutputs(cell, frameOutputs);
+              renderedFrameOutput = renderedFrameOutput || state.restoreCellOutputs(cell, frameOutputs);
             }
           }
         }
         graffiti.setSitePanelScrollTop(currentScrollTop); // restore scrollTop because changing selections messes with it
-        graffiti.resizeCanvases();
+        if (renderedFrameOutput) {
+          graffiti.resizeCanvases();
+          graffiti.redrawAllDrawings();
+        }
       },
 
       updateDisplay: (frameIndexes) => {
@@ -4016,7 +4035,7 @@ define([
         if (state.getActivity() === 'playing') {
           graffiti.changeActivity('playbackPaused');
           audio.pausePlayback();
-          console.log('Graffiti: pausePlaybackNoVisualUpdates');
+          //console.log('Graffiti: pausePlaybackNoVisualUpdates');
           state.setPlaybackTimeElapsed();
           // Make sure, if some markdown was selected, that the active code_mirror textarea reengages to get keystrokes.
           graffiti.updateSelectedCellSelections(graffiti.sitePanel.scrollTop()); 
