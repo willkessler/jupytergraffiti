@@ -453,6 +453,10 @@
   background:blue;
 }
 
+#graffiti-temporary-ink-label, #graffiti-dashed-line-label {
+  cursor:pointer;
+}
+
 #graffiti-setup-button button span:last {
   margin-left:0px;
   color:#666;
