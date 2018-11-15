@@ -2398,13 +2398,13 @@ define([
               case 'narrator_name': // set the name of the narrator to display in the control panel during playback
                 graffiti.narratorName = undefined;
                 if (parts[1].length > 0) {
-                  graffiti.narratorName = parts[1];
+                  partsRecord.narratorName = parts[1];
                 }
                 break;
               case 'narrator_pic': // specify a picture to display in the control panel during playback
                 graffiti.narratorPicture = undefined;
                 if (parts[1].length > 0) {
-                  graffiti.narratorPicture = parts[1];
+                  partsRecord.narratorPicture = parts[1];
                 }
                 break;
               case 'hide_player_after_playback_complete':
@@ -2625,7 +2625,7 @@ define([
                           doUpdate = false;
                         }
                       }
-                      if (doUpdate) {
+                      if (doUpdate || true) { // hack
                         //console.log('replacing tooltip contents ');
                         existingTip.find('#graffiti-movie-play-btn').unbind('click');
                         existingTip.html(tooltipContents);
@@ -3046,6 +3046,8 @@ define([
             }
             recording.playOnClick = tooltipCommands.playOnClick;
             recording.hideTooltip = tooltipCommands.hideTooltip;
+            recording.narratorName = tooltipCommands.narratorName;
+            recording.narratorPicture = tooltipCommands.narratorPicture;
             recording.stickerImageUrl = tooltipCommands.stickerImageUrl;
           } else {
             if (recordingCellInfo.newRecording) {
@@ -4324,6 +4326,11 @@ define([
         $('#graffiti-movie-play-btn').html('<i>Loading...</i>');
         storage.loadMovie(playableMovie.cellId, playableMovie.recordingKey, playableMovie.activeTakeId).then( () => {
           console.log('Graffiti: Movie loaded for cellId, recordingKey:', playableMovie.cellId, playableMovie.recordingKey);
+          // big hack
+          const recording = state.getManifestSingleRecording(playableMovie.cellId, playableMovie.recordingKey);
+          graffiti.narratorName = recording.narratorName;
+          graffiti.narratorPicture = recording.narratorPicture;
+          console.log('rec:', recording);
           if (playableMovie.cellType === 'markdown') {
             playableMovie.cell.render(); // always render a markdown cell first before playing a movie on a graffiti inside it
           }
