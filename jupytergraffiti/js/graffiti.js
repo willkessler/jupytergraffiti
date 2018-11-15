@@ -1168,6 +1168,30 @@ define([
         graffiti.setupDrawingScreen();
         graffiti.setupSavingScrim();
         graffiti.playAutoplayGraffiti(); // play any autoplay graffiti if there is one set up
+
+/*
+        let body = '<div>Enter the Graffiti Hub Key to import Graffiti into this notebook.</div>';
+        body += '<div style="font-weight:bold;margin-top:15px;">Key: <input type="text" value="R5a7Hb"/ width="60"></div>';
+        body += '<div style="font-style:italic; color:green;">(Author: N. Vishalyam)</div>';
+        dialog.modal({
+          title: 'Import Graffiti from GraffitiHub?',
+          body: body,
+          sanitize:false,
+          buttons: {
+            'Import': {
+              click: (e) => {
+                console.log('Graffiti: You clicked Import');
+              }
+            },
+            'Cancel': {
+              click: (e) => {
+                console.log('Graffiti: You clicked Cancel');
+              }
+            }
+          }
+        });
+*/
+        
       },
 
       setGraffitiPenColor: (colorVal) => {
@@ -2374,13 +2398,13 @@ define([
               case 'narrator_name': // set the name of the narrator to display in the control panel during playback
                 graffiti.narratorName = undefined;
                 if (parts[1].length > 0) {
-                  graffiti.narratorName = parts[1];
+                  partsRecord.narratorName = parts[1];
                 }
                 break;
               case 'narrator_pic': // specify a picture to display in the control panel during playback
                 graffiti.narratorPicture = undefined;
                 if (parts[1].length > 0) {
-                  graffiti.narratorPicture = parts[1];
+                  partsRecord.narratorPicture = parts[1];
                 }
                 break;
               case 'hide_player_after_playback_complete':
@@ -2601,7 +2625,7 @@ define([
                           doUpdate = false;
                         }
                       }
-                      if (doUpdate) {
+                      if (doUpdate || true) { // hack
                         //console.log('replacing tooltip contents ');
                         existingTip.find('#graffiti-movie-play-btn').unbind('click');
                         existingTip.html(tooltipContents);
@@ -3022,6 +3046,8 @@ define([
             }
             recording.playOnClick = tooltipCommands.playOnClick;
             recording.hideTooltip = tooltipCommands.hideTooltip;
+            recording.narratorName = tooltipCommands.narratorName;
+            recording.narratorPicture = tooltipCommands.narratorPicture;
             recording.stickerImageUrl = tooltipCommands.stickerImageUrl;
           } else {
             if (recordingCellInfo.newRecording) {
@@ -3601,13 +3627,18 @@ define([
         // Watch trailing average of cursor. If the average over twenty samples is in a nudge zone, then nudge
         if (useTrailingVelocity) {
           nudgeIncrements = ((state.getActivity === 'scrubbing') ? 1.0 : graffiti.scrollNudgeSmoothIncrements);
-          const trailingAverageSize = 8;
+          //const trailingAverageSize = 85;
+          const trailingAverageSize = 30;
           if (graffiti.scrollNudgeAverages.length > 0) {
             if (((graffiti.scrollNudgeAverages[graffiti.scrollNudgeAverages.length-1].x === position.x) &&
                  (graffiti.scrollNudgeAverages[graffiti.scrollNudgeAverages.length-1].y === position.y)) ||
                 (graffiti.scrollNudgeAverages[graffiti.scrollNudgeAverages.length-1].t === record.startTime)) {
               return; // cursor didn't move or time didn't change, dont record velocity
             }
+          }
+          if (position.y < topbarHeight) {
+            console.log('Ignoring cursor activity above the site panel');
+            return; // ignore the cursor when it is above the site panel
           }
           graffiti.scrollNudgeAverages.push({t:record.startTime, pos: { x: position.x, y: position.y }});
           if (graffiti.scrollNudgeAverages.length > trailingAverageSize) {
@@ -3741,13 +3772,16 @@ define([
           if (record.hoverCell !== undefined) {
             if ((record.subType === 'focus') || (record.subType === 'selectCell')) {
               //console.log('processing focus/selectCell, record:', record);
-              record.hoverCell.focus_cell();
-              if (record.subType === 'focus') {
-                const code_mirror = record.hoverCell.code_mirror;
-                if (!code_mirror.state.focused) {
-                  code_mirror.focus();
+              const selectedCell = utils.findCellByCellId(record.selectedCellId);
+              if (selectedCell !== undefined) {
+                selectedCell.focus_cell();
+                if (record.subType === 'focus') {
+                  const code_mirror = selectedCell.code_mirror;
+                  if (!code_mirror.state.focused) {
+                    code_mirror.focus();
+                  }
+                  code_mirror.getInputField().focus();
                 }
-                code_mirror.getInputField().focus();
               }
             }
           }
@@ -3949,11 +3983,12 @@ define([
       },
 
       updateDisplay: (frameIndexes) => {
+        const currentScrollTop = graffiti.sitePanel.scrollTop();
         if (state.shouldUpdateDisplay('contents', frameIndexes.contents)) {
-          graffiti.updateContents(frameIndexes.contents.index, graffiti.sitePanel.scrollTop());
+          graffiti.updateContents(frameIndexes.contents.index, currentScrollTop);
         }
         if (state.shouldUpdateDisplay('selections', frameIndexes.selections)) {
-          graffiti.updateSelections(frameIndexes.selections.index, graffiti.sitePanel.scrollTop());
+          graffiti.updateSelections(frameIndexes.selections.index, currentScrollTop);
         }
         if (state.shouldUpdateDisplay('drawing', frameIndexes.drawings)) {
           if (state.getActivity() !== 'scrubbing') {
@@ -3963,6 +3998,7 @@ define([
         }
         if (state.shouldUpdateDisplay('view', frameIndexes.view)) {
           graffiti.updateView(frameIndexes.view.index);
+          //console.log('updated view:', frameIndexes.view.index, 'currentScrollTop', currentScrollTop, 'new scrollTop', graffiti.sitePanel.scrollTop());
         }
 
       },
@@ -4290,6 +4326,11 @@ define([
         $('#graffiti-movie-play-btn').html('<i>Loading...</i>');
         storage.loadMovie(playableMovie.cellId, playableMovie.recordingKey, playableMovie.activeTakeId).then( () => {
           console.log('Graffiti: Movie loaded for cellId, recordingKey:', playableMovie.cellId, playableMovie.recordingKey);
+          // big hack
+          const recording = state.getManifestSingleRecording(playableMovie.cellId, playableMovie.recordingKey);
+          graffiti.narratorName = recording.narratorName;
+          graffiti.narratorPicture = recording.narratorPicture;
+          console.log('rec:', recording);
           if (playableMovie.cellType === 'markdown') {
             playableMovie.cell.render(); // always render a markdown cell first before playing a movie on a graffiti inside it
           }
