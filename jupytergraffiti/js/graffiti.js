@@ -2635,6 +2635,7 @@ define([
                           $('#graffiti-movie-play-btn').html(graffiti.tooltipButtonLabel);
                         }
                       }
+                      $('#graffiti-movie-play-btn').prop('disabled',false);
                     }
 
                     // Set up the call back for the play button on the tooltip that will actually play the movie.
@@ -3049,6 +3050,19 @@ define([
             recording.narratorName = tooltipCommands.narratorName;
             recording.narratorPicture = tooltipCommands.narratorPicture;
             recording.stickerImageUrl = tooltipCommands.stickerImageUrl;
+
+            state.updateUsageStats({
+              type:'create',
+              data: {
+                createDate:   recording.createDate,
+                cellId:       recordingCellInfo.recordingCellId,
+                recordingKey: recordingCellInfo.recordingKey,
+                numTakes:     Object.keys(recording.takes).length
+              }
+            });
+            
+            console.log('finishGraffiti: we got these stats:', state.getUsageStats());
+
           } else {
             if (recordingCellInfo.newRecording) {
               state.removeManifestEntry(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
@@ -3616,9 +3630,11 @@ define([
       //
 
       applyScrollNudge: (position, record, useTrailingVelocity) => {
+        console.log('applyScrollNudge');
         const clientHeight = document.documentElement.clientHeight;
         const topbarHeight = $('#header').height();
-        const bufferY = clientHeight / 9;
+        //const bufferY = clientHeight / 9;
+        const bufferY = clientHeight / 6;
         const minAllowedCursorY = topbarHeight + bufferY;
         const maxAllowedCursorY = clientHeight - bufferY;
         let mustNudgeCheck = !useTrailingVelocity;
@@ -3628,7 +3644,7 @@ define([
         if (useTrailingVelocity) {
           nudgeIncrements = ((state.getActivity === 'scrubbing') ? 1.0 : graffiti.scrollNudgeSmoothIncrements);
           //const trailingAverageSize = 85;
-          const trailingAverageSize = 30;
+          const trailingAverageSize = 10;
           if (graffiti.scrollNudgeAverages.length > 0) {
             if (((graffiti.scrollNudgeAverages[graffiti.scrollNudgeAverages.length-1].x === position.x) &&
                  (graffiti.scrollNudgeAverages[graffiti.scrollNudgeAverages.length-1].y === position.y)) ||
@@ -3636,8 +3652,8 @@ define([
               return; // cursor didn't move or time didn't change, dont record velocity
             }
           }
-          if (position.y < topbarHeight) {
-            console.log('Ignoring cursor activity above the site panel');
+          if (record.inTopBarArea !== undefined && record.inTopBarArea) {
+            console.log('Ignoring cursor activity recorded above the site panel');
             return; // ignore the cursor when it is above the site panel
           }
           graffiti.scrollNudgeAverages.push({t:record.startTime, pos: { x: position.x, y: position.y }});
@@ -3653,7 +3669,7 @@ define([
               velocities.push(distance / timeDiff );
             }
             const averageVelocity = Math.abs(utils.computeArrayAverage(velocities));
-            mustNudgeCheck = mustNudgeCheck || (averageVelocity < 0.3);
+            mustNudgeCheck = mustNudgeCheck || (averageVelocity < 1);
           }
         }
 
@@ -3679,8 +3695,72 @@ define([
               counter: nudgeIncrements,
               amount: nudgeAmount
             };
+            console.log('nudging:', graffiti.scrollNudge.amount);
+          } else {
+            console.log('not nudging, y', position.y, 'maxY', maxAllowedCursorY);
           }
         }
+      },
+
+      applyScrollNudgeAtCell: (cell, record, selChange) => {
+        const cellId = utils.getMetadataCellId(cell.metadata);
+        const cellRects = utils.getCellRects(cell);
+        let selectionRecord, selections;
+        if (record.cellsSelections !== undefined) {
+          selectionRecord = record.cellsSelections[cellId];
+        }
+        if (selectionRecord !== undefined) {
+          selections = selectionRecord.selections;
+        } else {
+          const code_mirror = cell.code_mirror;
+          selections = code_mirror.listSelections();
+        }
+
+        if (selections.length !== 0) {
+          const cellOffsetY = selections[0].head.line * (graffiti.cmLineHeight + graffiti.cmLineFudge);
+          const offsetPosition = {
+            x: cellRects.innerCellRect.left, 
+            y: cellOffsetY + cellRects.innerCellRect.top
+          }
+          console.log('applyScrollNudgeAtCell:offsetPosition:', offsetPosition, 'cellId', cellId, 'selChange', selChange);
+          graffiti.applyScrollNudge(offsetPosition, record, false);
+        }
+      },
+
+      doScrollNudging: (record, viewIndex) => {
+        if (graffiti.scrollNudge == undefined) {
+          return;
+        }
+        console.log('updateDisplay, nudgeAmount:', graffiti.scrollNudge.amount, 'counter:', graffiti.scrollNudge.counter);
+        const currentNotebookPanelHeight = graffiti.notebookPanel.height();
+        let mappedScrollDiff = 0;
+        if (record !== undefined) {          
+          mappedScrollDiff = (record.scrollDiff / record.notebookPanelHeight) * currentNotebookPanelHeight;
+        }
+        const currentScrollTop = graffiti.sitePanel.scrollTop();
+        let newScrollTop = currentScrollTop;
+        if (graffiti.scrollNudge !== undefined) {
+          let scrollNudgeAmount = 0;
+          graffiti.scrollNudge.counter--;
+          if (graffiti.scrollNudge.counter > 0) {
+            scrollNudgeAmount = graffiti.scrollNudge.amount;
+            console.log('Going to nudge scroll by:', scrollNudgeAmount, 'counter:', graffiti.scrollNudge.counter);
+            newScrollTop = currentScrollTop + scrollNudgeAmount;
+          } else {
+            graffiti.scrollNudge = undefined; // stop nudging
+          }
+        }
+        // Only apply a user-recorded scroll diff if we haven't applied it already. When this function is called with no parameters, then
+        // it is only doing "maintenance nudging", ie over-time nudging to keep the most important zones of interest in the viewport.
+        // console.log('Now applying mappedScrollDiff:', mappedScrollDiff);
+        let skipMappedScrollDiff = (viewIndex !== undefined) &&
+                                   (graffiti.lastScrollViewId !== undefined && graffiti.lastScrollViewId === viewIndex);
+        if (!skipMappedScrollDiff) {
+          newScrollTop += mappedScrollDiff;
+          graffiti.lastScrollViewId = viewIndex;
+        }
+
+        graffiti.setSitePanelScrollTop(newScrollTop);
       },
 
       updateDrawingCore: (record) => {
@@ -3769,18 +3849,20 @@ define([
           graffiti.updatePointer(record);
         } else {
           graffiti.dimGraffitiCursor();
-          if (record.hoverCell !== undefined) {
+          if (record.selectedCell !== undefined) {
             if ((record.subType === 'focus') || (record.subType === 'selectCell')) {
               //console.log('processing focus/selectCell, record:', record);
               const selectedCell = utils.findCellByCellId(record.selectedCellId);
               if (selectedCell !== undefined) {
-                selectedCell.focus_cell();
-                if (record.subType === 'focus') {
-                  const code_mirror = selectedCell.code_mirror;
-                  if (!code_mirror.state.focused) {
-                    code_mirror.focus();
+                if (utils.getMetadataCellId(record.selectedCell.metadata) === utils.getMetadataCellId(record.hoverCell.metadata)) {
+                  selectedCell.focus_cell();
+                  if (record.subType === 'focus') {
+                    const code_mirror = selectedCell.code_mirror;
+                    if (!code_mirror.state.focused) {
+                      code_mirror.focus();
+                    }
+                    code_mirror.getInputField().focus();
                   }
-                  code_mirror.getInputField().focus();
                 }
               }
             }
@@ -3791,32 +3873,7 @@ define([
           const cm = record.hoverCell.code_mirror;
           // Update innerScroll if required
           cm.scrollTo(record.innerScroll.left, record.innerScroll.top);
-
-          const currentNotebookPanelHeight = graffiti.notebookPanel.height();
-          const mappedScrollDiff = ((record.scrollDiff === undefined ? 0 : record.scrollDiff) / record.notebookPanelHeight) * currentNotebookPanelHeight;
-          const currentScrollTop = graffiti.sitePanel.scrollTop();
-
-          let newScrollTop = currentScrollTop;
-          if (graffiti.scrollNudge !== undefined) {
-            let scrollNudgeAmount = 0;
-            graffiti.scrollNudge.counter--;
-            if (graffiti.scrollNudge.counter > 0) {
-              scrollNudgeAmount = graffiti.scrollNudge.amount;
-              // console.log('Going to nudge scroll by:', scrollNudgeAmount, 'counter:', graffiti.scrollNudge.counter);
-              newScrollTop = currentScrollTop + scrollNudgeAmount;
-            } else {
-              graffiti.scrollNudge = undefined; // stop nudging
-            }
-          }
-          // console.log('Now applying mappedScrollDiff:', mappedScrollDiff);
-          let skipMappedScrollDiff = (graffiti.lastScrollViewId !== undefined && graffiti.lastScrollViewId === viewIndex);
-          if (!skipMappedScrollDiff) {
-            newScrollTop += mappedScrollDiff;
-            graffiti.lastScrollViewId = viewIndex;
-          }
-
-          graffiti.setSitePanelScrollTop(newScrollTop);
-
+          graffiti.doScrollNudging(record, viewIndex);
         }
       },
 
@@ -3867,7 +3924,7 @@ define([
           for (cellId of Object.keys(record.cellsSelections)) {
             selectionRecord = record.cellsSelections[cellId];
             selections = selectionRecord.selections;
-            active = selectionRecord.active;
+            // active = selectionRecord.active;
             cell = utils.findCellByCellId(cellId);
             if (cell !== undefined) {
               code_mirror = cell.code_mirror;
@@ -3879,19 +3936,14 @@ define([
 
                 graffiti.updateCellSelections(cell,code_mirror, selections);
 
+                console.log('nudge check, cellId', cellId, 'code_mirror.state.focused',code_mirror.state.focused);
+                
                 if (code_mirror.state.focused) {
                   // If we made a selections update this frame, AND we are focused in it,
                   // make sure that we keep it in view. We need to compute the
                   // offset position of the *head* of the selection where the action is.
                   // console.log('setting selections with selections:', selections);
-                  const cellRects = utils.getCellRects(cell);
-                  const cellOffsetY = selections[0].head.line * (graffiti.cmLineHeight + graffiti.cmLineFudge);
-                  const offsetPosition = {
-                    x: cellRects.innerCellRect.left, 
-                    y: cellOffsetY + cellRects.innerCellRect.top
-                  }
-                  // console.log('selections[0]', selections[0], 'offsetPosition:', offsetPosition, 'cellId', cellId);
-                  graffiti.applyScrollNudge(offsetPosition, record, false);
+                  graffiti.applyScrollNudgeAtCell(cell, record, true);
                 }
               }
             }
@@ -3946,6 +3998,9 @@ define([
               newCell = Jupyter.notebook.insert_cell_above('code', cellPosition);
               newCell.metadata.graffitiCellId = checkCellId;
               mustRefreshCellMaps = true;
+              console.log('Just inserted new cell.');              
+              graffiti.applyScrollNudgeAtCell(newCell, record, false);
+
             }
           }
         }
@@ -3984,6 +4039,7 @@ define([
 
       updateDisplay: (frameIndexes) => {
         const currentScrollTop = graffiti.sitePanel.scrollTop();
+        let mayHaveScrollNudged = false;
         if (state.shouldUpdateDisplay('contents', frameIndexes.contents)) {
           graffiti.updateContents(frameIndexes.contents.index, currentScrollTop);
         }
@@ -3999,6 +4055,11 @@ define([
         if (state.shouldUpdateDisplay('view', frameIndexes.view)) {
           graffiti.updateView(frameIndexes.view.index);
           //console.log('updated view:', frameIndexes.view.index, 'currentScrollTop', currentScrollTop, 'new scrollTop', graffiti.sitePanel.scrollTop());
+          mayHaveScrollNudged = true;
+        }
+
+        if (!mayHaveScrollNudged) {
+          graffiti.doScrollNudging();
         }
 
       },
@@ -4323,7 +4384,7 @@ define([
         // next line seems to be extraneous and buggy because we create a race condition with the control panel. however what happens if a movie cannot be loaded?
         // graffiti.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
 
-        $('#graffiti-movie-play-btn').html('<i>Loading...</i>');
+        $('#graffiti-movie-play-btn').html('<i>Loading...</i>').prop('disabled',true);
         storage.loadMovie(playableMovie.cellId, playableMovie.recordingKey, playableMovie.activeTakeId).then( () => {
           console.log('Graffiti: Movie loaded for cellId, recordingKey:', playableMovie.cellId, playableMovie.recordingKey);
           // big hack
