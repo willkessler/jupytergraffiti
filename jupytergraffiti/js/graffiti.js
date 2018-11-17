@@ -3637,7 +3637,7 @@ define([
         const bufferY = clientHeight / 6;
         const minAllowedCursorY = topbarHeight + bufferY;
         const maxAverageVelocity = 0.5;
-        const minBottomBufferY = 100; // approximate height of bottom bar in udacity classroom
+        const minBottomBufferY = 150; // approximately 1.5x the height of bottom bar in udacity classroom
         const maxAllowedCursorY = clientHeight - Math.max(bufferY, minBottomBufferY);
         let mustNudgeCheck = !useTrailingVelocity;
         let nudgeIncrements = graffiti.scrollNudgeQuickIncrements;
