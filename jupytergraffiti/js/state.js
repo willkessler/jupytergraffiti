@@ -403,15 +403,30 @@ define([
 
     updateUsageStats: (opts) => {
       const data = opts.data;
+      const type = opts.type;
       const playStats = state.usageStats.played;
-      switch (opts.type) {
+      const createStats = state.usageStats.created;
+      let cellId, recordingKey, activeTakeId, statsKey;
+      if ((type === 'create') || (type === 'setup')) {
+        cellId = data.cellId;
+        recordingKey = data.recordingKey;
+      }
+      switch (type) {
         case 'create':
+          statsKey = [cellId.replace('id_', ''),recordingKey.replace('id_', '')].join('_');
+          if (!createStats.hasOwnProperty(statsKey)) {
+            createStats[statsKey] = {
+              createDate: data.createDate,
+              numEditsThisSession: 1
+            };
+          } else {
+            createStats[statsKey].numEditsThisSession++;
+          }
+          createStats[statsKey].numTakes = data.numTakes;
           break;
         case 'setup':
-          const cellId = data.cellId;
-          const recordingKey = data.recordingKey;
-          const activeTakeId = data.activeTakeId;
-          const statsKey = [cellId.replace('id_', ''),recordingKey.replace('id_', ''), activeTakeId.replace('id_','')].join('_');
+          activeTakeId = data.activeTakeId;
+          statsKey = [cellId.replace('id_', ''),recordingKey.replace('id_', ''), activeTakeId.replace('id_','')].join('_');
           if (!playStats.hasOwnProperty(statsKey)) {
             playStats[statsKey] = {
               totalTime: 0, 
@@ -929,12 +944,16 @@ define([
         stickerCellHeight = bbox.height;
         stickerInfo = { cellId: stickerCellId, width:stickerCellWidth, height: stickerCellHeight };
       }
+      const topBarHeight = $('#header').height();
+      const inTopBarArea = state.pointer.y < topBarHeight;
+
       return $.extend({}, state.viewInfo, {
         x: state.pointer.x - parseInt(state.viewInfo.outerCellRect.left),
         y: state.pointer.y - parseInt(state.viewInfo.outerCellRect.top),
         downInMarkdown: downInMarkdown,
         downInPromptArea: downInPromptArea,
         drawingActivity: drawingActivity,
+        inTopBarArea: inTopBarArea,
         subType: subType,
         scrollDiff: state.viewInfo.scrollDiff,
         selectedCellId: state.selectedCellId,
@@ -1445,7 +1464,7 @@ define([
               }
             } else {
               if (selections !== undefined) {
-                if ((cell.cell_type === 'code') && (selections.active)) {
+                if ((cell.cell_type === 'code') && (selections.active)) { // hack, not coded right
                   cell.code_mirror.focus();
                 }
                 // console.log('setting selection to :', selections.selections);
