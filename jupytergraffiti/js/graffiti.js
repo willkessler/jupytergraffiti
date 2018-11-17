@@ -3630,13 +3630,15 @@ define([
       //
 
       applyScrollNudge: (position, record, useTrailingVelocity) => {
-        console.log('applyScrollNudge');
+        console.log('applyScrollNudge, useTrailingVelocity:', useTrailingVelocity);
         const clientHeight = document.documentElement.clientHeight;
         const topbarHeight = $('#header').height();
         //const bufferY = clientHeight / 9;
         const bufferY = clientHeight / 6;
         const minAllowedCursorY = topbarHeight + bufferY;
-        const maxAllowedCursorY = clientHeight - bufferY;
+        const maxAverageVelocity = 0.5;
+        const minBottomBufferY = 100; // approximate height of bottom bar in udacity classroom
+        const maxAllowedCursorY = clientHeight - Math.max(bufferY, minBottomBufferY);
         let mustNudgeCheck = !useTrailingVelocity;
         let nudgeIncrements = graffiti.scrollNudgeQuickIncrements;
         
@@ -3663,13 +3665,15 @@ define([
             for (let i = 1; i < graffiti.scrollNudgeAverages.length; ++i) {
               // This is highly mathematically inefficient but maybe in this scale of things, it's ok.
               distance =
-                Math.sqrt((Math.pow((graffiti.scrollNudgeAverages[i].pos.y - graffiti.scrollNudgeAverages[i-1].pos.y),2) / 
-                  Math.pow((graffiti.scrollNudgeAverages[i].pos.x - graffiti.scrollNudgeAverages[i-1].pos.x),2)));
+                Math.sqrt(
+                  Math.pow((graffiti.scrollNudgeAverages[i].pos.y - graffiti.scrollNudgeAverages[i-1].pos.y),2) +
+                  Math.pow((graffiti.scrollNudgeAverages[i].pos.x - graffiti.scrollNudgeAverages[i-1].pos.x),2) );
               timeDiff = graffiti.scrollNudgeAverages[i].t - graffiti.scrollNudgeAverages[i-1].t;
               velocities.push(distance / timeDiff );
             }
             const averageVelocity = Math.abs(utils.computeArrayAverage(velocities));
-            mustNudgeCheck = mustNudgeCheck || (averageVelocity < 1);
+            //console.log('averageVelocity:', averageVelocity);
+            mustNudgeCheck = mustNudgeCheck || (averageVelocity < maxAverageVelocity);
           }
         }
 
@@ -3873,6 +3877,7 @@ define([
           const cm = record.hoverCell.code_mirror;
           // Update innerScroll if required
           cm.scrollTo(record.innerScroll.left, record.innerScroll.top);
+          console.log('updateView is calling doScrollNudging');
           graffiti.doScrollNudging(record, viewIndex);
         }
       },
