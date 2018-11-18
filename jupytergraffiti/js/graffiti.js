@@ -2860,7 +2860,12 @@ define([
           return false;
         }, true);
 
-        // SErialize/deserialize range objects
+        window.onblur = (e) => {
+          console.log('window lost focus, pausing any playing movie');
+          graffiti.pausePlayback();
+        },
+
+        // Serialize/deserialize range objects
         // https://github.com/tildeio/range-serializer
         // https://www.npmjs.com/package/serialize-selection
 
