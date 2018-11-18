@@ -28,12 +28,10 @@ define([
             audio.storeMediaRecorder(mediaRecorder);
             cbs.succeed();
 
-/*
-            audio.harkLib = hark.init(stream, { history: 35 });
-            audio.harkLib.on('speaking', () => { console.log('begun speaking') });
-            audio.harkLib.on('stopped_speaking', () => { console.log('stopped speaking') });
-            //audio.harkLib.on('volume_change', () => { console.log('volume change') });
-*/
+            hark.init(stream, { interval:50, threshold:-90 });
+            hark.on('speaking', () => { console.log('begun speaking') });
+            hark.on('stopped_speaking', () => { console.log('stopped speaking') });
+            hark.on('volume_change', (currentVolume, threshold) => { console.log('volume change,', currentVolume, threshold) });
             
           },
 
@@ -136,6 +134,7 @@ define([
     stopRecording: () => {
       if (audio.mediaRecorder !== undefined) {
         audio.mediaRecorder.stop();
+        hark.stop();
         console.log("Graffiti: Audio recording stopped");
       } else {
         console.log('Graffiti: Audio recording cannot stop, access not granted.');
