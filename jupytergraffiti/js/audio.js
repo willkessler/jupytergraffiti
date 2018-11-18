@@ -1,6 +1,7 @@
 define([
   './state.js',
-], function (state) {
+  './hark.js',
+], function (state,hark) {
 
   const audio = {
 
@@ -26,6 +27,14 @@ define([
       	    mediaRecorder.ondataavailable = audio.saveRecordedAudio;
             audio.storeMediaRecorder(mediaRecorder);
             cbs.succeed();
+
+/*
+            audio.harkLib = hark.init(stream, { history: 35 });
+            audio.harkLib.on('speaking', () => { console.log('begun speaking') });
+            audio.harkLib.on('stopped_speaking', () => { console.log('stopped speaking') });
+            //audio.harkLib.on('volume_change', () => { console.log('volume change') });
+*/
+            
           },
 
           // Error callback

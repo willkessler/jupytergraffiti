@@ -3057,7 +3057,7 @@ define([
                 createDate:   recording.createDate,
                 cellId:       recordingCellInfo.recordingCellId,
                 recordingKey: recordingCellInfo.recordingKey,
-                numTakes:     Object.keys(recording.takes).length
+                numTakes:     (recording.takes === undefined ? 0 : Object.keys(recording.takes).length),
               }
             });
             
