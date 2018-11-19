@@ -28,7 +28,7 @@ define([
             audio.storeMediaRecorder(mediaRecorder);
             cbs.succeed();
 
-            hark.init(stream, { threshold:-100 });
+            hark.init(stream, { threshold:-65 });
             hark.on('speaking', () => { console.log('begun speaking') });
             hark.on('stopped_speaking', () => { console.log('stopped speaking') });
             //hark.on('volume_change', (currentVolume, threshold) => { console.log('volume change,', currentVolume, threshold) });
