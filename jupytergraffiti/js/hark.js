@@ -6,11 +6,13 @@
 define([], function () {
   const hark = {
 
+    running: false,
+
     getMaxVolume: (analyser, fftBins) => {
-      var maxVolume = -Infinity;
+      let maxVolume = -Infinity;
       analyser.getFloatFrequencyData(fftBins);
 
-      for (var i = 4, ii = fftBins.length; i < ii; i++) {
+      for (let i = 4, ii = fftBins.length; i < ii; i++) {
         if (fftBins[i] > maxVolume && fftBins[i] < 0) {
           maxVolume = fftBins[i];
         }
@@ -23,9 +25,9 @@ define([], function () {
       hark.events[event] = callback;
     },
 
-    emit: () => {
-      if (hark.events[arguments[0]]) {
-        hark.events[arguments[0]](arguments[1], arguments[2], arguments[3], arguments[4]);
+    emit: (arg1,arg2,arg3,arg4) => {
+      if (hark.events[arg1]) {
+        hark.events[arg1](arg2,arg3,arg4);
       }
     },
 
@@ -43,22 +45,20 @@ define([], function () {
         let history = 0;
         if (currentVolume > hark.threshold && !hark.speaking) {
           // trigger quickly, short history
-          for (var i = hark.speakingHistory.length - 3; i < hark.speakingHistory.length; i++) {
+          for (let i = hark.speakingHistory.length - 3; i < hark.speakingHistory.length; i++) {
             history += hark.speakingHistory[i];
           }
           if (history >= 2) {
             hark.speaking = true;
             hark.emit('speaking');
-            console.log('speaking');
           }
         } else if (currentVolume < hark.threshold && hark.speaking) {
-          for (var j = 0; j < hark.speakingHistory.length; j++) {
+          for (let j = 0; j < hark.speakingHistory.length; j++) {
             history += hark.speakingHistory[j];
           }
           if (history === 0) {
             hark.speaking = false;
             hark.emit('stopped_speaking');
-            console.log('stopped speaking');
           }
         }
         hark.speakingHistory.shift();
@@ -75,6 +75,13 @@ define([], function () {
     setInterval: (i) => {
       console.trace('called from here:');
       hark.interval = i;
+    },
+
+    // Poll the analyser node to determine if speaking
+    // and emit events if changed
+    start: () => {
+      hark.running = true;
+      hark.looper();
     },
 
     stop:  () => {
@@ -102,7 +109,6 @@ define([], function () {
       hark.historySize = options.historySize || 10;
       hark.interval = (options.interval || 50);
       hark.threshold = options.threshold || -50;
-      hark.running = true;
 
       // Setup Audio Context
       if (!window.audioContext00) {
@@ -132,11 +138,6 @@ define([], function () {
       for (let i = 0; i < hark.historySize; i++) {
         hark.speakingHistory.push(0);
       }
-
-      // Poll the analyser node to determine if speaking
-      // and emit events if changed
-      hark.looper();
-
     }
   };
 
