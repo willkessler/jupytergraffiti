@@ -1,6 +1,7 @@
 define([
   './state.js',
-], function (state) {
+  './hark.js',
+], function (state,hark) {
 
   const audio = {
 
@@ -26,6 +27,12 @@ define([
       	    mediaRecorder.ondataavailable = audio.saveRecordedAudio;
             audio.storeMediaRecorder(mediaRecorder);
             cbs.succeed();
+
+            hark.init(stream, { threshold:-65 });
+            hark.on('speaking', () => { console.log('begun speaking') });
+            hark.on('stopped_speaking', () => { console.log('stopped speaking') });
+            //hark.on('volume_change', (currentVolume, threshold) => { console.log('volume change,', currentVolume, threshold) });
+            
           },
 
           // Error callback
@@ -117,6 +124,7 @@ define([
     startRecording: () => {
       if (audio.mediaRecorder !== undefined) {
         audio.mediaRecorder.start();
+        hark.start(); // start checking for silences
         console.log('Graffiti:', audio.mediaRecorder.state);
         console.log("Graffiti: Audio recording started");
       } else {
@@ -127,6 +135,7 @@ define([
     stopRecording: () => {
       if (audio.mediaRecorder !== undefined) {
         audio.mediaRecorder.stop();
+        hark.stop(); // stop checking for silences
         console.log("Graffiti: Audio recording stopped");
       } else {
         console.log('Graffiti: Audio recording cannot stop, access not granted.');

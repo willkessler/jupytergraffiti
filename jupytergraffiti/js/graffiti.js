@@ -1321,7 +1321,7 @@ define([
         if (state.getRapidPlay()) {
           graffiti.cancelRapidPlay();
         } else {
-          console.log('activating rapidPlay');
+          console.log('Graffiti: activating rapidPlay');
           state.setRapidPlay(true);
           audio.updateAudioPlaybackRate();
           graffiti.updateControlPanels();
@@ -1340,16 +1340,16 @@ define([
         let drawingActivity = state.getDrawingStateField('drawingActivity');
         if (state.getActivity() === 'recording') {
           if (e.type === 'mousedown') {
-            console.log('drawingScreenHandler: mousedown');
+            console.log('Graffiti: drawingScreenHandler: mousedown');
             const wasFading = (state.getDrawingStateField('drawingActivity') === 'fade');
-            console.log('wasFading:', wasFading);
+            // console.log('Graffiti: wasFading:', wasFading);
             graffiti.resetTemporaryCanvases();
             state.disableDrawingFadeClock();
             const stickerType = state.getDrawingPenAttribute('stickerType');
             drawingActivity = 'draw';
             const viewInfo = state.getViewInfo();
             if (stickerType !== undefined) {
-              console.log('mousedown with stickerType:', stickerType);
+              // console.log('Graffiti: mousedown with stickerType:', stickerType);
               drawingActivity = 'sticker';
               if (wasFading) { // terminate any fading in progress when drawing a new sticker
                 graffiti.resetStickerCanvases('temporary');
@@ -1393,7 +1393,7 @@ define([
               { change: 'downInPromptArea', data: viewInfo.inPromptArea }
             ]);
           } else if ((e.type === 'mouseup') || (e.type === 'mouseleave')) {
-            console.log('drawingScreenHandler: ', e.type);
+            // console.log('Graffiti: drawingScreenHandler: ', e.type);
             if ((drawingActivity === 'sticker') && (e.type === 'mouseup')) {
               graffiti.clearAnyActiveStickerStages();
             }
@@ -1404,7 +1404,7 @@ define([
               }
             }
           } else if (e.type === 'keydown') {
-            console.log('drawingScreen got key:', e);
+            console.log('Graffiti: drawingScreen got key:', e);
           }
           e.preventDefault();
           e.stopPropagation();
@@ -1497,7 +1497,7 @@ define([
       },
 
       hideLabelInputBoxes: () => {
-        console.log('Ending labelling');
+        console.log('Graffiti: Ending labelling');
         $('.graffiti-label-input').val('').hide();
       },
 
@@ -1516,7 +1516,7 @@ define([
             const drawingPermanence = state.getDrawingPenAttribute('permanence');
             graffiti.updateStickerDisplayWhenRecording(drawingPermanence);
             state.storeHistoryRecord('stickers');
-            console.log('keycode',e.which);
+            //console.log('keycode',e.which);
             if ((e.which === 13) || (e.which === 9)) {
               graffiti.hideLabelInputBoxes();
               state.startDrawingFadeClock();
@@ -2860,7 +2860,12 @@ define([
           return false;
         }, true);
 
-        // SErialize/deserialize range objects
+        window.onblur = (e) => {
+          console.log('window lost focus, pausing any playing movie');
+          graffiti.pausePlayback();
+        },
+
+        // Serialize/deserialize range objects
         // https://github.com/tildeio/range-serializer
         // https://www.npmjs.com/package/serialize-selection
 
@@ -3057,7 +3062,7 @@ define([
                 createDate:   recording.createDate,
                 cellId:       recordingCellInfo.recordingCellId,
                 recordingKey: recordingCellInfo.recordingKey,
-                numTakes:     Object.keys(recording.takes).length
+                numTakes:     (recording.takes === undefined ? 0 : Object.keys(recording.takes).length),
               }
             });
             
@@ -3630,7 +3635,7 @@ define([
       //
 
       applyScrollNudge: (position, record, useTrailingVelocity) => {
-        console.log('applyScrollNudge, useTrailingVelocity:', useTrailingVelocity);
+        //console.log('applyScrollNudge, useTrailingVelocity:', useTrailingVelocity);
         const clientHeight = document.documentElement.clientHeight;
         const topbarHeight = $('#header').height();
         //const bufferY = clientHeight / 9;
@@ -3699,9 +3704,9 @@ define([
               counter: nudgeIncrements,
               amount: nudgeAmount
             };
-            console.log('nudging:', graffiti.scrollNudge.amount);
+            //console.log('nudging:', graffiti.scrollNudge.amount);
           } else {
-            console.log('not nudging, y', position.y, 'maxY', maxAllowedCursorY);
+            //console.log('not nudging, y', position.y, 'maxY', maxAllowedCursorY);
           }
         }
       },
@@ -3735,7 +3740,7 @@ define([
         if (graffiti.scrollNudge == undefined) {
           return;
         }
-        console.log('updateDisplay, nudgeAmount:', graffiti.scrollNudge.amount, 'counter:', graffiti.scrollNudge.counter);
+        //console.log('updateDisplay, nudgeAmount:', graffiti.scrollNudge.amount, 'counter:', graffiti.scrollNudge.counter);
         const currentNotebookPanelHeight = graffiti.notebookPanel.height();
         let mappedScrollDiff = 0;
         if (record !== undefined) {          
@@ -3748,7 +3753,7 @@ define([
           graffiti.scrollNudge.counter--;
           if (graffiti.scrollNudge.counter > 0) {
             scrollNudgeAmount = graffiti.scrollNudge.amount;
-            console.log('Going to nudge scroll by:', scrollNudgeAmount, 'counter:', graffiti.scrollNudge.counter);
+            //console.log('Going to nudge scroll by:', scrollNudgeAmount, 'counter:', graffiti.scrollNudge.counter);
             newScrollTop = currentScrollTop + scrollNudgeAmount;
           } else {
             graffiti.scrollNudge = undefined; // stop nudging
@@ -3877,7 +3882,7 @@ define([
           const cm = record.hoverCell.code_mirror;
           // Update innerScroll if required
           cm.scrollTo(record.innerScroll.left, record.innerScroll.top);
-          console.log('updateView is calling doScrollNudging');
+          //console.log('updateView is calling doScrollNudging');
           graffiti.doScrollNudging(record, viewIndex);
         }
       },
