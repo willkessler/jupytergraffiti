@@ -29,8 +29,14 @@ define([
             cbs.succeed();
 
             hark.init(stream, { threshold:-65 });
-            hark.on('speaking', () => { console.log('begun speaking') });
-            hark.on('stopped_speaking', () => { console.log('stopped speaking') });
+            hark.on('speaking', () => { 
+              state.setSpeakingStatus(true);
+              console.log('speaking started');
+            });
+            hark.on('stopped_speaking', () => { 
+              state.setSpeakingStatus(false);
+              console.log('speaking ended');
+            });
             //hark.on('volume_change', (currentVolume, threshold) => { console.log('volume change,', currentVolume, threshold) });
             
           },

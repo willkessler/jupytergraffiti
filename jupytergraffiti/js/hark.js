@@ -32,6 +32,7 @@ define([], function () {
     },
 
     looper: () => {
+      let interval = (hark.speaking ? hark.talkingInterval : hark.silenceInterval);
       setTimeout( () => {
 
         //check if stop has been called
@@ -65,16 +66,17 @@ define([], function () {
         hark.speakingHistory.push(0 + (currentVolume > hark.threshold));
 
         hark.looper();
-      }, hark.interval);
+      }, interval);
     },
 
     setThreshold: (t) => {
       hark.threshold = t;
     },
 
-    setInterval: (i) => {
-      console.trace('called from here:');
-      hark.interval = i;
+    setIntervals: (silenceInterval, talkingInterval) => {
+      console.trace('Called from here:');
+      hark.silenceInterval = silenceInterval;
+      hark.talkingInterval = talkingInterval;
     },
 
     // Poll the analyser node to determine if speaking
@@ -107,7 +109,8 @@ define([], function () {
 
       hark.play = options.play;
       hark.historySize = options.historySize || 10;
-      hark.interval = (options.interval || 50);
+      hark.silenceInterval = (options.silenceInterval || 10);
+      hark.talkingInterval = (options.talkingInterval || 100);
       hark.threshold = options.threshold || -50;
 
       // Setup Audio Context

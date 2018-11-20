@@ -55,6 +55,7 @@ define([
       state.stickerImageCandidateUrl = undefined;
       state.cellIdsAddedDuringRecording = {};
       state.userId = undefined;
+      state.speakingStatus = false; // true when the graffiti creator is currently speaking (not silent)
       state.cellStates = {
         contents: {},
         changedCells: {},
@@ -226,6 +227,15 @@ define([
       state.userId = userId;
     },
 
+    getSpeakingStatus: () => {
+      return state.speakingStatus;
+    },
+
+    setSpeakingStatus: (speakingStatus) => {
+      state.speakingStatus = speakingStatus;
+      state.storeHistoryRecord('speaking'); // store the speaking status change as a view record (if we are currently recording)
+    },
+    
     getAudioInitialized: () => {
       return state.audioInitialized;
     },
@@ -955,6 +965,7 @@ define([
         drawingActivity: drawingActivity,
         inTopBarArea: inTopBarArea,
         subType: subType,
+        speakingStatus: state.speakingStatus,
         scrollDiff: state.viewInfo.scrollDiff,
         selectedCellId: state.selectedCellId,
         stickerInfo: stickerInfo
@@ -1171,6 +1182,10 @@ define([
         case 'selectCell':
           record = state.createViewRecord('selectCell');
           type = 'view'; // override passed-in type: focus is a view type
+          break;
+        case 'speaking':
+          record = state.createViewRecord('speaking');
+          type = 'view'; // override passed-in type: speaking is a view type
           break;
         case 'drawings':
           record = state.createDrawingRecord({stickering:false});

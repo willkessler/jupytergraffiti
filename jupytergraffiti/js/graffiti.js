@@ -335,6 +335,8 @@ define([
                                       ]
         );
 
+        const rapidScanIcon = stickerLib.makeRabbit();
+
         graffiti.setupOneControlPanel('graffiti-playback-controls', 
                                       '<div id="graffiti-narrator-info">' +
                                       '  <div id="graffiti-narrator-pic"></div>' +
@@ -369,6 +371,12 @@ define([
                                       '    <button class="btn btn-default btn-rapidplay-on" id="graffiti-rapidplay-on-btn" title="high speed playback">' + '2x' +
                                       '   </button>' +
                                       '   <button class="btn btn-default btn-rapidplay-off" id="graffiti-rapidplay-off-btn" title="regular speed playback">' + '2x' +
+                                      '   </button>' +
+                                      '  </div>' +
+                                      '  <div id="graffiti-rapidscan-buttons">' +
+                                      '    <button class="btn btn-default btn-rapidscan-on" id="graffiti-rapidscan-on-btn" title="scanning playback">' + rapidScanIcon +
+                                      '   </button>' +
+                                      '   <button class="btn btn-default btn-rapidscan-off" id="graffiti-rapidscan-off-btn" title="regular playback">' + rapidScanIcon +
                                       '   </button>' +
                                       '  </div>' +
                                       '</div>' +
@@ -422,6 +430,13 @@ define([
                                           event: 'click',
                                           fn: (e) => {
                                             graffiti.toggleRapidPlay();
+                                          }
+                                        },
+                                        {
+                                          ids: ['graffiti-rapidscan-on-btn', 'graffiti-rapidscan-off-btn'],
+                                          event: 'click',
+                                          fn: (e) => {
+                                            graffiti.toggleRapidScan();
                                           }
                                         },
                                         {
@@ -1323,6 +1338,24 @@ define([
         } else {
           console.log('Graffiti: activating rapidPlay');
           state.setRapidPlay(true);
+          audio.updateAudioPlaybackRate();
+          graffiti.updateControlPanels();
+        }
+      },
+
+      cancelRapidScan: () => {
+        console.log('Graffiti: cancelRapidScan');
+        state.setRapidScan(false);
+        audio.updateAudioPlaybackRate();
+        graffiti.updateControlPanels();
+      },
+
+      toggleRapidScan: () => {
+        if (state.getRapidScan()) {
+          graffiti.cancelRapidScan();
+        } else {
+          console.log('Graffiti: activating rapidScan');
+          state.setRapidScan(true);
           audio.updateAudioPlaybackRate();
           graffiti.updateControlPanels();
         }
@@ -3856,6 +3889,12 @@ define([
         if (record.subType === 'pointer') {
           //console.log('pointerUpdate is true, record:', record);
           graffiti.updatePointer(record);
+        } else if (record.subType === 'speaking') {
+          if (record.speakingStatus) {
+            console.log('Begun talking.');
+          } else {
+            console.log('Stopped talking');
+          }
         } else {
           graffiti.dimGraffitiCursor();
           if (record.selectedCell !== undefined) {
