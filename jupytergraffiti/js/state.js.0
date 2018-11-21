@@ -367,10 +367,6 @@ define([
       return state.rapidPlay;
     },
 
-    getRapidScanOn: () => {
-      return state.rapidScanOn;
-    },
-
     setRapidPlay: (rapidPlay, rapidScanOn) => {
       if (state.activity === 'playing') {
         if (rapidPlay) {
@@ -1426,7 +1422,7 @@ define([
       }
       const realTimePlayedSoFar = now - state.playbackStartTime;
       // Add the rapid play time to the total to keep up with 2x
-      const correctedTimeSoFar = realTimePlayedSoFar + rapidPlayTimeSoFar * rapidPlayAdjuster;
+      const correctedTimeSoFar = realTimePlayedSoFar + rapidPlayTimeSoFar;
       return correctedTimeSoFar;
     },
 

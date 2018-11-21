@@ -335,7 +335,8 @@ define([
                                       ]
         );
 
-        const rapidScanIcon = stickerLib.makeRabbit();
+        const rapidScanOnIcon = stickerLib.makeRabbit('black');
+        const rapidScanOffIcon = stickerLib.makeRabbit('white');
 
         graffiti.setupOneControlPanel('graffiti-playback-controls', 
                                       '<div id="graffiti-narrator-info">' +
@@ -374,9 +375,9 @@ define([
                                       '   </button>' +
                                       '  </div>' +
                                       '  <div id="graffiti-rapidscan-buttons">' +
-                                      '    <button class="btn btn-default btn-rapidscan-on" id="graffiti-rapidscan-on-btn" title="scanning playback">' + rapidScanIcon +
+                                      '    <button class="btn btn-default btn-rapidscan-on" id="graffiti-rapidscan-on-btn" title="scanning playback">' + rapidScanOnIcon +
                                       '   </button>' +
-                                      '   <button class="btn btn-default btn-rapidscan-off" id="graffiti-rapidscan-off-btn" title="regular playback">' + rapidScanIcon +
+                                      '   <button class="btn btn-default btn-rapidscan-off" id="graffiti-rapidscan-off-btn" title="regular playback">' + rapidScanOffIcon +
                                       '   </button>' +
                                       '  </div>' +
                                       '</div>' +
@@ -429,14 +430,14 @@ define([
                                           ids: ['graffiti-rapidplay-on-btn', 'graffiti-rapidplay-off-btn'],
                                           event: 'click',
                                           fn: (e) => {
-                                            graffiti.toggleRapidPlay();
+                                            graffiti.toggleRapidPlay({scan:false});
                                           }
                                         },
                                         {
                                           ids: ['graffiti-rapidscan-on-btn', 'graffiti-rapidscan-off-btn'],
                                           event: 'click',
                                           fn: (e) => {
-                                            graffiti.toggleRapidScan();
+                                            graffiti.toggleRapidPlay({scan:true});
                                           }
                                         },
                                         {
@@ -895,8 +896,15 @@ define([
         } else {
           graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-sound-off-btn').hide().parent().find('#graffiti-sound-on-btn').show();
         }
-        if (state.getRapidPlay()) {
+        if (state.getRapidScanOn()) {
+          graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidscan-on-btn').hide().parent().find('#graffiti-rapidscan-off-btn').show();
+          graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidplay-off-btn').hide().parent().find('#graffiti-rapidplay-on-btn').hide();
+        } else {
+          graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidscan-off-btn').hide().parent().find('#graffiti-rapidscan-on-btn').show();
+        }
+        if ((state.getRapidPlay()) && !(state.getRapidScanOn())) {
           graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidplay-on-btn').hide().parent().find('#graffiti-rapidplay-off-btn').show();
+          graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidscan-off-btn').hide().parent().find('#graffiti-rapidscan-on-btn').show();
         } else {
           graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidplay-off-btn').hide().parent().find('#graffiti-rapidplay-on-btn').show();
         }
@@ -1327,35 +1335,26 @@ define([
 
       cancelRapidPlay: () => {
         console.log('Graffiti: cancelRapidPlay');
-        state.setRapidPlay(false);
+        state.setRapidPlay(false,false);
         audio.updateAudioPlaybackRate();
         graffiti.updateControlPanels();
       },
 
-      toggleRapidPlay: () => {
-        if (state.getRapidPlay()) {
+      toggleRapidPlay: (opts) => {
+        let forceOn = false;
+        const rapidPlayOn = state.getRapidPlay();
+        const rapidScanOn = state.getRapidScanOn();
+        if (rapidPlayOn) {
+          if ((opts.scan && !rapidScanOn) ||
+              (!opts.scan && rapidScanOn)) {
+            forceOn = true;
+          }
+        }
+        if (state.getRapidPlay() && !forceOn) {
           graffiti.cancelRapidPlay();
         } else {
-          console.log('Graffiti: activating rapidPlay');
-          state.setRapidPlay(true);
-          audio.updateAudioPlaybackRate();
-          graffiti.updateControlPanels();
-        }
-      },
-
-      cancelRapidScan: () => {
-        console.log('Graffiti: cancelRapidScan');
-        state.setRapidScan(false);
-        audio.updateAudioPlaybackRate();
-        graffiti.updateControlPanels();
-      },
-
-      toggleRapidScan: () => {
-        if (state.getRapidScan()) {
-          graffiti.cancelRapidScan();
-        } else {
-          console.log('Graffiti: activating rapidScan');
-          state.setRapidScan(true);
+          console.log('Graffiti: activating rapidPlay/rapidScan');
+          state.setRapidPlay(true, opts.scan);
           audio.updateAudioPlaybackRate();
           graffiti.updateControlPanels();
         }
@@ -3892,8 +3891,12 @@ define([
         } else if (record.subType === 'speaking') {
           if (record.speakingStatus) {
             console.log('Begun talking.');
+            if (state.getRapidScanOn()) {
+            }
           } else {
             console.log('Stopped talking');
+            if (state.getRapidScanOn()) {
+            }
           }
         } else {
           graffiti.dimGraffitiCursor();
