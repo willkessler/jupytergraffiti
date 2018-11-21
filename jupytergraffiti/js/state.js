@@ -27,8 +27,9 @@ define([
       state.rapidPlayTime = 0;
       state.regularPlayRate = 1.0;
       state.rapidPlayRate = 2.0; // globally playing everything back faster
-      state.rapidScanRate = 3.0; // zooming through silences in the recording
+      state.rapidScanRate = 3.0; // rate while zooming through silences in the recording
       state.rapidScanOn = false; // whether using rapid scan
+      state.rapidScanActive = false; // whether rapidscan is activated (during silent moments, we go faster)
       state.recordedCursorPosition = { x: -1000, y: -1000 };
       state.viewInfo = undefined;
       state.recordingCellInfo = {};
@@ -371,12 +372,25 @@ define([
       return state.rapidScanOn;
     },
 
+    getRapidPlayScalar: () => {
+      const rapidPlayScalar = (state.rapidScanOn ? (state.rapidScanActive ? state.rapidScanRate : state.regularPlayRate) : state.rapidPlayRate);
+      return rapidPlayScalar;
+    },
+
+    setRapidPlayBegin: () => {
+      state.rapidPlayStartTime = utils.getNow();
+    },
+
+    setRapidPlayEnd: () => {
+      state.rapidPlayTime += (utils.getNow() - state.rapidPlayStartTime) * state.getRapidPlayScalar();
+    },
+
     setRapidPlay: (rapidPlay, rapidScanOn) => {
       if (state.activity === 'playing') {
         if (rapidPlay) {
-          state.rapidPlayStartTime = utils.getNow();
+          state.setRapidPlayBegin();
         } else {
-          state.rapidPlayTime += utils.getNow() - state.rapidPlayStartTime;
+          state.setRapidPlayEnd();
         }
       }
       state.rapidPlay = rapidPlay;
@@ -391,6 +405,10 @@ define([
 
     resetRapidPlayTime: () => {
       state.rapidPlayTime = 0;
+    },
+
+    setRapidScanActive: (active) => {
+      state.rapidScanActive = active;
     },
 
     shouldUpdateDisplay: (kind, frameIndex) => {
@@ -1419,14 +1437,12 @@ define([
     getTimePlayedSoFar: () => {
       const now = utils.getNow();
       let rapidPlayTimeSoFar = state.rapidPlayTime;
-      let rapidPlayAdjuster = 0;
       if (state.rapidPlay) {
-        rapidPlayTimeSoFar += now - state.rapidPlayStartTime;
-        rapidPlayAdjuster = (state.rapidScanOn ? state.rapidScanRate : state.rapidPlayRate) - 1.0;
+        rapidPlayTimeSoFar += (now - state.rapidPlayStartTime) * state.getRapidPlayScalar();
       }
       const realTimePlayedSoFar = now - state.playbackStartTime;
       // Add the rapid play time to the total to keep up with 2x
-      const correctedTimeSoFar = realTimePlayedSoFar + rapidPlayTimeSoFar * rapidPlayAdjuster;
+      const correctedTimeSoFar = realTimePlayedSoFar + rapidPlayTimeSoFar;
       return correctedTimeSoFar;
     },
 

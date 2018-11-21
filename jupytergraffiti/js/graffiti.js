@@ -3889,14 +3889,17 @@ define([
           //console.log('pointerUpdate is true, record:', record);
           graffiti.updatePointer(record);
         } else if (record.subType === 'speaking') {
-          if (record.speakingStatus) {
-            console.log('Begun talking.');
-            if (state.getRapidScanOn()) {
+          if (state.getRapidScanOn()) {
+            if (record.speakingStatus) {
+              console.log('Begun talking.');
+              state.setRapidScanActive(false);
+              state.setRapidPlayEnd();
+            } else {
+              console.log('Stopped talking');
+              state.setRapidScanActive(true);
+              state.setRapidPlayBegin();
             }
-          } else {
-            console.log('Stopped talking');
-            if (state.getRapidScanOn()) {
-            }
+            audio.updateAudioPlaybackRate();
           }
         } else {
           graffiti.dimGraffitiCursor();
