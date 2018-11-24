@@ -23,16 +23,13 @@ define([
       state.scrollTop = undefined;
       state.selectedCellId = undefined;
       state.mute = false;
-      state.rapidPlay = false;
-      state.regularPlayRate = 1.0;
-      state.speedTypes = { 
+      state.playSpeeds = { 
         'regular' : 1.0,
         'rapid'   : 2.0, // globally playing entire recording back faster
         'scan'    : 3.0  // playback rate while speeding through silences in the recording
       };
-      state.currentSpeedType = 'regular';
-      state.rapidScanOn = false; // whether using rapid scan
-      state.rapidScanActive = false; // whether rapidscan is activated (during silent moments, we go faster)
+      state.currentPlaySpeed = 'regular';
+      state.rapidScanActive = false; // whether rapidscan is activate at this moment (it's activated during silent moments so we play faster)
       state.recordedCursorPosition = { x: -1000, y: -1000 };
       state.viewInfo = undefined;
       state.recordingCellInfo = {};
@@ -356,60 +353,68 @@ define([
     },
 
     getRapidScanActive: () => {
-      return ((state.currenSpeedType === 'scan') && (state.rapidScanActive));
+      return ((state.currentPlaySpeed === 'scan') && (state.rapidScanActive));
     },
 
     setRapidScanActive: (val) => {
       state.rapidScanActive = val;
     },
 
-    getCurrentSpeedType: () => {
-      return state.currentSpeedType;
-    },
-
-    // play speed types are 'regular', 'rapid', and 'scan'.
-    setCurrentSpeedType: (kind) => {
-      if (state.activity === 'playing') {
-        if (state.currenSpeedType !== kind) {
-          state.setPlayTimeEnd(state.currenSpeedType);
-          state.setPlayTimeBegin(kind);
-        }
-      }
-      state.currenSpeedType = kind;        
-    },
-
-    getPlayRateScalar: () => {
-      switch (state.currenSpeedType) {
-        case 'rapid':
-          return state.speedTypes['rapid'];
-          break;
-        case 'scan':
-          if (state.rapidScanActive) {
-            return state.speedTypes['scan'];
-          }
-          break;
-      }
-      return state.speedTypes['regular'];
-    },
-
-    setPlayTimeBegin: (kind) => {
-      state.playTimes[kind] = utils.getNow();
-    },
-
-    setPlayTimeEnd: (kind) => {
-      state.playTimes[kind] += (utils.getNow() - state.playTimes[kind]) * state.getPlayRateScalar();
-    },
-
-    setPlayStartTimeToNow: () => {
-      state.playTimes[state.currenSpeedType] = utils.getNow();
+    getCurrentPlaySpeed: () => {
+      return state.currentPlaySpeed;
     },
 
     resetPlayTimes: () => {
-      state.playTimes = {
-        regular: 0,
-        rapid: 0,
-        scan: 0
+      state.playTimes = {};
+      for (let type of Object.keys(state.playSpeeds)) {
+        state.playTimes[type] = {
+          start:undefined,
+          total: 0,
+        };
       };
+    },
+
+    setPlayTimeBegin: (kind) => {
+      state.playTimes[kind].start = utils.getNow();
+    },
+
+    setPlayTimeEnd: (kind) => {
+      let playSpeed = state.currentPlaySpeed;
+      if (kind !== undefined) {
+        playSpeed = kind;
+      }
+      state.playTimes[playSpeed].total += (utils.getNow() - state.playTimes[playSpeed].start) * state.getPlayRateScalar();
+    },
+
+
+    // play speed types are 'regular', 'rapid', and 'scan'.
+    setCurrentPlaySpeed: (kind) => {
+      if (state.activity === 'playing') {
+        if (state.currentPlaySpeed !== kind) {
+          state.setPlayTimeEnd();
+          state.setPlayTimeBegin(kind);
+        }
+      }
+      state.currentPlaySpeed = kind;        
+      console.log('currentPlaySpeed:', state.currentPlaySpeed, 'playTimes', state.playTimes);
+    },
+
+    getPlayRateScalar: () => {
+      switch (state.currentPlaySpeed) {
+        case 'rapid':
+          return state.playSpeeds['rapid'];
+          break;
+        case 'scan':
+          if (state.rapidScanActive) {
+            return state.playSpeeds['scan'];
+          }
+          break;
+      }
+      return state.playSpeeds['regular'];
+    },
+
+    setPlayStartTimeToNow: () => {
+      state.playTimes[state.currentPlaySpeed].start = utils.getNow();
     },
 
     shouldUpdateDisplay: (kind, frameIndex) => {
@@ -1451,10 +1456,13 @@ define([
     getTimePlayedSoFar: () => {
       const now = utils.getNow();
       const playRateScalar = state.getPlayRateScalar();
-      let timePlayedSoFar = now - state.playTimes[state.currentSpeedType] * playRateScalar;
-      for (let type of Object.keys(state.speedTypes)) {
-        if (type != state.currentSpeedType) {
-          timePlayedSoFar += state.playTimes[type] * state.speedTypes[type];
+      let timePlayedSoFar = (now - state.playTimes[state.currentPlaySpeed].start) * playRateScalar;
+      if (state.currentPlaySpeed === 'rapid') {
+        console.log('timePlayedSoFar before adding non-current kinds:', timePlayedSoFar);
+      }
+      for (let type of Object.keys(state.playSpeeds)) {
+        if (type != state.currentPlaySpeed) {
+          timePlayedSoFar += state.playTimes[type].total * state.playSpeeds[type];
         }
       }
       return timePlayedSoFar;
