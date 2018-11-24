@@ -19,15 +19,18 @@ define([
       state.resetOnNextPlay = false;
       state.recordedAudioString = '';
       state.audioStorageCallback = undefined;
-      state.frameArrays = ['view', 'selections', 'contents', 'drawings'];
+      state.frameArrays = ['view', 'selections', 'contents', 'drawings', 'speaking'];
       state.scrollTop = undefined;
       state.selectedCellId = undefined;
       state.mute = false;
       state.rapidPlay = false;
-      state.rapidPlayTime = 0;
       state.regularPlayRate = 1.0;
-      state.rapidPlayRate = 2.0; // globally playing everything back faster
-      state.rapidScanRate = 3.0; // rate while zooming through silences in the recording
+      state.speedTypes = { 
+        'regular' : 1.0,
+        'rapid'   : 2.0, // globally playing entire recording back faster
+        'scan'    : 3.0  // playback rate while speeding through silences in the recording
+      };
+      state.currentSpeedType = 'regular';
       state.rapidScanOn = false; // whether using rapid scan
       state.rapidScanActive = false; // whether rapidscan is activated (during silent moments, we go faster)
       state.recordedCursorPosition = { x: -1000, y: -1000 };
@@ -236,7 +239,7 @@ define([
 
     setSpeakingStatus: (speakingStatus) => {
       state.speakingStatus = speakingStatus;
-      state.storeHistoryRecord('speaking'); // store the speaking status change as a view record (if we are currently recording)
+      state.storeHistoryRecord('speaking'); // record speaking status, if we are currently recording
     },
     
     getAudioInitialized: () => {
@@ -352,74 +355,81 @@ define([
       state.mute = muteState;
     },
 
-    getRapidPlayRate: () => {
-      if (state.rapidScanOn) {
-        return state.rapidScanRate;
-      } else {
-        return state.rapidPlayRate;
-      }
+    getRapidScanActive: () => {
+      return ((state.currenSpeedType === 'scan') && (state.rapidScanActive));
     },
 
-    getRegularPlayRate: () => {
-      return state.regularPlayRate;
+    setRapidScanActive: (val) => {
+      state.rapidScanActive = val;
     },
 
-    getRapidPlay: () => {
-      return state.rapidPlay;
+    getCurrentSpeedType: () => {
+      return state.currentSpeedType;
     },
 
-    getRapidScanOn: () => {
-      return state.rapidScanOn;
-    },
-
-    getRapidPlayScalar: () => {
-      const rapidPlayScalar = (state.rapidScanOn ? (state.rapidScanActive ? state.rapidScanRate : state.regularPlayRate) : state.rapidPlayRate);
-      return rapidPlayScalar;
-    },
-
-    setRapidPlayBegin: () => {
-      state.rapidPlayStartTime = utils.getNow();
-    },
-
-    setRapidPlayEnd: () => {
-      state.rapidPlayTime += (utils.getNow() - state.rapidPlayStartTime) * state.getRapidPlayScalar();
-    },
-
-    setRapidPlay: (rapidPlay, rapidScanOn) => {
+    // play speed types are 'regular', 'rapid', and 'scan'.
+    setCurrentSpeedType: (kind) => {
       if (state.activity === 'playing') {
-        if (rapidPlay) {
-          state.setRapidPlayBegin();
-        } else {
-          state.setRapidPlayEnd();
+        if (state.currenSpeedType !== kind) {
+          state.setPlayTimeEnd(state.currenSpeedType);
+          state.setPlayTimeBegin(kind);
         }
       }
-      state.rapidPlay = rapidPlay;
-      state.rapidScanOn = rapidScanOn;
+      state.currenSpeedType = kind;        
     },
 
-    setRapidPlayStartTimeToNowIfOn: () => {
-      if (state.rapidPlay && state.activity === 'playing') {
-        state.rapidPlayStartTime = utils.getNow();
+    getPlayRateScalar: () => {
+      switch (state.currenSpeedType) {
+        case 'rapid':
+          return state.speedTypes['rapid'];
+          break;
+        case 'scan':
+          if (state.rapidScanActive) {
+            return state.speedTypes['scan'];
+          }
+          break;
       }
+      return state.speedTypes['regular'];
     },
 
-    resetRapidPlayTime: () => {
-      state.rapidPlayTime = 0;
+    setPlayTimeBegin: (kind) => {
+      state.playTimes[kind] = utils.getNow();
     },
 
-    setRapidScanActive: (active) => {
-      state.rapidScanActive = active;
+    setPlayTimeEnd: (kind) => {
+      state.playTimes[kind] += (utils.getNow() - state.playTimes[kind]) * state.getPlayRateScalar();
+    },
+
+    setPlayStartTimeToNow: () => {
+      state.playTimes[state.currenSpeedType] = utils.getNow();
+    },
+
+    resetPlayTimes: () => {
+      state.playTimes = {
+        regular: 0,
+        rapid: 0,
+        scan: 0
+      };
     },
 
     shouldUpdateDisplay: (kind, frameIndex) => {
       if (frameIndex === undefined) {
         return false;
       }
-      if (state.history.processed[kind] === frameIndex.index) {
+      if (_.contains(state.history.processed[kind],frameIndex.index)) {
         return false; // during playback, we've already processed this record so don't reprocess it.
       }
-      state.history.processed[kind] = frameIndex.index;
+      state.history.processed[kind].push(frameIndex.index);
       return true;
+    },
+
+    resetProcessedArrays: () => {
+      if (state.history !== undefined) {
+        state.history.processed = [];
+        for (let arrName of state.frameArrays) {
+          state.history.processed[arrName] = [];
+        }      
+      }
     },
 
     blockRecording: () => {
@@ -813,7 +823,8 @@ define([
     resetPlayState: () => {
       state.resetOnNextPlay = false;
       state.playbackTimeElapsed = 0;
-      state.resetRapidPlayTime();
+      state.resetPlayTimes();
+      state.resetProcessedArrays();
     },
 
     getActivity: () => {
@@ -1049,7 +1060,7 @@ define([
       delete(record.pen.isDown);
       delete(record.pen['mouseDownPosition']);
       delete(record.wipe);
-      console.log('createStickerRecord:', record);
+      // console.log('createStickerRecord:', record);
       return record;
     },
 
@@ -1185,6 +1196,10 @@ define([
       return { cellsContent: cellsContent, cellsPresentThisFrame: cellsPresentThisFrame };
     },
 
+    createSpeakingRecord: () => {
+      return { speaking: state.speakingStatus };
+    },
+
     storeHistoryRecord: (type, time) => {
       if (state.activity !== 'recording' || state.recordingBlocked)
         return;
@@ -1212,10 +1227,6 @@ define([
           record = state.createViewRecord('selectCell');
           type = 'view'; // override passed-in type: focus is a view type
           break;
-        case 'speaking':
-          record = state.createViewRecord('speaking');
-          type = 'view'; // override passed-in type: speaking is a view type
-          break;
         case 'drawings':
           record = state.createDrawingRecord({stickering:false});
           break;
@@ -1228,6 +1239,9 @@ define([
           break;
         case 'contents':
           record = state.createContentsRecord(true);
+          break;
+        case 'speaking':
+          record = state.createSpeakingRecord();
           break;
       }
       record.startTime = (time !== undefined ? time : state.utils.getNow());
@@ -1245,27 +1259,24 @@ define([
         selections:  [],                          // cell selections
         contents:    [],                          // contents state: what cells present, and what their contents are, and cell outputs
         drawings:    [],                          // drawing record, of type: ['draw', 'fade', 'wipe', 'sticker']
+        speaking:    [],                          // time ranges where creator is speaking or silent
 
         // Where we are in each track, during playback.
         lastVisited: {
           view:       0,
           selections: 0,
           contents:   0,
-          drawings:   0
+          drawings:   0,
+          speaking:   0,
         },
 
-        // What was the latest record processed during playback (so we don't process a record twice)
-        processed: {
-          view:       undefined,
-          selections: undefined,
-          contents:   undefined,
-          drawings:   undefined
-        },
-        
         cellContentsTracking: {},                  // this enables back-referencing to reduce storage costs on content recording
         cellOutputsTracking:  {},                  // this enables back-referencing to reduce storage costs on output recording
         cellAdditions: {}                          // id's and positions of any cells added during the recording.
       }
+
+      // Set up to keep track of the latest record processed during playback (so we don't process a record twice).
+      state.resetProcessedArrays();
 
       // Store initial state records at the start of recording.
       state.storeHistoryRecord('pointer',    now);
@@ -1273,6 +1284,7 @@ define([
       state.storeHistoryRecord('focus',      now);
       state.storeHistoryRecord('selections', now);
       state.storeHistoryRecord('contents',   now);
+      state.storeHistoryRecord('speaking',   now);
     },
 
     finalizeHistory: () => {
@@ -1398,8 +1410,9 @@ define([
     getIndexUpToTime: (kind, t) => {
       let i;
       const historyArray = state.history[kind];
-      if (historyArray.length > 0) {
-        for (i = 0; i < historyArray.length; ++i) {
+      const historyArrayLength = historyArray.length;
+      if (historyArrayLength > 0) {
+        for (i = 0; i < historyArrayLength; ++i) {
           if (historyArray[i].startTime >= t) {
             return i;
           }
@@ -1428,6 +1441,7 @@ define([
     storeWholeHistory: (history) => {
       state.history = $.extend({}, history);
       state.resetPlayState();
+      state.resetProcessedArrays();
     },
 
     getTimeRecordedSoFar: () => {
@@ -1436,14 +1450,14 @@ define([
 
     getTimePlayedSoFar: () => {
       const now = utils.getNow();
-      let rapidPlayTimeSoFar = state.rapidPlayTime;
-      if (state.rapidPlay) {
-        rapidPlayTimeSoFar += (now - state.rapidPlayStartTime) * state.getRapidPlayScalar();
+      const playRateScalar = state.getPlayRateScalar();
+      let timePlayedSoFar = now - state.playTimes[state.currentSpeedType] * playRateScalar;
+      for (let type of Object.keys(state.speedTypes)) {
+        if (type != state.currentSpeedType) {
+          timePlayedSoFar += state.playTimes[type] * state.speedTypes[type];
+        }
       }
-      const realTimePlayedSoFar = now - state.playbackStartTime;
-      // Add the rapid play time to the total to keep up with 2x
-      const correctedTimeSoFar = realTimePlayedSoFar + rapidPlayTimeSoFar;
-      return correctedTimeSoFar;
+      return timePlayedSoFar;
     },
 
     storeCellStates: () => {

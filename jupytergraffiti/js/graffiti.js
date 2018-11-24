@@ -896,17 +896,20 @@ define([
         } else {
           graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-sound-off-btn').hide().parent().find('#graffiti-sound-on-btn').show();
         }
-        if (state.getRapidScanOn()) {
-          graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidscan-on-btn').hide().parent().find('#graffiti-rapidscan-off-btn').show();
-          graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidplay-off-btn').hide().parent().find('#graffiti-rapidplay-on-btn').hide();
-        } else {
-          graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidscan-off-btn').hide().parent().find('#graffiti-rapidscan-on-btn').show();
-        }
-        if ((state.getRapidPlay()) && !(state.getRapidScanOn())) {
-          graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidplay-on-btn').hide().parent().find('#graffiti-rapidplay-off-btn').show();
-          graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidscan-off-btn').hide().parent().find('#graffiti-rapidscan-on-btn').show();
-        } else {
-          graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidplay-off-btn').hide().parent().find('#graffiti-rapidplay-on-btn').show();
+        const currentSpeedType = state.getCurrentSpeedType();
+        switch (currentSpeedType) {
+          case 'scan':
+            graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidscan-on-btn').hide().parent().find('#graffiti-rapidscan-off-btn').show();
+            graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidplay-off-btn').hide().parent().find('#graffiti-rapidplay-on-btn').hide();
+            break;
+          case 'rapid':
+            graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidscan-off-btn').hide().parent().find('#graffiti-rapidscan-on-btn').show();
+            graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidplay-on-btn').hide().parent().find('#graffiti-rapidplay-off-btn').show();
+            break;
+          case 'regular':
+            graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidplay-off-btn').hide().parent().find('#graffiti-rapidplay-on-btn').show();
+            graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidscan-off-btn').hide().parent().find('#graffiti-rapidscan-on-btn').show();
+            break;
         }
 
         switch (activity) {
@@ -1335,26 +1338,31 @@ define([
 
       cancelRapidPlay: () => {
         console.log('Graffiti: cancelRapidPlay');
-        state.setRapidPlay(false,false);
+        state.setCurrentSpeedType('regular');
         audio.updateAudioPlaybackRate();
         graffiti.updateControlPanels();
       },
 
       toggleRapidPlay: (opts) => {
         let forceOn = false;
-        const rapidPlayOn = state.getRapidPlay();
-        const rapidScanOn = state.getRapidScanOn();
-        if (rapidPlayOn) {
-          if ((opts.scan && !rapidScanOn) ||
-              (!opts.scan && rapidScanOn)) {
+        const speedType = state.getCurrentSpeedType();
+        const rapid = (speedType === 'rapid');
+        const scanning = (speedType === 'scan');
+        if (rapid || scanning) {
+          if ((opts.scan && !scanning) ||
+              (!opts.scan && scanning)) {
             forceOn = true;
           }
         }
-        if (state.getRapidPlay() && !forceOn) {
+        if (rapid && !forceOn) {
           graffiti.cancelRapidPlay();
         } else {
           console.log('Graffiti: activating rapidPlay/rapidScan');
-          state.setRapidPlay(true, opts.scan);
+          if (opts.scan) {
+            state.setCurrentSpeedType('scan');
+          } else {
+            state.setCurrentSpeedType('rapid');
+          }
           audio.updateAudioPlaybackRate();
           graffiti.updateControlPanels();
         }
@@ -3692,7 +3700,7 @@ define([
             }
           }
           if (record.inTopBarArea !== undefined && record.inTopBarArea) {
-            console.log('Ignoring cursor activity recorded above the site panel');
+            //console.log('Ignoring cursor activity recorded above the site panel');
             return; // ignore the cursor when it is above the site panel
           }
           graffiti.scrollNudgeAverages.push({t:record.startTime, pos: { x: position.x, y: position.y }});
@@ -3888,19 +3896,6 @@ define([
         if (record.subType === 'pointer') {
           //console.log('pointerUpdate is true, record:', record);
           graffiti.updatePointer(record);
-        } else if (record.subType === 'speaking') {
-          if (state.getRapidScanOn()) {
-            if (record.speakingStatus) {
-              console.log('Begun talking.');
-              state.setRapidScanActive(false);
-              state.setRapidPlayEnd();
-            } else {
-              console.log('Stopped talking');
-              state.setRapidScanActive(true);
-              state.setRapidPlayBegin();
-            }
-            audio.updateAudioPlaybackRate();
-          }
         } else {
           graffiti.dimGraffitiCursor();
           if (record.selectedCell !== undefined) {
@@ -4092,6 +4087,25 @@ define([
         }
       },
 
+      updateSpeaking: (index) => {
+        const record = state.getHistoryItem('speaking', index);
+        console.log('Processing speaking record', index, record);
+        if (state.getCurrentSpeedType() === 'scan') {
+          if (record.speaking) {
+            console.log('Begun talking.');
+            if (state.getRapidScanActive()) {
+              state.setPlayTimeEnd('scan');
+            }
+            state.setRapidScanActive(false);
+          } else {
+            console.log('Stopped talking');
+            state.setPlayTimeBegin('scan');
+            state.setRapidScanActive(true);
+          }
+          audio.updateAudioPlaybackRate();
+        }
+      },
+
       updateDisplay: (frameIndexes) => {
         const currentScrollTop = graffiti.sitePanel.scrollTop();
         let mayHaveScrollNudged = false;
@@ -4101,11 +4115,15 @@ define([
         if (state.shouldUpdateDisplay('selections', frameIndexes.selections)) {
           graffiti.updateSelections(frameIndexes.selections.index, currentScrollTop);
         }
-        if (state.shouldUpdateDisplay('drawing', frameIndexes.drawings)) {
+        if (state.shouldUpdateDisplay('drawings', frameIndexes.drawings)) {
           if (state.getActivity() !== 'scrubbing') {
             // console.log('calling updateDrawings from updateDisplay');
             graffiti.updateDrawings(frameIndexes.drawings);
           }
+        }
+        if (state.shouldUpdateDisplay('speaking', frameIndexes.speaking)) {
+          console.log(state.history.processed);
+          graffiti.updateSpeaking(frameIndexes.speaking.index);
         }
         if (state.shouldUpdateDisplay('view', frameIndexes.view)) {
           graffiti.updateView(frameIndexes.view.index);
@@ -4152,7 +4170,8 @@ define([
         // console.log('Graffiti: t:', t);
         const frameIndexes = state.getHistoryRecordsAtTime(t);
         state.clearSetupForReset();
-        state.resetRapidPlayTime();
+        state.resetPlayTimes();
+        state.resetProcessedArrays();
         state.setPlaybackTimeElapsed(t);
         graffiti.wipeAllStickerDomCanvases();
         graffiti.updateDisplay(frameIndexes);
@@ -4171,7 +4190,8 @@ define([
         const timeLocation = target.val() / 1000;
         // console.log('handleSliderDrag, slider value:', timeLocation);
         state.clearSetupForReset();
-        state.resetRapidPlayTime();
+        state.resetPlayTimes();
+        state.resetProcessedArrays();
         graffiti.undimGraffitiCursor();
         const t = Math.min(state.getHistoryDuration() * timeLocation, state.getHistoryDuration() - 1);
         // Now we need to set the time we are going to start with if we play from here.
@@ -4275,6 +4295,8 @@ define([
           // If just starting to play back, store all cells current contents so we can restore them when you cancel playback.
           utils.saveNotebook();
           state.setScrollTop(graffiti.sitePanel.scrollTop());
+          state.setCurrentSpeedType('regular');
+          state.resetPlayTimes();
           graffiti.prePlaybackScrolltop = state.getScrollTop();
           graffiti.lastScrollViewId = undefined;
           graffiti.lastDrawIndex = undefined;
@@ -4308,7 +4330,7 @@ define([
         }
 
         state.setPlaybackStartTime(utils.getNow() - state.getPlaybackTimeElapsed());
-        state.setRapidPlayStartTimeToNowIfOn();
+        state.setPlayStartTimeToNow();
 
         if (!state.getMute()) {
           audio.startPlayback(state.getPlaybackTimeElapsed());
@@ -4344,9 +4366,12 @@ define([
               graffiti.cancelPlayback({ cancelAnimation: true});
             } else {
               graffiti.pausePlayback();
+              console.log('total play time:', utils.getNow() - playStartedAt);
             }
           } else {
             graffiti.startPlayback();
+            playStartedAt = utils.getNow();
+            console.log('started playback at:', playStartedAt);
           }
         }
       },

@@ -67,7 +67,10 @@ define([
     },
 
     updateAudioPlaybackRate: () => {
-      audio.audioObj.playbackRate = (state.getRapidPlay() ? state.getRapidPlayRate() : state.getRegularPlayRate());
+      const rawScalar = state.getPlayRateScalar();
+      const scalar = (rawScalar === 1.0 ? rawScalar : rawScalar * 0.85);
+      console.log('updateAudioPlaybackRate, scalar:', rawScalar,scalar);
+      audio.audioObj.playbackRate = state.getPlayRateScalar() * rawScalar;
     },
 
     // Special thanks to: https://developers.google.com/web/updates/2017/06/play-request-was-interrupted 
