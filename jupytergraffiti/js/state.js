@@ -365,6 +365,7 @@ define([
     },
 
     resetPlayTimes: () => {
+      console.log('resetPlayTimes');
       state.playTimes = {};
       for (let type of Object.keys(state.playSpeeds)) {
         state.playTimes[type] = {
@@ -383,7 +384,7 @@ define([
       if (kind !== undefined) {
         playSpeed = kind;
       }
-      state.playTimes[playSpeed].total += (utils.getNow() - state.playTimes[playSpeed].start) * state.getPlayRateScalar();
+      state.playTimes[playSpeed].total += utils.getNow() - state.playTimes[playSpeed].start; // real-time spent watching at this given playSpeed
     },
 
 
@@ -1453,17 +1454,14 @@ define([
       return state.utils.getNow() - state.history.recordingStartTime;
     },
 
+    // The time played so far is the sum of all the play times at various speeds used so far during this play session, including the (growing) time
+    // at the current playSpeed.
     getTimePlayedSoFar: () => {
       const now = utils.getNow();
       const playRateScalar = state.getPlayRateScalar();
       let timePlayedSoFar = (now - state.playTimes[state.currentPlaySpeed].start) * playRateScalar;
-      if (state.currentPlaySpeed === 'rapid') {
-        console.log('timePlayedSoFar before adding non-current kinds:', timePlayedSoFar);
-      }
       for (let type of Object.keys(state.playSpeeds)) {
-        if (type != state.currentPlaySpeed) {
-          timePlayedSoFar += state.playTimes[type].total * state.playSpeeds[type];
-        }
+        timePlayedSoFar += state.playTimes[type].total * state.playSpeeds[type];
       }
       return timePlayedSoFar;
     },

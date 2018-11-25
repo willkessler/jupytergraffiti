@@ -900,7 +900,7 @@ define([
         switch (currentPlaySpeed) {
           case 'scan':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidscan-on-btn').hide().parent().find('#graffiti-rapidscan-off-btn').show();
-            graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidplay-off-btn').hide().parent().find('#graffiti-rapidplay-on-btn').hide();
+            graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidplay-off-btn').hide().parent().find('#graffiti-rapidplay-on-btn').show();
             break;
           case 'rapid':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidscan-off-btn').hide().parent().find('#graffiti-rapidscan-on-btn').show();
@@ -1348,13 +1348,7 @@ define([
         const playSpeed = state.getCurrentPlaySpeed();
         const rapid = (playSpeed === 'rapid');
         const scanning = (playSpeed === 'scan');
-        if (rapid || scanning) {
-          if ((opts.scan && !scanning) ||
-              (!opts.scan && scanning)) {
-            forceOn = true;
-          }
-        }
-        if (rapid && !forceOn) {
+        if ((rapid && !opts.scan)  || (scanning && opts.scan)) {
           graffiti.cancelRapidPlay();
         } else {
           console.log('Graffiti: activating rapidPlay/rapidScan');
@@ -4344,6 +4338,7 @@ define([
                                        const playedSoFar = state.getTimePlayedSoFar();
                                        if (playedSoFar >= state.getHistoryDuration()) {
                                          // reached end of recording naturally, so set up for restart on next press of play button
+                                         console.log('end of recording reached, playedSoFar:', playedSoFar, 'duration', state.getHistoryDuration());
                                          state.setupForReset();
                                          graffiti.togglePlayback();
                                        } else {
