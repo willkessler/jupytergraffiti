@@ -25,16 +25,19 @@
   color:#000;
 }
 
-#graffiti-rapidplay-buttons svg {
+#graffiti-rapidplay-buttons svg,
+#graffiti-rapidscan-buttons svg {
   width:20px;
   height:12px;
 }
 
-#graffiti-rapidplay-on-btn {
+#graffiti-rapidplay-on-btn,
+#graffiti-rapidscan-on-btn {
   display:block;
 }
 
-#graffiti-rapidplay-off-btn {
+#graffiti-rapidplay-off-btn,
+#graffiti-rapidscan-off-btn {
   display:none;
   background:black;
   color:white;
@@ -164,7 +167,7 @@
   border-radius:4px;
   border:1px solid #aaa;
   z-index:110;
-  width:200px;
+  width:205px;
 }
 
 #graffiti-inner-control-panel {
@@ -203,6 +206,10 @@
 #graffiti-playback-buttons #graffiti-play-btn,
 #graffiti-playback-buttons #graffiti-pause-btn {
   width:50px;
+}
+
+#graffiti-skip-buttons {
+  display:flex;
 }
 
 #graffiti-scrub-controls {

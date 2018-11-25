@@ -29,8 +29,14 @@ define([
             cbs.succeed();
 
             hark.init(stream, { threshold:-65 });
-            hark.on('speaking', () => { console.log('begun speaking') });
-            hark.on('stopped_speaking', () => { console.log('stopped speaking') });
+            hark.on('speaking', () => { 
+              state.setSpeakingStatus(true);
+              console.log('speaking started');
+            });
+            hark.on('stopped_speaking', () => { 
+              state.setSpeakingStatus(false);
+              console.log('speaking ended');
+            });
             //hark.on('volume_change', (currentVolume, threshold) => { console.log('volume change,', currentVolume, threshold) });
             
           },
@@ -61,7 +67,10 @@ define([
     },
 
     updateAudioPlaybackRate: () => {
-      audio.audioObj.playbackRate = (state.getRapidPlay() ? state.getRapidPlayRate() : state.getRegularPlayRate());
+      const scalar = state.getPlayRateScalar();
+      //const scalar = (rawScalar === 1.0 ? rawScalar : rawScalar * 0.85);
+      console.log('updateAudioPlaybackRate, scalar:', scalar);
+      audio.audioObj.playbackRate = state.getPlayRateScalar() * scalar;
     },
 
     // Special thanks to: https://developers.google.com/web/updates/2017/06/play-request-was-interrupted 
