@@ -898,7 +898,8 @@ define([
         }
         const currentPlaySpeed = state.getCurrentPlaySpeed();
         switch (currentPlaySpeed) {
-          case 'scan':
+          case 'scanActive':
+          case 'scanInactive':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidscan-on-btn').hide().parent().find('#graffiti-rapidscan-off-btn').show();
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidplay-off-btn').hide().parent().find('#graffiti-rapidplay-on-btn').show();
             break;
@@ -1345,15 +1346,12 @@ define([
 
       toggleRapidPlay: (opts) => {
         let forceOn = false;
-        const playSpeed = state.getCurrentPlaySpeed();
-        const rapid = (playSpeed === 'rapid');
-        const scanning = (playSpeed === 'scan');
-        if ((rapid && !opts.scan)  || (scanning && opts.scan)) {
+        if ((state.rapidIsOn() && !opts.scan)  || (state.scanningIsOn() && opts.scan)) {
           graffiti.cancelRapidPlay();
         } else {
           console.log('Graffiti: activating rapidPlay/rapidScan');
           if (opts.scan) {
-            state.setCurrentPlaySpeed('scan');
+            state.setCurrentPlaySpeed('scanInactive');
           } else {
             state.setCurrentPlaySpeed('rapid');
           }
@@ -4087,15 +4085,17 @@ define([
       updateSpeaking: (index) => {
         const record = state.getHistoryItem('speaking', index);
         console.log('Processing speaking record', index, record);
-        if (state.getCurrentPlaySpeed() === 'scan') {
+        if (state.scanningIsOn()) {
           if (record.speaking) {
             console.log('Begun speaking.');
-            state.stopRapidScan();
+            state.setCurrentPlaySpeed('scanInactive');
           } else {
             console.log('Stopped speaking.');
-            state.startRapidScan();
+            state.setCurrentPlaySpeed('scanActive');
           }
-          console.log('playTimes:regular', state.playTimes['regular'].total, 'scan:',  state.playTimes['scan'].total );
+          console.log('playTimes:regular', state.playTimes['regular'].total,
+                      'scanActive:',  state.playTimes['scanActive'].total, 
+                      'scanInactive', state.playTimes['scanInactive'].total);
           audio.updateAudioPlaybackRate();
         }
       },
@@ -4202,7 +4202,6 @@ define([
           audio.pausePlayback();
           //console.log('Graffiti: pausePlaybackNoVisualUpdates');
           state.setPlayTimeEnd();
-          state.stopRapidScan();
           // Make sure, if some markdown was selected, that the active code_mirror textarea reengages to get keystrokes.
           graffiti.updateSelectedCellSelections(graffiti.sitePanel.scrollTop()); 
           state.updateUsageStats({

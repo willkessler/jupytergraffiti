@@ -23,9 +23,10 @@ define([
       state.selectedCellId = undefined;
       state.mute = false;
       state.playSpeeds = { 
-        'regular' : 1.0,
-        'rapid'   : 2.0, // globally playing entire recording back faster
-        'scan'    : 3.0  // playback rate while speeding through silences in the recording
+        'regular' : 1.0,       // playback rate at speed it was originally recorded
+        'rapid'   : 2.0,       // playback rate when watching entire recording fast
+        'scanInactive' : 1.0,  // playback rate while watching non-silence (speaking) in the recording
+        'scanActive' : 3.0     // playback rate while watching silence (no speaking) in the recording
       };
       state.currentPlaySpeed = 'regular';
       state.rapidScanActive = false; // whether rapidscan is activate at this moment (it's activated during silent moments so we play faster)
@@ -351,29 +352,14 @@ define([
       state.mute = muteState;
     },
 
-    startRapidScan: () => {
-      if (state.currentPlaySpeed === 'scan') {
-        if (!state.rapidScanActive) {
-          console.log('Activating rapidscan.');
-          debugger;
-          state.setPlayTimeEnd('regular');
-          state.setPlayTimeBegin('scan');
-          state.rapidScanActive = true;
-        }
-      }
+    rapidIsOn: () => {
+      return state.currentPlaySpeed === 'rapid';
     },
 
-    stopRapidScan: () => {
-      if (state.currentPlaySpeed === 'scan') {
-        if (state.rapidScanActive) {
-          console.log('Deactivating rapidscan.');
-          state.setPlayTimeEnd('scan');
-          state.setPlayTimeBegin('regular');
-          state.rapidScanActive = false;
-        }
-      }
+    scanningIsOn: () => {
+      return (state.currentPlaySpeed === 'scanActive' || state.currentPlaySpeed === 'scanInactive');
     },
-    
+
     getCurrentPlaySpeed: () => {
       return state.currentPlaySpeed;
     },
@@ -421,17 +407,7 @@ define([
     },
 
     getPlayRateScalar: () => {
-      switch (state.currentPlaySpeed) {
-        case 'rapid':
-          return state.playSpeeds['rapid'];
-          break;
-        case 'scan':
-          if (state.rapidScanActive) {
-            return state.playSpeeds['scan'];
-          }
-          break;
-      }
-      return state.playSpeeds['regular'];
+      return state.playSpeeds[state.currentPlaySpeed];
     },
 
     setPlayStartTimeToNow: () => {
@@ -1461,14 +1437,8 @@ define([
     // at the current playSpeed.
     getTimePlayedSoFar: () => {
       const now = utils.getNow();
-      let timePlayedSoFar = 0;;
-      if (state.playSpeed === 'scan') {
-        if (state.rapidScanActive) {
-          timePlayedSoFar += (now - state.playTimes['scan'].start) * state.playSpeeds['scan'];
-        } else {
-          timePlayedSoFar += (now - state.playTimes['regular'].start) * state.playSpeeds['regular'];
-        }
-      } else if (state.playTimes[state.currentPlaySpeed].start !== undefined) {
+      let timePlayedSoFar = 0;
+      if (state.playTimes[state.currentPlaySpeed].start !== undefined) {
         const playRateScalar = state.getPlayRateScalar();
         timePlayedSoFar += (now - state.playTimes[state.currentPlaySpeed].start) * playRateScalar;
       }
