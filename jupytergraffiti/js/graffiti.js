@@ -7,8 +7,9 @@ define([
   './storage.js',
   './sticker.js',
   './selectionSerializer.js',
+  './udacityUser.js',
   'components/marked/lib/marked'
-], function(dialog, LZString, state, utils, audio, storage, stickerLib, selectionSerializer, marked) {
+], function(dialog, LZString, state, utils, audio, storage, stickerLib, selectionSerializer, udacityUser, marked) {
   const Graffiti = (function() {
     const graffiti = {
 
@@ -2878,6 +2879,14 @@ define([
         window.onbeforeunload = (e) => {
           console.log('Graffiti: before unload');
           graffiti.cancelPlaybackNoVisualUpdates();
+          udacityUser.trackUsageStats();
+        };
+
+        // To make async calls work on non-chrome browsers
+        // https://stackoverflow.com/a/20322988/4953199
+        window.onunload = (e) => {
+          console.log('Graffiti: on unload');
+          udacityUser.trackUsageStats();
         };
 
         // https://stackoverflow.com/questions/19469881/remove-all-event-listeners-of-specific-type

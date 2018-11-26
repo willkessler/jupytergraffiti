@@ -1,7 +1,7 @@
 define([
-  './utils.js',
   './state.js'
-], function(utils, state) {
+], function(state) {  
+  const NEBULA_URL = 'https://nebula.udacity.com';
 
   function getToken() {
 		const executeCallbackObject = (callback) => ({
@@ -22,7 +22,7 @@ define([
   function getUdacityUser(token) {
     return new Promise((resolve, reject) => {
       var xhr = new XMLHttpRequest();
-      xhr.open("POST", "https://nebula.udacity.com/api/v1/remote/me");
+      xhr.open("POST", `${NEBULA_URL}/api/v1/remote/me`);
       xhr.setRequestHeader("Authorization", "Star " + token);
       xhr.onload = function () {
         if (this.status >= 200 && this.status < 300) {
@@ -45,8 +45,13 @@ define([
   }
         
   const udacityUser = {
+    token: null,
+    usageReportSent: false,
     getUser: () => {
-      return getToken().then(token => getUdacityUser(token));
+      return getToken().then(token => {
+        udacityUser.token = token;
+        getUdacityUser(token);
+      });
     },
     setUser: () => {
       udacityUser.getUser()
@@ -55,6 +60,16 @@ define([
         user.coco && $('#graffiti-setup-button').css('display', 'inline-block');
       })
       .catch(err => console.error(err));
+    },
+    trackUsageStats: () => {
+      if (!udacityUser.usageReportSent) {
+        let xhr = new XMLHttpRequest();
+        // Async is set to false to make this request work on unload event
+        xhr.open("POST", `${NEBULA_URL}/api/v1/remote/track-graffiti`, false);
+        xhr.setRequestHeader("Authorization", "Star " + token);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.send(JSON.stringify(state.getUsageStats()));
+      }
     }
   }
 
