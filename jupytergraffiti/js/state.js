@@ -14,7 +14,6 @@ define([
       state.recordingBlocked = false;
       state.activity = 'idle'; // one of "recording", "playing", "idle"
       state.pointer = { x : 0, y: 0 };
-      state.playbackTimeElapsed = 0;
       state.windowSize = state.getWindowSize();
       state.resetOnNextPlay = false;
       state.recordedAudioString = '';
@@ -357,6 +356,7 @@ define([
     },
 
     setRapidScanActive: (val) => {
+      console.log('Setting rapidScanActive to', state.rapidScanActive);
       state.rapidScanActive = val;
     },
 
@@ -364,7 +364,7 @@ define([
       return state.currentPlaySpeed;
     },
 
-    resetPlayTimes: () => {
+    resetPlayTimes: (preset) => {
       console.log('resetPlayTimes');
       state.playTimes = {};
       for (let type of Object.keys(state.playSpeeds)) {
@@ -372,6 +372,12 @@ define([
           start:undefined,
           total: 0,
         };
+      };
+      if (preset !== undefined) {
+        state.playTimes['regular'] = {
+          start: utils.getNow(),
+          total: preset
+        }
       };
     },
 
@@ -791,21 +797,6 @@ define([
           clearInterval(state.animationIntervalIds[id]);
           delete(state.animationIntervalIds[id]);
         }
-      }
-    },
-
-    getPlaybackTimeElapsed: () => {
-      return state.playbackTimeElapsed;
-    },
-
-    setPlaybackTimeElapsed: (timeElapsed) => {
-      if (timeElapsed === undefined) {
-        const timePlayedSoFar = state.getTimePlayedSoFar();
-        state.playbackTimeElapsed = timePlayedSoFar;
-        // console.log('Graffiti: setPlaybackTimeElapsed: playbackTimeElapsed=', state.playbackTimeElapsed,
-        //     'timePlayedSoFar=', timePlayedSoFar, 'playbackStartTime', state.playbackStartTime);
-      } else {
-        state.playbackTimeElapsed = timeElapsed;
       }
     },
 

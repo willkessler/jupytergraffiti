@@ -3523,12 +3523,14 @@ define([
         graffiti.clearCanvases('all');
         graffiti.hideDrawingScreen();
         graffiti.resetDrawingColor();
+        state.setSpeakingStatus(false); // if we were still speaking, record a history record that will terminate that state during playback.
         state.finalizeHistory();
         if (useCallback) {
           state.dumpHistory();
         }
         state.clearAnimationIntervals();
-        // This will use the callback defined in setAudioStorageCallback to actually persist the whole recording, if useCallback is true
+        // This will use the callback defined in setAudioStorageCallback to actually persist the
+        // whole recording, if useCallback (passed in to this fn) is true.
         audio.stopRecording();
         console.log('Graffiti: stopRecordingCore is refreshing.');
         state.restoreCellStates('contents');
@@ -4086,13 +4088,15 @@ define([
         console.log('Processing speaking record', index, record);
         if (state.getCurrentPlaySpeed() === 'scan') {
           if (record.speaking) {
-            console.log('Begun talking.');
+            console.log('Begun speaking.');
             if (state.getRapidScanActive()) {
               state.setPlayTimeEnd('scan');
+              state.setPlayTimeBegin('regular');
             }
             state.setRapidScanActive(false);
           } else {
-            console.log('Stopped talking');
+            console.log('Stopped speaking.');
+            state.setPlayTimeEnd('regular');
             state.setPlayTimeBegin('scan');
             state.setRapidScanActive(true);
           }
@@ -4159,14 +4163,13 @@ define([
       jumpPlayback: (direction) => {
         const previousPlayState = state.getActivity();
         graffiti.pausePlayback();
-        const timeElapsed = state.getPlaybackTimeElapsed();
+        const timeElapsed = state.getTimePlayedSoFar();
         const t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction), state.getHistoryDuration() - 1 ));
         // console.log('Graffiti: t:', t);
+        state.resetPlayTimes(t);
         const frameIndexes = state.getHistoryRecordsAtTime(t);
         state.clearSetupForReset();
-        state.resetPlayTimes();
         state.resetProcessedArrays();
-        state.setPlaybackTimeElapsed(t);
         graffiti.wipeAllStickerDomCanvases();
         graffiti.updateDisplay(frameIndexes);
         graffiti.updateSlider(t);
@@ -4183,13 +4186,12 @@ define([
         const target = $('#graffiti-recorder-range');
         const timeLocation = target.val() / 1000;
         // console.log('handleSliderDrag, slider value:', timeLocation);
-        state.clearSetupForReset();
-        state.resetPlayTimes();
-        state.resetProcessedArrays();
-        graffiti.undimGraffitiCursor();
         const t = Math.min(state.getHistoryDuration() * timeLocation, state.getHistoryDuration() - 1);
         // Now we need to set the time we are going to start with if we play from here.
-        state.setPlaybackTimeElapsed(t);
+        state.resetPlayTimes(t);
+        state.clearSetupForReset();
+        state.resetProcessedArrays();
+        graffiti.undimGraffitiCursor();
         const frameIndexes = state.getHistoryRecordsAtTime(t);
         graffiti.wipeAllStickerDomCanvases();
         graffiti.updateDisplay(frameIndexes); // can replay scroll diffs, and in playback use cumulative scroll diff
@@ -4202,7 +4204,6 @@ define([
           graffiti.changeActivity('playbackPaused');
           audio.pausePlayback();
           //console.log('Graffiti: pausePlaybackNoVisualUpdates');
-          state.setPlaybackTimeElapsed();
           state.setPlayTimeEnd();
           // Make sure, if some markdown was selected, that the active code_mirror textarea reengages to get keystrokes.
           graffiti.updateSelectedCellSelections(graffiti.sitePanel.scrollTop()); 
@@ -4324,11 +4325,15 @@ define([
           state.resetPlayState();
         }
 
-        state.setPlaybackStartTime(utils.getNow() - state.getPlaybackTimeElapsed());
+        if (state.getCurrentPlaySpeed() === 'scan') {
+          state.setRapidScanActive(true); // if rapidscan is on, then activate it immediately
+        }
+
+        state.setPlaybackStartTime(utils.getNow() - state.getTimePlayedSoFar());
         state.setPlayStartTimeToNow();
 
         if (!state.getMute()) {
-          audio.startPlayback(state.getPlaybackTimeElapsed());
+          audio.startPlayback(state.getTimePlayedSoFar());
         }
 
         // Set up main playback loop
