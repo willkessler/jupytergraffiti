@@ -4164,7 +4164,8 @@ define([
         const previousPlayState = state.getActivity();
         graffiti.pausePlayback();
         const timeElapsed = state.getTimePlayedSoFar();
-        const t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction), state.getHistoryDuration() - 1 ));
+        console.log('jumpPlayback timeElapsed',timeElapsed);
+        const t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction * state.getPlayRateScalar()), state.getHistoryDuration() - 1 ));
         // console.log('Graffiti: t:', t);
         state.resetPlayTimes(t);
         const frameIndexes = state.getHistoryRecordsAtTime(t);

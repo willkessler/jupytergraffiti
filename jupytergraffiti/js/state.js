@@ -365,7 +365,7 @@ define([
     },
 
     resetPlayTimes: (preset) => {
-      console.log('resetPlayTimes');
+      console.log('resetPlayTimes, preset:', preset);
       state.playTimes = {};
       for (let type of Object.keys(state.playSpeeds)) {
         state.playTimes[type] = {
@@ -1450,7 +1450,10 @@ define([
     getTimePlayedSoFar: () => {
       const now = utils.getNow();
       const playRateScalar = state.getPlayRateScalar();
-      let timePlayedSoFar = (now - state.playTimes[state.currentPlaySpeed].start) * playRateScalar;
+      let timePlayedSoFar = 0;;
+      if (state.playTimes[state.currentPlaySpeed].start !== undefined) {
+        timePlayedSoFar += (now - state.playTimes[state.currentPlaySpeed].start) * playRateScalar;
+      }
       for (let type of Object.keys(state.playSpeeds)) {
         timePlayedSoFar += state.playTimes[type].total * state.playSpeeds[type];
       }
