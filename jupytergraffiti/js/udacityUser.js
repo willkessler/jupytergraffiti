@@ -50,7 +50,7 @@ define([
     getUser: () => {
       return getToken().then(token => {
         udacityUser.token = token;
-        getUdacityUser(token);
+        return getUdacityUser(token);
       });
     },
     setUser: () => {
@@ -66,7 +66,7 @@ define([
         let xhr = new XMLHttpRequest();
         // Async is set to false to make this request work on unload event
         xhr.open("POST", `${NEBULA_URL}/api/v1/remote/track-graffiti`, false);
-        xhr.setRequestHeader("Authorization", "Star " + token);
+        xhr.setRequestHeader("Authorization", "Star " + udacityUser.token);
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.send(JSON.stringify(state.getUsageStats()));
       }
