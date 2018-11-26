@@ -335,8 +335,10 @@ define([
                                       ]
         );
 
-        const rapidScanOnIcon = stickerLib.makeRabbit('black');
-        const rapidScanOffIcon = stickerLib.makeRabbit('white');
+        const runnerOnIcon = stickerLib.makeRunningMan('black');
+        const runnerOffIcon = stickerLib.makeRunningMan('white');
+        const rapidScanOnIcon = stickerLib.makeScan('black');
+        const rapidScanOffIcon = stickerLib.makeScan('white');
 
         graffiti.setupOneControlPanel('graffiti-playback-controls', 
                                       '<div id="graffiti-narrator-info">' +
@@ -369,15 +371,17 @@ define([
                                       '   </button>' +
                                       '  </div>' +
                                       '  <div id="graffiti-rapidplay-buttons">' +
-                                      '    <button class="btn btn-default btn-rapidplay-on" id="graffiti-rapidplay-on-btn" title="high speed playback">' + '2x' +
+                                      '    <button class="btn btn-default btn-rapidplay-on" id="graffiti-rapidplay-on-btn" title="high speed playback">' + runnerOnIcon +
                                       '   </button>' +
-                                      '   <button class="btn btn-default btn-rapidplay-off" id="graffiti-rapidplay-off-btn" title="regular speed playback">' + '2x' +
+                                      '   <button class="btn btn-default btn-rapidplay-off" id="graffiti-rapidplay-off-btn" title="regular speed playback">' + runnerOffIcon +
                                       '   </button>' +
                                       '  </div>' +
                                       '  <div id="graffiti-rapidscan-buttons">' +
-                                      '    <button class="btn btn-default btn-rapidscan-on" id="graffiti-rapidscan-on-btn" title="scanning playback">' + rapidScanOnIcon +
+                                      '    <button class="btn btn-default btn-rapidscan-on" id="graffiti-rapidscan-on-btn" title="high speed during silences">' + 
+                                      rapidScanOnIcon +
                                       '   </button>' +
-                                      '   <button class="btn btn-default btn-rapidscan-off" id="graffiti-rapidscan-off-btn" title="regular playback">' + rapidScanOffIcon +
+                                      '   <button class="btn btn-default btn-rapidscan-off" id="graffiti-rapidscan-off-btn" title="regular speed during silences">' + 
+                                      rapidScanOffIcon +
                                       '   </button>' +
                                       '  </div>' +
                                       '</div>' +
