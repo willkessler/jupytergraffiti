@@ -1351,7 +1351,11 @@ define([
         } else {
           console.log('Graffiti: activating rapidPlay/rapidScan');
           if (opts.scan) {
-            state.setCurrentPlaySpeed('scanInactive');
+            if (state.getSpeakingStatus()) {
+              state.setCurrentPlaySpeed('scanInactive');
+            } else {
+              state.setCurrentPlaySpeed('scanActive'); // turn on rapid scan immediately if rabbit icon is activated during a silent period
+            }
           } else {
             state.setCurrentPlaySpeed('rapid');
           }
@@ -4089,9 +4093,11 @@ define([
           if (record.speaking) {
             console.log('Begun speaking.');
             state.setCurrentPlaySpeed('scanInactive');
+            state.setSpeakingStatus(true);
           } else {
             console.log('Stopped speaking.');
             state.setCurrentPlaySpeed('scanActive');
+            state.setSpeakingStatus(false);
           }
           console.log('playTimes:regular', state.playTimes['regular'].total,
                       'scanActive:',  state.playTimes['scanActive'].total, 
