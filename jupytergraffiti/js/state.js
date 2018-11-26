@@ -14,7 +14,6 @@ define([
       state.recordingBlocked = false;
       state.activity = 'idle'; // one of "recording", "playing", "idle"
       state.pointer = { x : 0, y: 0 };
-      state.playbackTimeElapsed = 0;
       state.windowSize = state.getWindowSize();
       state.resetOnNextPlay = false;
       state.recordedAudioString = '';
@@ -24,9 +23,10 @@ define([
       state.selectedCellId = undefined;
       state.mute = false;
       state.playSpeeds = { 
-        'regular' : 1.0,
-        'rapid'   : 2.0, // globally playing entire recording back faster
-        'scan'    : 3.0  // playback rate while speeding through silences in the recording
+        'regular' : 1.0,       // playback rate at speed it was originally recorded
+        'rapid'   : 2.0,       // playback rate when watching entire recording fast
+        'scanInactive' : 1.0,  // playback rate while watching non-silence (speaking) in the recording
+        'scanActive' : 3.0     // playback rate while watching silence (no speaking) in the recording
       };
       state.currentPlaySpeed = 'regular';
       state.rapidScanActive = false; // whether rapidscan is activate at this moment (it's activated during silent moments so we play faster)
@@ -352,26 +352,32 @@ define([
       state.mute = muteState;
     },
 
-    getRapidScanActive: () => {
-      return ((state.currentPlaySpeed === 'scan') && (state.rapidScanActive));
+    rapidIsOn: () => {
+      return state.currentPlaySpeed === 'rapid';
     },
 
-    setRapidScanActive: (val) => {
-      state.rapidScanActive = val;
+    scanningIsOn: () => {
+      return (state.currentPlaySpeed === 'scanActive' || state.currentPlaySpeed === 'scanInactive');
     },
 
     getCurrentPlaySpeed: () => {
       return state.currentPlaySpeed;
     },
 
-    resetPlayTimes: () => {
-      console.log('resetPlayTimes');
+    resetPlayTimes: (preset) => {
+      //console.log('resetPlayTimes, preset:', preset);
       state.playTimes = {};
       for (let type of Object.keys(state.playSpeeds)) {
         state.playTimes[type] = {
           start:undefined,
           total: 0,
         };
+      };
+      if (preset !== undefined) {
+        state.playTimes['regular'] = {
+          start: utils.getNow(),
+          total: preset
+        }
       };
     },
 
@@ -397,21 +403,11 @@ define([
         }
       }
       state.currentPlaySpeed = kind;        
-      console.log('currentPlaySpeed:', state.currentPlaySpeed, 'playTimes', state.playTimes);
+      //console.log('currentPlaySpeed:', state.currentPlaySpeed, 'playTimes', state.playTimes);
     },
 
     getPlayRateScalar: () => {
-      switch (state.currentPlaySpeed) {
-        case 'rapid':
-          return state.playSpeeds['rapid'];
-          break;
-        case 'scan':
-          if (state.rapidScanActive) {
-            return state.playSpeeds['scan'];
-          }
-          break;
-      }
-      return state.playSpeeds['regular'];
+      return state.playSpeeds[state.currentPlaySpeed];
     },
 
     setPlayStartTimeToNow: () => {
@@ -551,10 +547,6 @@ define([
           // inside drawing records for later playback.
           // NB: we don't include label stickers that don't have text labels at all, these are just displayed for guidance while placing the sticker
 
-          console.log('sticker:', sticker);
-//          if ((sticker.pen.stickerType === 'label') && (sticker.pen.label === undefined)) {
-//            continue;
-//          }
           stickersRecords.push({
             positions: { start: { x: sticker.positions.start.x, y: sticker.positions.start.y },
                          end:   { x: sticker.positions.end.x, y: sticker.positions.end.y } },
@@ -794,21 +786,6 @@ define([
       }
     },
 
-    getPlaybackTimeElapsed: () => {
-      return state.playbackTimeElapsed;
-    },
-
-    setPlaybackTimeElapsed: (timeElapsed) => {
-      if (timeElapsed === undefined) {
-        const timePlayedSoFar = state.getTimePlayedSoFar();
-        state.playbackTimeElapsed = timePlayedSoFar;
-        // console.log('Graffiti: setPlaybackTimeElapsed: playbackTimeElapsed=', state.playbackTimeElapsed,
-        //     'timePlayedSoFar=', timePlayedSoFar, 'playbackStartTime', state.playbackStartTime);
-      } else {
-        state.playbackTimeElapsed = timeElapsed;
-      }
-    },
-
     getSetupForReset: () => {
       return state.resetOnNextPlay;
     },
@@ -828,7 +805,6 @@ define([
     // Set the index back to the beginning
     resetPlayState: () => {
       state.resetOnNextPlay = false;
-      state.playbackTimeElapsed = 0;
       state.resetPlayTimes();
       state.resetProcessedArrays();
     },
@@ -1290,12 +1266,12 @@ define([
       state.storeHistoryRecord('focus',      now);
       state.storeHistoryRecord('selections', now);
       state.storeHistoryRecord('contents',   now);
-      state.storeHistoryRecord('speaking',   now);
     },
 
     finalizeHistory: () => {
       state.setHistoryDuration();
       state.normalizeTimeframes();
+      state.adjustSpeakingRecords(); // move timing of speaking records back by 1/10th of a second since they lag
       state.setupForReset();
     },
 
@@ -1321,6 +1297,17 @@ define([
 
     setHistoryDuration: () => {
       state.history.duration = state.utils.getNow() - state.history.recordingStartTime;
+    },
+
+    adjustSpeakingRecords: () => {
+      const historyArray = state.history['speaking'];
+      const adjustment = 100; // ms
+      if (historyArray.length > 0) {
+        for (let i = 0; i < historyArray.length; ++i) {
+          historyArray[i].startTime = Math.max(0, historyArray[i].startTime - adjustment);
+          historyArray[i].endTime = Math.max(0, historyArray[i].endTime - adjustment);
+        }
+      }
     },
 
     // When recording finishes, normalize all time frames
@@ -1458,8 +1445,11 @@ define([
     // at the current playSpeed.
     getTimePlayedSoFar: () => {
       const now = utils.getNow();
-      const playRateScalar = state.getPlayRateScalar();
-      let timePlayedSoFar = (now - state.playTimes[state.currentPlaySpeed].start) * playRateScalar;
+      let timePlayedSoFar = 0;
+      if (state.playTimes[state.currentPlaySpeed].start !== undefined) {
+        const playRateScalar = state.getPlayRateScalar();
+        timePlayedSoFar += (now - state.playTimes[state.currentPlaySpeed].start) * playRateScalar;
+      }
       for (let type of Object.keys(state.playSpeeds)) {
         timePlayedSoFar += state.playTimes[type].total * state.playSpeeds[type];
       }

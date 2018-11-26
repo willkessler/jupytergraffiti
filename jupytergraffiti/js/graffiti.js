@@ -899,7 +899,8 @@ define([
         }
         const currentPlaySpeed = state.getCurrentPlaySpeed();
         switch (currentPlaySpeed) {
-          case 'scan':
+          case 'scanActive':
+          case 'scanInactive':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidscan-on-btn').hide().parent().find('#graffiti-rapidscan-off-btn').show();
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidplay-off-btn').hide().parent().find('#graffiti-rapidplay-on-btn').show();
             break;
@@ -1346,15 +1347,16 @@ define([
 
       toggleRapidPlay: (opts) => {
         let forceOn = false;
-        const playSpeed = state.getCurrentPlaySpeed();
-        const rapid = (playSpeed === 'rapid');
-        const scanning = (playSpeed === 'scan');
-        if ((rapid && !opts.scan)  || (scanning && opts.scan)) {
+        if ((state.rapidIsOn() && !opts.scan)  || (state.scanningIsOn() && opts.scan)) {
           graffiti.cancelRapidPlay();
         } else {
           console.log('Graffiti: activating rapidPlay/rapidScan');
           if (opts.scan) {
-            state.setCurrentPlaySpeed('scan');
+            if (state.getSpeakingStatus()) {
+              state.setCurrentPlaySpeed('scanInactive');
+            } else {
+              state.setCurrentPlaySpeed('scanActive'); // turn on rapid scan immediately if rabbit icon is activated during a silent period
+            }
           } else {
             state.setCurrentPlaySpeed('rapid');
           }
@@ -3532,12 +3534,14 @@ define([
         graffiti.clearCanvases('all');
         graffiti.hideDrawingScreen();
         graffiti.resetDrawingColor();
+        state.setSpeakingStatus(false); // if we were still speaking, record a history record that will terminate that state during playback.
         state.finalizeHistory();
         if (useCallback) {
           state.dumpHistory();
         }
         state.clearAnimationIntervals();
-        // This will use the callback defined in setAudioStorageCallback to actually persist the whole recording, if useCallback is true
+        // This will use the callback defined in setAudioStorageCallback to actually persist the
+        // whole recording, if useCallback (passed in to this fn) is true.
         audio.stopRecording();
         console.log('Graffiti: stopRecordingCore is refreshing.');
         state.restoreCellStates('contents');
@@ -4090,21 +4094,23 @@ define([
         }
       },
 
+
       updateSpeaking: (index) => {
         const record = state.getHistoryItem('speaking', index);
         console.log('Processing speaking record', index, record);
-        if (state.getCurrentPlaySpeed() === 'scan') {
+        if (state.scanningIsOn()) {
           if (record.speaking) {
-            console.log('Begun talking.');
-            if (state.getRapidScanActive()) {
-              state.setPlayTimeEnd('scan');
-            }
-            state.setRapidScanActive(false);
+            console.log('Begun speaking.');
+            state.setCurrentPlaySpeed('scanInactive');
+            state.setSpeakingStatus(true);
           } else {
-            console.log('Stopped talking');
-            state.setPlayTimeBegin('scan');
-            state.setRapidScanActive(true);
+            console.log('Stopped speaking.');
+            state.setCurrentPlaySpeed('scanActive');
+            state.setSpeakingStatus(false);
           }
+          console.log('playTimes:regular', state.playTimes['regular'].total,
+                      'scanActive:',  state.playTimes['scanActive'].total, 
+                      'scanInactive', state.playTimes['scanInactive'].total);
           audio.updateAudioPlaybackRate();
         }
       },
@@ -4168,14 +4174,14 @@ define([
       jumpPlayback: (direction) => {
         const previousPlayState = state.getActivity();
         graffiti.pausePlayback();
-        const timeElapsed = state.getPlaybackTimeElapsed();
-        const t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction), state.getHistoryDuration() - 1 ));
+        const timeElapsed = state.getTimePlayedSoFar();
+        console.log('jumpPlayback timeElapsed',timeElapsed);
+        const t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction * state.getPlayRateScalar()), state.getHistoryDuration() - 1 ));
         // console.log('Graffiti: t:', t);
+        state.resetPlayTimes(t);
         const frameIndexes = state.getHistoryRecordsAtTime(t);
         state.clearSetupForReset();
-        state.resetPlayTimes();
         state.resetProcessedArrays();
-        state.setPlaybackTimeElapsed(t);
         graffiti.wipeAllStickerDomCanvases();
         graffiti.updateDisplay(frameIndexes);
         graffiti.updateSlider(t);
@@ -4192,13 +4198,12 @@ define([
         const target = $('#graffiti-recorder-range');
         const timeLocation = target.val() / 1000;
         // console.log('handleSliderDrag, slider value:', timeLocation);
-        state.clearSetupForReset();
-        state.resetPlayTimes();
-        state.resetProcessedArrays();
-        graffiti.undimGraffitiCursor();
         const t = Math.min(state.getHistoryDuration() * timeLocation, state.getHistoryDuration() - 1);
         // Now we need to set the time we are going to start with if we play from here.
-        state.setPlaybackTimeElapsed(t);
+        state.resetPlayTimes(t);
+        state.clearSetupForReset();
+        state.resetProcessedArrays();
+        graffiti.undimGraffitiCursor();
         const frameIndexes = state.getHistoryRecordsAtTime(t);
         graffiti.wipeAllStickerDomCanvases();
         graffiti.updateDisplay(frameIndexes); // can replay scroll diffs, and in playback use cumulative scroll diff
@@ -4211,7 +4216,6 @@ define([
           graffiti.changeActivity('playbackPaused');
           audio.pausePlayback();
           //console.log('Graffiti: pausePlaybackNoVisualUpdates');
-          state.setPlaybackTimeElapsed();
           state.setPlayTimeEnd();
           // Make sure, if some markdown was selected, that the active code_mirror textarea reengages to get keystrokes.
           graffiti.updateSelectedCellSelections(graffiti.sitePanel.scrollTop()); 
@@ -4333,11 +4337,15 @@ define([
           state.resetPlayState();
         }
 
-        state.setPlaybackStartTime(utils.getNow() - state.getPlaybackTimeElapsed());
+        if (state.getCurrentPlaySpeed() === 'scan') {
+          state.setPlayTimeBegin('regular'); // all scanning playback starts at regular playback speed initially until speaking starts and ends
+        }
+
+        state.setPlaybackStartTime(utils.getNow() - state.getTimePlayedSoFar());
         state.setPlayStartTimeToNow();
 
         if (!state.getMute()) {
-          audio.startPlayback(state.getPlaybackTimeElapsed());
+          audio.startPlayback(state.getTimePlayedSoFar());
         }
 
         // Set up main playback loop
