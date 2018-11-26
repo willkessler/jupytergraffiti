@@ -351,15 +351,29 @@ define([
       state.mute = muteState;
     },
 
-    getRapidScanActive: () => {
-      return ((state.currentPlaySpeed === 'scan') && (state.rapidScanActive));
+    startRapidScan: () => {
+      if (state.currentPlaySpeed === 'scan') {
+        if (!state.rapidScanActive) {
+          console.log('Activating rapidscan.');
+          debugger;
+          state.setPlayTimeEnd('regular');
+          state.setPlayTimeBegin('scan');
+          state.rapidScanActive = true;
+        }
+      }
     },
 
-    setRapidScanActive: (val) => {
-      console.log('Setting rapidScanActive to', state.rapidScanActive);
-      state.rapidScanActive = val;
+    stopRapidScan: () => {
+      if (state.currentPlaySpeed === 'scan') {
+        if (state.rapidScanActive) {
+          console.log('Deactivating rapidscan.');
+          state.setPlayTimeEnd('scan');
+          state.setPlayTimeBegin('regular');
+          state.rapidScanActive = false;
+        }
+      }
     },
-
+    
     getCurrentPlaySpeed: () => {
       return state.currentPlaySpeed;
     },
@@ -819,7 +833,6 @@ define([
     // Set the index back to the beginning
     resetPlayState: () => {
       state.resetOnNextPlay = false;
-      state.playbackTimeElapsed = 0;
       state.resetPlayTimes();
       state.resetProcessedArrays();
     },
@@ -1281,7 +1294,6 @@ define([
       state.storeHistoryRecord('focus',      now);
       state.storeHistoryRecord('selections', now);
       state.storeHistoryRecord('contents',   now);
-      state.storeHistoryRecord('speaking',   now);
     },
 
     finalizeHistory: () => {
@@ -1449,9 +1461,15 @@ define([
     // at the current playSpeed.
     getTimePlayedSoFar: () => {
       const now = utils.getNow();
-      const playRateScalar = state.getPlayRateScalar();
       let timePlayedSoFar = 0;;
-      if (state.playTimes[state.currentPlaySpeed].start !== undefined) {
+      if (state.playSpeed === 'scan') {
+        if (state.rapidScanActive) {
+          timePlayedSoFar += (now - state.playTimes['scan'].start) * state.playSpeeds['scan'];
+        } else {
+          timePlayedSoFar += (now - state.playTimes['regular'].start) * state.playSpeeds['regular'];
+        }
+      } else if (state.playTimes[state.currentPlaySpeed].start !== undefined) {
+        const playRateScalar = state.getPlayRateScalar();
         timePlayedSoFar += (now - state.playTimes[state.currentPlaySpeed].start) * playRateScalar;
       }
       for (let type of Object.keys(state.playSpeeds)) {
