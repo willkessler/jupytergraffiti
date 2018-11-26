@@ -365,7 +365,7 @@ define([
     },
 
     resetPlayTimes: (preset) => {
-      console.log('resetPlayTimes, preset:', preset);
+      //console.log('resetPlayTimes, preset:', preset);
       state.playTimes = {};
       for (let type of Object.keys(state.playSpeeds)) {
         state.playTimes[type] = {
@@ -403,7 +403,7 @@ define([
         }
       }
       state.currentPlaySpeed = kind;        
-      console.log('currentPlaySpeed:', state.currentPlaySpeed, 'playTimes', state.playTimes);
+      //console.log('currentPlaySpeed:', state.currentPlaySpeed, 'playTimes', state.playTimes);
     },
 
     getPlayRateScalar: () => {
@@ -547,10 +547,6 @@ define([
           // inside drawing records for later playback.
           // NB: we don't include label stickers that don't have text labels at all, these are just displayed for guidance while placing the sticker
 
-          console.log('sticker:', sticker);
-//          if ((sticker.pen.stickerType === 'label') && (sticker.pen.label === undefined)) {
-//            continue;
-//          }
           stickersRecords.push({
             positions: { start: { x: sticker.positions.start.x, y: sticker.positions.start.y },
                          end:   { x: sticker.positions.end.x, y: sticker.positions.end.y } },
@@ -1275,6 +1271,7 @@ define([
     finalizeHistory: () => {
       state.setHistoryDuration();
       state.normalizeTimeframes();
+      state.adjustSpeakingRecords(); // move timing of speaking records back by 1/10th of a second since they lag
       state.setupForReset();
     },
 
@@ -1300,6 +1297,17 @@ define([
 
     setHistoryDuration: () => {
       state.history.duration = state.utils.getNow() - state.history.recordingStartTime;
+    },
+
+    adjustSpeakingRecords: () => {
+      const historyArray = state.history['speaking'];
+      const adjustment = 100; // ms
+      if (historyArray.length > 0) {
+        for (let i = 0; i < historyArray.length; ++i) {
+          historyArray[i].startTime = Math.max(0, historyArray[i].startTime - adjustment);
+          historyArray[i].endTime = Math.max(0, historyArray[i].endTime - adjustment);
+        }
+      }
     },
 
     // When recording finishes, normalize all time frames
