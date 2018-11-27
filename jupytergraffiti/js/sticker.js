@@ -86,7 +86,7 @@ define([
     },
 
     renderSvg: (svgChildren, x, y, width, height, viewBox, arrowHeadRecord) => {
-      let containerDiv, containerSticker;
+      let containerDiv, containerSticker, containerDivParams, metaParts;
       let svgGenerator = $('#graffitiSvgGenerator');
       if (svgGenerator.length === 0) {
         $('body').append($('<div id="graffitiSvgGenerator"></div>'));
@@ -105,17 +105,23 @@ define([
         if (svgChild.hasOwnProperty('border')) {
           border = 'border:' + svgChild.border + ';';
         }
-        containerDiv =
-          sticker.makeDomElement('div',
-                                 {
-                                   'class':"graffiti-sticker-inner",
-                                   'style' : 'position:absolute;' +
-                                             'left:' + parseInt(svgChild.x) + 'px;top:' + parseInt(svgChild.y) + 'px;' +
-                                             'width:' + parseInt(svgChild.width) + 'px;height:' + parseInt(svgChild.height) + 'px;' +
-                                             transform +
-                                             backgroundColor +
-                                             border
-                                 });
+        containerDivParams = {
+          'class': svgChild.outerClass,
+          'style' : 'position:absolute;' +
+                    'left:' + parseInt(svgChild.x) + 'px;top:' + parseInt(svgChild.y) + 'px;' +
+                    'width:' + parseInt(svgChild.width) + 'px;height:' + parseInt(svgChild.height) + 'px;' +
+                    transform +
+                    backgroundColor +
+                    border
+        };
+        if (svgChild.hasOwnProperty('title')) {
+          containerDivParams.title = svgChild.title;
+        };
+        if (svgChild.hasOwnProperty('metaTag')) {
+          metaParts = svgChild.metaTag.split('|');
+          containerDivParams[metaParts[0]] = metaParts[1];
+        };
+        containerDiv = sticker.makeDomElement('div',containerDivParams);
         containerSticker =
           sticker.makeSvgElement('svg',
                                  {
@@ -304,11 +310,12 @@ define([
     },
 
     makeSimplePath: (opts) => {
-      const buffer = opts.buffer || 4;
+      const buffer = (opts.buffer === undefined ?  4 : opts.buffer);
       const doubleBuffer = buffer * 2;
       const viewBox = sticker.makeBufferedViewBox({buffer:buffer, bufferAllSides: true, viewBox: opts.viewBox });
       const color = (opts.color === undefined ? '#000' : opts.color);
       const strokeWidth = (opts.strokeWidth === undefined ? 3 : opts.strokeWidth);
+      const outerClass = (opts.outerClass === undefined ? 'graffiti-sticker-inner' : opts.outerClass);
       let pathObj, thePath, parmBlock;
       let renderParms = [];
       for (let dRec of opts.d) {
@@ -344,10 +351,15 @@ define([
           y : opts.dimensions.y - buffer,
           width: opts.dimensions.width + doubleBuffer,
           height: opts.dimensions.height + doubleBuffer,
+          outerClass: outerClass,
+          title: opts.title,
           viewBox: viewBox,
         };
         if (opts.cssTransform !== undefined) {
           parmBlock.cssTransform = opts.cssTransform;
+        }
+        if (opts.metaTag !== undefined) {
+          parmBlock.metaTag = opts.metaTag;
         }
         renderParms.push(parmBlock);
       }
@@ -856,6 +868,20 @@ define([
         })
       );
     },
+
+    makeRightSideMarker: (opts) => {
+      return sticker.makeSimplePath(
+        $.extend({}, true, opts, {
+          strokeWidth: 2,
+          viewBox: [0, 0, 100, 50],
+          d: ["M 0 25 L 25 0 L 100 0 L 100 50 L 25 50 Z"], 
+          fill: opts.color,
+          outerClass: 'graffiti-right-side-marker',
+          buffer: 0,
+        })
+      );
+    },
+
 
     makeAngle: (opts) => {
       return sticker.makeSimplePath(
