@@ -220,11 +220,24 @@ define([
                                                     top: Math.max(0,Math.min(maxTop, controlPanelPosition.top)) });
               state.setControlPanelDragging(false);
             }
+            graffiti.refreshAllGraffitiSideMarkers();
           }
-          graffiti.refreshAllGraffitiSideMarkers();
         };
-        const windowResizeDebounced = _.debounce(graffiti.windowResizeHandler, 100);
-        $(window).resize(windowResizeDebounced);
+
+        // No longer needed as we're handling resizes of the notebook container with requestAnimation calls, below this.
+        //const windowResizeDebounced = _.debounce(graffiti.windowResizeHandler, 100);
+
+        // Watch the notebook container width. If it changes, we will need to handle a resize to redraw many elements.
+        graffiti.notebookContainerWidth = graffiti.notebookContainer.width();
+        graffiti.performWindowResizeCheck = () => {
+          graffiti.performWindowResizeCheckRequest = requestAnimationFrame(graffiti.performWindowResizeCheck);
+          const newWidth = graffiti.notebookContainer.width();
+          if (newWidth !== graffiti.notebookContainerWidth) {
+            graffiti.notebookContainerWidth = newWidth;
+            graffiti.windowResizeHandler();
+          }
+        };
+        requestAnimationFrame(graffiti.performWindowResizeCheck);
 
         graffiti.setupOneControlPanel('graffiti-record-controls', 
                                       '  <button class="btn btn-default" id="graffiti-create-btn">' +
@@ -4235,7 +4248,12 @@ define([
         graffiti.pausePlayback();
         const timeElapsed = state.getTimePlayedSoFar();
         console.log('jumpPlayback timeElapsed',timeElapsed);
-        const t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction * state.getPlayRateScalar()), state.getHistoryDuration() - 1 ));
+        let t;
+        if (state.scanningIsOn()) {
+          const frameIndexes = state.getHistoryRecordsAtTime(timeElapsed);
+        } else {
+          t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction * state.getPlayRateScalar()), state.getHistoryDuration() - 1 ));
+        }
         // console.log('Graffiti: t:', t);
         state.resetPlayTimes(t);
         const frameIndexes = state.getHistoryRecordsAtTime(t);
