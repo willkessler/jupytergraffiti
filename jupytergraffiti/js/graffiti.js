@@ -336,8 +336,10 @@ define([
                                       ]
         );
 
-        const rapidScanOnIcon = stickerLib.makeRabbit('black');
-        const rapidScanOffIcon = stickerLib.makeRabbit('white');
+        const runnerOnIcon = stickerLib.makeRunningMan('black');
+        const runnerOffIcon = stickerLib.makeRunningMan('white');
+        const rapidScanOnIcon = stickerLib.makeScan('black');
+        const rapidScanOffIcon = stickerLib.makeScan('white');
 
         graffiti.setupOneControlPanel('graffiti-playback-controls', 
                                       '<div id="graffiti-narrator-info">' +
@@ -370,15 +372,17 @@ define([
                                       '   </button>' +
                                       '  </div>' +
                                       '  <div id="graffiti-rapidplay-buttons">' +
-                                      '    <button class="btn btn-default btn-rapidplay-on" id="graffiti-rapidplay-on-btn" title="high speed playback">' + '2x' +
+                                      '    <button class="btn btn-default btn-rapidplay-on" id="graffiti-rapidplay-on-btn" title="high speed playback">' + runnerOnIcon +
                                       '   </button>' +
-                                      '   <button class="btn btn-default btn-rapidplay-off" id="graffiti-rapidplay-off-btn" title="regular speed playback">' + '2x' +
+                                      '   <button class="btn btn-default btn-rapidplay-off" id="graffiti-rapidplay-off-btn" title="regular speed playback">' + runnerOffIcon +
                                       '   </button>' +
                                       '  </div>' +
                                       '  <div id="graffiti-rapidscan-buttons">' +
-                                      '    <button class="btn btn-default btn-rapidscan-on" id="graffiti-rapidscan-on-btn" title="scanning playback">' + rapidScanOnIcon +
+                                      '    <button class="btn btn-default btn-rapidscan-on" id="graffiti-rapidscan-on-btn" title="high speed during silences">' + 
+                                      rapidScanOnIcon +
                                       '   </button>' +
-                                      '   <button class="btn btn-default btn-rapidscan-off" id="graffiti-rapidscan-off-btn" title="regular playback">' + rapidScanOffIcon +
+                                      '   <button class="btn btn-default btn-rapidscan-off" id="graffiti-rapidscan-off-btn" title="regular speed during silences">' + 
+                                      rapidScanOffIcon +
                                       '   </button>' +
                                       '  </div>' +
                                       '</div>' +
@@ -2479,13 +2483,65 @@ define([
         return partsRecord;
       },
 
-      // Refresh the markDoc calls for any particular cell based on recording data
+     refreshGraffitiSideMarkers: (params) => {
+       const cell = params.cell;
+       const element = $(cell.element[0]);
+       const elemOffset = element.offset();
+       element.find('.graffiti-right-side-marker').unbind('mouseenter mouseleave').remove(); // remove all previous markers for this cell
+       let markers = element.find('.graffiti-highlight');
+       const yBuffer = 2;
+       let i, marker, offset, makerIcon, rect, yDiff, className, idMatch, metaData;
+       if (markers.length > 0) {
+         //console.log('markers:', markers);
+         for (i = 0; i < markers.length; ++i) {
+           marker = markers[i];
+           className = marker.className;
+           // extract the recording tag so we can highlight it later
+           idMatch = className.match(/graffiti-(id_.[^\-]+-id_[^\s]+)/);
+           metaData = (idMatch !== null ? idMatch[1] : undefined);
+           offset = $(marker).offset();
+           yDiff = offset.top - elemOffset.top;
+           markerIcon = stickerLib.makeRightSideMarker({color:'rgb(47,147,107)',
+                                                        dimensions: { x: element.width() + 20,
+                                                                      y: yDiff - yBuffer,
+                                                                      width: 18,
+                                                                      height:12,
+                                                        },
+                                                        metaTag: 'graffiti-id|' + metaData,
+                                                        title: 'Graffiti is present on this line to the left.',
+           });
+           $(markerIcon).appendTo(element);
+         }
+       }
+       let markerIcons = element.find('.graffiti-right-side-marker');
+       if (markerIcons.length > 0) {
+         markerIcons.bind('mouseenter mouseleave', (e) => {
+           let target = $(e.target);
+           if (!target.hasClass('graffiti-right-side-marker')) {
+             target = target.parents('.graffiti-right-side-marker');
+           }
+           const graffitiId = target.attr('graffiti-id');
+           const cellElement = target.parents('.cell');
+           const graffitiElement = cellElement.find('.graffiti-' + graffitiId);
+           if (e.type === 'mouseenter') {
+             //console.log('entered right-side-marker:', graffitiId);
+             graffitiElement.addClass('graffiti-highlight-extra');
+           } else {
+             //console.log('left right-side-marker', graffitiId);
+             graffitiElement.removeClass('graffiti-highlight-extra');
+           }
+         });
+       }
+     },
 
+      // Refresh the markDoc calls for any particular cell based on recording data
       refreshGraffitiHighlights: (params) => {
+        params.cellId = utils.getMetadataCellId(params.cell.metadata);
+
         if (params.cell.cell_type !== 'code') {
           return; // We don't refresh highlights in markdown cells because markdown cells do their highlights with plain html markup.
         }
-        const recordings = state.getManifestRecordingsForCell(utils.getMetadataCellId(params.cell.metadata));
+        const recordings = state.getManifestRecordingsForCell(params.cellId);
         const cm = params.cell.code_mirror;
         const marks = cm.getAllMarks();
         let markClasses;
@@ -2497,8 +2553,7 @@ define([
           markClasses = marks.map((mark) => { return mark.className }).join(' ').replace(/graffiti-highlight /g, '');
         }
         const allTokens = utils.collectCMTokens(cm);
-        const cellId = utils.getMetadataCellId(params.cell.metadata);
-        graffiti.tokenRanges[cellId] = {};
+        graffiti.tokenRanges[params.cellId] = {};
         if (recordings !== undefined) {
           if (Object.keys(recordings).length > 0) {
             let keyParts,recording, recordingKey, tokens, firstToken, marker, range;
@@ -2509,7 +2564,7 @@ define([
               range = utils.getCMTokenRange(cm, tokens, allTokens);
               if (range !== undefined) {
                 // Store computed character ranges for checking selections against recording ranges.
-                graffiti.tokenRanges[cellId][recordingKey] = range;
+                graffiti.tokenRanges[params.cellId][recordingKey] = range;
                 if (params.clear || (!params.clear && markClasses !== undefined && markClasses.indexOf(recordingKey) === -1)) {
                   // don't call markText twice on a previously marked range
                   marker = 'graffiti-' + recording.cellId + '-' + recordingKey;
@@ -2525,8 +2580,11 @@ define([
 
       refreshAllGraffitiHighlights: () => {
         const cells = Jupyter.notebook.get_cells();
+        let params;
         for (let cell of cells) {
-          graffiti.refreshGraffitiHighlights({ cell: cell, clear: true });
+          params = { cell: cell, clear: true };
+          graffiti.refreshGraffitiHighlights(params);
+          graffiti.refreshGraffitiSideMarkers(params);
         }
       },
 

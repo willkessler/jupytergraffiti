@@ -111,6 +111,11 @@
   border-bottom:2px dashed rgb(47,147,107);
 }
 
+.graffiti-highlight-extra {
+  outline:3px dashed rgb(47,147,107);
+  outline-offset:2px;
+}
+
 .graffiti-highlight:hover {
   border-bottom:3px dashed rgb(27,127,87);
 }
@@ -205,7 +210,7 @@
 
 #graffiti-playback-buttons #graffiti-play-btn,
 #graffiti-playback-buttons #graffiti-pause-btn {
-  width:50px;
+  width:38px;
 }
 
 #graffiti-skip-buttons {
@@ -710,4 +715,9 @@ http://www.patternify.com/
   color:#00d;
   background:#bbb;
   border-radius:2px;
+}
+
+.graffiti-right-side-marker {
+  opacity:0.5;
+  cursor:pointer;
 }

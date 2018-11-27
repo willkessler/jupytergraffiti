@@ -86,7 +86,7 @@ define([
     },
 
     renderSvg: (svgChildren, x, y, width, height, viewBox, arrowHeadRecord) => {
-      let containerDiv, containerSticker;
+      let containerDiv, containerSticker, containerDivParams, metaParts;
       let svgGenerator = $('#graffitiSvgGenerator');
       if (svgGenerator.length === 0) {
         $('body').append($('<div id="graffitiSvgGenerator"></div>'));
@@ -105,17 +105,23 @@ define([
         if (svgChild.hasOwnProperty('border')) {
           border = 'border:' + svgChild.border + ';';
         }
-        containerDiv =
-          sticker.makeDomElement('div',
-                                 {
-                                   'class':"graffiti-sticker-inner",
-                                   'style' : 'position:absolute;' +
-                                             'left:' + parseInt(svgChild.x) + 'px;top:' + parseInt(svgChild.y) + 'px;' +
-                                             'width:' + parseInt(svgChild.width) + 'px;height:' + parseInt(svgChild.height) + 'px;' +
-                                             transform +
-                                             backgroundColor +
-                                             border
-                                 });
+        containerDivParams = {
+          'class': svgChild.outerClass,
+          'style' : 'position:absolute;' +
+                    'left:' + parseInt(svgChild.x) + 'px;top:' + parseInt(svgChild.y) + 'px;' +
+                    'width:' + parseInt(svgChild.width) + 'px;height:' + parseInt(svgChild.height) + 'px;' +
+                    transform +
+                    backgroundColor +
+                    border
+        };
+        if (svgChild.hasOwnProperty('title')) {
+          containerDivParams.title = svgChild.title;
+        };
+        if (svgChild.hasOwnProperty('metaTag')) {
+          metaParts = svgChild.metaTag.split('|');
+          containerDivParams[metaParts[0]] = metaParts[1];
+        };
+        containerDiv = sticker.makeDomElement('div',containerDivParams);
         containerSticker =
           sticker.makeSvgElement('svg',
                                  {
@@ -304,11 +310,12 @@ define([
     },
 
     makeSimplePath: (opts) => {
-      const buffer = opts.buffer || 4;
+      const buffer = (opts.buffer === undefined ?  4 : opts.buffer);
       const doubleBuffer = buffer * 2;
       const viewBox = sticker.makeBufferedViewBox({buffer:buffer, bufferAllSides: true, viewBox: opts.viewBox });
       const color = (opts.color === undefined ? '#000' : opts.color);
       const strokeWidth = (opts.strokeWidth === undefined ? 3 : opts.strokeWidth);
+      const outerClass = (opts.outerClass === undefined ? 'graffiti-sticker-inner' : opts.outerClass);
       let pathObj, thePath, parmBlock;
       let renderParms = [];
       for (let dRec of opts.d) {
@@ -344,10 +351,15 @@ define([
           y : opts.dimensions.y - buffer,
           width: opts.dimensions.width + doubleBuffer,
           height: opts.dimensions.height + doubleBuffer,
+          outerClass: outerClass,
+          title: opts.title,
           viewBox: viewBox,
         };
         if (opts.cssTransform !== undefined) {
           parmBlock.cssTransform = opts.cssTransform;
+        }
+        if (opts.metaTag !== undefined) {
+          parmBlock.metaTag = opts.metaTag;
         }
         renderParms.push(parmBlock);
       }
@@ -857,6 +869,20 @@ define([
       );
     },
 
+    makeRightSideMarker: (opts) => {
+      return sticker.makeSimplePath(
+        $.extend({}, true, opts, {
+          strokeWidth: 2,
+          viewBox: [0, 0, 100, 50],
+          d: ["M 0 25 L 25 0 L 100 0 L 100 50 L 25 50 Z"], 
+          fill: opts.color,
+          outerClass: 'graffiti-right-side-marker',
+          buffer: 0,
+        })
+      );
+    },
+
+
     makeAngle: (opts) => {
       return sticker.makeSimplePath(
         $.extend({}, true, opts, {
@@ -883,6 +909,16 @@ define([
       );
     },
     
+    makeRunningMan: (fill) => {
+      const runnerIcon = '<svg xmlns:x="http://ns.adobe.com/Extensibility/1.0/" xmlns:i="http://ns.adobe.com/AdobeIllustrator/10.0/" xmlns:graph="http://ns.adobe.com/Graphs/1.0/" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="0 0 100 85" style="enable-background:new 10 10 100 70;" xml:space="preserve"><switch><foreignObject requiredExtensions="http://ns.adobe.com/AdobeIllustrator/10.0/" x="0" y="0" width="1" height="1"/><g i:extraneous="self"><g fill-rule="evenodd" fill="' + fill + '"><path d="M48.8,57.3c-0.8-0.5-1.4-1.2-1.8-2c-1.5,4.3-3.6,9.6-4.7,12.2c-2.9,0.1-9.5-0.6-14.9-1.5c-2.3-0.4-4.5,1.2-4.8,3.5     c-0.4,2.3,1.2,4.5,3.5,4.8c0.2,0,4.6,0.7,9.2,1.2c2.5,0.3,4.6,0.4,6.4,0.4c3.9,0,6.2-0.8,7.4-3c0.9-1.6,3-7.1,4.9-12.2     c-1.2-0.8-2.5-1.7-4-2.7C49.4,57.7,49,57.4,48.8,57.3z"/><path d="M97.4,43.5c-0.5-1.7-2.2-2.8-4-2.3c-0.8,0.2-6.7,1.8-10.3,2.8c-0.1-0.4-0.3-0.8-0.4-1.1c-1.4-4.1-3.5-10.3-8.9-12.4     c-1.2-0.5-4-1.7-5.8-2.5c-7.6-3.3-20.8,0.3-22.5,0.9c-0.9,0.4-2.9,1.1-8.7,12.5C36,43,36.7,45,38.3,45.8c0.5,0.2,1,0.4,1.5,0.4     c1.2,0,2.3-0.7,2.9-1.8c1.9-3.7,4.5-8.2,5.5-9.4c1.3-0.4,4.4-1.1,7.8-1.5c-3.7,5.1-7,13.2-7.6,16.1c-0.8,4.2,1,5.6,1.6,6     c1.4,1,14.2,9.5,16.1,11.5c-0.5,2.9-3.1,11.4-5.4,18.4c-0.7,2.2,0.5,4.6,2.7,5.3c0.4,0.1,0.9,0.2,1.3,0.2c1.8,0,3.4-1.1,4-2.9     c2.2-6.8,6-18.6,5.9-22c-0.1-3.3-3.1-6.2-9.7-10.7c2.1-5.2,5.6-12.7,8.9-16.6c1.2,1.8,2.1,4.3,2.7,6.2c1,2.8,1.6,4.8,3.5,5.7     c0.5,0.3,1.1,0.4,1.6,0.4c0.4,0,0.9-0.1,1.3-0.2c1.4-0.5,8-2.3,12.1-3.4C96.8,47,97.8,45.3,97.4,43.5z"/><ellipse transform="matrix(0.3937 -0.9192 0.9192 0.3937 28.3646 78.9709)" cx="74" cy="18" rx="9" ry="9"/><path d="M10.8,34.5h20.7c1.4,0,2.5-1.1,2.5-2.5s-1.1-2.5-2.5-2.5H10.8c-1.4,0-2.5,1.1-2.5,2.5S9.5,34.5,10.8,34.5z"/><path d="M7.9,45h20.7c1.4,0,2.5-1.1,2.5-2.5s-1.1-2.5-2.5-2.5H7.9c-1.4,0-2.5,1.1-2.5,2.5S6.5,45,7.9,45z"/><path d="M28.1,53c0-1.4-1.1-2.5-2.5-2.5H5c-1.4,0-2.5,1.1-2.5,2.5c0,1.4,1.1,2.5,2.5,2.5h20.7C27,55.5,28.1,54.4,28.1,53z"/></g></g></switch></svg>'
+      return runnerIcon;
+    },
+
+    makeScan: (fill) => {
+      const scanIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="0 0 100 100" style="enable-background:new 0 0 100 100;" xml:space="preserve"><g><g fill-rule="evenodd" fill="' + fill + '"><path d="M23.3,62.8H9.2C6.9,62.8,5,64.7,5,67v14.2c0,2.3,1.9,4.2,4.2,4.2h14.2c2.3,0,4.2-1.9,4.2-4.2V67    C27.5,64.7,25.6,62.8,23.3,62.8z"/><path d="M90.8,62.8H76.7c-2.3,0-4.2,1.9-4.2,4.2v14.2c0,2.3,1.9,4.2,4.2,4.2h14.2c2.3,0,4.2-1.9,4.2-4.2V67    C95,64.7,93.1,62.8,90.8,62.8z"/><path d="M57.1,62.8H42.9c-2.3,0-4.2,1.9-4.2,4.2v14.2c0,2.3,1.9,4.2,4.2,4.2h14.2c2.3,0,4.2-1.9,4.2-4.2V67    C61.2,64.7,59.4,62.8,57.1,62.8z M57.1,81.1C57.1,81.1,57.1,81.1,57.1,81.1l-14.2,0c0,0,0,0,0,0l0-14.2c0,0,0,0,0,0h14.2    c0,0,0,0,0,0L57.1,81.1z"/><path d="M87.5,52.5l5-24.4l-9,3c-3.4-4.6-7.8-8.4-12.9-11.2c-6.2-3.4-13.3-5.2-20.6-5.2c-22.4,0-40.6,17-40.6,37.8    c0,1.7,1.4,3.1,3.1,3.1s3.1-1.4,3.1-3.1C15.6,35.1,31,20.9,50,20.9c10.7,0,20.7,4.6,27.2,12.2L68.8,36L87.5,52.5z"/></g></g></svg>';
+      return scanIcon;
+    },
+
     makeRabbit: (fill) => {
       const rabbitIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:sketch="http://www.bohemiancoding.com/sketch/ns" viewBox="0 0 100 75" version="1.1" x="0px" y="10px"><g stroke="none" stroke-width="1" fill-rule="evenodd" sketch:type="MSPage"><g sketch:type="MSArtboardGroup" transform="translate(0.000000, -7.000000)" fill="' + fill + '"><path d="M60.1164483,76.5101184 C60.1164483,77.7869765 61.1184016,79.097951 62.3543737,79.4324469 L72.798828,82.2590697 C74.9502082,82.841306 76.9428079,85.1218308 77.229578,87.3473934 L77.4381368,88.9659749 L61.2268002,86.7611761 C59.0007748,86.4584288 55.762595,85.1122528 53.9830021,83.7528954 L30.0193357,65.4480423 C18.6673757,64.6909954 9.4627489,56.133214 7.77382209,45.1160791 L4.34635739,45.1647777 C1.94608449,45.1988816 -1.83318034e-16,43.2833095 -1.07537429e-17,40.8862227 L12.0835739,27.3645101 C17.4743573,21.3386402 23.6068695,17.4194231 31.6593886,17.4194231 C32.7498041,17.4194231 33.8233498,17.4912885 34.8755022,17.6305187 C36.0956627,17.7349159 37.3050822,17.9433886 38.4888396,18.2605754 C54.0954993,22.4423673 65.570761,42.6024939 65.570761,42.6024939 C66.516058,44.0861571 68.636741,45.6806441 70.3388841,46.136732 L71.0643059,46.3311082 C72.7686884,46.7877961 75.036606,46.0402598 76.1348435,44.6627794 L79.3667959,40.6090557 L69.0683577,35.5886404 C54.9830017,29.5 58.824985,11.8109045 58.824985,11.8109045 C58.9924242,10.7260817 59.7843012,10.4649372 60.587326,11.2216236 L82.7393229,32.0953411 L64.7779732,12.0675015 C65.0289152,8.20500861 68.1652109,7 68.1652109,7 L85.5324488,34.7272898 L86.921334,36.0360295 L96.0521825,42.4677019 C98.138955,43.9376022 99.8625925,47.2144004 99.8888571,49.7773535 L100.007257,61.3310185 L99.3236978,61.8899026 C97.5857982,63.3108255 94.5445704,63.6651439 92.5224884,62.6881932 L89.3807164,61.1702742 C86.2103299,59.6385304 81.4523901,60.2321429 78.7512966,62.4950512 L69.6842316,70.0912108 C68.6969982,70.9182902 67.3970043,71.7079683 65.972973,72.3860195 C65.450814,57.828347 59.4984737,45.9574271 46.7248907,37.1161254 C45.6127483,36.4326524 43.9592431,38.4195836 44.7777067,39.1109172 C56.0407574,49.2817354 60.1164483,60.3235994 60.1164483,74.5177084 L60.1164483,76.5101184 Z M95.0509461,53.9162538 C96.1764172,53.9162538 97.0887918,53.0084656 97.0887918,51.8886521 C97.0887918,50.7688386 96.1764172,49.8610504 95.0509461,49.8610504 C93.925475,49.8610504 93.0131004,50.7688386 93.0131004,51.8886521 C93.0131004,53.0084656 93.925475,53.9162538 95.0509461,53.9162538 L95.0509461,53.9162538 Z M19.9417759,92 L19.9417759,89.8393536 C19.9417758,87.5932185 21.6918837,85.2820263 23.828826,84.6248277 C23.828826,84.6248277 35.0800582,81.8619915 38.1368268,76.9378159 C38.1368268,76.9378159 46.7248911,83.7447645 46.7248911,83.7447645 C34.7889374,89.6827409 19.9417759,92 19.9417759,92 L19.9417759,92 Z" sketch:type="MSShapeGroup"/></g></g></svg>';
       return rabbitIcon;
