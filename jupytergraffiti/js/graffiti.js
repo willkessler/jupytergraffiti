@@ -221,10 +221,24 @@ define([
                                                     top: Math.max(0,Math.min(maxTop, controlPanelPosition.top)) });
               state.setControlPanelDragging(false);
             }
+            graffiti.refreshAllGraffitiSideMarkers();
           }
         };
-        const windowResizeDebounced = _.debounce(graffiti.windowResizeHandler, 100);
-        $(window).resize(windowResizeDebounced);
+
+        // No longer needed as we're handling resizes of the notebook container with requestAnimation calls, below this.
+        //const windowResizeDebounced = _.debounce(graffiti.windowResizeHandler, 100);
+
+        // Watch the notebook container width. If it changes, we will need to handle a resize to redraw many elements.
+        graffiti.notebookContainerWidth = graffiti.notebookContainer.width();
+        graffiti.performWindowResizeCheck = () => {
+          graffiti.performWindowResizeCheckRequest = requestAnimationFrame(graffiti.performWindowResizeCheck);
+          const newWidth = graffiti.notebookContainer.width();
+          if (newWidth !== graffiti.notebookContainerWidth) {
+            graffiti.notebookContainerWidth = newWidth;
+            graffiti.windowResizeHandler();
+          }
+        };
+        requestAnimationFrame(graffiti.performWindowResizeCheck);
 
         graffiti.setupOneControlPanel('graffiti-record-controls', 
                                       '  <button class="btn btn-default" id="graffiti-create-btn">' +
@@ -2483,8 +2497,7 @@ define([
         return partsRecord;
       },
 
-     refreshGraffitiSideMarkers: (params) => {
-       const cell = params.cell;
+     refreshGraffitiSideMarkers: (cell) => {
        const element = $(cell.element[0]);
        const elemOffset = element.offset();
        element.find('.graffiti-right-side-marker').unbind('mouseenter mouseleave').remove(); // remove all previous markers for this cell
@@ -2578,13 +2591,20 @@ define([
         }
       },
 
+      refreshAllGraffitiSideMarkers: () => {
+        const cells = Jupyter.notebook.get_cells();
+        for (let cell of cells) {
+          graffiti.refreshGraffitiSideMarkers(cell);
+        }
+      },
+
       refreshAllGraffitiHighlights: () => {
         const cells = Jupyter.notebook.get_cells();
         let params;
         for (let cell of cells) {
           params = { cell: cell, clear: true };
           graffiti.refreshGraffitiHighlights(params);
-          graffiti.refreshGraffitiSideMarkers(params);
+          graffiti.refreshGraffitiSideMarkers(cell);
         }
       },
 
@@ -3213,6 +3233,7 @@ define([
             graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
           }
           graffiti.refreshGraffitiTooltips();
+          graffiti.refreshGraffitiSideMarkers(cell);
         }
       },
 
@@ -3252,6 +3273,7 @@ define([
               destructions++;
               graffiti.removeGraffitiCore(recordingCell, recordingKey);
               graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
+              graffiti.refreshGraffitiSideMarkers(recordingCell);
             }
           }
         }
@@ -3304,6 +3326,7 @@ define([
         if (state.removeManifestEntry(utils.getMetadataCellId(recordingCell.metadata), recordingKey)) {
           graffiti.highlightIntersectingGraffitiRange();
           graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
+          graffiti.refreshGraffitiSideMarkers(recordingCell);
           graffiti.refreshGraffitiTooltips();
           storage.storeManifest();
           utils.saveNotebook();
@@ -4234,7 +4257,12 @@ define([
         graffiti.pausePlayback();
         const timeElapsed = state.getTimePlayedSoFar();
         console.log('jumpPlayback timeElapsed',timeElapsed);
-        const t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction * state.getPlayRateScalar()), state.getHistoryDuration() - 1 ));
+        let t;
+        if (state.scanningIsOn()) {
+          const frameIndexes = state.getHistoryRecordsAtTime(timeElapsed);
+        } else {
+          t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction * state.getPlayRateScalar()), state.getHistoryDuration() - 1 ));
+        }
         // console.log('Graffiti: t:', t);
         state.resetPlayTimes(t);
         const frameIndexes = state.getHistoryRecordsAtTime(t);
