@@ -54,6 +54,8 @@ define([
         graffiti.lastUpdateControlsTime = utils.getNow();
         graffiti.notificationMsgs = {};
         graffiti.panelFadeTime = 350;
+        graffiti.windowSizeCheckInterval = 250; // ms
+        graffiti.windowSizeChangeTime = undefined;
 
         graffiti.scrollNudgeSmoothIncrements = 6;
         graffiti.scrollNudgeQuickIncrements = 4;
@@ -203,7 +205,7 @@ define([
 
         graffiti.windowResizeHandler = (opts) => {
           //console.log('Graffiti: windowResizeHandler');
-          if (state.windowSizeChanged() || (opts !== undefined && opts.force)) {
+          if (opts === undefined || (opts !== undefined && opts.force)) {
             graffiti.resizeCanvases();
             if (graffiti.outerControlPanel.is(':visible')) {
               const windowWidth = $(window).width();
@@ -225,20 +227,28 @@ define([
           }
         };
 
-        // No longer needed as we're handling resizes of the notebook container with requestAnimation calls, below this.
+        // Debounce is no longer needed as we're handling resizes of the notebook container with setTimeout calls, below this.
         //const windowResizeDebounced = _.debounce(graffiti.windowResizeHandler, 100);
 
         // Watch the notebook container width. If it changes, we will need to handle a resize to redraw many elements.
         graffiti.notebookContainerWidth = graffiti.notebookContainer.width();
         graffiti.performWindowResizeCheck = () => {
-          graffiti.performWindowResizeCheckRequest = requestAnimationFrame(graffiti.performWindowResizeCheck);
           const newWidth = graffiti.notebookContainer.width();
           if (newWidth !== graffiti.notebookContainerWidth) {
             graffiti.notebookContainerWidth = newWidth;
-            graffiti.windowResizeHandler();
+            const now = utils.getNow();
+            // Sort of simple debounce technique
+            if (graffiti.windowSizeChangeTime === undefined) {
+              graffiti.windowResizeHandler();
+              graffiti.windowSizeChangeTime = now;
+            } else if (now - graffiti.windowSizeChangeTime > 100) { //  try not to resize more frequently than every 100ms
+              graffiti.windowResizeHandler();              
+              graffiti.windowSizeChangeTime = now;
+            }
           }
+          setTimeout(graffiti.performWindowResizeCheck, graffiti.windowSizeCheckInterval);
         };
-        requestAnimationFrame(graffiti.performWindowResizeCheck);
+        setTimeout(graffiti.performWindowResizeCheck, graffiti.windowSizeCheckInterval);
 
         graffiti.setupOneControlPanel('graffiti-record-controls', 
                                       '  <button class="btn btn-default" id="graffiti-create-btn">' +
@@ -370,10 +380,12 @@ define([
                                       '    <i class="fa fa-pause"></i>' +
                                       '  </button>' +
                                       '  <div id="graffiti-skip-buttons">' +
-                                      '    <button class="btn btn-default btn-rewind" id="graffiti-rewind-btn" title="Skip back ' + graffiti.rewindAmt + ' seconds">' +
+                                      '    <button class="btn btn-default btn-rewind" id="graffiti-rewind-btn" title="Skip back ' + 
+                                      (state.scanningIsOn() ? 'to previous sentence' : graffiti.rewindAmt + ' seconds') + '">' +
                                       '      <i class="fa fa-backward"></i>' +
                                       '    </button>' +
-                                      '    <button class="btn btn-default btn-forward" id="graffiti-forward-btn" title="Skip forward ' + graffiti.rewindAmt + ' seconds">' +
+                                      '    <button class="btn btn-default btn-forward" id="graffiti-forward-btn" title="Skip forward ' + 
+                                      (state.scanningIsOn() ? 'to next sentence' : graffiti.rewindAmt + ' seconds') + '">' +
                                       '      <i class="fa fa-forward"></i>' +
                                       '    </button>' +
                                       '  </div>' +
@@ -916,11 +928,15 @@ define([
           graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-sound-off-btn').hide().parent().find('#graffiti-sound-on-btn').show();
         }
         const currentPlaySpeed = state.getCurrentPlaySpeed();
+        graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rewind-btn').attr({title:'Skip back ' + graffiti.rewindAmt + ' seconds'});
+        graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-forward-btn').attr({title:'Skip forward ' + graffiti.rewindAmt + ' seconds'});
         switch (currentPlaySpeed) {
           case 'scanActive':
           case 'scanInactive':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidscan-on-btn').hide().parent().find('#graffiti-rapidscan-off-btn').show();
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidplay-off-btn').hide().parent().find('#graffiti-rapidplay-on-btn').show();
+            graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rewind-btn').attr({title:'Skip back to previous sentence'});
+            graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-forward-btn').attr({title:'Skip forward to next sentence'});
             break;
           case 'rapid':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidscan-off-btn').hide().parent().find('#graffiti-rapidscan-on-btn').show();
@@ -3233,7 +3249,7 @@ define([
             graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
           }
           graffiti.refreshGraffitiTooltips();
-          graffiti.refreshGraffitiSideMarkers(cell);
+          graffiti.refreshAllGraffitiSideMarkers();
         }
       },
 
@@ -4257,15 +4273,15 @@ define([
         graffiti.pausePlayback();
         const timeElapsed = state.getTimePlayedSoFar();
         console.log('jumpPlayback timeElapsed',timeElapsed);
-        let t;
+        let t, frameIndexes;
         if (state.scanningIsOn()) {
-          const frameIndexes = state.getHistoryRecordsAtTime(timeElapsed);
+          t = state.findSpeakingStartNearestTime(timeElapsed,direction, graffiti.rewindAmt);
         } else {
           t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction * state.getPlayRateScalar()), state.getHistoryDuration() - 1 ));
         }
         // console.log('Graffiti: t:', t);
         state.resetPlayTimes(t);
-        const frameIndexes = state.getHistoryRecordsAtTime(t);
+        frameIndexes = state.getHistoryRecordsAtTime(t);
         state.clearSetupForReset();
         state.resetProcessedArrays();
         graffiti.wipeAllStickerDomCanvases();
