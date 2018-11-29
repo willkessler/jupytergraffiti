@@ -3240,7 +3240,7 @@ define([
             graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
           }
           graffiti.refreshGraffitiTooltips();
-          graffiti.refreshGraffitiSideMarkers(cell);
+          graffiti.refreshAllGraffitiSideMarkers();
         }
       },
 
