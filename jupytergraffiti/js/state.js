@@ -280,10 +280,12 @@ define([
       return { width: $(window).width(), height: $(window).height() }
     },
 
+    // deprecated, we are now relying on watching for width changes to #notebook-container to adjust for window size changes
     getStoredWindowSize: () => {
       return state.windowSize;
     },
 
+    // deprecated, we are now relying on watching for width changes to #notebook-container to adjust for window size changes
     windowSizeChanged: () => {
       const currentWindowSize = state.getWindowSize();
       const previousWindowSize = state.getStoredWindowSize();
@@ -357,6 +359,7 @@ define([
     },
 
     scanningIsOn: () => {
+      console.log('scanning is on, currentPlaySpeed:', state.currentPlaySpeed);
       return (state.currentPlaySpeed === 'scanActive' || state.currentPlaySpeed === 'scanInactive');
     },
 
@@ -1308,6 +1311,40 @@ define([
           historyArray[i].endTime = Math.max(0, historyArray[i].endTime - adjustment);
         }
       }
+    },
+
+    findSpeakingStartNearestTime: (t, direction, rewindAmt) => {
+      let historyItem, numHistoryItems = 0;
+      // Scan for nearest "start speaking" record ...
+      let chosenTime = (direction === -1 ? 0 : state.history.duration);
+      if (state.history['speaking'] !== undefined) {
+        numHistoryItems = state.history['speaking'].length;
+      }
+      if (numHistoryItems === 0) {
+        // no speaking history, just jump by 2s
+        if (direction === -1) {
+          chosenTime= Math.max(0, t - rewindAmt * 1000);
+        } else {
+          chosenTime = Math.min(t + rewindAmt * 1000, state.history.duration - 1);
+        }
+      } else {
+        for (let check = 0; check < numHistoryItems; ++check) {
+          console.log('findSpeakingStartNearestTime, check:', check);
+          historyItem = state.history['speaking'][check];
+          if (historyItem.speaking) {
+            if (direction === -1) {
+              if (historyItem.startTime > chosenTime && historyItem.endTime < t) {
+                chosenTime = historyItem.startTime;
+              }
+            } else {
+              if (historyItem.startTime < chosenTime && historyItem.startTime > t) {
+                chosenTime = historyItem.startTime;
+              }
+            }
+          }
+        }
+      }
+      return chosenTime; 
     },
 
     // When recording finishes, normalize all time frames
