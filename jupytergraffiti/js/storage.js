@@ -272,19 +272,9 @@ define([
         recordingCellId: recordingCellId, 
         recordingKey: recordingKey 
       });
-      const bashCmd = 'rm -r "' + graffitiPath + '"' + "\n";
-      const deletePython = "import os\nos.system(" + bashCmd + ")\n";
-      console.log('Graffiti: deleteMovie:', deletePython);
-
-      this.Jupyter.notebook.kernel.execute(deletePython,
-                                           undefined,
-                                           {
-                                             silent: false,
-                                             store_history: false,
-                                             stop_on_error : true
-                                           });
-
-
+      const bashScript = utils.addCR('rm -r "' + graffitiPath + '"');
+      const pythonScript = utils.addCR("import os\nos.system(" + bashScript + ")");
+      utils.sysCmdExec(pythonScript, bashScript);
     },
 
     transferGraffitis: () => {
