@@ -13,7 +13,7 @@ define([
 		});
 		return new Promise((resolve, reject) => {
 		  Jupyter.notebook.kernel.execute(
-		    '!curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/keep_alive_token" -H "Metadata-Flavor: Google"',
+		    '!curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/keep_alive_token" -H "Metadata-Flavor: Google" -s --fail',
 		    executeCallbackObject(output => resolve(output))
 		  );
 		});
