@@ -131,20 +131,19 @@ define([
           recordingKey: recordingCellInfo.recordingKey,
           activeTakeId: recordingCellInfo.recordingRecord.activeTakeId
         });
-        let bashScript = "import os\n";
-        bashScript += 'os.system("mkdir -p ' + graffitiPath + '")' + "\n";
-        bashScript += "with open('" + graffitiPath + "audio.txt', 'w') as f:\n";
-        bashScript += "    f.write('" + encodedAudio + "')\n";
-        bashScript += "with open('" + graffitiPath + "history.txt', 'w') as f:\n";
-        bashScript += "    f.write('" + base64CompressedHistory + "')\n";
+        let pythonScript = "import os\n";
+        pythonScript += utils.addCR('os.system("mkdir -p ' + graffitiPath + '")');
+        pythonScript += utils.addCR("with open('" + graffitiPath + "audio.txt', 'w') as f:");
+        pythonScript += utils.addCR("    f.write('" + encodedAudio + "')");
+        pythonScript += utils.addCR("with open('" + graffitiPath + "history.txt', 'w') as f:");
+        pythonScript += utils.addCR("    f.write('" + base64CompressedHistory + "')");
+        let bashScript = utils.addCR('mkdir -p ' + graffitiPath);;
+        bashScript += utils.addCR('cd ' + graffitiPath);;
+        bashScript += utils.addCR('echo "' + encodedAudio + '" > audio.txt');
+        bashScript += utils.addCR('echo "' + base64CompressedHistory + '" > history.txt');
+        //console.log(pythonScript);
         //console.log(bashScript);
-        Jupyter.notebook.kernel.execute(bashScript,
-                                        undefined,
-                                        {
-                                          silent: false,
-                                          store_history: false,
-                                          stop_on_error : true
-                                        });
+        utils.sysCmdExec(pythonScript, bashScript);
       } else {
         console.log('Graffiti: could not fetch JSON history.');
       }
@@ -200,20 +199,18 @@ define([
       console.log('saving manifest:', manifest);
       const manifestInfo = storage.constructManifestPath();
       console.log('Graffiti: Saving manifest to:', manifestInfo.file);
-      let bashScript = "import os\n";
       const base64CompressedManifest = LZString.compressToBase64(JSON.stringify(manifest));
       const manifestFullFilePath = manifestInfo.path + manifestInfo.file;
-      bashScript += 'os.system("mkdir -p ' + manifestInfo.path + '")' + "\n";
-      bashScript += "with open('" + manifestFullFilePath + "', 'w') as f:\n";
-      bashScript += "    f.write('" + base64CompressedManifest + "')\n";
-      //console.log(bashScript);
-      Jupyter.notebook.kernel.execute(bashScript,
-                                      undefined,
-                                      {
-                                        silent: false,
-                                        store_history: false,
-                                        stop_on_error : true
-                                      });
+      let pythonScript = utils.addCR("import os");
+      pythonScript += utils.addCR('os.system("mkdir -p ' + manifestInfo.path + '")');
+      pythonScript += utils.addCR("with open('" + manifestFullFilePath + "', 'w') as f:");
+      pythonScript += utils.addCR("    f.write('" + base64CompressedManifest + "')");
+
+      let bashScript = utils.addCR('mkdir -p ' + manifestInfo.path);
+      bashScript += utils.addCR('cd ' + manifestInfo.path);
+      bashScript += utils.addCR('echo "' + base64CompressedManifest + '" > ' + manifestInfo.file);
+
+      utils.sysCmdExec(pythonScript, bashScript);
 
     },
 
@@ -275,18 +272,9 @@ define([
         recordingCellId: recordingCellId, 
         recordingKey: recordingKey 
       });
-      const deletePython = "import os\nos.system('rm -r " + graffitiPath + "')\n";
-      console.log('Graffiti: deleteMovie:', deletePython);
-
-      this.Jupyter.notebook.kernel.execute(deletePython,
-                                           undefined,
-                                           {
-                                             silent: false,
-                                             store_history: false,
-                                             stop_on_error : true
-                                           });
-
-
+      const bashScript = utils.addCR('rm -r "' + graffitiPath + '"');
+      const pythonScript = utils.addCR("import os\nos.system(" + bashScript + ")");
+      utils.sysCmdExec(pythonScript, bashScript);
     },
 
     transferGraffitis: () => {

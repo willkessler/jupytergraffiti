@@ -5,6 +5,10 @@ define([
   const utils = {
     cellMaps: {},
 
+    addCR: (str) => {
+      return str + "\n";
+    },
+
     generateUniqueId: () => {
       return 'id_' + Math.random().toString(36).substr(2, 7);
     },
@@ -56,6 +60,31 @@ define([
         cm.getInputField().focus();
         cm.setSelections(selections);
       } 
+    },
+
+    // This is a shim. We try to use kernel.execute if the notebook kernel is python. If it's not, then we need to fall back on cheesy
+    // cell execution approach (insert a cell, put bash code in it, run the cell, and delete the cell
+    sysCmdExec: (pythonScript, bashScript) => {
+      console.log('sysCmdExec: pythonScript', pythonScript, 'bashScript', bashScript);
+
+      if ((Jupyter.notebook.kernel.name === 'python3') || (Jupyter.notebook.kernel.name === 'python2')) {
+        Jupyter.notebook.kernel.execute(pythonScript,
+                                        undefined,
+                                        {
+                                          silent: false,
+                                          store_history: false,
+                                          stop_on_error : true
+                                        });
+      } else {
+        const workCell = Jupyter.notebook.insert_cell_at_bottom();
+        workCell.set_text('%%bash' + "\n" + bashScript);
+        workCell.execute();
+        const cells = Jupyter.notebook.get_cells();
+        const numCells = cells.length;
+        if (numCells > 0) {
+          Jupyter.notebook.delete_cell(numCells - 1);
+        }
+      }
     },
 
     refreshCodeMirrorSelections: () => {
