@@ -67,7 +67,9 @@ define([
     sysCmdExec: (pythonScript, bashScript) => {
       console.log('sysCmdExec: pythonScript', pythonScript, 'bashScript', bashScript);
 
-      if ((Jupyter.notebook.kernel.name === 'python3') || (Jupyter.notebook.kernel.name === 'python2')) {
+      const kernelName = Jupyter.notebook.kernel.name;
+      if ((kernelName === 'python3') || (Jupyter.notebook.kernel.name === 'python2')) {
+        // python kernel
         Jupyter.notebook.kernel.execute(pythonScript,
                                         undefined,
                                         {
@@ -76,8 +78,16 @@ define([
                                           stop_on_error : true
                                         });
       } else {
+        // anything other than those two
         const workCell = Jupyter.notebook.insert_cell_at_bottom();
-        workCell.set_text('%%bash' + "\n" + bashScript);
+        if (kernelName.indexOf('xeus-cling') === 0) {
+          // C kernel, run each command with "!"
+          const cmdLines = $.trim(bashScript).split("\n");
+          const cCmdLines = '!' + cmdLines.join("\n!") + "\n";
+          workCell.set_text(cCmdLines);
+        } else {
+          workCell.set_text('%%bash' + "\n" + bashScript);
+        }
         workCell.execute();
         const cells = Jupyter.notebook.get_cells();
         const numCells = cells.length;
