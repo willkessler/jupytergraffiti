@@ -138,9 +138,8 @@ define([
         pythonScript += utils.addCR("with open('" + graffitiPath + "history.txt', 'w') as f:");
         pythonScript += utils.addCR("    f.write('" + base64CompressedHistory + "')");
         let bashScript = utils.addCR('mkdir -p ' + graffitiPath);;
-        bashScript += utils.addCR('cd ' + graffitiPath);;
-        bashScript += utils.addCR('echo "' + encodedAudio + '" > audio.txt');
-        bashScript += utils.addCR('echo "' + base64CompressedHistory + '" > history.txt');
+        bashScript += utils.addCR('cd ' + graffitiPath + ' && echo "' + encodedAudio + '" > audio.txt');
+        bashScript += utils.addCR('cd ' + graffitiPath + ' && echo "' + base64CompressedHistory + '" > history.txt');
         //console.log(pythonScript);
         //console.log(bashScript);
         utils.sysCmdExec(pythonScript, bashScript);
@@ -207,8 +206,7 @@ define([
       pythonScript += utils.addCR("    f.write('" + base64CompressedManifest + "')");
 
       let bashScript = utils.addCR('mkdir -p ' + manifestInfo.path);
-      bashScript += utils.addCR('cd ' + manifestInfo.path);
-      bashScript += utils.addCR('echo "' + base64CompressedManifest + '" > ' + manifestInfo.file);
+      bashScript += utils.addCR('cd ' + manifestInfo.path + ' && echo "' + base64CompressedManifest + '" > ' + manifestInfo.file);
 
       utils.sysCmdExec(pythonScript, bashScript);
 
