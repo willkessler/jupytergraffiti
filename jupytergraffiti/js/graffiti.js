@@ -36,7 +36,6 @@ define([
 
         graffiti.recordingIntervalMs = 10; // In milliseconds, how frequently we sample the state of things while recording.
         graffiti.playbackIntervalMs = graffiti.recordingIntervalMs;  // In milliseconds, loop speed for playback.  Must match recordingIntervalMs.
-        graffiti.storageInProcess = false;
         graffiti.highlightMarkText = undefined;
         graffiti.cmLineHeight = 17.0001; // line height of code mirror lines as styled in Jupyter
         graffiti.cmLineFudge = 8; // buffer between lines
@@ -1600,6 +1599,14 @@ define([
         graffiti.savingScrim = graffitiSavingScrim.prependTo(graffiti.notebookContainer);
       },
       
+      showSavingScrim: () =>  {
+        graffiti.savingScrim.css({display:'flex'});
+      },
+
+      hideSavingScrim: () => {
+        graffiti.savingScrim.css({display:'none'});
+      },
+
       resizeCanvases: () => {
         const canvasTypes = ['permanent','temporary'];
         let cellElement, cellRect, canvasStyle, canvas, cellCanvas;
@@ -3604,9 +3611,8 @@ define([
         Jupyter.notebook.events.on('shell_reply.Kernel', (e, results) => {
           console.log('Graffiti: Kernel shell reply event fired, e, results:',e, results);
           utils.refreshCellMaps();
-          if (state.getStorageInProcess()) {
-            storage.clearStorageInProcess();
-            graffiti.savingScrim.css({display:'none'});
+          if (storage.processedKernelShellResponse(results)) {
+            graffiti.hideSavingScrim();
             graffiti.updateAllGraffitiDisplays();
             graffiti.updateControlPanels(); // necessary because we just finished a save
           }
@@ -3692,7 +3698,7 @@ define([
             state.blockRecording(); // this is here because a race condition can happen right at the end of recording
             graffiti.setNotifier('Please wait, storing this movie...');
             graffiti.showControlPanels(['graffiti-notifier']);
-            graffiti.savingScrim.css({display:'flex'});
+            graffiti.showSavingScrim();
             graffiti.stopRecordingCore(true);
             state.unblockRecording();
             console.log('Graffiti: Stopped recording.');
@@ -4848,3 +4854,10 @@ define([
   return Graffiti;
 
 });
+
+// affected files
+//      modified:   jupytergraffiti/js/graffiti.js
+//	modified:   jupytergraffiti/js/loader.js
+//	modified:   jupytergraffiti/js/state.js
+//	modified:   jupytergraffiti/js/storage.js
+//	modified:   jupytergraffiti/js/utils.js

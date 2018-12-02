@@ -27,6 +27,88 @@ define([
 
   const storage = {
 
+    defaultKernel: 'python3',
+
+    // Commands to run through the python kernel after switching to it, eg to store the manifest
+    kernelCommand: undefined,
+    // Id of the kernel command we've run so we can close things off when it's done
+    kernelCommandId: undefined,
+    // Whatever kernel was live before we switched to the python kernel to execute the kernelStorageCommands.
+    liveKernelName: undefined,
+    readyToRestoreLiveKernel: false,
+
+    runQueuedKernelCommand: () => {
+      if (storage.kernelCommand !== undefined) {
+        storage.kernelCommandId = Jupyter.notebook.kernel.execute(storage.kernelCommand,
+                                                                  undefined,
+                                                                  {
+                                                                    silent: false,
+                                                                    store_history: false,
+                                                                    stop_on_error : true
+                                                                  }
+        );
+        console.log('Ran kernel command and recorded command id:', storage.kernelCommandId);
+        storage.kernelCommand = undefined;
+        return true;
+      }
+      return false;
+    },
+
+    queueKernelCommand: (cmd) => {
+      storage.kernelCommand = cmd;
+    },
+
+    runKernelCommand: (cmd) => {
+      storage.liveKernelName = Jupyter.notebook.kernel.name;
+
+      // If we are already using the python3 kernel, then we can just run the kernel command immediately without switching back and forth between the current 
+      // kernel and the python kernel. Otherwise, queue this command up for after kernel fully switches to the python3 kernel.
+      if (storage.liveKernelName === storage.defaultKernel) {
+        storage.kernelCommandId = Jupyter.notebook.kernel.execute(cmd,
+                                                                  undefined,
+                                                                  {
+                                                                    silent: false,
+                                                                    store_history: false,
+                                                                    stop_on_error : true
+                                                                  }
+        );
+      } else {
+        // Switch to the python kernel.
+        storage.queueKernelCommand(cmd);
+        // When this is complete, it will fire kernel_ready.Kernel, picked up by loader.js, which will run the queued kernel command. When that's complete we'll
+        // switch back to the liveKernelName.
+        Jupyter.kernelselector.set_kernel(storage.defaultKernel); 
+
+      }
+    },
+
+    processedKernelShellResponse: (results) => {
+      console.log('processedKernelShellResponse, results', results);
+      if ((results !== undefined) && (results.reply !== undefined) && (results.reply.parent_header !== undefined) && (results.reply.parent_header.msg_id !== undefined)) {
+        const msgId = results.reply.parent_header.msg_id;
+        if (msgId === storage.kernelCommandId) {
+          console.log('kernel shell cmd id', msgId, 'completed.');
+          if (state.getMovieRecordingStarted()) {
+            storage.completeMovieStorage();
+          }
+
+          if (storage.readyToRestoreLiveKernel) {
+            // Switch back to the live kernel if it isn't python3.
+            console.log('Checking to see if we have to go back to the live kernel');
+            const currentKernelName = Jupyter.notebook.kernel.name;
+            if (currentKernelName !== storage.liveKernelName) {
+              Jupyter.kernelselector.set_kernel(storage.liveKernelName);
+              storage.liveKernelName = undefined;
+            }
+            storage.readyToRestoreLiveKernel = false;
+          }
+
+          return true; // we're done, we can proceed with last phases of storage
+        }
+      }
+      return false;
+    },
+
     ensureNotebookGetsGraffitiId: () => {
       // Make sure a new notebook gets a recording id
       const notebook = Jupyter.notebook;
@@ -87,7 +169,7 @@ define([
       return graffitiPath;
     },
 
-    clearStorageInProcess: () => {
+    completeMovieStorage: () => {
       const recordingCellInfo = state.getRecordingCellInfo();
       const recording = state.getManifestSingleRecording(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
       const hasMovie = state.getMovieRecordingStarted();
@@ -107,15 +189,13 @@ define([
           createDate: utils.getNow()
         };
       }
-      state.setStorageInProcess(false);
       state.setMovieRecordingStarted(false);
-      console.log('Graffiti: clearStorageInProcess saving manifest.');
+      console.log('Graffiti: completeMovieStorage is saving manifest.');
       storage.storeManifest();
       utils.saveNotebook();
     },
 
     storeMovie: () => {
-      state.setStorageInProcess(true);
       const recordingCellInfo = state.getRecordingCellInfo();
 
       const notebook = Jupyter.notebook;
@@ -131,18 +211,15 @@ define([
           recordingKey: recordingCellInfo.recordingKey,
           activeTakeId: recordingCellInfo.recordingRecord.activeTakeId
         });
-        let pythonScript = "import os\n";
-        pythonScript += utils.addCR('os.system("mkdir -p ' + graffitiPath + '")');
-        pythonScript += utils.addCR("with open('" + graffitiPath + "audio.txt', 'w') as f:");
-        pythonScript += utils.addCR("    f.write('" + encodedAudio + "')");
-        pythonScript += utils.addCR("with open('" + graffitiPath + "history.txt', 'w') as f:");
-        pythonScript += utils.addCR("    f.write('" + base64CompressedHistory + "')");
-        let bashScript = utils.addCR('mkdir -p ' + graffitiPath);;
-        bashScript += utils.addCR('cd ' + graffitiPath + ' && echo "' + encodedAudio + '" > audio.txt');
-        bashScript += utils.addCR('cd ' + graffitiPath + ' && echo "' + base64CompressedHistory + '" > history.txt');
-        //console.log(pythonScript);
-        //console.log(bashScript);
-        utils.sysCmdExec(pythonScript, bashScript);
+
+        pythonScript = utils.addCR("import os") +
+                       utils.addCR('os.system("mkdir -p ' + graffitiPath + '")') +
+                       utils.addCR("with open('" + graffitiPath + "audio.txt', 'w') as f:") +
+                       utils.addCR("    f.write('" + encodedAudio + "')") +
+                       utils.addCR("with open('" + graffitiPath + "history.txt', 'w') as f:") +
+                       utils.addCR("    f.write('" + base64CompressedHistory + "')");
+        storage.runKernelCommand(pythonScript);
+
       } else {
         console.log('Graffiti: could not fetch JSON history.');
       }
@@ -200,16 +277,14 @@ define([
       console.log('Graffiti: Saving manifest to:', manifestInfo.file);
       const base64CompressedManifest = LZString.compressToBase64(JSON.stringify(manifest));
       const manifestFullFilePath = manifestInfo.path + manifestInfo.file;
-      let pythonScript = utils.addCR("import os");
-      pythonScript += utils.addCR('os.system("mkdir -p ' + manifestInfo.path + '")');
-      pythonScript += utils.addCR("with open('" + manifestFullFilePath + "', 'w') as f:");
-      pythonScript += utils.addCR("    f.write('" + base64CompressedManifest + "')");
+      
+      pythonScript = utils.addCR("import os") +
+                     utils.addCR('os.system("mkdir -p ' + manifestInfo.path + '")') +
+                     utils.addCR("with open('" + manifestFullFilePath + "', 'w') as f:") +
+                     utils.addCR("    f.write('" + base64CompressedManifest + "')");
+      storage.runKernelCommand(pythonScript);
 
-      let bashScript = utils.addCR('mkdir -p ' + manifestInfo.path);
-      bashScript += utils.addCR('cd ' + manifestInfo.path + ' && echo "' + base64CompressedManifest + '" > ' + manifestInfo.file);
-
-      utils.sysCmdExec(pythonScript, bashScript);
-
+      storage.readyToRestoreLiveKernel = true; // this will ensure we switch back to the user's choice of kernel when everything's done
     },
 
     //
