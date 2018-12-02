@@ -279,8 +279,13 @@ define([
       return activeLine;
     },
 
-    saveNotebook: () => {
-      Jupyter.notebook.save_notebook().then( () => { console.log('Graffiti: Notebook saved.') });
+    saveNotebook: (cb) => {
+      Jupyter.notebook.save_notebook().then( () => { 
+        if (cb !== undefined) {
+          cb();
+        }
+        console.log('Graffiti: Notebook saved.') 
+      });
     },
 
     // You can delete this, it's no longer needed now that we call cell.focus_cell() when we change selections

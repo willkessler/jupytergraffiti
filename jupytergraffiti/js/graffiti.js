@@ -3228,27 +3228,28 @@ define([
           recordingCell.set_text(newContents);
         }
 
-        utils.saveNotebook();
+        utils.saveNotebook(() => {
 
-        // need to reselect graffiti text that was selected in case it somehow got unselected
-        //recordingCell.code_mirror.setSelections(recordingCellInfo.selections);
-        graffiti.sitePanel.animate({ scrollTop: recordingCellInfo.scrollTop}, 500);
-        if (doSave && recordingCellInfo.recordingRecord.cellType === 'markdown') {
-          recordingCell.render();
-        }
-        if (doSave && state.getActivity() === 'recordingLabelling') {
-          graffiti.setPendingRecording();
-        } else {
-          graffiti.changeActivity('idle');
-          recordingCell.code_mirror.focus();
-          if (doSave) {
-            graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: false});
-          } else {
-            graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
+          // need to reselect graffiti text that was selected in case it somehow got unselected
+          //recordingCell.code_mirror.setSelections(recordingCellInfo.selections);
+          graffiti.sitePanel.animate({ scrollTop: recordingCellInfo.scrollTop}, 500);
+          if (doSave && recordingCellInfo.recordingRecord.cellType === 'markdown') {
+            recordingCell.render();
           }
-          graffiti.refreshGraffitiTooltips();
-          graffiti.refreshAllGraffitiSideMarkers();
-        }
+          if (doSave && state.getActivity() === 'recordingLabelling') {
+            graffiti.setPendingRecording();
+          } else {
+            graffiti.changeActivity('idle');
+            recordingCell.code_mirror.focus();
+            if (doSave) {
+              graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: false});
+            } else {
+              graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
+            }
+            graffiti.refreshGraffitiTooltips();
+            graffiti.refreshAllGraffitiSideMarkers();
+          }
+        });
       },
 
       removeGraffitiCore: (recordingCell, recordingKey) => {
@@ -3305,32 +3306,33 @@ define([
           }
         }
 
-        utils.saveNotebook();
+        utils.saveNotebook(() => {
 
-        if (destructions === 0) {
-          destructions = 'all';
-        }
+          if (destructions === 0) {
+            destructions = 'all';
+          }
 
-        let title, body;
-        if (graffitiDisabled) {
-          title = 'Graffiti has been disabled on this Notebook.';
-          body = 'We removed ' + destructions + ' graffitis, and you will need to Enable Graffiti again to use Graffiti in this notebook.' + 
-                 'You will also now want to remove the Graffiti data directory (jupytergraffiti_data) manually.';
-        } else {
-          title = 'Your notebook is now cleaned of all graffiti.';
-          body = 'We removed ' + destructions + ' graffitis. Feel free to create new ones.';
-        }
-        dialog.modal({
-          title: title,
-          body: body,
-          sanitize:false,
-          buttons: {
-            'OK': {
-              click: (e) => {
-                console.log('Graffiti: You clicked ok, you want to remove ALL graffitis');
+          let title, body;
+          if (graffitiDisabled) {
+            title = 'Graffiti has been disabled on this Notebook.';
+            body = 'We removed ' + destructions + ' graffitis, and you will need to Enable Graffiti again to use Graffiti in this notebook.' + 
+                   'You will also now want to remove the Graffiti data directory (jupytergraffiti_data) manually.';
+          } else {
+            title = 'Your notebook is now cleaned of all graffiti.';
+            body = 'We removed ' + destructions + ' graffitis. Feel free to create new ones.';
+          }
+          dialog.modal({
+            title: title,
+            body: body,
+            sanitize:false,
+            buttons: {
+              'OK': {
+                click: (e) => {
+                  console.log('Graffiti: You clicked ok, you want to remove ALL graffitis');
+                }
               }
             }
-          }
+          });
         });
 
       },
@@ -3343,7 +3345,9 @@ define([
           graffiti.refreshGraffitiSideMarkers(recordingCell);
           graffiti.refreshGraffitiTooltips();
           storage.storeManifest();
-          utils.saveNotebook();
+          // utils.saveNotebook(() => {
+          // graffiti.updateControlPanels();
+          // });
           graffiti.updateControlPanels();
         }
       },
@@ -3680,8 +3684,7 @@ define([
             storage.storeManifest();
           }
           graffiti.stopRecordingCore(false);
-          utils.saveNotebook();
-          console.log('Graffiti: cancelled recording.');
+          // utils.saveNotebook( () => { console.log('Graffiti: cancelled recording.') });;
         }
       },
 
@@ -4338,9 +4341,6 @@ define([
         graffiti.refreshGraffitiTooltips();
         state.clearAnimationIntervals();
 
-        // Save after play stops, so if the user reloads we don't get the annoying dialog box warning us changes were made.
-        // graffiti.saveNotebook();
-
         console.log('Graffiti: Stopped playback.');
       },
 
@@ -4351,11 +4351,13 @@ define([
         graffiti.changeActivity('idle');
         if ((accessLevel === 'view') && (state.getDontRestoreCellContentsAfterPlayback())) {
           console.log('Graffiti: not restoring cell contents since this recording specifies not to.');
-          utils.saveNotebook();
+          // utils.saveNotebook();
         } else {
           graffiti.removeCellsAddedByPlaybackOrRecording();
           state.restoreCellStates('contents');
-          utils.saveNotebook();
+          // utils.saveNotebook(() => {
+          //  state.restoreCellStates('selections');
+          // });
           state.restoreCellStates('selections');
         }
         state.updateUsageStats({
@@ -4400,7 +4402,7 @@ define([
         console.log('Graffiti: Starting playback, current activity:', activity);
         if ((activity === 'idle') || (activity === 'notifying')) {
           // If just starting to play back, store all cells current contents so we can restore them when you cancel playback.
-          utils.saveNotebook();
+          // utils.saveNotebook();
           state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.setCurrentPlaySpeed('regular');
           state.resetPlayTimes();
@@ -4688,9 +4690,10 @@ define([
           storage.ensureNotebookGetsGraffitiId();
           storage.ensureNotebookGetsFirstAuthorId();
           utils.assignCellIds();
-          utils.saveNotebook();
-          graffiti.refreshAllGraffitiHighlights();
-          graffiti.refreshGraffitiTooltips();
+          utils.saveNotebook(() => {
+            graffiti.refreshAllGraffitiHighlights();
+            graffiti.refreshGraffitiTooltips();
+          });
         } else {
           graffiti.outerControlPanel.fadeOut(graffiti.panelFadeTime);          
         }
@@ -4811,12 +4814,13 @@ define([
                 console.log('Graffiti: You clicked ok');
                 storage.ensureNotebookGetsGraffitiId();
                 storage.ensureNotebookGetsFirstAuthorId();
-                utils.saveNotebook();
-                graffiti.initInteractivity();
-                graffiti.toggleAccessLevel('view');
-                graffiti.activateAudio(); // request microphone access in case switching to 'create' mode later
-                $('#graffiti-setup-button').unbind('click').click(() => {
-                  graffiti.toggleAccessLevel();
+                utils.saveNotebook(() => {
+                  graffiti.initInteractivity();
+                  graffiti.toggleAccessLevel('view');
+                  graffiti.activateAudio(); // request microphone access in case switching to 'create' mode later
+                  $('#graffiti-setup-button').unbind('click').click(() => {
+                    graffiti.toggleAccessLevel();
+                  });
                 });
               }
             },

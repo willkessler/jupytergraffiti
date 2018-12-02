@@ -192,7 +192,7 @@ define([
       state.setMovieRecordingStarted(false);
       console.log('Graffiti: completeMovieStorage is saving manifest.');
       storage.storeManifest();
-      utils.saveNotebook();
+//      utils.saveNotebook();
     },
 
     storeMovie: () => {
@@ -359,40 +359,41 @@ define([
       }
       storage.ensureNotebookGetsGraffitiId();
       storage.ensureNotebookGetsFirstAuthorId();
-      utils.saveNotebook();
-      const newGraffitiId = notebook.metadata.graffiti.id;
-      const notebookPath = "jupytergraffiti_data/notebooks/";
-      const sourceTree = notebookPath + originalGraffitiId;
-      const destTree = notebookPath + newGraffitiId;
-      const copyPython = "import shutil\nshutil.copytree('" + sourceTree + "','" + destTree + "')\n";
-      console.log('Graffiti: transferGraffitis will run:', copyPython);
+      utils.saveNotebook(() => {
+        const newGraffitiId = notebook.metadata.graffiti.id;
+        const notebookPath = "jupytergraffiti_data/notebooks/";
+        const sourceTree = notebookPath + originalGraffitiId;
+        const destTree = notebookPath + newGraffitiId;
+        const copyPython = "import shutil\nshutil.copytree('" + sourceTree + "','" + destTree + "')\n";
+        console.log('Graffiti: transferGraffitis will run:', copyPython);
 
-      this.Jupyter.notebook.kernel.execute(copyPython,
-                                           undefined,
-                                           {
-                                             silent: false,
-                                             store_history: false,
-                                             stop_on_error : true
-                                           });
+        Jupyter.notebook.kernel.execute(copyPython,
+                                        undefined,
+                                        {
+                                          silent: false,
+                                          store_history: false,
+                                          stop_on_error : true
+                                        });
+      });
 
       return Promise.resolve(); // not really doing this right but...
     },
 
     packageGraffitis: () => {
-      utils.saveNotebook();
+      //utils.saveNotebook();
       const notebook = Jupyter.notebook;
       const notebookName = notebook.get_notebook_name();
       const archiveName = 'graffiti_archive_' + utils.generateUniqueId().replace('id_','') + '.tgz';
       const packagePython = "import os\nos.system('tar zcf " + archiveName + " " + '"' + notebookName + '.ipynb"' + " jupytergraffiti_data')\n";
       console.log('Graffiti: packageGraffitis will run:', packagePython);
 
-      this.Jupyter.notebook.kernel.execute(packagePython,
-                                           undefined,
-                                           {
-                                             silent: false,
-                                             store_history: false,
-                                             stop_on_error : true
-                                           });
+      Jupyter.notebook.kernel.execute(packagePython,
+                                      undefined,
+                                      {
+                                        silent: false,
+                                        store_history: false,
+                                        stop_on_error : true
+                                      });
 
       return Promise.resolve(archiveName);
     },
@@ -414,13 +415,13 @@ define([
       const deletePython = "import os\nos.system('rm -r " + notebookStoragePath + "')\n";
       console.log('Graffiti: deleteNotebookStorage:', deletePython);
 
-      this.Jupyter.notebook.kernel.execute(deletePython,
-                                           undefined,
-                                           {
-                                             silent: false,
-                                             store_history: false,
-                                             stop_on_error : true
-                                           });
+      Jupyter.notebook.kernel.execute(deletePython,
+                                      undefined,
+                                      {
+                                        silent: false,
+                                        store_history: false,
+                                        stop_on_error : true
+                                      });
     },
 
   }

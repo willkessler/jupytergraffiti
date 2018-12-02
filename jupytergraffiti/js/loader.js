@@ -9,7 +9,7 @@ if (window.Graffiti === undefined) {
     window.Graffiti = Graffiti;
     udacityUser.setUser();
     Graffiti.init();
-    utils.saveNotebook();
+    // utils.saveNotebook();
 
     Jupyter.notebook.events.on('kernel_ready.Kernel', (e) => { 
       console.log('Graffiti: kernel ready, possible kernel restart.', e);
