@@ -644,6 +644,7 @@ define([
         const horizontalBrackets = stickerLib.makeHorizontalBrackets(defaultIconConfiguration);
         const verticalBrackets = stickerLib.makeVerticalBrackets(defaultIconConfiguration);
         const ellipse = stickerLib.makeEllipse(largeIconConfiguration);
+        const bullsEye = stickerLib.makeBullsEye(largeIconConfiguration);
         const pi = stickerLib.makePi(solidIconConfiguration);
         const alpha = stickerLib.makeAlpha(solidIconConfiguration);
         const beta = stickerLib.makeBeta(solidIconConfiguration);
@@ -682,7 +683,8 @@ define([
                                       '      <div class="graffiti-stickers-button" id="graffiti-sticker-rectangle" title="Rectangle">' + rectangle + '</div>' +
                                       '      <div class="graffiti-stickers-button" id="graffiti-sticker-roundRectangle" title="Rounded corners rectangle">' +
                                       roundRectangle + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-ellipse" title="Ellipse">' + ellipse + '</div>' +
+                                      //'      <div class="graffiti-stickers-button" id="graffiti-sticker-ellipse" title="Ellipse">' + ellipse + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-ellipse" title="Ellipse">' + bullsEye + '</div>' +
                                       '      <div class="graffiti-stickers-button" id="graffiti-sticker-rightTriangle" title="Right triangle">' + rightTriangle + '</div>' +
                                       '      <div class="graffiti-stickers-button" id="graffiti-sticker-isocelesTriangle" title="Isoceles triangle">' + 
                                       isocelesTriangle + '</div>' +
