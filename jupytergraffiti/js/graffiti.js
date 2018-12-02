@@ -3875,7 +3875,7 @@ define([
             x: cellRects.innerCellRect.left, 
             y: cellOffsetY + cellRects.innerCellRect.top
           }
-          console.log('applyScrollNudgeAtCell:offsetPosition:', offsetPosition, 'cellId', cellId, 'selChange', selChange);
+          //console.log('applyScrollNudgeAtCell:offsetPosition:', offsetPosition, 'cellId', cellId, 'selChange', selChange);
           graffiti.applyScrollNudge(offsetPosition, record, false);
         }
       },
@@ -4090,7 +4090,7 @@ define([
 
                 graffiti.updateCellSelections(cell,code_mirror, selections);
 
-                console.log('nudge check, cellId', cellId, 'code_mirror.state.focused',code_mirror.state.focused);
+                //console.log('nudge check, cellId', cellId, 'code_mirror.state.focused',code_mirror.state.focused);
                 
                 if (code_mirror.state.focused) {
                   // If we made a selections update this frame, AND we are focused in it,
@@ -4129,7 +4129,7 @@ define([
         let mustRefreshCellMaps = false;
         if (numCellsPresent > 0) {
           // First figure out which cells are extra and need to be deleted on this cell
-          let checkCellId, deleteCellId, deleteCellIndex, foundCell, cellPosition, newCell;
+          let deleteCellId, deleteCellIndex;
           const cellAdditions = state.getCellAdditions(); // all cells added during this recording
           const cellAdditionsIds = Object.keys(cellAdditions);
           // Any cells that may have been added during the movie, not present in this timeframe, must be deleted.
@@ -4144,17 +4144,27 @@ define([
           }
 
           // Now figure out which cells are missing and need to be added in. Add them in above whatever position 
-          // they were recorded in, which will be approximate.
-          for (checkCellId of cellsPresentIds) {
+          // they were recorded in, or right after the last present cell (whichever is greater), to try to match
+          // its position from the recording time. This works ok because usually content creators will add a 
+          // cell after another specific cell.
+          let i, checkCellId, foundCell, newCell, cellPosition, previousCellPosition, previousPlusOne;
+          for (i = 0; i < cellsPresentIds.length; ++i) {
+            checkCellId = cellsPresentIds[i];
             foundCell = utils.findCellByCellId(checkCellId);
             if (foundCell === undefined) {
               cellPosition = cellsPresentThisFrame[checkCellId];
+              if (i > 0) {
+                previousCellPosition = utils.findCellIndexByCellId(cellsPresentIds[i - 1]);
+                previousPlusOne = previousCellPosition + 1;
+                if (previousPlusOne > cellPosition) {
+                  cellPosition = previousPlusOne;
+                }
+              }              
               newCell = Jupyter.notebook.insert_cell_above('code', cellPosition);
               newCell.metadata.graffitiCellId = checkCellId;
               mustRefreshCellMaps = true;
               console.log('Just inserted new cell.');              
               graffiti.applyScrollNudgeAtCell(newCell, record, false);
-
             }
           }
         }
@@ -4351,14 +4361,13 @@ define([
         graffiti.changeActivity('idle');
         if ((accessLevel === 'view') && (state.getDontRestoreCellContentsAfterPlayback())) {
           console.log('Graffiti: not restoring cell contents since this recording specifies not to.');
-          // utils.saveNotebook();
+          utils.saveNotebook();
         } else {
           graffiti.removeCellsAddedByPlaybackOrRecording();
           state.restoreCellStates('contents');
-          // utils.saveNotebook(() => {
-          //  state.restoreCellStates('selections');
-          // });
-          state.restoreCellStates('selections');
+          utils.saveNotebook(() => {
+            state.restoreCellStates('selections');
+          });
         }
         state.updateUsageStats({
           type:'play',
