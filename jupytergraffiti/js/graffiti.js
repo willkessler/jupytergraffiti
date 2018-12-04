@@ -2979,11 +2979,13 @@ define([
           return true;
         };
 
-        // if we were playing a recording when they hit reload, we need to cancel it, restore, and save before we continue
-        window.onbeforeunload = (e) => {
-          console.log('Graffiti: before unload');
+        // If we were playing a recording when they hit reload, we need to cancel it, restore, and save before we continue. 
+        // Needs more testing!!
+        window.addEventListener('beforeunload', function (e) {
+          console.log('Graffiti: before unload', e);
+          e.preventDefault();
           graffiti.cancelPlaybackNoVisualUpdates();
-        };
+        });
 
         // https://stackoverflow.com/questions/19469881/remove-all-event-listeners-of-specific-type
         window.addEventListener('dblclick', (e) => { 
@@ -3618,7 +3620,6 @@ define([
           console.log('Graffiti: Kernel shell reply event fired, e, results:',e, results);
           utils.refreshCellMaps();
           if (storage.processedKernelShellResponse(results)) {
-            graffiti.hideSavingScrim();
             graffiti.updateAllGraffitiDisplays();
             graffiti.updateControlPanels(); // necessary because we just finished a save
           }
@@ -3704,6 +3705,7 @@ define([
             graffiti.setNotifier('Please wait, storing this movie...');
             graffiti.showControlPanels(['graffiti-notifier']);
             graffiti.showSavingScrim();
+            storage.setMovieCompleteCallback(graffiti.hideSavingScrim);
             graffiti.stopRecordingCore(true);
             state.unblockRecording();
             console.log('Graffiti: Stopped recording.');

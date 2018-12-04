@@ -36,8 +36,10 @@ define([
     // Whatever kernel was live before we switched to the python kernel to execute the kernelStorageCommands.
     liveKernelName: undefined,
     readyToRestoreLiveKernel: false,
+    movieCompleteCallback: undefined,
 
     runQueuedKernelCommand: () => {
+      let returnVal = false;
       if (storage.kernelCommand !== undefined) {
         storage.kernelCommandId = Jupyter.notebook.kernel.execute(storage.kernelCommand,
                                                                   undefined,
@@ -49,21 +51,32 @@ define([
         );
         console.log('Ran kernel command and recorded command id:', storage.kernelCommandId);
         storage.kernelCommand = undefined;
+        returnVal = true;
+      }
+      return returnVal;
+    },
+
+    checkForMovieCompleteCallback: () => {
+      if (storage.liveKernelName !== undefined && (Jupyter.notebook.kernel.name === storage.liveKernelName)) {
+        storage.liveKernelName = undefined;
+        utils.saveNotebook(); // need to save to ensure we save the correct current kernel after switching back and forth
+        storage.executeMovieCompleteCallback();
         return true;
       }
       return false;
     },
 
     queueKernelCommand: (cmd) => {
+      console.log('queueKernelCommand', cmd);
       storage.kernelCommand = cmd;
     },
 
     runKernelCommand: (cmd) => {
-      storage.liveKernelName = Jupyter.notebook.kernel.name;
-
+      console.log('runKernelCommand, cmd:', cmd, 'current kernel', Jupyter.notebook.kernel.name);
+      const currentKernelName = Jupyter.notebook.kernel.name;
       // If we are already using the python3 kernel, then we can just run the kernel command immediately without switching back and forth between the current 
       // kernel and the python kernel. Otherwise, queue this command up for after kernel fully switches to the python3 kernel.
-      if (storage.liveKernelName === storage.defaultKernel) {
+      if (currentKernelName === storage.defaultKernel) {
         storage.kernelCommandId = Jupyter.notebook.kernel.execute(cmd,
                                                                   undefined,
                                                                   {
@@ -73,12 +86,14 @@ define([
                                                                   }
         );
       } else {
-        // Switch to the python kernel.
+        // Switch to the python kernel and queue this command for running after that kernel is up.
         storage.queueKernelCommand(cmd);
         // When this is complete, it will fire kernel_ready.Kernel, picked up by loader.js, which will run the queued kernel command. When that's complete we'll
         // switch back to the liveKernelName.
+        if (storage.liveKernelName === undefined) {
+          storage.liveKernelName = currentKernelName;
+        }
         Jupyter.kernelselector.set_kernel(storage.defaultKernel); 
-
       }
     },
 
@@ -94,19 +109,29 @@ define([
 
           if (storage.readyToRestoreLiveKernel) {
             // Switch back to the live kernel if it isn't python3.
-            console.log('Checking to see if we have to go back to the live kernel');
             const currentKernelName = Jupyter.notebook.kernel.name;
+            console.log('Checking to see if we have to go back to the live kernel', currentKernelName, storage.liveKernelName);
             if (currentKernelName !== storage.liveKernelName) {
               Jupyter.kernelselector.set_kernel(storage.liveKernelName);
-              storage.liveKernelName = undefined;
             }
             storage.readyToRestoreLiveKernel = false;
-          }
+          } 
 
           return true; // we're done, we can proceed with last phases of storage
         }
       }
       return false;
+    },
+
+    setMovieCompleteCallback: (cb) => {
+      storage.movieCompleteCallback = cb;
+    },
+
+    executeMovieCompleteCallback: () => {
+      if (storage.movieCompleteCallback !== undefined) {
+        storage.movieCompleteCallback();
+        storage.movieCompleteCallback = undefined;
+      }
     },
 
     ensureNotebookGetsGraffitiId: () => {
@@ -190,9 +215,8 @@ define([
         };
       }
       state.setMovieRecordingStarted(false);
-      console.log('Graffiti: completeMovieStorage is saving manifest.');
+      console.log('Graffiti: completeMovieStorage is saving manifest, current kernel', Jupyter.notebook.kernel.name);
       storage.storeManifest();
-//      utils.saveNotebook();
     },
 
     storeMovie: () => {
@@ -219,7 +243,7 @@ define([
                        utils.addCR("with open('" + graffitiPath + "history.txt', 'w') as f:") +
                        utils.addCR("    f.write('" + base64CompressedHistory + "')");
         storage.runKernelCommand(pythonScript);
-
+        storage.readyToRestoreLiveKernel = false; // make sure we don't run the kernel command yet; we will run this when completeMovieStorage calls storeManifest.
       } else {
         console.log('Graffiti: could not fetch JSON history.');
       }
@@ -283,7 +307,6 @@ define([
                      utils.addCR("with open('" + manifestFullFilePath + "', 'w') as f:") +
                      utils.addCR("    f.write('" + base64CompressedManifest + "')");
       storage.runKernelCommand(pythonScript);
-
       storage.readyToRestoreLiveKernel = true; // this will ensure we switch back to the user's choice of kernel when everything's done
     },
 
