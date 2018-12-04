@@ -69,6 +69,7 @@ define([
         xhr.setRequestHeader("Authorization", "Star " + udacityUser.token);
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.send(JSON.stringify(state.getUsageStats()));
+        udacityUser.usageReportSent = true;
       }
     }
   }
