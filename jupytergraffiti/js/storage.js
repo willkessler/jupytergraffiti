@@ -111,7 +111,9 @@ define([
             // Switch back to the live kernel if it isn't python3.
             const currentKernelName = Jupyter.notebook.kernel.name;
             console.log('Checking to see if we have to go back to the live kernel', currentKernelName, storage.liveKernelName);
-            if (currentKernelName !== storage.liveKernelName) {
+            if (storage.liveKernelName === undefined) {
+              storage.executeMovieCompleteCallback();
+            } else if (currentKernelName !== storage.liveKernelName) {
               Jupyter.kernelselector.set_kernel(storage.liveKernelName);
             }
             storage.readyToRestoreLiveKernel = false;
