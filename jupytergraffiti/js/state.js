@@ -33,7 +33,6 @@ define([
       state.recordedCursorPosition = { x: -1000, y: -1000 };
       state.viewInfo = undefined;
       state.recordingCellInfo = {};
-      state.storageInProcess = false;
       state.tipTimeout = undefined;
       state.displayedTipInfo = undefined;
       state.movieRecordingStarted = false;
@@ -894,14 +893,6 @@ define([
 
     setMovieRecordingStarted: (status) => {
       state.movieRecordingStarted = status;
-    },
-
-    getStorageInProcess: () => {
-      return state.storageInProcess;
-    },
-
-    setStorageInProcess: (status) => {
-      state.storageInProcess = status;
     },
 
     getHidePlayerAfterPlayback: () => {

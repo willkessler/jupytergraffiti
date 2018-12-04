@@ -281,6 +281,37 @@ define([
       return renderedSvg;
     },
 
+    makeBullsEye: (opts) => {
+      const dimensions = opts.dimensions;
+      const buffer = opts.buffer || 4;
+      const viewBoxRaw = '0 0 ' + dimensions.width + ' ' + dimensions.height;
+      const viewBox = sticker.makeBufferedViewBox({buffer:buffer, bufferAllSides: true, viewBox: viewBoxRaw });
+      let shapeHash, shapeObj, parmBlocks = [];
+      for (let ringCtr = 1; ringCtr < 6; ringCtr += 2) {
+        shapeHash = { cx: dimensions.width / 2,
+                      cy: dimensions.height / 2,
+                      rx: Math.max(0, dimensions.width / 2 - opts.buffer) / ringCtr,
+                      ry: Math.max(0,dimensions.height / 2 - opts.buffer) / ringCtr,
+                      stroke: opts.color,
+                      "stroke-width": opts.strokeWidth,
+                      "fill-opacity":opts.fillOpacity,
+                      fill: opts.color
+        };
+        shapeObj = sticker.makeSvgElement('ellipse', shapeHash);
+        parmBlocks.push({          
+          el: shapeObj,
+          x: dimensions.x,
+          y : dimensions.y,
+          width: dimensions.width,
+          height: dimensions.height,
+          viewBox: viewBox
+        });
+      }
+
+      const renderedSvg = sticker.renderSvg(parmBlocks);
+      return renderedSvg;
+
+    },
 
     makeBufferedViewBox: (opts) => {
       const doubleBuffer = opts.buffer * 2;

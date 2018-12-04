@@ -4,22 +4,25 @@
 window.Graffiti = null; 
 
 define([
-  'base/js/namespace', 
-  '/nbextensions/graffiti_extension/graffiti.js',
-  '/nbextensions/graffiti_extension/utils.js',
-  '/nbextensions/graffiti_extension/udacityUser.js'
-], (Jupyter, Graffiti, utils, udacityUser) => {
+  'base/js/namespace',
+  '/nbextensions/graffiti_extension/js/graffiti.js',
+  '/nbextensions/graffiti_extension/js/utils.js',
+  '/nbextensions/graffiti_extension/js/storage.js',
+  '/nbextensions/graffiti_extension/js/udacityUser.js'
+], (Jupyter, Graffiti, utils, storage, udacityUser) => {
   function load_ipython_extension() {
     console.log('Graffiti loaded:', Graffiti);
     window.Graffiti = Graffiti;
     udacityUser.setUser();
     Graffiti.init();
-    utils.saveNotebook();
 
-    Jupyter.notebook.events.on('kernel_restarting.Kernel', (e) => {
-      console.log('Graffiti: kernel restarted, so rerunning require', e);
-      require(['/nbextensions/graffiti_extension/loader.js']);
-      utils.saveNotebook();
+    Jupyter.notebook.events.on('kernel_ready.Kernel', (e) => { 
+      console.log('Graffiti: kernel ready, possible kernel restart.', e);
+      if (!(storage.runQueuedKernelCommand() || storage.checkForMovieCompleteCallback())) {
+        console.log('Reloading loader.js');
+        require(['/nbextensions/graffiti_extension/loader.js']);
+        utils.saveNotebook();
+      }
     });
     
   }

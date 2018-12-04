@@ -37,7 +37,6 @@ define([
 
         graffiti.recordingIntervalMs = 10; // In milliseconds, how frequently we sample the state of things while recording.
         graffiti.playbackIntervalMs = graffiti.recordingIntervalMs;  // In milliseconds, loop speed for playback.  Must match recordingIntervalMs.
-        graffiti.storageInProcess = false;
         graffiti.highlightMarkText = undefined;
         graffiti.cmLineHeight = 17.0001; // line height of code mirror lines as styled in Jupyter
         graffiti.cmLineFudge = 8; // buffer between lines
@@ -646,6 +645,7 @@ define([
         const horizontalBrackets = stickerLib.makeHorizontalBrackets(defaultIconConfiguration);
         const verticalBrackets = stickerLib.makeVerticalBrackets(defaultIconConfiguration);
         const ellipse = stickerLib.makeEllipse(largeIconConfiguration);
+        const bullsEye = stickerLib.makeBullsEye(largeIconConfiguration);
         const pi = stickerLib.makePi(solidIconConfiguration);
         const alpha = stickerLib.makeAlpha(solidIconConfiguration);
         const beta = stickerLib.makeBeta(solidIconConfiguration);
@@ -684,7 +684,8 @@ define([
                                       '      <div class="graffiti-stickers-button" id="graffiti-sticker-rectangle" title="Rectangle">' + rectangle + '</div>' +
                                       '      <div class="graffiti-stickers-button" id="graffiti-sticker-roundRectangle" title="Rounded corners rectangle">' +
                                       roundRectangle + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-ellipse" title="Ellipse">' + ellipse + '</div>' +
+                                      //'      <div class="graffiti-stickers-button" id="graffiti-sticker-ellipse" title="Ellipse">' + ellipse + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-ellipse" title="Ellipse">' + bullsEye + '</div>' +
                                       '      <div class="graffiti-stickers-button" id="graffiti-sticker-rightTriangle" title="Right triangle">' + rightTriangle + '</div>' +
                                       '      <div class="graffiti-stickers-button" id="graffiti-sticker-isocelesTriangle" title="Isoceles triangle">' + 
                                       isocelesTriangle + '</div>' +
@@ -1601,6 +1602,14 @@ define([
         graffiti.savingScrim = graffitiSavingScrim.prependTo(graffiti.notebookContainer);
       },
       
+      showSavingScrim: () =>  {
+        graffiti.savingScrim.css({display:'flex'});
+      },
+
+      hideSavingScrim: () => {
+        graffiti.savingScrim.css({display:'none'});
+      },
+
       resizeCanvases: () => {
         const canvasTypes = ['permanent','temporary'];
         let cellElement, cellRect, canvasStyle, canvas, cellCanvas;
@@ -2971,12 +2980,13 @@ define([
           return true;
         };
 
-        // if we were playing a recording when they hit reload, we need to cancel it, restore, and save before we continue
-        window.onbeforeunload = (e) => {
-          console.log('Graffiti: before unload');
+        // If we were playing a recording when they hit reload, we need to cancel it, restore, and save before we continue. 
+        // Needs more testing!!
+        window.addEventListener('beforeunload', function (e) {
+          console.log('Graffiti: before unload', e);
           graffiti.cancelPlaybackNoVisualUpdates();
           udacityUser.trackUsageStats();
-        };
+        });
 
         // To make async calls work on non-chrome browsers
         // https://stackoverflow.com/a/20322988/4953199
@@ -3230,27 +3240,28 @@ define([
           recordingCell.set_text(newContents);
         }
 
-        utils.saveNotebook();
+        utils.saveNotebook(() => {
 
-        // need to reselect graffiti text that was selected in case it somehow got unselected
-        //recordingCell.code_mirror.setSelections(recordingCellInfo.selections);
-        graffiti.sitePanel.animate({ scrollTop: recordingCellInfo.scrollTop}, 500);
-        if (doSave && recordingCellInfo.recordingRecord.cellType === 'markdown') {
-          recordingCell.render();
-        }
-        if (doSave && state.getActivity() === 'recordingLabelling') {
-          graffiti.setPendingRecording();
-        } else {
-          graffiti.changeActivity('idle');
-          recordingCell.code_mirror.focus();
-          if (doSave) {
-            graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: false});
-          } else {
-            graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
+          // need to reselect graffiti text that was selected in case it somehow got unselected
+          //recordingCell.code_mirror.setSelections(recordingCellInfo.selections);
+          graffiti.sitePanel.animate({ scrollTop: recordingCellInfo.scrollTop}, 500);
+          if (doSave && recordingCellInfo.recordingRecord.cellType === 'markdown') {
+            recordingCell.render();
           }
-          graffiti.refreshGraffitiTooltips();
-          graffiti.refreshAllGraffitiSideMarkers();
-        }
+          if (doSave && state.getActivity() === 'recordingLabelling') {
+            graffiti.setPendingRecording();
+          } else {
+            graffiti.changeActivity('idle');
+            recordingCell.code_mirror.focus();
+            if (doSave) {
+              graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: false});
+            } else {
+              graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
+            }
+            graffiti.refreshGraffitiTooltips();
+            graffiti.refreshAllGraffitiSideMarkers();
+          }
+        });
       },
 
       removeGraffitiCore: (recordingCell, recordingKey) => {
@@ -3307,32 +3318,33 @@ define([
           }
         }
 
-        utils.saveNotebook();
+        utils.saveNotebook(() => {
 
-        if (destructions === 0) {
-          destructions = 'all';
-        }
+          if (destructions === 0) {
+            destructions = 'all';
+          }
 
-        let title, body;
-        if (graffitiDisabled) {
-          title = 'Graffiti has been disabled on this Notebook.';
-          body = 'We removed ' + destructions + ' graffitis, and you will need to Enable Graffiti again to use Graffiti in this notebook.' + 
-                 'You will also now want to remove the Graffiti data directory (jupytergraffiti_data) manually.';
-        } else {
-          title = 'Your notebook is now cleaned of all graffiti.';
-          body = 'We removed ' + destructions + ' graffitis. Feel free to create new ones.';
-        }
-        dialog.modal({
-          title: title,
-          body: body,
-          sanitize:false,
-          buttons: {
-            'OK': {
-              click: (e) => {
-                console.log('Graffiti: You clicked ok, you want to remove ALL graffitis');
+          let title, body;
+          if (graffitiDisabled) {
+            title = 'Graffiti has been disabled on this Notebook.';
+            body = 'We removed ' + destructions + ' graffitis, and you will need to Enable Graffiti again to use Graffiti in this notebook.' + 
+                   'You will also now want to remove the Graffiti data directory (jupytergraffiti_data) manually.';
+          } else {
+            title = 'Your notebook is now cleaned of all graffiti.';
+            body = 'We removed ' + destructions + ' graffitis. Feel free to create new ones.';
+          }
+          dialog.modal({
+            title: title,
+            body: body,
+            sanitize:false,
+            buttons: {
+              'OK': {
+                click: (e) => {
+                  console.log('Graffiti: You clicked ok, you want to remove ALL graffitis');
+                }
               }
             }
-          }
+          });
         });
 
       },
@@ -3345,7 +3357,9 @@ define([
           graffiti.refreshGraffitiSideMarkers(recordingCell);
           graffiti.refreshGraffitiTooltips();
           storage.storeManifest();
-          utils.saveNotebook();
+          // utils.saveNotebook(() => {
+          // graffiti.updateControlPanels();
+          // });
           graffiti.updateControlPanels();
         }
       },
@@ -3613,9 +3627,7 @@ define([
         Jupyter.notebook.events.on('shell_reply.Kernel', (e, results) => {
           console.log('Graffiti: Kernel shell reply event fired, e, results:',e, results);
           utils.refreshCellMaps();
-          if (state.getStorageInProcess()) {
-            storage.clearStorageInProcess();
-            graffiti.savingScrim.css({display:'none'});
+          if (storage.processedKernelShellResponse(results)) {
             graffiti.updateAllGraffitiDisplays();
             graffiti.updateControlPanels(); // necessary because we just finished a save
           }
@@ -3683,8 +3695,7 @@ define([
             storage.storeManifest();
           }
           graffiti.stopRecordingCore(false);
-          utils.saveNotebook();
-          console.log('Graffiti: cancelled recording.');
+          // utils.saveNotebook( () => { console.log('Graffiti: cancelled recording.') });;
         }
       },
 
@@ -3701,7 +3712,8 @@ define([
             state.blockRecording(); // this is here because a race condition can happen right at the end of recording
             graffiti.setNotifier('Please wait, storing this movie...');
             graffiti.showControlPanels(['graffiti-notifier']);
-            graffiti.savingScrim.css({display:'flex'});
+            graffiti.showSavingScrim();
+            storage.setMovieCompleteCallback(graffiti.hideSavingScrim);
             graffiti.stopRecordingCore(true);
             state.unblockRecording();
             console.log('Graffiti: Stopped recording.');
@@ -3875,7 +3887,7 @@ define([
             x: cellRects.innerCellRect.left, 
             y: cellOffsetY + cellRects.innerCellRect.top
           }
-          console.log('applyScrollNudgeAtCell:offsetPosition:', offsetPosition, 'cellId', cellId, 'selChange', selChange);
+          //console.log('applyScrollNudgeAtCell:offsetPosition:', offsetPosition, 'cellId', cellId, 'selChange', selChange);
           graffiti.applyScrollNudge(offsetPosition, record, false);
         }
       },
@@ -4090,7 +4102,7 @@ define([
 
                 graffiti.updateCellSelections(cell,code_mirror, selections);
 
-                console.log('nudge check, cellId', cellId, 'code_mirror.state.focused',code_mirror.state.focused);
+                //console.log('nudge check, cellId', cellId, 'code_mirror.state.focused',code_mirror.state.focused);
                 
                 if (code_mirror.state.focused) {
                   // If we made a selections update this frame, AND we are focused in it,
@@ -4129,7 +4141,7 @@ define([
         let mustRefreshCellMaps = false;
         if (numCellsPresent > 0) {
           // First figure out which cells are extra and need to be deleted on this cell
-          let checkCellId, deleteCellId, deleteCellIndex, foundCell, cellPosition, newCell;
+          let deleteCellId, deleteCellIndex;
           const cellAdditions = state.getCellAdditions(); // all cells added during this recording
           const cellAdditionsIds = Object.keys(cellAdditions);
           // Any cells that may have been added during the movie, not present in this timeframe, must be deleted.
@@ -4144,17 +4156,27 @@ define([
           }
 
           // Now figure out which cells are missing and need to be added in. Add them in above whatever position 
-          // they were recorded in, which will be approximate.
-          for (checkCellId of cellsPresentIds) {
+          // they were recorded in, or right after the last present cell (whichever is greater), to try to match
+          // its position from the recording time. This works ok because usually content creators will add a 
+          // cell after another specific cell.
+          let i, checkCellId, foundCell, newCell, cellPosition, previousCellPosition, previousPlusOne;
+          for (i = 0; i < cellsPresentIds.length; ++i) {
+            checkCellId = cellsPresentIds[i];
             foundCell = utils.findCellByCellId(checkCellId);
             if (foundCell === undefined) {
               cellPosition = cellsPresentThisFrame[checkCellId];
+              if (i > 0) {
+                previousCellPosition = utils.findCellIndexByCellId(cellsPresentIds[i - 1]);
+                previousPlusOne = previousCellPosition + 1;
+                if (previousPlusOne > cellPosition) {
+                  cellPosition = previousPlusOne;
+                }
+              }              
               newCell = Jupyter.notebook.insert_cell_above('code', cellPosition);
               newCell.metadata.graffitiCellId = checkCellId;
               mustRefreshCellMaps = true;
               console.log('Just inserted new cell.');              
               graffiti.applyScrollNudgeAtCell(newCell, record, false);
-
             }
           }
         }
@@ -4341,9 +4363,6 @@ define([
         graffiti.refreshGraffitiTooltips();
         state.clearAnimationIntervals();
 
-        // Save after play stops, so if the user reloads we don't get the annoying dialog box warning us changes were made.
-        // graffiti.saveNotebook();
-
         console.log('Graffiti: Stopped playback.');
       },
 
@@ -4354,13 +4373,11 @@ define([
         graffiti.changeActivity('idle');
         if ((accessLevel === 'view') && (state.getDontRestoreCellContentsAfterPlayback())) {
           console.log('Graffiti: not restoring cell contents since this recording specifies not to.');
-          utils.saveNotebook();
         } else {
           graffiti.removeCellsAddedByPlaybackOrRecording();
-          state.restoreCellStates('contents');
-          utils.saveNotebook();
           state.restoreCellStates('selections');
         }
+        utils.saveNotebook();
         state.updateUsageStats({
           type:'play',
           data: {
@@ -4403,7 +4420,7 @@ define([
         console.log('Graffiti: Starting playback, current activity:', activity);
         if ((activity === 'idle') || (activity === 'notifying')) {
           // If just starting to play back, store all cells current contents so we can restore them when you cancel playback.
-          utils.saveNotebook();
+          // utils.saveNotebook();
           state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.setCurrentPlaySpeed('regular');
           state.resetPlayTimes();
@@ -4691,9 +4708,10 @@ define([
           storage.ensureNotebookGetsGraffitiId();
           storage.ensureNotebookGetsFirstAuthorId();
           utils.assignCellIds();
-          utils.saveNotebook();
-          graffiti.refreshAllGraffitiHighlights();
-          graffiti.refreshGraffitiTooltips();
+          utils.saveNotebook(() => {
+            graffiti.refreshAllGraffitiHighlights();
+            graffiti.refreshGraffitiTooltips();
+          });
         } else {
           graffiti.outerControlPanel.fadeOut(graffiti.panelFadeTime);          
         }
@@ -4813,13 +4831,14 @@ define([
                 console.log('Graffiti: You clicked ok');
                 storage.ensureNotebookGetsGraffitiId();
                 storage.ensureNotebookGetsFirstAuthorId();
-                utils.saveNotebook();
-                utils.createApiSymlink();
-                graffiti.initInteractivity();
-                graffiti.toggleAccessLevel('view');
-                graffiti.activateAudio(); // request microphone access in case switching to 'create' mode later
-                $('#graffiti-setup-button').unbind('click').click(() => {
-                  graffiti.toggleAccessLevel();
+                utils.saveNotebook(() => {
+                  utils.createApiSymlink();
+                  graffiti.initInteractivity();
+                  graffiti.toggleAccessLevel('view');
+                  graffiti.activateAudio(); // request microphone access in case switching to 'create' mode later
+                  $('#graffiti-setup-button').unbind('click').click(() => {
+                    graffiti.toggleAccessLevel();
+                  });
                 });
               }
             },
@@ -4857,3 +4876,10 @@ define([
   return Graffiti;
 
 });
+
+// affected files
+//      modified:   jupytergraffiti/js/graffiti.js
+//	modified:   jupytergraffiti/js/loader.js
+//	modified:   jupytergraffiti/js/state.js
+//	modified:   jupytergraffiti/js/storage.js
+//	modified:   jupytergraffiti/js/utils.js

@@ -81,10 +81,8 @@ define([
         // anything other than those two
         const workCell = Jupyter.notebook.insert_cell_at_bottom();
         if (kernelName.indexOf('xeus-cling') === 0) {
-          // C kernel, run each command with "!"
-          const cmdLines = $.trim(bashScript).split("\n");
-          const cCmdLines = '!' + cmdLines.join("\n!") + "\n";
-          workCell.set_text(cCmdLines);
+          // C kernel.
+          workCell.set_text(bashScript);
         } else {
           workCell.set_text('%%bash' + "\n" + bashScript);
         }
@@ -94,6 +92,26 @@ define([
         if (numCells > 0) {
           Jupyter.notebook.delete_cell(numCells - 1);
         }
+      }
+    },
+
+    sysCmdExecBatch: (fileName, data) => {
+      let i,start, end, chunk;
+      const chunkSize = 200000;
+      const dataLength = data.length;
+      const numChunks = data.length / chunkSize;
+      const workCell = Jupyter.notebook.insert_cell_at_bottom();
+      for (i = 0; i < numChunks; ++i) {
+        start = i * chunkSize;
+	end = Math.min(data.length - 1, (i + 1) * chunkSize);
+	chunk = data.substring(start,end);
+	workCell.set_text(utils.addCR('%%file ' + (i > 0 ? '-a ' : '') + fileName) + utils.addCR(chunk));
+	workCell.execute();
+      }
+      const cells = Jupyter.notebook.get_cells();
+      const numCells = cells.length;
+      if (numCells > 0) {
+        Jupyter.notebook.delete_cell(numCells - 1);
       }
     },
 
@@ -261,8 +279,13 @@ define([
       return activeLine;
     },
 
-    saveNotebook: () => {
-      Jupyter.notebook.save_notebook().then( () => { console.log('Graffiti: Notebook saved.') });
+    saveNotebook: (cb) => {
+      Jupyter.notebook.save_notebook().then( () => { 
+        if (cb !== undefined) {
+          cb();
+        }
+        console.log('Graffiti: Notebook saved.') 
+      });
     },
 
     // You can delete this, it's no longer needed now that we call cell.focus_cell() when we change selections
