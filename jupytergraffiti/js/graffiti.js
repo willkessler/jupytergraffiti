@@ -2983,7 +2983,6 @@ define([
         // Needs more testing!!
         window.addEventListener('beforeunload', function (e) {
           console.log('Graffiti: before unload', e);
-          e.preventDefault();
           graffiti.cancelPlaybackNoVisualUpdates();
         });
 
@@ -4365,14 +4364,11 @@ define([
         graffiti.changeActivity('idle');
         if ((accessLevel === 'view') && (state.getDontRestoreCellContentsAfterPlayback())) {
           console.log('Graffiti: not restoring cell contents since this recording specifies not to.');
-          utils.saveNotebook();
         } else {
           graffiti.removeCellsAddedByPlaybackOrRecording();
-          state.restoreCellStates('contents');
-          utils.saveNotebook(() => {
-            state.restoreCellStates('selections');
-          });
+          state.restoreCellStates('selections');
         }
+        utils.saveNotebook();
         state.updateUsageStats({
           type:'play',
           data: {
