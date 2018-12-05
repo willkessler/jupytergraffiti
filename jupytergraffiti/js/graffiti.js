@@ -2530,7 +2530,7 @@ define([
        const yBuffer = 2;
        let i, marker, offset, makerIcon, rect, yDiff, className, idMatch, metaData;
        if (markers.length > 0) {
-         //console.log('markers:', markers);
+         console.log('markers:', markers);
          for (i = 0; i < markers.length; ++i) {
            marker = markers[i];
            className = marker.className;
@@ -2630,6 +2630,16 @@ define([
           params = { cell: cell, clear: true };
           graffiti.refreshGraffitiHighlights(params);
           graffiti.refreshGraffitiSideMarkers(cell);
+        }
+      },
+
+      updateRefreshableCell: () => {
+        const highlightRefreshCellId = state.getHighlightsRefreshCellId();
+        if (highlightRefreshCellId !== undefined) {
+          const highlightRefreshCell = utils.findCellByCellId(highlightRefreshCellId);
+          graffiti.refreshGraffitiHighlights({cell: highlightRefreshCell, clear: true});
+          graffiti.refreshGraffitiSideMarkers(highlightRefreshCell);
+          state.clearHighlightsRefreshableCell();
         }
       },
 
@@ -3496,6 +3506,8 @@ define([
           const affectedCell = utils.findCellByCodeMirror(cm);
           state.storeCellIdAffectedByActivity(utils.getMetadataCellId(affectedCell.metadata));
           state.storeHistoryRecord('selections');
+          const activityCell = utils.findCellByCodeMirror(cm);
+          graffiti.refreshGraffitiSideMarkers(activityCell);
         });
 
         cm.on('change', (cm, changeObj) => {
@@ -3504,7 +3516,8 @@ define([
           state.storeCellIdAffectedByActivity(utils.getMetadataCellId(affectedCell.metadata));
           state.storeHistoryRecord('contents');
           if (state.getActivity() === 'idle') {
-            graffiti.refreshGraffitiHighlights({cell: affectedCell, clear: true});
+            state.setHighlightsRefreshCellId(utils.getMetadataCellId(affectedCell.metadata));
+            setTimeout(graffiti.updateRefreshableCell, 250); // set up to refresh side markers shortly after changes
           }
         });
 
