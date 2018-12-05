@@ -483,7 +483,8 @@ define([
                                           ids: ['graffiti-recorder-range'],
                                           event: 'mouseup',
                                           fn: (e) => {
-                                            //console.log('slider:mouseup')
+                                            console.log('slider:mouseup')
+                                            graffiti.handleSliderDrag(); // rerun slider drag on mouseup because we may not have gotten the last input event.
                                             if (previousPlayState === 'playing') {
                                               graffiti.startPlayback();
                                             }
@@ -3883,34 +3884,39 @@ define([
         }
       },
 
-      doScrollNudging: (record, viewIndex) => {
-        if (graffiti.scrollNudge == undefined) {
-          return;
-        }
-        //console.log('updateDisplay, nudgeAmount:', graffiti.scrollNudge.amount, 'counter:', graffiti.scrollNudge.counter);
+      calculateMappedScrollDiff: (record) => {
         const currentNotebookPanelHeight = graffiti.notebookPanel.height();
         let mappedScrollDiff = 0;
         if (record !== undefined) {          
           mappedScrollDiff = (record.scrollDiff / record.notebookPanelHeight) * currentNotebookPanelHeight;
         }
+        return mappedScrollDiff;
+      },
+
+      doScrollNudging: (record, viewIndex) => {
         const currentScrollTop = graffiti.sitePanel.scrollTop();
         let newScrollTop = currentScrollTop;
+        mappedScrollDiff = graffiti.calculateMappedScrollDiff(record);
         if (graffiti.scrollNudge !== undefined) {
-          let scrollNudgeAmount = 0;
-          graffiti.scrollNudge.counter--;
-          if (graffiti.scrollNudge.counter > 0) {
-            scrollNudgeAmount = graffiti.scrollNudge.amount;
-            //console.log('Going to nudge scroll by:', scrollNudgeAmount, 'counter:', graffiti.scrollNudge.counter);
-            newScrollTop = currentScrollTop + scrollNudgeAmount;
-          } else {
-            graffiti.scrollNudge = undefined; // stop nudging
+          //console.log('updateDisplay, nudgeAmount:', graffiti.scrollNudge.amount, 'counter:', graffiti.scrollNudge.counter);
+          if (graffiti.scrollNudge !== undefined) {
+            let scrollNudgeAmount = 0;
+            graffiti.scrollNudge.counter--;
+            if (graffiti.scrollNudge.counter > 0) {
+              scrollNudgeAmount = graffiti.scrollNudge.amount;
+              //console.log('Going to nudge scroll by:', scrollNudgeAmount, 'counter:', graffiti.scrollNudge.counter);
+              newScrollTop = currentScrollTop + scrollNudgeAmount;
+            } else {
+              graffiti.scrollNudge = undefined; // stop nudging
+            }
           }
         }
         // Only apply a user-recorded scroll diff if we haven't applied it already. When this function is called with no parameters, then
         // it is only doing "maintenance nudging", ie over-time nudging to keep the most important zones of interest in the viewport.
         // console.log('Now applying mappedScrollDiff:', mappedScrollDiff);
-        let skipMappedScrollDiff = (viewIndex !== undefined) &&
-                                   (graffiti.lastScrollViewId !== undefined && graffiti.lastScrollViewId === viewIndex);
+        const skipMappedScrollDiff = (viewIndex !== undefined) &&
+                                      (graffiti.lastScrollViewId !== undefined && graffiti.lastScrollViewId === viewIndex);
+        //console.log('skipMappedScrollDiff', skipMappedScrollDiff);
         if (!skipMappedScrollDiff) {
           newScrollTop += mappedScrollDiff;
           graffiti.lastScrollViewId = viewIndex;
@@ -3988,7 +3994,7 @@ define([
       },
 
       updateView: (viewIndex) => {
-        // console.log('updateView, viewIndex:', viewIndex);
+        //console.log('updateView, viewIndex:', viewIndex);
         let record = state.getHistoryItem('view', viewIndex);
         record.hoverCell = utils.findCellByCellId(record.cellId);
 
@@ -4229,7 +4235,6 @@ define([
 
       updateDisplay: (frameIndexes) => {
         const currentScrollTop = graffiti.sitePanel.scrollTop();
-        let mayHaveScrollNudged = false;
         if (state.shouldUpdateDisplay('contents', frameIndexes.contents)) {
           graffiti.updateContents(frameIndexes.contents.index, currentScrollTop);
         }
@@ -4249,11 +4254,6 @@ define([
         if (state.shouldUpdateDisplay('view', frameIndexes.view)) {
           graffiti.updateView(frameIndexes.view.index);
           //console.log('updated view:', frameIndexes.view.index, 'currentScrollTop', currentScrollTop, 'new scrollTop', graffiti.sitePanel.scrollTop());
-          mayHaveScrollNudged = true;
-        }
-
-        if (!mayHaveScrollNudged) {
-          graffiti.doScrollNudging();
         }
 
       },
@@ -4282,6 +4282,17 @@ define([
       // Playback functions
       //
 
+      // When jumping around, or if we reached the end of playback and the next playback will reset to beginning, then we may need to attempt to recalculate 
+      // and apply the raw scrollTop (excluding any nudging, so it's approximate).
+      applyRawCalculatedScrollTop: (viewIndex) => {
+        let record, i, calculatedScrollTop = graffiti.prePlaybackScrolltop;
+        for (i = 0; i < viewIndex; ++i) {
+          record = state.getHistoryItem('view', i);
+          calculatedScrollTop += graffiti.calculateMappedScrollDiff(record);
+        }
+        graffiti.sitePanel.scrollTop(calculatedScrollTop);
+      },
+
       // Skip around by X seconds forward or back.
       jumpPlayback: (direction) => {
         const previousPlayState = state.getActivity();
@@ -4308,13 +4319,14 @@ define([
           graffiti.startPlayback();
         }
         graffiti.updateAllGraffitiDisplays();
+        graffiti.applyRawCalculatedScrollTop(frameIndexes.view.index);
       },
 
       handleSliderDrag: () => {
         // Handle slider drag
         const target = $('#graffiti-recorder-range');
         const timeLocation = target.val() / 1000;
-        // console.log('handleSliderDrag, slider value:', timeLocation);
+        //console.log('handleSliderDrag, slider value:', target.val());
         const t = Math.min(state.getHistoryDuration() * timeLocation, state.getHistoryDuration() - 1);
         // Now we need to set the time we are going to start with if we play from here.
         state.resetPlayTimes(t);
@@ -4326,6 +4338,7 @@ define([
         graffiti.updateDisplay(frameIndexes); // can replay scroll diffs, and in playback use cumulative scroll diff
         graffiti.updateTimeDisplay(t);
         graffiti.redrawAllDrawings(t);
+        graffiti.applyRawCalculatedScrollTop(frameIndexes.view.index);
       },
 
       pausePlaybackNoVisualUpdates: () => {
@@ -4447,6 +4460,7 @@ define([
           graffiti.clearCanvases('all');
           graffiti.wipeAllStickerDomCanvases();
           state.resetPlayState();
+          graffiti.applyRawCalculatedScrollTop(0);
         }
 
         if (state.getCurrentPlaySpeed() === 'scan') {
