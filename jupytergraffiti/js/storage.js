@@ -370,9 +370,8 @@ define([
         recordingCellId: recordingCellId, 
         recordingKey: recordingKey 
       });
-      const bashScript = utils.addCR('rm -r "' + graffitiPath + '"');
       const pythonScript = utils.addCR("import os\nos.system(" + bashScript + ")");
-      utils.sysCmdExec(pythonScript, bashScript);
+      storage.runKernelCommand(pythonScript);
     },
 
     transferGraffitis: () => {
@@ -392,13 +391,7 @@ define([
         const copyPython = "import shutil\nshutil.copytree('" + sourceTree + "','" + destTree + "')\n";
         console.log('Graffiti: transferGraffitis will run:', copyPython);
 
-        Jupyter.notebook.kernel.execute(copyPython,
-                                        undefined,
-                                        {
-                                          silent: false,
-                                          store_history: false,
-                                          stop_on_error : true
-                                        });
+        storage.runKernelCommand(copyPython);
       });
 
       return Promise.resolve(); // not really doing this right but...
@@ -412,14 +405,7 @@ define([
       const packagePython = "import os\nos.system('tar zcf " + archiveName + " " + '"' + notebookName + '.ipynb"' + " jupytergraffiti_data')\n";
       console.log('Graffiti: packageGraffitis will run:', packagePython);
 
-      Jupyter.notebook.kernel.execute(packagePython,
-                                      undefined,
-                                      {
-                                        silent: false,
-                                        store_history: false,
-                                        stop_on_error : true
-                                      });
-
+      storage.runKernelCommand(packagePython);
       return Promise.resolve(archiveName);
     },
 
@@ -439,14 +425,7 @@ define([
       const notebookStoragePath = 'jupytergraffiti_data/notebooks/' + graffitiId;
       const deletePython = "import os\nos.system('rm -r " + notebookStoragePath + "')\n";
       console.log('Graffiti: deleteNotebookStorage:', deletePython);
-
-      Jupyter.notebook.kernel.execute(deletePython,
-                                      undefined,
-                                      {
-                                        silent: false,
-                                        store_history: false,
-                                        stop_on_error : true
-                                      });
+      storage.runKernelCommand(deletePython);
     },
 
   }
