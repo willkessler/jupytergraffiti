@@ -4604,6 +4604,7 @@ define([
         // graffiti.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
 
         $('#graffiti-movie-play-btn').html('<i>Loading...</i>').prop('disabled',true);
+        graffiti.setJupyterMenuHint('Loading Graffiti movie, please wait...');
         storage.loadMovie(playableMovie.cellId, playableMovie.recordingKey, playableMovie.activeTakeId).then( () => {
           console.log('Graffiti: Movie loaded for cellId, recordingKey:', playableMovie.cellId, playableMovie.recordingKey);
           // big hack
