@@ -65,6 +65,7 @@ define([
       };
       state.animationIntervalIds = {};
       state.playbackCellAdditions = {};
+      state.highlightsRefreshCellId = undefined;
 
       // Usage statistic gathering for the current session (since last load of the notebook)
       state.usageStats = {
@@ -239,6 +240,18 @@ define([
       state.storeHistoryRecord('speaking'); // record speaking status, if we are currently recording
     },
     
+    clearHighlightsRefreshableCell: () => {
+      state.highlightsRefreshCellId = undefined;
+    },
+
+    setHighlightsRefreshCellId: (cellId) => {
+      state.highlightsRefreshCellId = cellId;
+    },
+
+      getHighlightsRefreshCellId: () => {
+      return state.highlightsRefreshCellId;
+    },
+
     getAudioInitialized: () => {
       return state.audioInitialized;
     },
