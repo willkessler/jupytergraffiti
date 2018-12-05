@@ -370,8 +370,9 @@ define([
         recordingCellId: recordingCellId, 
         recordingKey: recordingKey 
       });
-      const pythonScript = utils.addCR("import os\nos.system(" + bashScript + ")");
-      storage.runKernelCommand(pythonScript);
+      const deletePython = "import os\nos.system('rm -r " + graffitiPath + "')\n";
+      console.log('Graffiti: deleteNotebookStorage:', deletePython);
+      storage.runKernelCommand(deletePython);
     },
 
     transferGraffitis: () => {
