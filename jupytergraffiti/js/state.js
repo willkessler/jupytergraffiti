@@ -64,6 +64,7 @@ define([
         selections: {}
       };
       state.animationIntervalIds = {};
+      state.playbackCellAdditions = {};
 
       // Usage statistic gathering for the current session (since last load of the notebook)
       state.usageStats = {
@@ -917,7 +918,8 @@ define([
 
     getCellAdditions: () => {
       if (state.history !== undefined) {
-        return state.history.cellAdditions;
+        const  allAdditions = _.union(Object.keys(state.history.cellAdditions), Object.keys(state.playbackCellAdditions));
+        return allAdditions;
       }
       return undefined;
     },
@@ -929,8 +931,13 @@ define([
       }
     },
 
+    storePlaybackCellAddition: (cellId, position) => {
+      state.playbackCellAdditions[cellId] = position;
+    },
+
     clearCellAdditions: () => {
       state.history.cellAdditions = {};
+      state.playbackCellAdditions = {};
     },
 
     // In any history:

@@ -62,59 +62,6 @@ define([
       } 
     },
 
-    // This is a shim. We try to use kernel.execute if the notebook kernel is python. If it's not, then we need to fall back on cheesy
-    // cell execution approach (insert a cell, put bash code in it, run the cell, and delete the cell
-    sysCmdExec: (pythonScript, bashScript) => {
-      console.log('sysCmdExec: pythonScript', pythonScript, 'bashScript', bashScript);
-
-      const kernelName = Jupyter.notebook.kernel.name;
-      if ((kernelName === 'python3') || (Jupyter.notebook.kernel.name === 'python2')) {
-        // python kernel
-        Jupyter.notebook.kernel.execute(pythonScript,
-                                        undefined,
-                                        {
-                                          silent: false,
-                                          store_history: false,
-                                          stop_on_error : true
-                                        });
-      } else {
-        // anything other than those two
-        const workCell = Jupyter.notebook.insert_cell_at_bottom();
-        if (kernelName.indexOf('xeus-cling') === 0) {
-          // C kernel.
-          workCell.set_text(bashScript);
-        } else {
-          workCell.set_text('%%bash' + "\n" + bashScript);
-        }
-        workCell.execute();
-        const cells = Jupyter.notebook.get_cells();
-        const numCells = cells.length;
-        if (numCells > 0) {
-          Jupyter.notebook.delete_cell(numCells - 1);
-        }
-      }
-    },
-
-    sysCmdExecBatch: (fileName, data) => {
-      let i,start, end, chunk;
-      const chunkSize = 200000;
-      const dataLength = data.length;
-      const numChunks = data.length / chunkSize;
-      const workCell = Jupyter.notebook.insert_cell_at_bottom();
-      for (i = 0; i < numChunks; ++i) {
-        start = i * chunkSize;
-	end = Math.min(data.length - 1, (i + 1) * chunkSize);
-	chunk = data.substring(start,end);
-	workCell.set_text(utils.addCR('%%file ' + (i > 0 ? '-a ' : '') + fileName) + utils.addCR(chunk));
-	workCell.execute();
-      }
-      const cells = Jupyter.notebook.get_cells();
-      const numCells = cells.length;
-      if (numCells > 0) {
-        Jupyter.notebook.delete_cell(numCells - 1);
-      }
-    },
-
     refreshCodeMirrorSelections: () => {
       const cells = Jupyter.notebook.get_cells();
       let cm,selections;

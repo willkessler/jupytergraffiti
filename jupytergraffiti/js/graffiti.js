@@ -4122,11 +4122,12 @@ define([
         const cellAdditions = state.getCellAdditions(); // all cells added during this recording
         if (cellAdditions !== undefined) {
           let deleteCellIndex;
-          for (let cellId of Object.keys(cellAdditions)) {
+          for (let cellId of cellAdditions) {
             deleteCellIndex = utils.findCellIndexByCellId(cellId);
             if (deleteCellIndex !== undefined) {
               //console.log('Going to delete:', cellId, 'at index:', deleteCellIndex);
               Jupyter.notebook.delete_cell(deleteCellIndex);
+              utils.refreshCellMaps();
             }
           }
         }
@@ -4174,6 +4175,7 @@ define([
               }              
               newCell = Jupyter.notebook.insert_cell_above('code', cellPosition);
               newCell.metadata.graffitiCellId = checkCellId;
+              state.storePlaybackCellAddition(checkCellId, cellPosition);
               mustRefreshCellMaps = true;
               console.log('Just inserted new cell.');              
               graffiti.applyScrollNudgeAtCell(newCell, record, false);
