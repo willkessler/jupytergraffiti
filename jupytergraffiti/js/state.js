@@ -924,7 +924,7 @@ define([
       return undefined;
     },
 
-    storeCellAddition: (cellId, position) => {
+    storeCellAddition: (cellId) => {
       if (state.activity === 'recording') {
         state.history.cellAdditions[cellId] = position;
         //console.log('cellAdditions:', state.cellAdditions);
