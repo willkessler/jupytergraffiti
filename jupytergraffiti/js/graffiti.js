@@ -1387,7 +1387,8 @@ define([
         } else {
           console.log('Graffiti: activating rapidPlay/rapidScan');
           if (opts.scan) {
-            if (state.getSpeakingStatus()) {
+            const currentSpeakingStatus = state.scanForSpeakingStatus();
+            if (currentSpeakingStatus) {
               state.setCurrentPlaySpeed('scanInactive');
             } else {
               state.setCurrentPlaySpeed('scanActive'); // turn on rapid scan immediately if rabbit icon is activated during a silent period
@@ -4227,7 +4228,6 @@ define([
         }
       },
 
-
       updateSpeaking: (index) => {
         const record = state.getHistoryItem('speaking', index);
         console.log('Processing speaking record', index, record);
@@ -4445,6 +4445,7 @@ define([
           // utils.saveNotebook();
           state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.setCurrentPlaySpeed('regular');
+          state.setSpeakingStatus(false);
           state.resetPlayTimes();
           graffiti.prePlaybackScrolltop = state.getScrollTop();
           graffiti.lastScrollViewId = undefined;
@@ -4476,6 +4477,7 @@ define([
           graffiti.clearCanvases('all');
           graffiti.wipeAllStickerDomCanvases();
           state.resetPlayState();
+          graffiti.removeCellsAddedByPlaybackOrRecording();
           graffiti.applyRawCalculatedScrollTop(0);
         }
 

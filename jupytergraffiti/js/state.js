@@ -244,6 +244,19 @@ define([
       state.highlightsRefreshCellId = undefined;
     },
 
+    scanForSpeakingStatus: () => {
+      targetTime = state.getTimePlayedSoFar();
+      const lastSpeakingIndex = state.getIndexUpToTime('speaking', targetTime);
+      let currentSpeakingStatus = true; // assume we are speaking initially, in case we don't have any speaking records at all.
+      if (lastSpeakingIndex !== undefined) {
+        for (let index = 0; index < lastSpeakingIndex; ++index) {
+          record = state.getHistoryItem('speaking', index);
+          currentSpeakingStatus = record.speaking;
+        }
+      }
+      return currentSpeakingStatus;
+    },
+
     setHighlightsRefreshCellId: (cellId) => {
       state.highlightsRefreshCellId = cellId;
     },
@@ -1451,18 +1464,20 @@ define([
     getIndexUpToTime: (kind, t) => {
       let i;
       const historyArray = state.history[kind];
-      const historyArrayLength = historyArray.length;
-      if (historyArrayLength > 0) {
-        for (i = 0; i < historyArrayLength; ++i) {
-          if (historyArray[i].startTime >= t) {
+      if (historyArray !== undefined) {
+        const historyArrayLength = historyArray.length;
+        if (historyArrayLength > 0) {
+          for (i = 0; i < historyArrayLength; ++i) {
+            if (historyArray[i].startTime >= t) {
+              return i;
+            }
+          }
+          // check to see if time is on or past the last known record.
+          i = historyArray.length - 1;
+          if (((historyArray[i].startTime < t) && (historyArray[i].endTime >= t)) ||
+              (historyArray[i].endTime < t)) {
             return i;
           }
-        }
-        // check to see if time is on or past the last known record.
-        i = historyArray.length - 1;
-        if (((historyArray[i].startTime < t) && (historyArray[i].endTime >= t)) ||
-            (historyArray[i].endTime < t)) {
-          return i;
         }
       }
       return undefined;
