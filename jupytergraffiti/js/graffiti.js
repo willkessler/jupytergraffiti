@@ -212,10 +212,10 @@ define([
               const controlPanelPosition = graffiti.outerControlPanel.position();
               const maxLeft = windowWidth - graffiti.outerControlPanel.width() - 20;
               const maxTop = windowHeight - graffiti.outerControlPanel.height() - 20;
-              graffiti.wipeAllStickerDomCanvases();
-              // need to redraw all current stickers here
+              // need to redraw all current stickers here if playing
               const activity = state.getActivity();
               if ((activity === 'playing') || (activity === 'playbackPaused')) {
+                graffiti.wipeAllStickerDomCanvases();
                 graffiti.redrawAllDrawings();
               }
               graffiti.updateControlPanelPosition({ left: Math.max(0, Math.min(controlPanelPosition.left, maxLeft)),
@@ -484,7 +484,7 @@ define([
                                           ids: ['graffiti-recorder-range'],
                                           event: 'mouseup',
                                           fn: (e) => {
-                                            console.log('slider:mouseup')
+                                            //console.log('slider:mouseup')
                                             graffiti.handleSliderDrag(); // rerun slider drag on mouseup because we may not have gotten the last input event.
                                             if (previousPlayState === 'playing') {
                                               graffiti.startPlayback();
@@ -1619,18 +1619,20 @@ define([
             cell = utils.findCellByCellId(cellId);
             if (cell !== undefined) {
               canvas = graffiti.canvases[canvasType][cellId];
+              cellCanvas = canvas.canvas;
               cellElement = cell.element[0];
               cellRect = cellElement.getBoundingClientRect();
-              canvasStyle = {
-                width:  cellRect.width + 'px',
-                height: cellRect.height + 'px'
-              };
-              canvas.div.css(canvasStyle);
-              cellCanvas = canvas.canvas;
-              cellCanvas.width = cellRect.width;
-              cellCanvas.height = cellRect.height;
-              canvas.cellRect = cellRect;
-              // console.log('resized height of ',cellId, 'to ', cellRect.height);
+              if ((parseInt(cellRect.width) !== parseInt(cellCanvas.width)) || (parseInt(cellRect.height) !== parseInt(cellCanvas.height))) {
+                canvasStyle = {
+                  width:  cellRect.width + 'px',
+                  height: cellRect.height + 'px'
+                };
+                canvas.div.css(canvasStyle);
+                cellCanvas.width = cellRect.width;
+                cellCanvas.height = cellRect.height;
+                canvas.cellRect = cellRect;
+                //console.trace('resized height of ',cellId, 'to ', cellRect.height);
+              }
             }
           }
         }
@@ -2531,7 +2533,7 @@ define([
        const yBuffer = 2;
        let i, marker, offset, makerIcon, rect, yDiff, className, idMatch, metaData;
        if (markers.length > 0) {
-         console.log('markers:', markers);
+         //console.log('markers:', markers);
          for (i = 0; i < markers.length; ++i) {
            marker = markers[i];
            className = marker.className;
@@ -3021,7 +3023,7 @@ define([
         }, true);
 
         window.onblur = (e) => {
-          console.log('window lost focus, pausing any playing movie');
+          //console.log('window lost focus, pausing any playing movie');
           graffiti.pausePlayback();
         },
 
@@ -4270,7 +4272,7 @@ define([
           }
         }
         if (state.shouldUpdateDisplay('speaking', frameIndexes.speaking)) {
-          console.log(state.history.processed);
+          //console.log(state.history.processed);
           graffiti.updateSpeaking(frameIndexes.speaking.index);
         }
         if (state.shouldUpdateDisplay('view', frameIndexes.view)) {
@@ -4390,8 +4392,9 @@ define([
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTooltips();
         state.clearAnimationIntervals();
-
-        console.log('Graffiti: Stopped playback.');
+        utils.saveNotebook(() => {
+          console.log('Graffiti: Stopped playback.');
+        });
       },
 
       cancelPlaybackNoVisualUpdates: () => {
@@ -4503,7 +4506,7 @@ define([
                                        const playedSoFar = state.getTimePlayedSoFar();
                                        if (playedSoFar >= state.getHistoryDuration()) {
                                          // reached end of recording naturally, so set up for restart on next press of play button
-                                         console.log('end of recording reached, playedSoFar:', playedSoFar, 'duration', state.getHistoryDuration());
+                                         //console.log('end of recording reached, playedSoFar:', playedSoFar, 'duration', state.getHistoryDuration());
                                          state.setupForReset();
                                          graffiti.togglePlayback();
                                        } else {
@@ -4527,12 +4530,12 @@ define([
               graffiti.cancelPlayback({ cancelAnimation: true});
             } else {
               graffiti.pausePlayback();
-              console.log('total play time:', utils.getNow() - playStartedAt);
+              //console.log('total play time:', utils.getNow() - playStartedAt);
             }
           } else {
             graffiti.startPlayback();
             playStartedAt = utils.getNow();
-            console.log('started playback at:', playStartedAt);
+            //console.log('started playback at:', playStartedAt);
           }
         }
       },

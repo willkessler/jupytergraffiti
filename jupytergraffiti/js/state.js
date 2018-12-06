@@ -372,7 +372,7 @@ define([
     },
 
     scanningIsOn: () => {
-      console.log('scanning is on, currentPlaySpeed:', state.currentPlaySpeed);
+      //console.log('scanning is on, currentPlaySpeed:', state.currentPlaySpeed);
       return (state.currentPlaySpeed === 'scanActive' || state.currentPlaySpeed === 'scanInactive');
     },
 

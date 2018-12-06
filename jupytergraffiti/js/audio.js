@@ -69,7 +69,7 @@ define([
     updateAudioPlaybackRate: () => {
       const scalar = state.getPlayRateScalar();
       //const scalar = (rawScalar === 1.0 ? rawScalar : rawScalar * 0.85);
-      console.log('updateAudioPlaybackRate, scalar:', scalar);
+      //console.log('updateAudioPlaybackRate, scalar:', scalar);
       audio.audioObj.playbackRate = scalar;
     },
 
