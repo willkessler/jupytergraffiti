@@ -141,7 +141,8 @@ define([
       const notebook = Jupyter.notebook;
       if (!notebook.metadata.hasOwnProperty('graffiti')) {
         notebook.metadata['graffiti'] = { 
-          id: utils.generateUniqueId()
+          id: utils.generateUniqueId(),
+          language: 'EN' // defaults to EN but can be changed by the author for their preferred locale, by editing the notebook's metadata
         }
       }
       utils.assignCellIds();
