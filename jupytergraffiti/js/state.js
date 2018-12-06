@@ -1353,7 +1353,7 @@ define([
         }
       } else {
         for (let check = 0; check < numHistoryItems; ++check) {
-          console.log('findSpeakingStartNearestTime, check:', check);
+          //console.log('findSpeakingStartNearestTime, check:', check);
           historyItem = state.history['speaking'][check];
           if (historyItem.speaking) {
             if (direction === -1) {

@@ -428,7 +428,7 @@ define([
                                           ids: ['graffiti-forward-btn','graffiti-rewind-btn'],
                                           event: 'click',
                                           fn: (e) => {
-                                            console.log('Graffiti: forward-btn/rewind-btn clicked');
+                                            //console.log('Graffiti: forward-btn/rewind-btn clicked');
                                             let direction = 1;
                                             if (($(e.target).attr('id') === 'graffiti-rewind-btn') || ($(e.target).hasClass('fa-backward'))) {
                                               direction = -1;
@@ -3220,7 +3220,7 @@ define([
               }
             });
             
-            console.log('finishGraffiti: we got these stats:', state.getUsageStats());
+            console.log('Graffiti: finishGraffiti: we got these stats:', state.getUsageStats());
 
           } else {
             if (recordingCellInfo.newRecording) {
@@ -4190,7 +4190,7 @@ define([
               newCell.metadata.graffitiCellId = checkCellId;
               state.storePlaybackCellAddition(checkCellId, cellPosition);
               mustRefreshCellMaps = true;
-              console.log('Just inserted new cell.');              
+              //console.log('Graffiti: Just inserted new cell.');              
               graffiti.applyScrollNudgeAtCell(newCell, record, false);
             }
           }
@@ -4241,9 +4241,9 @@ define([
             state.setCurrentPlaySpeed('scanActive');
             state.setSpeakingStatus(false);
           }
-          console.log('playTimes:regular', state.playTimes['regular'].total,
-                      'scanActive:',  state.playTimes['scanActive'].total, 
-                      'scanInactive', state.playTimes['scanInactive'].total);
+//          console.log('playTimes:regular', state.playTimes['regular'].total,
+//                      'scanActive:',  state.playTimes['scanActive'].total, 
+//                      'scanInactive', state.playTimes['scanInactive'].total);
           audio.updateAudioPlaybackRate();
         }
       },
@@ -4313,7 +4313,7 @@ define([
         const previousPlayState = state.getActivity();
         graffiti.pausePlayback();
         const timeElapsed = state.getTimePlayedSoFar();
-        console.log('jumpPlayback timeElapsed',timeElapsed);
+        //console.log('jumpPlayback timeElapsed',timeElapsed);
         let t, frameIndexes;
         if (state.scanningIsOn()) {
           t = state.findSpeakingStartNearestTime(timeElapsed,direction, graffiti.rewindAmt);
@@ -4406,7 +4406,7 @@ define([
             actions: ['updateTotalPlayTime']
           }
         });
-        console.log('Now we got these stats:', state.getUsageStats());
+        console.log('Graffit got these stats:', state.getUsageStats());
       },
 
       cancelPlayback: (opts) => {
@@ -4629,7 +4629,6 @@ define([
           const recording = state.getManifestSingleRecording(playableMovie.cellId, playableMovie.recordingKey);
           graffiti.narratorName = recording.narratorName;
           graffiti.narratorPicture = recording.narratorPicture;
-          console.log('rec:', recording);
           if (playableMovie.cellType === 'markdown') {
             playableMovie.cell.render(); // always render a markdown cell first before playing a movie on a graffiti inside it
           }
