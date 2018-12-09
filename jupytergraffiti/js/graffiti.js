@@ -20,8 +20,6 @@ define([
           'jupytergraffiti/css/graffiti.css'
         ]);
 
-        localizer.init();
-
         const location = document.location;
 
         state.init();
@@ -81,17 +79,20 @@ define([
           storage.ensureNotebookGetsFirstAuthorId();
         }
 
-        // Set up the button that activates Graffiti on new notebooks and controls visibility of the control panel if the notebook has already been graffiti-ized.
-        graffiti.updateSetupButton();
+        // Init language strings
+        localizer.init().then(() => { 
+          // Set up the button that activates Graffiti on new notebooks and controls visibility of the control panel if the notebook has already been graffiti-ized.
+          graffiti.updateSetupButton();
 
-        if (Jupyter.notebook.metadata.hasOwnProperty('graffiti')) { // do not try to load the manifest if this notebook has not yet been graffiti-ized.
-          storage.loadManifest(currentAccessLevel).then(() => {
-            graffiti.initInteractivity();
-          }).catch((ex) => {
-            console.log('Graffiti: Not setting up Graffiti because this notebook has never had any authoring done yet (no recordingId).');
-            console.log(ex);
-          });
-        }
+          if (Jupyter.notebook.metadata.hasOwnProperty('graffiti')) { // do not try to load the manifest if this notebook has not yet been graffiti-ized.
+            storage.loadManifest(currentAccessLevel).then(() => {
+              graffiti.initInteractivity();
+            }).catch((ex) => {
+              console.log('Graffiti: Not setting up Graffiti because this notebook has never had any authoring done yet (no recordingId).');
+              console.log(ex);
+            });
+          }
+        });
         
       },
 
@@ -1239,7 +1240,6 @@ define([
         graffiti.setupDrawingScreen();
         graffiti.setupSavingScrim();
         graffiti.playAutoplayGraffiti(); // play any autoplay graffiti if there is one set up
-
 /*
         let body = '<div>Enter the Graffiti Hub Key to import Graffiti into this notebook.</div>';
         body += '<div style="font-weight:bold;margin-top:15px;">Key: <input type="text" value="R5a7Hb"/ width="60"></div>';
@@ -3677,6 +3677,7 @@ define([
         graffiti.removeCellsAddedByPlaybackOrRecording();
         graffiti.hideLabelInputBoxes();
         state.restoreCellStates('selections');
+        state.restoreLineNumbersStates();
         graffiti.sitePanel.animate({ scrollTop: graffiti.preRecordingScrollTop }, 750);
         graffiti.selectIntersectingGraffitiRange();
         state.deleteTrackingArrays();
@@ -4021,6 +4022,18 @@ define([
         //console.log('updateView, viewIndex:', viewIndex);
         let record = state.getHistoryItem('view', viewIndex);
         record.hoverCell = utils.findCellByCellId(record.cellId);
+
+        // Make sure the hoverCell shows line numbers if they were visible during recording; otherwise all registration will be off
+        // by the width of the line number gutter.
+        if (record.hoverCell !== undefined) { // make sure we were actually hovering over a cell before we try to tweak the gutter.
+          if (record.hasOwnProperty('lineNumbersVisible')) { // some early recordings won't have this property
+            const cm = record.hoverCell.code_mirror;
+            const currentlyVisible = cm.options.lineNumbers;
+            if (record.lineNumbersVisible != cm.options.lineNumbers) {
+              record.hoverCell.toggle_line_numbers();
+            }
+          }
+        }
 
         // Select whatever cell is currently selected
         if (record.selectedCellId !== undefined) {
@@ -4405,7 +4418,9 @@ define([
           console.log('Graffiti: not restoring cell contents since this recording specifies not to.');
         } else {
           graffiti.removeCellsAddedByPlaybackOrRecording();
+          state.restoreCellStates('contents');
           state.restoreCellStates('selections');
+          state.restoreLineNumbersStates();
         }
         utils.saveNotebook();
         state.updateUsageStats({
@@ -4414,7 +4429,7 @@ define([
             actions: ['updateTotalPlayTime']
           }
         });
-        console.log('Graffit got these stats:', state.getUsageStats());
+        console.log('Graffiti: Got these stats:', state.getUsageStats());
       },
 
       cancelPlayback: (opts) => {

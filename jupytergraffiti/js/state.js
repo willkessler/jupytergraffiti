@@ -1525,8 +1525,13 @@ define([
       state.cellStates = {
         contents: state.createContentsRecord(false),
         selections: state.createSelectionsRecord(),
-        changedCells: {}
+        changedCells: {},
+        lineNumberStates: {},
       };
+      for (let i = 0, cell; i < cells.length; ++i) {
+        cell = cells[i];
+        state.cellStates.lineNumberStates[utils.getMetadataCellId(cell.metadata)] = cell.code_mirror.options.lineNumbers;
+      }
     },
 
     storeCellIdAffectedByActivity: (cellId) => {
@@ -1579,7 +1584,7 @@ define([
                   state.restoreCellOutputs(cell, cellOutputs);
                 }
               }
-            } else {
+            } else { // restoring selections
               if (selections !== undefined) {
                 if ((cell.cell_type === 'code') && (selections.active)) { // hack, not coded right
                   cell.code_mirror.focus();
@@ -1591,7 +1596,20 @@ define([
           }
         }
       }
-      // Now delete any cells created during playback.
+    },
+
+    restoreLineNumbersStates: () => {
+      if (Object.keys(state.cellStates.lineNumberStates).length > 0) {
+        let cell;
+        for (let cellId of Object.keys(state.cellStates.lineNumberStates)) {
+          cell = utils.findCellByCellId(cellId);
+          if (cell !== undefined) {
+            if (cell.code_mirror.options.lineNumbers != state.cellStates.lineNumberStates[cellId]) {
+              cell.toggle_line_numbers();
+            }
+          }
+        }
+      }
     },
 
     getScrollTop: () => {

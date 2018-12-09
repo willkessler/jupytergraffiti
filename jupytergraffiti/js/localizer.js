@@ -21,8 +21,10 @@ define([
       if (localizer.translations.hasOwnProperty(localizer.language)) {
         if (localizer.translations[localizer.language].hasOwnProperty(token)) {
           if (localizer.translations[localizer.language][token].length > 0) {
+            // console.log('localized, for ' + token + ' returning ' , localizer.translations[localizer.language][token]);
             return localizer.translations[localizer.language][token];
           } else {
+            // console.log('unlocalized, for ' + token + ' returning ' , localizer.translations[localizer.defaultLanguage][token]);
             return localizer.translations[localizer.defaultLanguage][token];
           }
         }
@@ -117,17 +119,25 @@ define([
           'ACTIVATE_GRAFFITI_ADVISORY':        'Enable Graffiti on this Notebook, so you can begin using Graffiti for the first time?<br>' +
                                                'If you click Cancel, we will not change the notebook in any way.' +
                                                '<br><br><i>(This process merely adds some metadata to the cells, but does not otherwise change the Notebook\'s contents.)</i>',
-        },
-        'CN' : {
         }
-      }
+      };
       const notebook = Jupyter.notebook;
-      localizer.setLanguage();
       if (notebook.metadata.hasOwnProperty('graffiti')) {
         if (notebook.metadata.graffiti.hasOwnProperty('language')) {
           localizer.setLanguage(notebook.metadata.graffiti.language);
         }
       }
+      return new Promise((resolve) => {
+        requirejs(['/nbextensions/graffiti_extension/js/locales/cn/strings.js'], function (strings) {
+          console.log('Fetched lang strings');
+          localizer.translations['CN'] = strings.getTranslations();
+          console.log('we loaded chinese translations.');
+          //localizer.setLanguage('CN');
+          localizer.setLanguage('EN');
+          resolve();
+        });
+      });
+
     },
 
   };
