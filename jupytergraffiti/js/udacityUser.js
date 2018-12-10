@@ -63,12 +63,18 @@ define([
     },
     trackUsageStats: () => {
       if (!udacityUser.usageReportSent) {
+        let stats = state.getUsageStats();
+        stats.workspace = state.getWorkspace();
+        
         let xhr = new XMLHttpRequest();
         // Async is set to false to make this request work on unload event
         xhr.open("POST", `${NEBULA_URL}/api/v1/remote/track-graffiti`, false);
         xhr.setRequestHeader("Authorization", "Star " + udacityUser.token);
         xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.send(JSON.stringify(state.getUsageStats()));
+        xhr.setRequestHeader("Content-Type", "application/json");
+        // Required to allow cookie to be set crossDomain
+        xhr.withCredentials = true;
+        xhr.send(JSON.stringify(stats));
         udacityUser.usageReportSent = true;
       }
     }
