@@ -156,19 +156,21 @@ define([
     },
 
     collectViewInfo: (clientX, clientY, notebookPanelHeight, scrollDiff) => {
-      let cellElement, cellRect, outerCellRect;
+      let cellElement, cellElementJq, cellRect, outerCellRect,
+          cellIndex, cellIndexStr, cell, innerCell, innerCellRect, innerCellRectRaw, prompt, 
+          pointerPosition, pointerInsidePromptArea, cellPosition, lineNumbersVisible, cm;
       const inputCells = Jupyter.notebook.get_cells();
       const selectedCell = Jupyter.notebook.get_selected_cell();
       const selectedCellId = utils.getMetadataCellId(selectedCell.metadata);
       // handle case where pointer is above all cells or below all cells
-      let cellIndex, cellIndexStr, cell, innerCell, innerCellRect, innerCellRectRaw, prompt, pointerPosition, pointerInsidePromptArea, cellPosition, cm;
       let promptBbox = undefined;
       for (cellIndexStr in inputCells) {
         cellIndex = parseInt(cellIndexStr);
         cell = inputCells[cellIndex];
         cellElement = cell.element[0];
+        cellElementJq = $(cellElement);
         cellRect = cellElement.getBoundingClientRect();
-        prompt = $(cellElement).find('.prompt');
+        prompt = cellElementJq.find('.prompt');
         pointerInsidePromptArea = false;
         if ((prompt.length > 0) && (prompt.is(':visible'))) {
           promptBbox = prompt[0].getBoundingClientRect();
@@ -183,7 +185,7 @@ define([
             top: cellRect.top,
             left: cellRect.left
           };
-          innerCell = $(cellElement).find('.inner_cell')[0];
+          innerCell = cellElementJq.find('.inner_cell')[0];
           innerCellRectRaw = innerCell.getBoundingClientRect();
           innerCellRect = { 
             top: innerCellRectRaw.top, 
@@ -191,7 +193,8 @@ define([
             width: innerCellRectRaw.width, 
             height: innerCellRectRaw.height 
           };
-          cellPosition = $(cellElement).position();
+          lineNumbersVisible = cell.code_mirror.options.lineNumbers;
+          cellPosition = cellElementJq.position();
           cm = cell.code_mirror;
           const innerScrollInfo = cm.getScrollInfo();
           const innerScroll = { left: innerScrollInfo.left, top: innerScrollInfo.top };
@@ -199,6 +202,7 @@ define([
             cellId: utils.getMetadataCellId(cell.metadata), // The id of cell that the pointer is hovering over right now
             innerCellRect: innerCellRect,
             innerScroll: innerScroll,
+            lineNumbersVisible: lineNumbersVisible,
             outerCellRect: outerCellRect,
             inMarkdownCell: (cell.cell_type === 'markdown'),
             inPromptArea: pointerInsidePromptArea,

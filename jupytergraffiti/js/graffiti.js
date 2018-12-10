@@ -6,10 +6,11 @@ define([
   './audio.js',
   './storage.js',
   './sticker.js',
+  './localizer.js',
   './selectionSerializer.js',
   './udacityUser.js',
   'components/marked/lib/marked'
-], function(dialog, LZString, state, utils, audio, storage, stickerLib, selectionSerializer, udacityUser, marked) {
+], function(dialog, LZString, state, utils, audio, storage, stickerLib, localizer, selectionSerializer, udacityUser, marked) {
   const Graffiti = (function() {
     const graffiti = {
 
@@ -79,17 +80,20 @@ define([
           storage.ensureNotebookGetsFirstAuthorId();
         }
 
-        // Set up the button that activates Graffiti on new notebooks and controls visibility of the control panel if the notebook has already been graffiti-ized.
-        graffiti.updateSetupButton();
+        // Init language strings
+        localizer.init().then(() => { 
+          // Set up the button that activates Graffiti on new notebooks and controls visibility of the control panel if the notebook has already been graffiti-ized.
+          graffiti.updateSetupButton();
 
-        if (Jupyter.notebook.metadata.hasOwnProperty('graffiti')) { // do not try to load the manifest if this notebook has not yet been graffiti-ized.
-          storage.loadManifest(currentAccessLevel).then(() => {
-            graffiti.initInteractivity();
-          }).catch((ex) => {
-            console.log('Graffiti: Not setting up Graffiti because this notebook has never had any authoring done yet (no recordingId).');
-            console.log(ex);
-          });
-        }
+          if (Jupyter.notebook.metadata.hasOwnProperty('graffiti')) { // do not try to load the manifest if this notebook has not yet been graffiti-ized.
+            storage.loadManifest(currentAccessLevel).then(() => {
+              graffiti.initInteractivity();
+            }).catch((ex) => {
+              console.log('Graffiti: Not setting up Graffiti because this notebook has never had any authoring done yet (no recordingId).');
+              console.log(ex);
+            });
+          }
+        });
         
       },
 
@@ -250,15 +254,15 @@ define([
         setTimeout(graffiti.performWindowResizeCheck, graffiti.windowSizeCheckInterval);
 
         graffiti.setupOneControlPanel('graffiti-record-controls', 
-                                      '  <button class="btn btn-default" id="graffiti-create-btn">' +
-                                      '<i class="fa fa-edit"></i>&nbsp; <span>Create</span></button>' +
-                                      '  <button class="btn btn-default" id="graffiti-edit-btn" title="Edit Graffiti movie">' +
-                                      '<i class="fa fa-edit"></i>&nbsp; <span>Edit</span></button>' +
-                                      '  <button class="btn btn-default" id="graffiti-begin-recording-btn" title="Record movie">' +
-                                      '<i class="fa fa-film graffiti-recorder-button"></i>&nbsp;<span>Record</span></button>' +
-                                      '  <button class="btn btn-default" id="graffiti-begin-rerecording-btn" title="ReRecord movie">' +
-                                      '<i class="fa fa-film graffiti-recorder-button"></i>&nbsp;<span>Rerecord</span></button>' +
-                                      '  <button class="btn btn-default" id="graffiti-remove-btn" title="Remove Graffiti">' +
+                                      '  <button class="btn btn-default" id="graffiti-create-btn" title="' + localizer.getString('CREATE') + '">' +
+                                      '<i class="fa fa-edit"></i>&nbsp; <span>' + localizer.getString('CREATE') + '</span></button>' +
+                                      '  <button class="btn btn-default" id="graffiti-edit-btn" title="' + localizer.getString('EDIT_TOOLTIP') + '">' +
+                                      '<i class="fa fa-edit"></i>&nbsp; <span>' + localizer.getString('EDIT') + '</span></button>' +
+                                      '  <button class="btn btn-default" id="graffiti-begin-recording-btn" title="' + localizer.getString('RECORD_MOVIE') + '">' +
+                                      '<i class="fa fa-film graffiti-recorder-button"></i>&nbsp;<span>' + localizer.getString('RECORD') + '</span></button>' +
+                                      '  <button class="btn btn-default" id="graffiti-begin-rerecording-btn" title="' + localizer.getString('RERECORD_MOVIE') + '">' +
+                                      '<i class="fa fa-film graffiti-recorder-button"></i>&nbsp;<span>' + localizer.getString('RERECORD') + '</span></button>' +
+                                      '  <button class="btn btn-default" id="graffiti-remove-btn" title="' + localizer.getString('REMOVE_GRAFFITI') + '">' +
                                       '<i class="fa fa-trash"></i></button>',
                                       [
                                         {
@@ -286,7 +290,8 @@ define([
         );
 
         graffiti.setupOneControlPanel('graffiti-finish-edit-controls', 
-                                      '<button class="btn btn-default" id="finish-graffiti-btn" title="Save Graffiti">Save Graffiti</button>',
+                                      '<button class="btn btn-default" id="finish-graffiti-btn" title="' +
+                                      localizer.getString('SAVE_GRAFFITI') + '">' + localizer.getString('SAVE_GRAFFITI') + '</button>',
                                       [
                                         {
                                           ids: ['finish-graffiti-btn'],
@@ -299,8 +304,8 @@ define([
         );
 
         graffiti.setupOneControlPanel('graffiti-start-recording-controls', 
-                                      '<button class="btn btn-default" id="btn-start-recording" title="Start recording">' +
-                                      '<i class="fa fa-pause recorder-start-button"></i>&nbsp;Start Recording</button>',
+                                      '<button class="btn btn-default" id="btn-start-recording" title="' + localizer.getString('START_RECORDING') + '">' +
+                                      '<i class="fa fa-pause recorder-start-button"></i>&nbsp;' + localizer.getString('START_RECORDING') + '</button>',
                                       [
                                         {
                                           ids: ['btn-start-recording', 'btn-restart-recording'],
@@ -313,8 +318,8 @@ define([
         );
 
         graffiti.setupOneControlPanel('graffiti-recording-controls', 
-                                      '<button class="btn btn-default" id="btn-end-recording" title="End recording">' +
-                                      '<i class="fa fa-pause recorder-stop-button"></i>&nbsp;End Recording</button>' +
+                                      '<button class="btn btn-default" id="btn-end-recording" title="' + localizer.getString('END_RECORDING') + '">' +
+                                      '<i class="fa fa-pause recorder-stop-button"></i>&nbsp;' + localizer.getString('END_RECORDING') + '</button>' +
                                       '<div id="graffiti-recording-status">' +
                                       '  <div id="graffiti-recording-flash-icon"></div>' +
                                       '  <div id="graffiti-time-display-recording"></div>' +
@@ -333,7 +338,7 @@ define([
         // controls which recording takes are the activeTake
         graffiti.setupOneControlPanel('graffiti-takes-controls',
                                       '<div id="graffiti-takes-controls-outer">' +
-                                      '  <div id="graffiti-takes-title">Takes:</div>' +
+                                      '  <div id="graffiti-takes-title">' + localizer.getString('TAKES') + ':</div>' +
                                       '  <div id="graffiti-takes-list"></div>' +
                                       '</div>',
                                       [
@@ -372,42 +377,44 @@ define([
                                       '  </div>' + 
                                       '</div>' +
                                       '<div id="graffiti-playback-buttons">' +
-                                      '  <button class="btn btn-default btn-play" id="graffiti-play-btn" title="Start playback">' +
+                                      '  <button class="btn btn-default btn-play" id="graffiti-play-btn" title="' + localizer.getString('START_PLAYBACK') + '">' +
                                       '    <i class="fa fa-play"></i>' +
                                       '  </button>' +
-                                      '  <button class="btn btn-default" id="graffiti-pause-btn" title="Pause playback">' +
+                                      '  <button class="btn btn-default" id="graffiti-pause-btn" title="' + localizer.getString('PAUSE_PLAYBACK') + '">' +
                                       '    <i class="fa fa-pause"></i>' +
                                       '  </button>' +
                                       '  <div id="graffiti-skip-buttons">' +
-                                      '    <button class="btn btn-default btn-rewind" id="graffiti-rewind-btn" title="Skip back ' + 
-                                      (state.scanningIsOn() ? 'to previous sentence' : graffiti.rewindAmt + ' seconds') + '">' +
+                                      '    <button class="btn btn-default btn-rewind" id="graffiti-rewind-btn" title="' + localizer.getString('SKIP_BACK') + ' ' +
+                                      (state.scanningIsOn() ? localizer.getString('TO_PREVIOUS_SENTENCE') : graffiti.rewindAmt + ' ' + localizer.getString('SECONDS') ) + '">' +
                                       '      <i class="fa fa-backward"></i>' +
                                       '    </button>' +
-                                      '    <button class="btn btn-default btn-forward" id="graffiti-forward-btn" title="Skip forward ' + 
-                                      (state.scanningIsOn() ? 'to next sentence' : graffiti.rewindAmt + ' seconds') + '">' +
+                                      '    <button class="btn btn-default btn-forward" id="graffiti-forward-btn" title="' + localizer.getString('SKIP_FORWARD') + ' ' + 
+                                      (state.scanningIsOn() ? localizer.getString('TO_NEXT_SENTENCE') : graffiti.rewindAmt + ' ' + localizer.getString('SECONDS')) + '">' +
                                       '      <i class="fa fa-forward"></i>' +
                                       '    </button>' +
                                       '  </div>' +
                                       '  <div id="graffiti-sound-buttons">' +
-                                      '    <button class="btn btn-default btn-sound-on" id="graffiti-sound-on-btn" title="mute">' +
+                                      '    <button class="btn btn-default btn-sound-on" id="graffiti-sound-on-btn" title="' + localizer.getString('MUTE') + '">' +
                                       '       <i class="fa fa-volume-up"></i>' +
                                       '   </button>' +
-                                      '   <button class="btn btn-default btn-sound-off" id="graffiti-sound-off-btn" title="unmute">' +
+                                      '   <button class="btn btn-default btn-sound-off" id="graffiti-sound-off-btn" title="' + localizer.getString('UNMUTE') + '">' +
                                       '     <i class="fa fa-volume-off"></i>' +
                                       '   </button>' +
                                       '  </div>' +
                                       '  <div id="graffiti-rapidplay-buttons">' +
-                                      '    <button class="btn btn-default btn-rapidplay-on" id="graffiti-rapidplay-on-btn" title="high speed playback">' + runnerOnIcon +
+                                      '    <button class="btn btn-default btn-rapidplay-on" id="graffiti-rapidplay-on-btn" title="' +
+                                      localizer.getString('HIGH_SPEED_PLAYBACK') + '">' + runnerOnIcon +
                                       '   </button>' +
-                                      '   <button class="btn btn-default btn-rapidplay-off" id="graffiti-rapidplay-off-btn" title="regular speed playback">' + runnerOffIcon +
+                                      '   <button class="btn btn-default btn-rapidplay-off" id="graffiti-rapidplay-off-btn" title="' +
+                                      localizer.getString('REGULAR_SPEED_PLAYBACK') + '">' + runnerOffIcon +
                                       '   </button>' +
                                       '  </div>' +
                                       '  <div id="graffiti-rapidscan-buttons">' +
-                                      '    <button class="btn btn-default btn-rapidscan-on" id="graffiti-rapidscan-on-btn" title="high speed during silences">' + 
-                                      rapidScanOnIcon +
+                                      '    <button class="btn btn-default btn-rapidscan-on" id="graffiti-rapidscan-on-btn" title="' +
+                                      localizer.getString('HIGH_SPEED_SILENCES') + '">' + rapidScanOnIcon +
                                       '   </button>' +
-                                      '   <button class="btn btn-default btn-rapidscan-off" id="graffiti-rapidscan-off-btn" title="regular speed during silences">' + 
-                                      rapidScanOffIcon +
+                                      '   <button class="btn btn-default btn-rapidscan-off" id="graffiti-rapidscan-off-btn" title="' +
+                                      localizer.getString('REGULAR_SPEED_SILENCES') + '">' + rapidScanOffIcon +
                                       '   </button>' +
                                       '  </div>' +
                                       '</div>' +
@@ -429,7 +436,7 @@ define([
                                           ids: ['graffiti-forward-btn','graffiti-rewind-btn'],
                                           event: 'click',
                                           fn: (e) => {
-                                            console.log('Graffiti: forward-btn/rewind-btn clicked');
+                                            //console.log('Graffiti: forward-btn/rewind-btn clicked');
                                             let direction = 1;
                                             if (($(e.target).attr('id') === 'graffiti-rewind-btn') || ($(e.target).hasClass('fa-backward'))) {
                                               direction = -1;
@@ -511,13 +518,13 @@ define([
 
         graffiti.setupOneControlPanel('graffiti-recording-pen-controls', 
                                       '<div id="graffiti-recording-pens-shell">' +
-                                      ' <button class="btn btn-default" id="graffiti-line-pen" title="Freeform pen tool">' +
+                                      ' <button class="btn btn-default" id="graffiti-line-pen" title="' + localizer.getString('FREEFORM_PEN_TOOL') + '">' +
                                       '<svg class="svg-inline--fa fa-pen-alt fa-w-16" aria-hidden="true" data-prefix="fa" data-icon="pen-alt" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" data-fa-i2svg=""><path fill="currentColor" d="M497.94 74.17l-60.11-60.11c-18.75-18.75-49.16-18.75-67.91 0l-56.55 56.55 128.02 128.02 56.55-56.55c18.75-18.75 18.75-49.15 0-67.91zm-246.8-20.53c-15.62-15.62-40.94-15.62-56.56 0L75.8 172.43c-6.25 6.25-6.25 16.38 0 22.62l22.63 22.63c6.25 6.25 16.38 6.25 22.63 0l101.82-101.82 22.63 22.62L93.95 290.03A327.038 327.038 0 0 0 .17 485.11l-.03.23c-1.7 15.28 11.21 28.2 26.49 26.51a327.02 327.02 0 0 0 195.34-93.8l196.79-196.79-82.77-82.77-84.85-84.85z"></path></svg>' +
                                       '</button>' +
-                                      ' <button class="btn btn-default" id="graffiti-highlight-pen" title="Highlighter tool">' +
+                                      ' <button class="btn btn-default" id="graffiti-highlight-pen" title="' + localizer.getString('HIGHLIGHTER_TOOL') + '">' +
                                       '<svg class="svg-inline--fa fa-highlighter fa-w-17" aria-hidden="true" data-prefix="fa" data-icon="highlighter" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 544 512" data-fa-i2svg=""><path fill="currentColor" d="M0 479.98L99.92 512l35.45-35.45-67.04-67.04L0 479.98zm124.61-240.01a36.592 36.592 0 0 0-10.79 38.1l13.05 42.83-50.93 50.94 96.23 96.23 50.86-50.86 42.74 13.08c13.73 4.2 28.65-.01 38.15-10.78l35.55-41.64-173.34-173.34-41.52 35.44zm403.31-160.7l-63.2-63.2c-20.49-20.49-53.38-21.52-75.12-2.35L190.55 183.68l169.77 169.78L530.27 154.4c19.18-21.74 18.15-54.63-2.35-75.13z"></path></svg>' +
                                       '</button>' +
-                                      ' <button class="btn btn-default" id="graffiti-eraser-pen" title="Eraser tool">' +
+                                      ' <button class="btn btn-default" id="graffiti-eraser-pen" title="' + localizer.getString('ERASER_TOOL') + '">' +
                                       '<svg aria-hidden="true" data-prefix="fas" data-icon="eraser" class="svg-inline--fa fa-eraser fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M497.941 273.941c18.745-18.745 18.745-49.137 0-67.882l-160-160c-18.745-18.745-49.136-18.746-67.883 0l-256 256c-18.745 18.745-18.745 49.137 0 67.882l96 96A48.004 48.004 0 0 0 144 480h356c6.627 0 12-5.373 12-12v-40c0-6.627-5.373-12-12-12H355.883l142.058-142.059zm-302.627-62.627l137.373 137.373L265.373 416H150.628l-80-80 124.686-124.686z"></path></svg>' +
                                       '</button>' +
                                       '</div>' +
@@ -527,13 +534,13 @@ define([
                                       }).join('') +
                                       '</div>' +
                                       '<div id="graffiti-line-style-controls">' +
-                                      '  <div id="graffiti-temporary-ink" title="Use disappearing ink">' +
+                                      '  <div id="graffiti-temporary-ink" title="' + localizer.getString('USE_DISAPPEARING_INK') + '">' +
                                       '   <input type="checkbox" id="graffiti-temporary-ink-control" checked />' +
-                                      '   <label id="graffiti-temporary-ink-label" for="graffiti-temporary-ink-control">Temporary Ink</label>' +
+                                      '   <label id="graffiti-temporary-ink-label" for="graffiti-temporary-ink-control">' + localizer.getString('TEMPORARY_INK') + '</label>' +
                                       '  </div>' +
-                                      '  <div id="graffiti-dashed-line" title="Use dashed lines">' +
+                                      '  <div id="graffiti-dashed-line" title="' + localizer.getString('USE_DASHED_LINES') + '">' +
                                       '   <input type="checkbox" id="graffiti-dashed-line-control" />' +
-                                      '   <label id="graffiti-dashed-line-label" for="graffiti-dashed-line-control">Dashed lines</label>' +
+                                      '   <label id="graffiti-dashed-line-label" for="graffiti-dashed-line-control">' + localizer.getString('DASHED_LINES') + '</label>' +
                                       '  </div>' +
                                       '</div>',
                                       [
@@ -716,9 +723,10 @@ define([
                                       '  <div id="graffiti-sticker-style-controls">' +
                                       '    <div id="graffiti-sticker-fill">' +
                                       '     <input type="checkbox" id="graffiti-sticker-fill-control" />' +
-                                      '     <label id="graffiti-sticker-fill-control-label" for="graffiti-sticker-fill-control" title="Fill shapes with chosen color">Solid Fill</label>' +
+                                      '     <label id="graffiti-sticker-fill-control-label" for="graffiti-sticker-fill-control" title="Fill shapes with chosen color">' +
+                                      localizer.getString('SOLID_FILL') + '</label>' +
                                       '    </div>' +
-                                      '    <div id="graffiti-sticker-hint">Shift-key: align items to grid / keep items square</div>' +
+                                      '    <div id="graffiti-sticker-hint">' + localizer.getString('SHIFT_KEY_ALIGN') + '</div>' +
                                       '  </div>' +
                                       '</div>',
                                       [
@@ -789,7 +797,8 @@ define([
 
 
         graffiti.setupOneControlPanel('graffiti-access-api',
-                                      '<button class="btn btn-default" id="graffiti-access-api-btn" title="Create Sample API Calls"></i>&nbsp; <span>Create Sample API Calls</span></button>',
+                                      '<button class="btn btn-default" id="graffiti-access-api-btn" title="' + localizer.getString('SAMPLE_API') + '"></i>&nbsp; <span>' +
+                                      localizer.getString('SAMPLE_API') + '</span></button>',
                                       [
                                         { 
                                           ids: ['graffiti-access-api-btn'],
@@ -875,7 +884,7 @@ define([
         for (recIndex = sortedRecs.length; recIndex > 0; --recIndex) {
           recIndexZerobased = recIndex - 1;
           rec = sortedRecs[recIndexZerobased];
-          renderedDate = 'Recorded: ' + new Date(rec.createDate);
+          renderedDate = localizer.getString('RECORDED_ON') + ': ' + new Date(rec.createDate);
           takeClass = ((rec.key === activeTakeId) ? 'graffiti-take-selected' : 'graffiti-take-unselected');
           renderedTakes += '<div ' +
                            'class="' + takeClass + ' graffiti-take-item" ' +
@@ -930,15 +939,17 @@ define([
           graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-sound-off-btn').hide().parent().find('#graffiti-sound-on-btn').show();
         }
         const currentPlaySpeed = state.getCurrentPlaySpeed();
-        graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rewind-btn').attr({title:'Skip back ' + graffiti.rewindAmt + ' seconds'});
-        graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-forward-btn').attr({title:'Skip forward ' + graffiti.rewindAmt + ' seconds'});
+        graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rewind-btn').attr({title:localizer.getString('SKIP_BACK') + ' ' + graffiti.rewindAmt + localizer.getString('SECONDS')});
+        graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-forward-btn').attr({title:localizer.getString('SKIP_FORWARD') + ' ' + graffiti.rewindAmt + ' ' + localizer.getString('SECONDS')});
         switch (currentPlaySpeed) {
           case 'scanActive':
           case 'scanInactive':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidscan-on-btn').hide().parent().find('#graffiti-rapidscan-off-btn').show();
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidplay-off-btn').hide().parent().find('#graffiti-rapidplay-on-btn').show();
-            graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rewind-btn').attr({title:'Skip back to previous sentence'});
-            graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-forward-btn').attr({title:'Skip forward to next sentence'});
+            graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rewind-btn').attr({title:localizer.getString('SKIP_BACK') + ' ' +
+                                                                                                            localizer.getString('TO_PREVIOUS_SENTENCE')});
+            graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-forward-btn').attr({title:localizer.getString('SKIP_FORWARD') + ' ' +
+                                                                                                             localizer.getString('TO_NEXT_SENTENCE')});
             break;
           case 'rapid':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rapidscan-off-btn').hide().parent().find('#graffiti-rapidscan-on-btn').show();
@@ -973,12 +984,12 @@ define([
               visibleControlPanels = ['graffiti-notifier']; // hide all control panels if in view only mode and not play mode
               if (isMarkdownCell) {
                 if (!activeCell.rendered) {
-                  graffiti.setNotifier('<div>Select some text in this Markdown cell to add or modify Graffiti, or click inside any existing Graffiti text to modify it.</div>');
+                  graffiti.setNotifier('<div>' + localizer.getString('SELECT_SOME_TEXT_MARKDOWN') + '</div>');
                 } else {
-                  graffiti.setNotifier('<div>Edit the Markdown cell to add or modify Graffiti in the cell.</div>');
+                  graffiti.setNotifier('<div>' + localizer.getString('EDIT_IN_MARKDOWN_CELL') + '</div>');
                 }
               } else {
-                graffiti.setNotifier('<div>Select some text to create or modify Graffiti, or click inside any existing Graffiti text to modify that Graffiti.</div>');
+                graffiti.setNotifier('<div>' + localizer.getString('SELECT_SOME_TEXT_PLAIN') + '</div>');
               }
             } else if (accessLevel === 'view') {
               console.log('Graffiti: view only');
@@ -1030,7 +1041,7 @@ define([
                                          },
                                        ]);
                   */
-                  graffiti.setNotifier('<div>You can play this movie any time via its tooltip.</div>');
+                  graffiti.setNotifier('<div>' + localizer.getString('YOU_CAN_PLAY_VIA_TOOLTIP') + '</div>');
                 }
               }
             }
@@ -1049,8 +1060,8 @@ define([
               }              
             }
             graffiti.showControlPanels(['graffiti-playback-controls']);
-            graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-pause-link">Pause</span> (or scroll the page) to interact with this Notebook</div>' +
-                                 '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-link">Cancel</span> movie playback (Esc)</div>',
+            graffiti.setNotifier('<div>' + localizer.getString('PAUSE_TO_INTERACT') + '</div>' +
+                                 '<div>' + localizer.getString('CANCEL_MOVIE_PLAYBACK_1') + '</div>',
                                  [
                                    {
                                      ids: ['graffiti-pause-link'],
@@ -1071,8 +1082,8 @@ define([
           case 'playbackPaused':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-pause-btn').hide().parent().find('#graffiti-play-btn').show();
             if (state.getSetupForReset()) {
-              graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-restart-play-link">Play movie again</span></div>' +
-                                   '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-postreset-link">Cancel</span> movie playback (Esc)</div>',
+              graffiti.setNotifier('<div>' + localizer.getString('PLAY_MOVIE_AGAIN') + '</div>' +
+                                   '<div>' + localizer.getString('CANCEL_MOVIE_PLAYBACK_2') + '</div>',
                                    [
                                      {
                                        ids: ['graffiti-restart-play-link'],
@@ -1090,8 +1101,8 @@ define([
                                      }
                                    ]);
             } else {
-              graffiti.setNotifier('<div><span class="graffiti-notifier-link" id="graffiti-continue-play-link">Continue</span> movie playback</div>' +
-                                   '<div><span class="graffiti-notifier-link" id="graffiti-cancel-playback-prereset-link">Cancel</span> movie playback (Esc)</div>',
+              graffiti.setNotifier('<div>' + localizer.getString('CONTINUE_MOVIE_PLAYBACK') + '</div>' +
+                                   '<div>' + localizer.getString('CANCEL_MOVIE_PLAYBACK_3') + '</div>',
                                    [
                                      {
                                        ids: ['graffiti-continue-play-link'],
@@ -1112,8 +1123,8 @@ define([
             break;
           case 'graffiting':
             graffiti.showControlPanels(['graffiti-finish-edit-controls']);
-            graffiti.setNotifier('<div>Enter the markdown you want to be displayed in the Graffiti and then click "Save Graffiti"  (or just run the label cell).</div>' +
-                                 '<div>Or, <span class="graffiti-notifier-link" id="graffiti-cancel-graffiting-link">Cancel changes</span></div>',
+            graffiti.setNotifier('<div>' + localizer.getString('ENTER_AND_SAVE') + '</div>' +
+                                 '<div>' + localizer.getString('CANCEL_CHANGES_1') + '</div>',
                                  [
                                    {
                                      ids: ['graffiti-cancel-graffiting-link'],
@@ -1126,8 +1137,8 @@ define([
             break;
           case 'recordingLabelling':
             graffiti.showControlPanels(['graffiti-start-recording-controls']);
-            graffiti.setNotifier('<div>Enter markdown to describe your movie, then click "Start Recording" (or just run the label cell).</div>' +
-                                 '<div>Or, <span class="graffiti-notifier-link" id="graffiti-cancel-recording-labelling-link">Cancel changes</span></div>',
+            graffiti.setNotifier('<div>' + localizer.getString('ENTER_MARKDOWN_MOVIE_DESCRIPTION') + '</div>' +
+                                 '<div>' + localizer.getString('CANCEL_CHANGES_2') + '</div>',
                                  [
                                    {
                                      ids: ['graffiti-cancel-recording-labelling-link'],
@@ -1140,8 +1151,8 @@ define([
             break;
           case 'recordingPending':
             graffiti.showControlPanels([]);
-            graffiti.setNotifier('<div>Click anywhere in the notebook to begin recording your movie.</div>' +
-                                 '<div>Or, <span class="graffiti-notifier-link" id="graffiti-cancel-recording-pending-link">Cancel recording</span></div>',
+            graffiti.setNotifier('<div>' + localizer.getString('CLICK_BEGIN_MOVIE_RECORDING') + '</div>' +
+                                 '<div>' + localizer.getString('CANCEL_RECORDING_1') + '</div>',
                                  [
                                    {
                                      ids: ['graffiti-cancel-recording-pending-link'],
@@ -1161,10 +1172,8 @@ define([
             break;
           case 'recording':
             graffiti.showControlPanels(['graffiti-recording-controls', 'graffiti-recording-pen-controls','graffiti-stickers-controls']);
-            graffiti.setNotifier('<div>Your activities are being recorded.' + 
-                                 'Press ⌘-M or click <span class="graffiti-notifier-link" id="graffiti-end-recording-link">End Recording</span> ' +
-                                 'to end recording.</div>' +
-                                 '<div>Or, <span class="graffiti-notifier-link" id="graffiti-cancel-recording-link">Cancel recording</span></div>',
+            graffiti.setNotifier('<div>' + localizer.getString('ACTIVITIES_BEING_RECORDED') + '</div>' +
+                                 '<div>' + localizer.getString('CANCEL_RECORDING_2') + '</div>',
                                  [
                                    {
                                      ids: ['graffiti-end-recording-link'],
@@ -1232,7 +1241,6 @@ define([
         graffiti.setupDrawingScreen();
         graffiti.setupSavingScrim();
         graffiti.playAutoplayGraffiti(); // play any autoplay graffiti if there is one set up
-
 /*
         let body = '<div>Enter the Graffiti Hub Key to import Graffiti into this notebook.</div>';
         body += '<div style="font-weight:bold;margin-top:15px;">Key: <input type="text" value="R5a7Hb"/ width="60"></div>';
@@ -1388,7 +1396,8 @@ define([
         } else {
           console.log('Graffiti: activating rapidPlay/rapidScan');
           if (opts.scan) {
-            if (state.getSpeakingStatus()) {
+            const currentSpeakingStatus = state.scanForSpeakingStatus();
+            if (currentSpeakingStatus) {
               state.setCurrentPlaySpeed('scanInactive');
             } else {
               state.setCurrentPlaySpeed('scanActive'); // turn on rapid scan immediately if rabbit icon is activated during a silent period
@@ -1522,7 +1531,8 @@ define([
         const elem = $(cell.element[0]);
         let labelInputBox = elem.find('.graffiti-label-input');
         if (labelInputBox.length === 0) {
-          labelInputBoxElem = $('<div tabindex="0" class="graffiti-label-input"><input type="text" maxlength="50" placeholder="Enter a label..."/></div>');
+          labelInputBoxElem = $('<div tabindex="0" class="graffiti-label-input"><input type="text" maxlength="50" placeholder="' + localizer.getString('ENTER_LABEL') + 
+                                '"/></div>');
           labelInputBox = labelInputBoxElem.appendTo(elem);
           labelInputBox.bind('keydown keyup', (e) => { graffiti.handleLabelInput(e) });
         }
@@ -2549,7 +2559,7 @@ define([
                                                                       height:12,
                                                         },
                                                         metaTag: 'graffiti-id|' + metaData,
-                                                        title: 'Graffiti is present on this line to the left.',
+                                                        title: localizer.getString('GRAFFITI_PRESENT')
            });
            $(markerIcon).appendTo(element);
          }
@@ -3162,8 +3172,7 @@ define([
           // use whatever author put into this graffiti previously
           editableText = recordingRecord.markdown; 
         } else {
-          editableText = "%% Below, type any markdown to display in the Graffiti tip.\n" +
-                         "%% Then run this cell to save it.\n" +
+          editableText = localizer.getString('BELOW_TYPE_MARKDOWN') +
                          graffiti.selectedTokens.allTokensString;
         }
 
@@ -3228,7 +3237,7 @@ define([
               }
             });
             
-            console.log('finishGraffiti: we got these stats:', state.getUsageStats());
+            console.log('Graffiti: finishGraffiti: we got these stats:', state.getUsageStats());
 
           } else {
             if (recordingCellInfo.newRecording) {
@@ -3677,6 +3686,7 @@ define([
         graffiti.removeCellsAddedByPlaybackOrRecording();
         graffiti.hideLabelInputBoxes();
         state.restoreCellStates('selections');
+        state.restoreLineNumbersStates();
         graffiti.sitePanel.animate({ scrollTop: graffiti.preRecordingScrollTop }, 750);
         graffiti.selectIntersectingGraffitiRange();
         state.deleteTrackingArrays();
@@ -3726,7 +3736,7 @@ define([
 
             console.log('Graffiti: Now starting movie recording');
             state.blockRecording(); // this is here because a race condition can happen right at the end of recording
-            graffiti.setNotifier('Please wait, storing this movie...');
+            graffiti.setNotifier(localizer.getString('PLEASE_WAIT_STORING_MOVIE'));
             graffiti.showControlPanels(['graffiti-notifier']);
             graffiti.showSavingScrim();
             storage.setMovieCompleteCallback(graffiti.hideSavingScrim);
@@ -4022,6 +4032,18 @@ define([
         let record = state.getHistoryItem('view', viewIndex);
         record.hoverCell = utils.findCellByCellId(record.cellId);
 
+        // Make sure the hoverCell shows line numbers if they were visible during recording; otherwise all registration will be off
+        // by the width of the line number gutter.
+        if (record.hoverCell !== undefined) { // make sure we were actually hovering over a cell before we try to tweak the gutter.
+          if (record.hasOwnProperty('lineNumbersVisible')) { // some early recordings won't have this property
+            const cm = record.hoverCell.code_mirror;
+            const currentlyVisible = cm.options.lineNumbers;
+            if (record.lineNumbersVisible != cm.options.lineNumbers) {
+              record.hoverCell.toggle_line_numbers();
+            }
+          }
+        }
+
         // Select whatever cell is currently selected
         if (record.selectedCellId !== undefined) {
           const selectedCellIndex = utils.findCellIndexByCellId(record.selectedCellId); // we should use a map to speed this up
@@ -4198,7 +4220,7 @@ define([
               newCell.metadata.graffitiCellId = checkCellId;
               state.storePlaybackCellAddition(checkCellId, cellPosition);
               mustRefreshCellMaps = true;
-              console.log('Just inserted new cell.');              
+              //console.log('Graffiti: Just inserted new cell.');              
               graffiti.applyScrollNudgeAtCell(newCell, record, false);
             }
           }
@@ -4236,7 +4258,6 @@ define([
         }
       },
 
-
       updateSpeaking: (index) => {
         const record = state.getHistoryItem('speaking', index);
         console.log('Processing speaking record', index, record);
@@ -4250,9 +4271,9 @@ define([
             state.setCurrentPlaySpeed('scanActive');
             state.setSpeakingStatus(false);
           }
-          console.log('playTimes:regular', state.playTimes['regular'].total,
-                      'scanActive:',  state.playTimes['scanActive'].total, 
-                      'scanInactive', state.playTimes['scanInactive'].total);
+//          console.log('playTimes:regular', state.playTimes['regular'].total,
+//                      'scanActive:',  state.playTimes['scanActive'].total, 
+//                      'scanInactive', state.playTimes['scanInactive'].total);
           audio.updateAudioPlaybackRate();
         }
       },
@@ -4322,7 +4343,7 @@ define([
         const previousPlayState = state.getActivity();
         graffiti.pausePlayback();
         const timeElapsed = state.getTimePlayedSoFar();
-        console.log('jumpPlayback timeElapsed',timeElapsed);
+        //console.log('jumpPlayback timeElapsed',timeElapsed);
         let t, frameIndexes;
         if (state.scanningIsOn()) {
           t = state.findSpeakingStartNearestTime(timeElapsed,direction, graffiti.rewindAmt);
@@ -4406,7 +4427,9 @@ define([
           console.log('Graffiti: not restoring cell contents since this recording specifies not to.');
         } else {
           graffiti.removeCellsAddedByPlaybackOrRecording();
+          state.restoreCellStates('contents');
           state.restoreCellStates('selections');
+          state.restoreLineNumbersStates();
         }
         utils.saveNotebook();
         state.updateUsageStats({
@@ -4415,7 +4438,7 @@ define([
             actions: ['updateTotalPlayTime']
           }
         });
-        console.log('Now we got these stats:', state.getUsageStats());
+        console.log('Graffiti: Got these stats:', state.getUsageStats());
       },
 
       cancelPlayback: (opts) => {
@@ -4454,6 +4477,7 @@ define([
           // utils.saveNotebook();
           state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.setCurrentPlaySpeed('regular');
+          state.setSpeakingStatus(false);
           state.resetPlayTimes();
           graffiti.prePlaybackScrolltop = state.getScrollTop();
           graffiti.lastScrollViewId = undefined;
@@ -4462,7 +4486,7 @@ define([
           state.storeCellStates();
           state.clearCellOutputsSent();
           graffiti.scrollNudgeAverages = [];
-          graffiti.setJupyterMenuHint('Press ESC to end movie playback');
+          graffiti.setJupyterMenuHint(localizer.getString('PRESS_ESC_TO_END_MOVIE_PLAYBACK'));
           const stickerImageCandidateUrl = state.getStickerImageCandidateUrl();
           if (stickerImageCandidateUrl !== undefined) {
             state.setStickerImageUrl(stickerImageCandidateUrl);
@@ -4485,6 +4509,7 @@ define([
           graffiti.clearCanvases('all');
           graffiti.wipeAllStickerDomCanvases();
           state.resetPlayState();
+          graffiti.removeCellsAddedByPlaybackOrRecording();
           graffiti.applyRawCalculatedScrollTop(0);
         }
 
@@ -4586,29 +4611,31 @@ define([
         //console.log('playableMovie', playableMovie);
         if (state.getDontRestoreCellContentsAfterPlayback()) {
           // If this movie is set to NOT restore cell contents, give the user a chance to opt-out of playback.
-          const dialogContent = 'This Graffiti movie may replace the contents of code cells. After this movie plays, do you want to...';
+          const dialogContent = localizer.getString('REPLACE_CONFIRM_BODY_1');
+          const modalButtons = {};
+          modalButtons[localizer.getString('REPLACE_CONFIRM_BODY_2')] = 
+            {
+              click: (e) => {
+                console.log('Graffiti: you want to preserve cell contents after playback.');
+                // Must restore playable movie values because jupyter dialog causes the tip to hide, which clears the playableMovie
+                state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey);
+                state.setDontRestoreCellContentsAfterPlayback(false);
+                graffiti.loadAndPlayMovie('tip');
+              }
+            };
+          modalButtons[localizer.getString('REPLACE_CONFIRM_BODY_3')] =
+            { 
+              click: (e) => { 
+                // Must restore playable movie values because jupyter dialog causes the tip to hide, which clears the playableMovie
+                state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey);
+                graffiti.loadAndPlayMovie('tip'); 
+              }
+            };
           const confirmModal = dialog.modal({
-            title: 'Are you sure you want to play this Graffiti?',
+            title: localizer.getString('PLAY_CONFIRM_1'),
             body: dialogContent,
             sanitize:false,
-            buttons: {
-              'Restore Cell Contents After Playback Ends': {
-                click: (e) => {
-                  console.log('Graffiti: you want to preserve cell contents after playback.');
-                  // Must restore playable movie values because jupyter dialog causes the tip to hide, which clears the playableMovie
-                  state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey);
-                  state.setDontRestoreCellContentsAfterPlayback(false);
-                  graffiti.loadAndPlayMovie('tip');
-                }
-              },
-              'Let this Movie Permanently Set Cell Contents': { 
-                click: (e) => { 
-                  // Must restore playable movie values because jupyter dialog causes the tip to hide, which clears the playableMovie
-                  state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey);
-                  graffiti.loadAndPlayMovie('tip'); 
-                }
-              }
-            }
+            buttons: modalButtons,
           });
           confirmModal.on('hidden.bs.modal', (e) => { 
             console.log('Graffiti: escaped the dontRestoreCellContents modal.');
@@ -4628,15 +4655,14 @@ define([
         // next line seems to be extraneous and buggy because we create a race condition with the control panel. however what happens if a movie cannot be loaded?
         // graffiti.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
 
-        $('#graffiti-movie-play-btn').html('<i>Loading...</i>').prop('disabled',true);
-        graffiti.setJupyterMenuHint('Loading Graffiti movie, please wait...');
+        $('#graffiti-movie-play-btn').html('<i>' + localizer.getString('LOADING') + '</i>').prop('disabled',true);
+        graffiti.setJupyterMenuHint(localizer.getString('LOADING_PLEASE_WAIT'));
         storage.loadMovie(playableMovie.cellId, playableMovie.recordingKey, playableMovie.activeTakeId).then( () => {
           console.log('Graffiti: Movie loaded for cellId, recordingKey:', playableMovie.cellId, playableMovie.recordingKey);
           // big hack
           const recording = state.getManifestSingleRecording(playableMovie.cellId, playableMovie.recordingKey);
           graffiti.narratorName = recording.narratorName;
           graffiti.narratorPicture = recording.narratorPicture;
-          console.log('rec:', recording);
           if (playableMovie.cellType === 'markdown') {
             playableMovie.cell.render(); // always render a markdown cell first before playing a movie on a graffiti inside it
           }
@@ -4659,8 +4685,8 @@ define([
         }).catch( (ex) => {
           graffiti.changeActivity('idle');
           dialog.modal({
-            title: 'Movie is not available.',
-            body: 'We are sorry, we could not load this movie at this time. Please contact the author of this Notebook for help.',
+            title: localizer.getString('MOVIE_UNAVAILABLE'),
+            body:  localizer.getString('MOVIE_UNAVAILABLE_EXPLANATION'),
             sanitize:false,
             buttons: {
               'OK': {
@@ -4719,10 +4745,8 @@ define([
             },
             fail: () => {
               dialog.modal({
-                title: 'Please grant access to your browser\'s microphone.',
-                body: 'You cannot record Graffiti movies unless you grant access to the microphone. ' +
-                      'Please <a href="https://help.aircall.io/hc/en-gb/articles/115001425325-How-to-allow-Google-Chrome-to-access-your-microphone" ' +
-                      'target="_">grant access</a> and then reload this page.',
+                title: localizer.getString('ACCESS_MICROPHONE_PROMPT'),
+                body: localizer.getString('ACCESS_MICROPHONE_ADVISORY'),
                 sanitize:false,
                 buttons: {
                   'OK': {
@@ -4757,18 +4781,18 @@ define([
         const level = (forcedLevel === undefined ? state.getAccessLevel() : forcedLevel);
         if (forcedLevel !== undefined) {
           if (level === 'create') {
-            buttonLabel = 'Hide Graffiti Editor';
+            buttonLabel = localizer.getString('HIDE_GRAFFITI_EDITOR');
             graffiti.changeAccessLevel('create');
           } else {
-            buttonLabel = 'Show Graffiti Editor';
+            buttonLabel = localizer.getString('SHOW_GRAFFITI_EDITOR');
             graffiti.changeAccessLevel('view');
           }
         } else {
           if (level === 'create') {
-            buttonLabel = 'Show Graffiti Editor';
+            buttonLabel = localizer.getString('SHOW_GRAFFITI_EDITOR');
             graffiti.changeAccessLevel('view');
           } else {
-            buttonLabel = 'Hide Graffiti Editor';
+            buttonLabel = localizer.getString('HIDE_GRAFFITI_EDITOR');
             graffiti.changeAccessLevel('create');
           }
         }
@@ -4776,8 +4800,8 @@ define([
       },
 
       showCreatorsChooser: () => {
-        graffiti.setNotifier('You can filter this Notebook\'s Graffiti by clicking on creators in the list below.');
-                             graffiti.showControlPanels(['graffiti-notifier','graffiti-creators-chooser']);
+        graffiti.setNotifier(localizer.getString('YOU_CAN_FILTER'));
+        graffiti.showControlPanels(['graffiti-notifier','graffiti-creators-chooser']);
       },
 
       transferGraffitis: () => {
@@ -4821,7 +4845,8 @@ define([
         const notebook = Jupyter.notebook;
         const sprayCanIcon = stickerLib.makeSprayCanIcon();
         let buttonLabel, setupForSetup = false;
-        let buttonContents = '<div id="graffiti-setup-button" style="display:none;" class="btn-group"><button class="btn btn-default" title="Enable Graffiti">';
+        //sprayCanIcon = '<img src="jupytergraffiti/css/spray_can_icon.png">';
+        let buttonContents = '<div id="graffiti-setup-button" style="display:none;" class="btn-group"><button class="btn btn-default" title="' + localizer.getString('ENABLE_GRAFFITI') + '">';
 
         if (!notebook.metadata.hasOwnProperty('graffiti')) {
           // This notebook has never been graffiti-ized, or it just got un-graffiti-ized
@@ -4829,12 +4854,12 @@ define([
           if (existingSetupButton.length > 0) {
             existingSetupButton.remove();
           }
-          buttonLabel = 'Activate Graffiti';
+          buttonLabel = localizer.getString('ACTIVATE_GRAFFITI');
           setupForSetup = true;
         } else {
           // This notebook has already been graffiti-ized. Render the setup button for view mode,
           // which is the default mode to start.
-          buttonLabel = 'Show Graffiti Editor';
+          buttonLabel = localizer.getString('SHOW_GRAFFITI_EDITOR');
         }
         const setupButtonDiv = $(buttonContents + '<span>' + buttonLabel + '</div></button></span>');
         const jupyterMainToolbar = $('#maintoolbar-container');
@@ -4853,10 +4878,8 @@ define([
 
       firstTimeSetup: () => {
         dialog.modal({
-          title: 'Activate Graffiti On This Notebook?',
-          body: 'Enable Graffiti on this Notebook, so you can begin using Graffiti for the first time?<br>' +
-                'If you click Cancel, we will not change the notebook in any way.' +
-                '<br><br><i>(This process merely adds some metadata to the cells, but does not otherwise change the Notebook\'s contents.)</i>',
+          title: localizer.getString('ACTIVATE_GRAFFITI_CONFIRM'),
+          body: localizer.getString('ACTIVATE_GRAFFITI_ADVISORY'),
           sanitize:false,
           buttons: {
             'OK': {

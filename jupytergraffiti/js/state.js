@@ -244,6 +244,19 @@ define([
       state.highlightsRefreshCellId = undefined;
     },
 
+    scanForSpeakingStatus: () => {
+      targetTime = state.getTimePlayedSoFar();
+      const lastSpeakingIndex = state.getIndexUpToTime('speaking', targetTime);
+      let currentSpeakingStatus = true; // assume we are speaking initially, in case we don't have any speaking records at all.
+      if (lastSpeakingIndex !== undefined) {
+        for (let index = 0; index < lastSpeakingIndex; ++index) {
+          record = state.getHistoryItem('speaking', index);
+          currentSpeakingStatus = record.speaking;
+        }
+      }
+      return currentSpeakingStatus;
+    },
+
     setHighlightsRefreshCellId: (cellId) => {
       state.highlightsRefreshCellId = cellId;
     },
@@ -1340,7 +1353,7 @@ define([
         }
       } else {
         for (let check = 0; check < numHistoryItems; ++check) {
-          console.log('findSpeakingStartNearestTime, check:', check);
+          //console.log('findSpeakingStartNearestTime, check:', check);
           historyItem = state.history['speaking'][check];
           if (historyItem.speaking) {
             if (direction === -1) {
@@ -1451,18 +1464,20 @@ define([
     getIndexUpToTime: (kind, t) => {
       let i;
       const historyArray = state.history[kind];
-      const historyArrayLength = historyArray.length;
-      if (historyArrayLength > 0) {
-        for (i = 0; i < historyArrayLength; ++i) {
-          if (historyArray[i].startTime >= t) {
+      if (historyArray !== undefined) {
+        const historyArrayLength = historyArray.length;
+        if (historyArrayLength > 0) {
+          for (i = 0; i < historyArrayLength; ++i) {
+            if (historyArray[i].startTime >= t) {
+              return i;
+            }
+          }
+          // check to see if time is on or past the last known record.
+          i = historyArray.length - 1;
+          if (((historyArray[i].startTime < t) && (historyArray[i].endTime >= t)) ||
+              (historyArray[i].endTime < t)) {
             return i;
           }
-        }
-        // check to see if time is on or past the last known record.
-        i = historyArray.length - 1;
-        if (((historyArray[i].startTime < t) && (historyArray[i].endTime >= t)) ||
-            (historyArray[i].endTime < t)) {
-          return i;
         }
       }
       return undefined;
@@ -1510,8 +1525,13 @@ define([
       state.cellStates = {
         contents: state.createContentsRecord(false),
         selections: state.createSelectionsRecord(),
-        changedCells: {}
+        changedCells: {},
+        lineNumberStates: {},
       };
+      for (let i = 0, cell; i < cells.length; ++i) {
+        cell = cells[i];
+        state.cellStates.lineNumberStates[utils.getMetadataCellId(cell.metadata)] = cell.code_mirror.options.lineNumbers;
+      }
     },
 
     storeCellIdAffectedByActivity: (cellId) => {
@@ -1564,7 +1584,7 @@ define([
                   state.restoreCellOutputs(cell, cellOutputs);
                 }
               }
-            } else {
+            } else { // restoring selections
               if (selections !== undefined) {
                 if ((cell.cell_type === 'code') && (selections.active)) { // hack, not coded right
                   cell.code_mirror.focus();
@@ -1576,7 +1596,20 @@ define([
           }
         }
       }
-      // Now delete any cells created during playback.
+    },
+
+    restoreLineNumbersStates: () => {
+      if (Object.keys(state.cellStates.lineNumberStates).length > 0) {
+        let cell;
+        for (let cellId of Object.keys(state.cellStates.lineNumberStates)) {
+          cell = utils.findCellByCellId(cellId);
+          if (cell !== undefined) {
+            if (cell.code_mirror.options.lineNumbers != state.cellStates.lineNumberStates[cellId]) {
+              cell.toggle_line_numbers();
+            }
+          }
+        }
+      }
     },
 
     getScrollTop: () => {
