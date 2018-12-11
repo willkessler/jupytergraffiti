@@ -58,6 +58,7 @@ define([
       udacityUser.getUser()
       .then(user => {
         state.setUserId(user.userId);
+        state.setWorkspace(user);
         user.coco && $('#graffiti-setup-button').css('display', 'inline-block');
       })
       .catch(err => console.error(err));
