@@ -122,6 +122,7 @@ define([
         }
       };
       const notebook = Jupyter.notebook;
+      localizer.setLanguage('EN');
       if (notebook.metadata.hasOwnProperty('graffiti')) {
         if (notebook.metadata.graffiti.hasOwnProperty('language')) {
           localizer.setLanguage(notebook.metadata.graffiti.language);
@@ -133,7 +134,6 @@ define([
           localizer.translations['CN'] = strings.getTranslations();
           console.log('we loaded chinese translations.');
           //localizer.setLanguage('CN');
-          localizer.setLanguage('EN');
           resolve();
         });
       });
