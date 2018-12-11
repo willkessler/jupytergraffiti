@@ -57,7 +57,7 @@ define([
       state.stickerImageCandidateUrl = undefined;
       state.cellIdsAddedDuringRecording = {};
       state.userId = undefined;
-      state.workspace = undefined;
+      state.workspace = {};
       state.speakingStatus = false; // true when the graffiti creator is currently speaking (not silent)
       state.cellStates = {
         contents: {},
