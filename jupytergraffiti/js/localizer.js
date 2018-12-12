@@ -90,6 +90,8 @@ define([
             'CLICK_BEGIN_MOVIE_RECORDING' :      'Click anywhere in the notebook to begin recording your movie.',
             'CANCEL_RECORDING_1' :               'Or, <span class="graffiti-notifier-link" id="graffiti-cancel-recording-pending-link">Cancel recording</span>',
             'CANCEL_RECORDING_2' :               'Or, <span class="graffiti-notifier-link" id="graffiti-cancel-recording-link">Cancel recording</span>',
+            'RECORDING_HINT_1' :                 'Control-Cmd-m begins accelerated recording; Cmd-m ends recording.',
+            'RECORDING_HINT_2' :                 'Shift-Cmd-m stops accelerated recording; Cmd-m ends recording.',
             'ACTIVITIES_BEING_RECORDED':         'Your activities are being recorded.' + 
                                                  'Press ⌘-M or click <span class="graffiti-notifier-link" id="graffiti-end-recording-link">End Recording</span> ' +
                                                  'to end recording.',
@@ -177,6 +179,8 @@ define([
             'CLICK_BEGIN_MOVIE_RECORDING' :      '点击 Notebook 的任何一处，开始录屏',
             'CANCEL_RECORDING_1' :               '或者<span class="graffiti-notifier-link" id="graffiti-cancel-recording-pending-link">取消录制</span>',
             'CANCEL_RECORDING_2' :               '或者<span class="graffiti-notifier-link" id="graffiti-cancel-recording-link">取消录制</span>',
+            'RECORDING_HINT_1' :                 'Control-Cmd-m begins accelerated recording; Cmd-m ends recording.',
+            'RECORDING_HINT_2' :                 'Shift-Cmd-m stops accelerated recording; Cmd-m ends recording.',
             'ACTIVITIES_BEING_RECORDED':         '录屏进行中' +
                                                  '按键 ⌘-M 或者点击<span class="graffiti-notifier-link" id="graffiti-end-recording-link">结束录屏</span> ' +
                                                  '以终止录制',
