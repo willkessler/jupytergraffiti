@@ -1323,11 +1323,6 @@ define([
         if (activePenType !== penType) {
           // Activate a new active pen, unless this pen is already active, in which case, deactivate it
           graffiti.activateGraffitiPen(penType);
-          if (activePenType === 'highlight') {
-            // When switching from highlight to pen or eraser, always go to black color because
-            // usual color for highlighter is yellow which looks crappy in the line mode.
-            graffiti.setGraffitiPenColor('black');
-          }
           $('.graffiti-active-sticker').removeClass('graffiti-active-sticker');
         } else {
           // turn off the active pen and drawing
@@ -1340,6 +1335,12 @@ define([
           ]);
           graffiti.hideDrawingScreen();
         }          
+
+        if (activePenType === 'highlight') {
+          // When switching from highlight to pen or eraser, always go to black color because
+          // usual color for highlighter is yellow which looks crappy in the line mode.
+          graffiti.setGraffitiPenColor('black');
+        }
       },
 
       toggleGraffitiSticker: (stickerType) => {
@@ -2921,11 +2922,18 @@ define([
             case 77: // cmd-m key finishes a recording in progress or cancels a pending recording
               // cf http://jsbin.com/vezof/1/edit?js,output
               if (e.metaKey) { // may only work on Chrome
-                console.log('Graffiti: you pressed ⌘-m');
+                if (e.ctrlKey) {
+                  console.log('Graffiti: you pressed ctrl ⌘-m');
+                } else {
+                  console.log('Graffiti: you pressed ⌘-m');
+                }
                 stopProp = true;
                 switch (activity) {
                   case 'recording':
-                    graffiti.toggleRecording();
+                    if (e.ctrlKey) {
+                    } else {
+                      graffiti.toggleRecording();
+                    }
                     break;
                   case 'recordingPending':
                     graffiti.changeActivity('idle');
@@ -3742,6 +3750,7 @@ define([
             storage.setMovieCompleteCallback(graffiti.hideSavingScrim);
             graffiti.stopRecordingCore(true);
             state.unblockRecording();
+            graffiti.clearJupyterMenuHint();
             console.log('Graffiti: Stopped recording.');
           } else {
 
@@ -3797,6 +3806,7 @@ define([
                                          },
                                          graffiti.recordingIntervalMs);
             
+            graffiti.setJupyterMenuHint(localizer.getString('RECORDING_HINT_1'));
             console.log('Graffiti: Started recording');
           }
         }
@@ -4260,7 +4270,7 @@ define([
 
       updateSpeaking: (index) => {
         const record = state.getHistoryItem('speaking', index);
-        console.log('Processing speaking record', index, record);
+        //console.log('Processing speaking record', index, record);
         if (state.scanningIsOn()) {
           if (record.speaking) {
             console.log('Begun speaking.');
@@ -4469,8 +4479,14 @@ define([
       },
 
       startPlayback: () => {
-        // start playback
+        // Start playback
         const activity = state.getActivity();
+        // Prevent playing while playing already. Not sure how this occurs so trapping for it here
+        if (activity === 'playing') {
+          console.trace('Cannot start playing because already playing.');
+          return;
+        }
+
         console.log('Graffiti: Starting playback, current activity:', activity);
         if ((activity === 'idle') || (activity === 'notifying')) {
           // If just starting to play back, store all cells current contents so we can restore them when you cancel playback.

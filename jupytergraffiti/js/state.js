@@ -540,7 +540,7 @@ define([
                 delete(usageRecord['currentPlayTime']);
                 break;
               case 'updateCurrentPlayTime':
-                usageRecord.currentPlayTime = state.getTimePlayedSoFar();
+                usageRecord.currentPlayTime = Math.round(state.getTimePlayedSoFar());
                 break;
               case 'updateTotalPlayTime':
                 if (state.currentStatsKey !== undefined) {
