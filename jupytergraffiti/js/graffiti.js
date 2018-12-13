@@ -2445,8 +2445,9 @@ define([
       //
 
       extractTooltipCommands: (markdown) => {
-        const commandParts = markdown.match(/^\s*%%(([^\s]*)(\s*)(.*))$/mig);
-        let partsRecord, part, parts0;
+        //const commandParts = markdown.match(/^\s*%%(([^\s]*)(\s*)(.*))$/mig);
+        const commandParts = markdown.split(/\n/);
+        let partsRecord, part, subParts, cleanedPart;
         if (commandParts === null)
           return undefined;
         if (commandParts.length > 0) {
@@ -2460,75 +2461,84 @@ define([
             hideTooltip: false,
             playOnClick: false
           };
-          let parts;
           for (let i = 0; i < commandParts.length; ++i) {
             part = $.trim(commandParts[i]);
             //console.log('part:', part);
-            parts = part.match(/^(\S+)\s(.*)/).slice(1);
-            parts0 = $.trim(parts[0]).toLowerCase().replace('%%', '');
-            switch (parts0) {
-              case 'comment':
-                break; // we just ignore these. Used to instruct content creators how to use the editing tip cells.
-              case 'button_name':
-                partsRecord.buttonName = parts[1];
-                break;
-              case 'caption': // you can make a special caption for this tip
-                partsRecord.caption = parts[1];
-                break;
-              case 'caption_pic': // you can put a tiny pic next to the caption (use markdown)
-                partsRecord.captionPic = utils.renderMarkdown(parts[1]);
-                break;
-              case 'caption_video_id': // you can put a tiny video next to the caption
-                if (parts[1].indexOf('images/') === 0) {
-                  partsRecord.captionVideo =
-                    '<video width="150" height="75" autoplay><source src="' + parts[1] + '" type="video/mp4"></video>';
-                } else {
-                  partsRecord.captionVideo =
-                    '<iframe width="100" height=80 src="https://www.youtube.com/embed/' + parts[1] + 
-                    '?rel=0&amp;controls=0&amp;showinfo=0" frameborder="0"></iframe>';
+            if ((part.indexOf('%%') === 0) && (part.indexOf('%% ') !== 0)) {
+              cleanedPart = part.replace('%%','');
+              subParts = $.trim(cleanedPart).split(/\s+/);
+              if (subParts.length > 0) {
+                const subPart0 = subParts[0];
+                if ((subPart0 === 'button_name') || (subPart0 === 'caption') || (subPart0 === 'caption_pic') || 
+                    (subPart0 === 'caption_video_id') || (subPart0 === 'narrator_name') || (subPart0 === 'narrator_pic') || 
+                    (subPart0 === 'custom_sticker')) {
+                  if (subParts.length === 1) { // not enough parameters given, silently ignore
+                    continue;
+                  }
                 }
-                break;
-              case 'narrator_name': // set the name of the narrator to display in the control panel during playback
-                graffiti.narratorName = undefined;
-                if (parts[1].length > 0) {
-                  partsRecord.narratorName = parts[1];
+                const subPart1 = subParts[1];
+                state.clearTooltipTitleTag();
+                switch (subPart0) {
+                  case 'comment':
+                    break; // we just ignore these. Used to instruct content creators how to use the editing tip cells.
+                  case 'title_tag':
+                    state.setTooltipTitleTag(subPart1);
+                    break;
+                  case 'button_name':
+                    partsRecord.buttonName = subPart1;
+                    break;
+                  case 'caption': // you can make a special caption for this tip
+                    partsRecord.caption = subPart1;
+                    break;
+                  case 'caption_pic': // you can put a tiny pic next to the caption (use markdown)
+                    partsRecord.captionPic = utils.renderMarkdown(subPart1);
+                    break;
+                  case 'caption_video_id': // you can put a tiny video next to the caption
+                    if (subPart1.indexOf('images/') === 0) {
+                      partsRecord.captionVideo =
+                        '<video width="150" height="75" autoplay><source src="' + subPart1 + '" type="video/mp4"></video>';
+                    } else {
+                      partsRecord.captionVideo =
+                        '<iframe width="100" height=80 src="https://www.youtube.com/embed/' + subPart1 + 
+                        '?rel=0&amp;controls=0&amp;showinfo=0" frameborder="0"></iframe>';
+                    }
+                    break;
+                  case 'narrator_name': // set the name of the narrator to display in the control panel during playback
+                    graffiti.narratorName = undefined;
+                    if (subPart1 !== undefined) {
+                      partsRecord.narratorName = subPart1;
+                    }
+                    break;
+                  case 'narrator_pic': // specify a picture to display in the control panel during playback
+                    graffiti.narratorPicture = undefined;
+                    if (subPart1 !== undefined) {
+                      partsRecord.narratorPicture = subPart1;
+                    }
+                    break;
+                  case 'hide_player_after_playback_complete':
+                    state.setHidePlayerAfterPlayback(true);
+                    break;
+                  case 'dont_restore_cell_contents_after_playback': // if the user hasn't changed cell contents, don't restore the cell contents when playback finishes
+                    state.setDontRestoreCellContentsAfterPlayback(true);
+                    break;
+                  case 'autoplay': // 'never' (optional), 'once', 'always'
+                    if (subPart1 !== undefined) { // if not passed in then its considered to be 'never'
+                      partsRecord.autoplay = subPart1.toLowerCase();
+                    }
+                    break;
+                  case 'play_on_click': // if present, we will make a click on the target initiate playback.
+                  case 'click_to_play':
+                    partsRecord.playOnClick = true; 
+                    break;
+                  case 'hide_tooltip': // if present, we will not render tooltip.
+                    partsRecord.hideTooltip = true;
+                    break;
+                  case 'custom_sticker':
+                    // Path to an image or svg that will be a custom sticker.
+                    partsRecord.stickerImageUrl = subPart1;
+                    break;
                 }
-                break;
-              case 'narrator_pic': // specify a picture to display in the control panel during playback
-                graffiti.narratorPicture = undefined;
-                if (parts[1].length > 0) {
-                  partsRecord.narratorPicture = parts[1];
-                }
-                break;
-              case 'hide_player_after_playback_complete':
-                state.setHidePlayerAfterPlayback(true);
-                break;
-              case 'dont_restore_cell_contents_after_playback': // if the user hasn't changed cell contents, don't restore the cell contents when playback finishes
-                state.setDontRestoreCellContentsAfterPlayback(true);
-                break;
-              case 'autoplay': // 'never' (optional), 'once', 'always'
-                if (parts[1].length > 0) {
-                  partsRecord.autoplay = parts[1].toLowerCase();
-                }
-                break;
-              case 'play_on_click': // if present, we will make a click on the target initiate playback.
-              case 'click_to_play':
-                // Note: they must use a param for this to take due to the lame regex i have above
-                // e.g. '%%play_on_click on'
-                partsRecord.playOnClick = true; 
-                break;
-              case 'hide_tooltip': // if present, we will not render tooltip.
-                // Note: they must use a param for this to take due to the lame regex i have above
-                // e.g. '%%hide_tooltip on'
-                partsRecord.hideTooltip = true;
-                break;
-              case 'custom_sticker':
-                // path to an image or svg that will be a custom sticker.
-                partsRecord.stickerImageUrl = undefined;
-                if (parts[1].length > 0) {
-                  partsRecord.stickerImageUrl = parts[1];
-                }
-                break;
+              }
             }
           }
         }
@@ -2704,21 +2714,21 @@ define([
               }                
               if (recording.playOnClick) {
                 console.log('binding target for click', highlightElem);
-                const imageOrButtons = highlightElem.find('img,button');
-                if (imageOrButtons.length > 0) {
-                  imageOrButtons.off('click').click((e) => {
-                    state.clearTipTimeout();
-                    e.stopPropagation(); // for reasons unknown event still propogates to the codemirror editing area undeneath...
+                highlightElem.off('click').click((e) => {
+                  state.clearTipTimeout();
+                  e.stopPropagation(); // for reasons unknown event still propogates to the codemirror editing area undeneath...
 
-                    if (state.getActivity() === 'recordingPending') {
-                      graffiti.toggleRecording(); // we want clicks on playOnClick to be ignored if a recording is pending.
-                    } else {
-                      graffiti.playMovieViaUserClick();
-                    }
-                    return false;
-                  });
-                }
+                  if (state.getActivity() === 'recordingPending') {
+                    graffiti.toggleRecording(); // we want clicks on playOnClick to be ignored if a recording is pending.
+                  } else {
+                    graffiti.playMovieViaUserClick();
+                  }
+                  return false;
+                });
               }
+              state.setHidePlayerAfterPlayback(false); // default for any recording is not to hide player
+              const tooltipCommands = graffiti.extractTooltipCommands(recording.markdown);
+
               if (recording.hideTooltip) {
                 console.log('Graffiti: recording is set to hide tip.');
                 return;
@@ -2743,8 +2753,6 @@ define([
                   } else {
                     let contentMarkdown = '';
                     //console.log('markId:', markId, 'recordings:', hoverCell.metadata.recordings);
-                    state.setHidePlayerAfterPlayback(false); // default for any recording is not to hide player
-                    const tooltipCommands = graffiti.extractTooltipCommands(recording.markdown);
                     let headlineMarkdown = '';
                     if (tooltipCommands !== undefined) {
                       headlineMarkdown = '<div class="headline">' +
@@ -2754,9 +2762,7 @@ define([
                                                   ' <div class="graffiti-video">' + tooltipCommands.captionVideo + '</div>' : '' ) +
                                          '</div>';
                     }
-                    if (recording !== undefined) {
-                      contentMarkdown = utils.renderMarkdown(recording.markdown)
-                    }
+                    contentMarkdown = utils.renderMarkdown(recording.markdown)
                     let tooltipContents = headlineMarkdown + '<div class="parts">' + '<div class="info">' + contentMarkdown + '</div>';
                     if (recording.hasMovie) {
                       graffiti.tooltipButtonLabel = (((tooltipCommands !== undefined) && (tooltipCommands.buttonName !== undefined)) ? 
@@ -4424,14 +4430,15 @@ define([
         graffiti.pausePlaybackNoVisualUpdates();
         state.resetPlayState();
         graffiti.changeActivity('idle');
-        if ((accessLevel === 'view') && (state.getDontRestoreCellContentsAfterPlayback())) {
-          console.log('Graffiti: not restoring cell contents since this recording specifies not to.');
+        if (state.getDontRestoreCellContentsAfterPlayback()) {
+          console.log('Graffiti: not restoring cell contents.');
         } else {
           graffiti.removeCellsAddedByPlaybackOrRecording();
           state.restoreCellStates('contents');
           state.restoreCellStates('selections');
           state.restoreLineNumbersStates();
         }
+        state.setDontRestoreCellContentsAfterPlayback(false); // make sure by default we restore contents.
         utils.saveNotebook();
         state.updateUsageStats({
           type:'play',
@@ -4451,7 +4458,6 @@ define([
         console.log('Graffiti: Cancelling playback');
         graffiti.cancelPlaybackNoVisualUpdates();
         state.clearAnimationIntervals();
-        state.setDontRestoreCellContentsAfterPlayback(false);
         graffiti.resetStickerCanvases();
         graffiti.cancelRapidPlay();
         graffiti.graffitiCursor.hide();
@@ -4635,11 +4641,12 @@ define([
               click: (e) => { 
                 // Must restore playable movie values because jupyter dialog causes the tip to hide, which clears the playableMovie
                 state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey);
+                state.setDontRestoreCellContentsAfterPlayback(true);
                 graffiti.loadAndPlayMovie('tip'); 
               }
             };
           const confirmModal = dialog.modal({
-            title: localizer.getString('PLAY_CONFIRM_1'),
+            title: localizer.getString('PLAY_CONFIRM'),
             body: dialogContent,
             sanitize:false,
             buttons: modalButtons,

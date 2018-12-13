@@ -51,11 +51,12 @@ define([
       state.playableMovies = {};
       state.selectionSerialized = undefined;
       state.hidePlayerAfterPlayback = false;
-      state.dontRestoreCellContentsAfterPlayback = false; // this is something the author can decide with an API call.
+      state.dontRestoreCellContentsAfterPlayback = false; // this is something the author can decide with a tooltip command.
       state.cellOutputsSent = {};
       state.stickerImageUrl = undefined;
       state.stickerImageCandidateUrl = undefined;
       state.cellIdsAddedDuringRecording = {};
+      state.tooltipTitleTag = undefined;
       state.userId = undefined;
       state.speakingStatus = false; // true when the graffiti creator is currently speaking (not silent)
       state.cellStates = {
@@ -931,11 +932,24 @@ define([
     },
 
     getDontRestoreCellContentsAfterPlayback: () => {
-      return state.hidePlayerAfterPlayback;
+      return state.dontRestoreCellContentsAfterPlayback;
     },
 
     setDontRestoreCellContentsAfterPlayback: (status) => {
+      console.trace('setDontRestoreCellContentsAfterPlayback:', status);
       state.dontRestoreCellContentsAfterPlayback = status;
+    },
+
+    clearTooltipTitleTag: () => {
+      state.tooltipTitleTag = undefined;
+    },
+
+    getTooltipTitleTag: () => {
+      return state.tooltipTitleTag;
+    },
+
+    setTooltipTitleTag: (tag) => {
+      state.tooltipTitleTag = tag;
     },
 
     clearCellOutputsSent: () => {
