@@ -1134,20 +1134,6 @@ define([
                                    }
                                  ]);
             break;
-          case 'recordingLabelling':
-            graffiti.showControlPanels(['graffiti-start-recording-controls']);
-            graffiti.setNotifier('<div>' + localizer.getString('ENTER_MARKDOWN_MOVIE_DESCRIPTION') + '</div>' +
-                                 '<div>' + localizer.getString('CANCEL_CHANGES_2') + '</div>',
-                                 [
-                                   {
-                                     ids: ['graffiti-cancel-recording-labelling-link'],
-                                     event: 'click',
-                                     fn: (e) => {
-                                       graffiti.finishGraffiti(false);
-                                     }
-                                   }
-                                 ]);
-            break;
           case 'recordingPending':
             graffiti.showControlPanels([]);
             graffiti.setNotifier('<div>' + localizer.getString('CLICK_BEGIN_MOVIE_RECORDING') + '</div>' +
@@ -3212,7 +3198,7 @@ define([
 
       finishGraffiti: (doSave) => {
         const activity = state.getActivity();
-        if (activity !== 'graffiting' && activity !== 'recordingLabelling') {
+        if (activity !== 'graffiting') {
           return;
         }
 
@@ -3294,19 +3280,15 @@ define([
           if (doSave && recordingCellInfo.recordingRecord.cellType === 'markdown') {
             recordingCell.render();
           }
-          if (doSave && state.getActivity() === 'recordingLabelling') {
-            graffiti.setPendingRecording();
+          graffiti.changeActivity('idle');
+          recordingCell.code_mirror.focus();
+          if (doSave) {
+            graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: false});
           } else {
-            graffiti.changeActivity('idle');
-            recordingCell.code_mirror.focus();
-            if (doSave) {
-              graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: false});
-            } else {
-              graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
-            }
-            graffiti.refreshGraffitiTooltips();
-            graffiti.refreshAllGraffitiSideMarkers();
+            graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
           }
+          graffiti.refreshGraffitiTooltips();
+          graffiti.refreshAllGraffitiSideMarkers();
         });
       },
 
@@ -3659,7 +3641,7 @@ define([
         
         Jupyter.notebook.events.on('rendered.MarkdownCell', (e, results) => {
           const activity = state.getActivity();
-          if (((activity === 'graffiting') || (activity === 'recordingLabelling')) &&
+          if ((activity === 'graffiting') &&
               (utils.getMetadataCellId(results.cell.metadata) === graffiti.graffitiEditCellId)) {
             // When creating Graffitis for markdown cells, the user can also save the Graffiti by rendering the target
             // markdown cell rather than the editing cell. Some content creators get confused and do this, so we support it.
