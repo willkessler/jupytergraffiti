@@ -3026,8 +3026,11 @@ define([
         // If we were playing a recording when they hit reload, we need to cancel it, restore, and save before we continue. 
         // Needs more testing!!
         window.addEventListener('beforeunload', function (e) {
-          console.log('Graffiti: before unload', e);
-          graffiti.cancelPlaybackNoVisualUpdates();
+          console.log('Graffiti: before unload handler.');
+          const activity = state.getActivity();
+          if ((activity === 'playing') || (activity === 'playbackPaused') || (activity == 'scrubbing')) {
+            graffiti.cancelPlaybackNoVisualUpdates();
+          }
         });
 
         // https://stackoverflow.com/questions/19469881/remove-all-event-listeners-of-specific-type
@@ -3184,8 +3187,16 @@ define([
           // use whatever author put into this graffiti previously
           editableText = recordingRecord.markdown; 
         } else {
-          editableText = localizer.getString('BELOW_TYPE_MARKDOWN') +
-                         graffiti.selectedTokens.allTokensString;
+          if (recordingRecord.cellType === 'markdown') {
+            // Set up some reasonable options for Graffiti in markdown. Author can, of course, opt to change these any time.
+            editableText = localizer.getString('BELOW_TYPE_MARKDOWN') +
+                           "%%play_on_click\n" +
+                           "%%hide_player_after_playback_complete\n" +
+                           "%%hide_play_button\n";
+          } else {
+            editableText = localizer.getString('BELOW_TYPE_MARKDOWN') +
+                           graffiti.selectedTokens.allTokensString;
+          }
         }
 
         graffitiEditCell.set_text(editableText);
@@ -4436,6 +4447,12 @@ define([
       cancelPlaybackNoVisualUpdates: () => {
         const accessLevel = state.getAccessLevel();
         graffiti.pausePlaybackNoVisualUpdates();
+        state.updateUsageStats({
+          type:'play',
+          data: {
+            actions: ['updateTotalPlayTime']
+          }
+        });
         state.resetPlayState();
         graffiti.changeActivity('idle');
         if (state.getDontRestoreCellContentsAfterPlayback()) {
@@ -4448,12 +4465,6 @@ define([
         }
         state.setDontRestoreCellContentsAfterPlayback(false); // make sure by default we restore contents.
         utils.saveNotebook();
-        state.updateUsageStats({
-          type:'play',
-          data: {
-            actions: ['updateTotalPlayTime']
-          }
-        });
         console.log('Graffiti: Got these stats:', state.getUsageStats());
       },
 
