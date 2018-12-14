@@ -2477,7 +2477,6 @@ define([
                   }
                 }
                 const subPart1 = subParts[1];
-                state.clearTooltipTitleTag();
                 switch (subPart0) {
                   case 'comment':
                     break; // we just ignore these. Used to instruct content creators how to use the editing tip cells.
@@ -2532,6 +2531,11 @@ define([
                     break;
                   case 'hide_tooltip': // if present, we will not render tooltip.
                     partsRecord.hideTooltip = true;
+                    break;
+                  case 'hide_play_button':
+                    // if present, we will render the tooltip but we will not show the play button. 
+                    // Used in conjunction with clickToPlay on text graffiti
+                    partsRecord.hidePlayButton = true; 
                     break;
                   case 'custom_sticker':
                     // Path to an image or svg that will be a custom sticker.
@@ -2763,8 +2767,11 @@ define([
                                          '</div>';
                     }
                     contentMarkdown = utils.renderMarkdown(recording.markdown)
+                    if ((contentMarkdown.length === 0) && (recording.hidePlayButton)) {
+                      contentMarkdown = utils.renderMarkdown('_' + localizer.getString('TOOLTIP_HINT') + '_');
+                    }
                     let tooltipContents = headlineMarkdown + '<div class="parts">' + '<div class="info">' + contentMarkdown + '</div>';
-                    if (recording.hasMovie) {
+                    if ((recording.hasMovie) && (!recording.hidePlayButton)) {
                       graffiti.tooltipButtonLabel = (((tooltipCommands !== undefined) && (tooltipCommands.buttonName !== undefined)) ? 
                                                      tooltipCommands.buttonName : 'Play Movie');
                       tooltipContents +=
@@ -3228,6 +3235,7 @@ define([
             }
             recording.playOnClick = tooltipCommands.playOnClick;
             recording.hideTooltip = tooltipCommands.hideTooltip;
+            recording.hidePlayButton = tooltipCommands.hidePlayButton
             recording.narratorName = tooltipCommands.narratorName;
             recording.narratorPicture = tooltipCommands.narratorPicture;
             recording.stickerImageUrl = tooltipCommands.stickerImageUrl;

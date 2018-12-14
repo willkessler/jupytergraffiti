@@ -56,7 +56,6 @@ define([
       state.stickerImageUrl = undefined;
       state.stickerImageCandidateUrl = undefined;
       state.cellIdsAddedDuringRecording = {};
-      state.tooltipTitleTag = undefined;
       state.userId = undefined;
       state.speakingStatus = false; // true when the graffiti creator is currently speaking (not silent)
       state.cellStates = {
@@ -940,18 +939,6 @@ define([
       state.dontRestoreCellContentsAfterPlayback = status;
     },
 
-    clearTooltipTitleTag: () => {
-      state.tooltipTitleTag = undefined;
-    },
-
-    getTooltipTitleTag: () => {
-      return state.tooltipTitleTag;
-    },
-
-    setTooltipTitleTag: (tag) => {
-      state.tooltipTitleTag = tag;
-    },
-
     clearCellOutputsSent: () => {
       state.cellOutputsSent = {};
     },
@@ -1613,13 +1600,17 @@ define([
     },
 
     restoreLineNumbersStates: () => {
-      if (Object.keys(state.cellStates.lineNumberStates).length > 0) {
-        let cell;
-        for (let cellId of Object.keys(state.cellStates.lineNumberStates)) {
-          cell = utils.findCellByCellId(cellId);
-          if (cell !== undefined) {
-            if (cell.code_mirror.options.lineNumbers != state.cellStates.lineNumberStates[cellId]) {
-              cell.toggle_line_numbers();
+      if (state.hasOwnProperty('cellStates')) {
+        if (state.cellStates.hasOwnProperty('lineNumberStates')) {
+          if (Object.keys(state.cellStates.lineNumberStates).length > 0) {
+            let cell;
+            for (let cellId of Object.keys(state.cellStates.lineNumberStates)) {
+              cell = utils.findCellByCellId(cellId);
+              if (cell !== undefined) {
+                if (cell.code_mirror.options.lineNumbers != state.cellStates.lineNumberStates[cellId]) {
+                  cell.toggle_line_numbers();
+                }
+              }
             }
           }
         }

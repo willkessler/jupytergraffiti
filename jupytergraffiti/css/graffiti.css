@@ -95,7 +95,7 @@
 .graffiti-tip .info {
   flex-grow:2;
   width:100%;
-  max-width:300px;
+  max-width:325px;
   max-height:100px;
   padding-right:8px;
   overflow-y:scroll;
@@ -109,6 +109,7 @@
 .graffiti-highlight {
 /*  border-bottom:2px dotted rgb(67,127,127);*/
   border-bottom:2px dashed rgb(47,147,107);
+  cursor:pointer;
 }
 
 .graffiti-highlight-extra {
