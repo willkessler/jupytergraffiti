@@ -51,7 +51,7 @@ define([
       state.playableMovies = {};
       state.selectionSerialized = undefined;
       state.hidePlayerAfterPlayback = false;
-      state.dontRestoreCellContentsAfterPlayback = false; // this is something the author can decide with an API call.
+      state.dontRestoreCellContentsAfterPlayback = false; // this is something the author can decide with a tooltip command.
       state.cellOutputsSent = {};
       state.stickerImageUrl = undefined;
       state.stickerImageCandidateUrl = undefined;
@@ -940,10 +940,11 @@ define([
     },
 
     getDontRestoreCellContentsAfterPlayback: () => {
-      return state.hidePlayerAfterPlayback;
+      return state.dontRestoreCellContentsAfterPlayback;
     },
 
     setDontRestoreCellContentsAfterPlayback: (status) => {
+      console.trace('setDontRestoreCellContentsAfterPlayback:', status);
       state.dontRestoreCellContentsAfterPlayback = status;
     },
 
@@ -1608,13 +1609,17 @@ define([
     },
 
     restoreLineNumbersStates: () => {
-      if (Object.keys(state.cellStates.lineNumberStates).length > 0) {
-        let cell;
-        for (let cellId of Object.keys(state.cellStates.lineNumberStates)) {
-          cell = utils.findCellByCellId(cellId);
-          if (cell !== undefined) {
-            if (cell.code_mirror.options.lineNumbers != state.cellStates.lineNumberStates[cellId]) {
-              cell.toggle_line_numbers();
+      if (state.hasOwnProperty('cellStates')) {
+        if (state.cellStates.hasOwnProperty('lineNumberStates')) {
+          if (Object.keys(state.cellStates.lineNumberStates).length > 0) {
+            let cell;
+            for (let cellId of Object.keys(state.cellStates.lineNumberStates)) {
+              cell = utils.findCellByCellId(cellId);
+              if (cell !== undefined) {
+                if (cell.code_mirror.options.lineNumbers != state.cellStates.lineNumberStates[cellId]) {
+                  cell.toggle_line_numbers();
+                }
+              }
             }
           }
         }
