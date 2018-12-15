@@ -317,7 +317,6 @@ define([
         if (isIntersecting) {
           recording = state.getManifestSingleRecording(tag.recordingCellId, tag.recordingKey);
           if (recording !== undefined) {
-            markdown = recording.markdown;
             hasMovie = recording.hasMovie;
             results = {
               isIntersecting: true,

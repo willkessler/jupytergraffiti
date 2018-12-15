@@ -268,7 +268,7 @@ define([
                                           ids: ['graffiti-create-btn', 'graffiti-edit-btn'],
                                           event: 'click',
                                           fn: (e) => {
-                                            graffiti.editGraffiti('graffiting');
+                                            graffiti.editGraffiti();
                                           }
                                         },
                                         {
@@ -2700,6 +2700,7 @@ define([
               const activeTakeId = recording.activeTakeId;
               //console.log('refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
               if (recording.hasMovie) {
+                console.log('refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
                 state.setPlayableMovie('tip', cellId, recordingKey);
               }                
               if (recording.playOnClick) {
@@ -3076,19 +3077,26 @@ define([
         console.log('Graffiti: Background setup complete.');
       },
 
-      storeRecordingInfoInCell: () => {
+      setRecordingTakeId: (recordingRecord) => {
+        if (recordingRecord.activeTakeId === undefined ||
+            state.getMovieRecordingStarted()) { // if making a new take, must create a new activeTakeId
+          recordingRecord.activeTakeId = utils.generateUniqueId(); // do not set a new activeTakeId if there was already a valid one set for the movie
+        }
+      },
+
+      storeRecordingInfoInCell: (isOldGraffiti) => {
         let recordingRecord, newRecording, recordingCell, recordingCellId, recordingKey;
-        if (graffiti.selectedTokens.isIntersecting) { 
+        if (isOldGraffiti === undefined) {
+          isOldGraffiti = graffiti.selectedTokens.isIntersecting;
+        }
+        if (isOldGraffiti) { 
           // Prepare to update existing recording
           recordingCell = graffiti.selectedTokens.recordingCell;
           recordingCellId = graffiti.selectedTokens.recordingCellId;
           recordingKey = graffiti.selectedTokens.recordingKey;
           recordingRecord = state.getManifestSingleRecording(recordingCellId, recordingKey);
           graffiti.previousActiveTakeId = recordingRecord.activeTakeId;
-          if (recordingRecord.activeTakeId === undefined ||
-              state.getMovieRecordingStarted()) { // if making a new take, must create a new activeTakeId
-            recordingRecord.activeTakeId = utils.generateUniqueId(); // do not set a new activeTakeId if there was already a valid one set for the movie
-          }
+          graffiti.setRecordingTakeId(recordingRecord);
           newRecording = false;
         } else { 
           // Prepare to create a new recording
@@ -3148,6 +3156,9 @@ define([
       },
 
       selectIntersectingGraffitiRange: () => {
+        if (graffiti.selectedTokens.noTokensPresent) {
+          return;
+        }
         const recordingCellInfo = state.getRecordingCellInfo();
         const recordingCell = recordingCellInfo.recordingCell;
         const cm = recordingCell.code_mirror;
@@ -3158,22 +3169,28 @@ define([
         graffiti.highlightIntersectingGraffitiRange();
       },
 
-      editGraffiti: (newActivity) => {
-        graffiti.changeActivity(newActivity);
+      // Edit an existing graffiti, or if we are creating a new one, set up some default values.
+      // If creating a new graffiti in markdown text, jump directly to the movie recording phase.
+      editGraffiti: () => {
+        let graffitiEditCell, editableText;
+        graffiti.changeActivity('graffiting');
         state.setLastEditActivityTime();
-        const recordingRecord = graffiti.storeRecordingInfoInCell();
-
+        const isNewGraffiti = !graffiti.selectedTokens.isIntersecting;
+        const isOldGraffiti = !isNewGraffiti;
+        const recordingRecord = graffiti.storeRecordingInfoInCell(isOldGraffiti);
         const activeCellIndex = Jupyter.notebook.get_selected_index();
-        const graffitiEditCell = Jupyter.notebook.insert_cell_above('markdown');
+        const isMarkdownCell = (recordingRecord.cellType === 'markdown');
+        const isCodeCell = (recordingRecord.cellType === 'code');
 
-        utils.setMetadataCellId(graffitiEditCell.metadata,utils.generateUniqueId());
-        utils.refreshCellMaps();
-        let editableText;
-        if (graffiti.selectedTokens.isIntersecting) {
-          // use whatever author put into this graffiti previously
-          editableText = recordingRecord.markdown; 
-        } else {
-          if (recordingRecord.cellType === 'markdown') {
+        if (isNewGraffiti || isCodeCell || (isMarkdownCell && isOldGraffiti)) {
+          graffitiEditCell = Jupyter.notebook.insert_cell_above('markdown');
+          utils.setMetadataCellId(graffitiEditCell.metadata,utils.generateUniqueId());
+          utils.refreshCellMaps();
+          state.setGraffitiEditCellId(utils.getMetadataCellId(graffitiEditCell.metadata));
+        }
+
+        if (isNewGraffiti) {
+          if (isMarkdownCell) {
             // Set up some reasonable options for Graffiti in markdown. Author can, of course, opt to change these any time.
             editableText = localizer.getString('BELOW_TYPE_MARKDOWN') +
                            "%%play_on_click\n" +
@@ -3183,17 +3200,32 @@ define([
             editableText = localizer.getString('BELOW_TYPE_MARKDOWN') +
                            graffiti.selectedTokens.allTokensString;
           }
+        } else {
+          // Use whatever author put into this graffiti previously
+          editableText = recordingRecord.markdown; 
         }
 
         graffitiEditCell.set_text(editableText);
         graffitiEditCell.unrender();
-        Jupyter.notebook.scroll_to_cell(Math.max(0,activeCellIndex),500);
-        const selectedCell = Jupyter.notebook.get_selected_cell();
-        selectedCell.unselect();
-        graffitiEditCell.select();
-        graffitiEditCell.code_mirror.focus();
-        graffitiEditCell.code_mirror.setSelection( { line:2, ch:0}, { line:10000, ch:10000} );
-        graffiti.graffitiEditCellId = utils.getMetadataCellId(graffitiEditCell.metadata);
+
+        if (isCodeCell || isOldGraffiti) { 
+          // For code cell graffiti or non-new markdown graffiti, let us edit the tip contents by scrolling to the edit cell
+          Jupyter.notebook.scroll_to_cell(Math.max(0,activeCellIndex),500);
+          const selectedCell = Jupyter.notebook.get_selected_cell();
+          selectedCell.unselect();
+          graffitiEditCell.select();
+          graffitiEditCell.code_mirror.focus();
+          graffitiEditCell.code_mirror.setSelection( { line:2, ch:0}, { line:10000, ch:10000} );
+        }
+
+        if (isMarkdownCell && isNewGraffiti) {
+          // Proceed directly to recording a movie, assuming we want to persist this new graffiti (no way to cancel)
+          graffiti.finishGraffiti(true).then(() => {
+            graffiti.setRecordingTakeId(recordingRecord);
+            // Force this function to treat this as a new movie even though we've automatically created the manifest entry.
+            graffiti.beginMovieRecordingProcess(true, recordingRecord);
+          });
+        }
       },
 
       finishGraffiti: (doSave) => {
@@ -3205,11 +3237,11 @@ define([
         const recordingCellInfo = state.getRecordingCellInfo();
         const recordingCell = recordingCellInfo.recordingCell;
 
-        const editCellIndex = utils.findCellIndexByCellId(graffiti.graffitiEditCellId);
+        const editCellIndex = utils.findCellIndexByCellId(state.getGraffitiEditCellId());
 
         let editCellContents = '';
         if (editCellIndex !== undefined) {
-          const editCell = utils.findCellByCellId(graffiti.graffitiEditCellId);
+          const editCell = utils.findCellByCellId(state.getGraffitiEditCellId());
           editCellContents = editCell.get_text();
           Jupyter.notebook.delete_cell(editCellIndex);
 
@@ -3272,23 +3304,26 @@ define([
           recordingCell.set_text(newContents);
         }
 
-        utils.saveNotebook(() => {
+        return new Promise((resolve) => {
+          utils.saveNotebook(() => {
 
-          // need to reselect graffiti text that was selected in case it somehow got unselected
-          //recordingCell.code_mirror.setSelections(recordingCellInfo.selections);
-          graffiti.sitePanel.animate({ scrollTop: recordingCellInfo.scrollTop}, 500);
-          if (doSave && recordingCellInfo.recordingRecord.cellType === 'markdown') {
-            recordingCell.render();
-          }
-          graffiti.changeActivity('idle');
-          recordingCell.code_mirror.focus();
-          if (doSave) {
-            graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: false});
-          } else {
-            graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
-          }
-          graffiti.refreshGraffitiTooltips();
-          graffiti.refreshAllGraffitiSideMarkers();
+            // need to reselect graffiti text that was selected in case it somehow got unselected
+            //recordingCell.code_mirror.setSelections(recordingCellInfo.selections);
+            graffiti.sitePanel.animate({ scrollTop: recordingCellInfo.scrollTop}, 500);
+            if (doSave && recordingCellInfo.recordingRecord.cellType === 'markdown') {
+              recordingCell.render();
+            }
+            graffiti.changeActivity('idle');
+            recordingCell.code_mirror.focus();
+            if (doSave) {
+              graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: false});
+            } else {
+              graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
+            }
+            graffiti.refreshGraffitiTooltips();
+            graffiti.refreshAllGraffitiSideMarkers();
+            resolve();
+          });
         });
       },
 
@@ -3485,14 +3520,18 @@ define([
         state.restoreCellStates('selections'); // reset selections to when you clicked to begin the recording
       },
 
-      beginMovieRecordingProcess: () => {
+      beginMovieRecordingProcess: (isOldGraffiti, recordingRecord) => {
         // Preserve the state of all cells and selections before we begin recording so we can restore when the recording is done.
         state.storeCellStates();
         graffiti.preRecordingScrollTop = state.getScrollTop();
         state.setMovieRecordingStarted(true);
-        const recordingRecord = graffiti.storeRecordingInfoInCell();
+        if (recordingRecord === undefined) {
+          recordingRecord = graffiti.storeRecordingInfoInCell(isOldGraffiti);
+        }
         if (recordingRecord.cellType === 'markdown') {
-          graffiti.selectedTokens.recordingCell.render();
+          if (!graffiti.selectedTokens.noTokensPresent) {
+            graffiti.selectedTokens.recordingCell.render();
+          }
         }
         graffiti.setPendingRecording();
       },
@@ -3642,7 +3681,7 @@ define([
         Jupyter.notebook.events.on('rendered.MarkdownCell', (e, results) => {
           const activity = state.getActivity();
           if ((activity === 'graffiting') &&
-              (utils.getMetadataCellId(results.cell.metadata) === graffiti.graffitiEditCellId)) {
+              (utils.getMetadataCellId(results.cell.metadata) === state.getGraffitiEditCellId())) {
             // When creating Graffitis for markdown cells, the user can also save the Graffiti by rendering the target
             // markdown cell rather than the editing cell. Some content creators get confused and do this, so we support it.
             const lastEditActivityTime = state.getLastEditActivityTime();
