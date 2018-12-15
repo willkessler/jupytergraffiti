@@ -253,8 +253,8 @@ define([
         setTimeout(graffiti.performWindowResizeCheck, graffiti.windowSizeCheckInterval);
 
         graffiti.setupOneControlPanel('graffiti-record-controls', 
-                                      '  <button class="btn btn-default" id="graffiti-create-btn" title="' + localizer.getString('CREATE') + '">' +
-                                      '<i class="fa fa-edit"></i>&nbsp; <span>' + localizer.getString('CREATE') + '</span></button>' +
+                                      '  <button class="btn btn-default" id="graffiti-create-btn" title="' + localizer.getString('CREATE_1') + '">' +
+                                      '<i class="fa fa-edit"></i>&nbsp; <span>' + localizer.getString('CREATE_1') + '</span></button>' +
                                       '  <button class="btn btn-default" id="graffiti-edit-btn" title="' + localizer.getString('EDIT_TOOLTIP') + '">' +
                                       '<i class="fa fa-edit"></i>&nbsp; <span>' + localizer.getString('EDIT') + '</span></button>' +
                                       '  <button class="btn btn-default" id="graffiti-begin-recording-btn" title="' + localizer.getString('RECORD_MOVIE') + '">' +
@@ -974,7 +974,16 @@ define([
             //console.log('Graffiti: selectedTokens:', selectedTokens);
             graffiti.highlightIntersectingGraffitiRange();
             let visibleControlPanels;
-            const isMarkdownCell = activeCell.cell_type === 'markdown';
+            const isMarkdownCell = (activeCell.cell_type === 'markdown');
+            if (isMarkdownCell && !selectedTokens.isIntersecting) {
+              // swap out the CREATE and RECORD strings depending on what type of new Graffiti could possibly be made
+              $('#graffiti-create-btn').attr({title: localizer.getString('CREATE_2')});
+              $('#graffiti-create-btn span').text(localizer.getString('CREATE_2'));
+            } else {
+              $('#graffiti-create-btn').attr({title: localizer.getString('CREATE_1')});
+              $('#graffiti-create-btn span').text(localizer.getString('CREATE_1'));
+            }
+
             if ((selectedTokens.noTokensPresent) ||
                 (!isMarkdownCell && (selectedTokens.range.selectionStart === selectedTokens.range.selectionEnd) && 
                  (!selectedTokens.isIntersecting)) ||
