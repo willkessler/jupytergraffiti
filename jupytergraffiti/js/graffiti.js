@@ -2712,6 +2712,9 @@ define([
                 console.log('refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
                 state.setPlayableMovie('tip', cellId, recordingKey);
               }                
+              state.setHidePlayerAfterPlayback(false); // default for any recording is not to hide player
+              const tooltipCommands = graffiti.extractTooltipCommands(recording.markdown);
+
               if (recording.playOnClick) {
                 console.log('binding target for click', highlightElem);
                 highlightElem.off('click').click((e) => {
@@ -2726,8 +2729,6 @@ define([
                   return false;
                 });
               }
-              state.setHidePlayerAfterPlayback(false); // default for any recording is not to hide player
-              const tooltipCommands = graffiti.extractTooltipCommands(recording.markdown);
 
               if (recording.hideTooltip) {
                 console.log('Graffiti: recording is set to hide tip.');
