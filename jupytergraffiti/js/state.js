@@ -67,6 +67,7 @@ define([
       state.animationIntervalIds = {};
       state.playbackCellAdditions = {};
       state.highlightsRefreshCellId = undefined;
+      state.graffitiEditCellId = undefined;
 
       // Usage statistic gathering for the current session (since last load of the notebook)
       state.usageStats = {
@@ -251,6 +252,14 @@ define([
     
     clearHighlightsRefreshableCell: () => {
       state.highlightsRefreshCellId = undefined;
+    },
+
+    getGraffitiEditCellId: () => {
+      return state.graffitiEditCellId;
+    },
+
+    setGraffitiEditCellId: (cellId) => {
+      state.graffitiEditCellId = cellId;
     },
 
     scanForSpeakingStatus: () => {
@@ -944,7 +953,7 @@ define([
     },
 
     setDontRestoreCellContentsAfterPlayback: (status) => {
-      console.trace('setDontRestoreCellContentsAfterPlayback:', status);
+      //console.trace('setDontRestoreCellContentsAfterPlayback:', status);
       state.dontRestoreCellContentsAfterPlayback = status;
     },
 

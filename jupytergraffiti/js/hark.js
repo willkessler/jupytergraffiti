@@ -74,7 +74,7 @@ define([], function () {
     },
 
     setIntervals: (silenceInterval, talkingInterval) => {
-      console.trace('Called from here:');
+      //console.trace('Called from here:');
       hark.silenceInterval = silenceInterval;
       hark.talkingInterval = talkingInterval;
     },

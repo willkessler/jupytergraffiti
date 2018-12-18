@@ -43,7 +43,8 @@ define([
             'MOVIE_UNAVAILABLE':                 'Movie is not available.',
             'MOVIE_UNAVAILABLE_EXPLANATION':     'We are sorry, we could not load this movie at this time. Please contact the author of this Notebook for help.',
             'ACTIVATE_GRAFFITI_CONFIRM':         'Activate Graffiti On This Notebook?',
-            'CREATE':                            'Create',
+            'CREATE_1':                          'Create',
+            'CREATE_2':                          'Record',
             'EDIT' :                             'Edit',
             'EDIT_TOOLTIP' :                     'Edit Graffiti tooltip',
             'START_RECORDING':                   'Start Recording',
@@ -122,7 +123,7 @@ define([
             'ACTIVATE_GRAFFITI_ADVISORY':        'Enable Graffiti on this Notebook, so you can begin using Graffiti for the first time?<br>' +
                                                  'If you click Cancel, we will not change the notebook in any way.' +
                                                  '<br><br><i>(This process merely adds some metadata to the cells, but does not otherwise change the Notebook\'s contents.)</i>',
-            'TOOLTIP_HINT':                      'Click underlined text to watch a movie about this.',
+            'TOOLTIP_HINT':                      'Without moving your mouse, click now to watch a movie about this.',
           }
           break;
         case 'CN':
@@ -133,7 +134,8 @@ define([
             'MOVIE_UNAVAILABLE':                 '视频不存在',
             'MOVIE_UNAVAILABLE_EXPLANATION':     '抱歉，我们目前无法加载该视频。请联系创建该 Notebook 的作者寻求帮助。',
             'ACTIVATE_GRAFFITI_CONFIRM':         '是否在该 Notebook 上启用 Graffiti？',
-            'CREATE':                            '创建',
+            'CREATE_1':                          '创建',
+            'CREATE_2':                          '创建',
             'EDIT' :                             '编辑',
             'EDIT_TOOLTIP' :                     '编辑 Graffiti 提示框',
             'START_RECORDING':                   '开始录屏',
@@ -212,7 +214,7 @@ define([
             'ACTIVATE_GRAFFITI_ADVISORY':        '在该 Notebook 上启用 Graffiti，就能进行录屏操作啦' +
                                                  '如果点击取消，不会更改 notebook' +
                                                  '<br><br><i>(该操作只会增加单元格的元数据，不会更改 Notebook 的内容)</i>',
-            'TOOLTIP_HINT':                      'Click underlined text to watch a movie about this.',
+            'TOOLTIP_HINT':                      'Click the underlined text (below) to watch a movie about this.',
           };
           break;
       }
