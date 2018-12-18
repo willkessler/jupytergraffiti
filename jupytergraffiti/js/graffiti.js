@@ -2910,59 +2910,61 @@ define([
         $('body').keydown((e) => {
           const activity = state.getActivity();
           let stopProp = false;
-          //console.log('keydown e.which:', e.which);
-          switch (e.which) {
-            case 32: // space key stops playback
-              if (activity === 'playing') {
+          //console.log('keydown e.which:', e.which, String.fromCharCode(e.which));
+          const keyCode = e.which;
+          if ((((48 <= keyCode) && (keyCode <= 57)) ||    // A-Z
+               ((65 <= keyCode) && (keyCode <= 90)) ||    // 0-9
+               ((37 <= keyCode) && (keyCode <= 40)) ||    // arrow keys                
+               (keyCode === 32))                          // space bar
+              && activity === 'playing') {
+            // Pressing keys : A-Z, 0-9, arrows, and spacebar stop playback
+            stopProp = true;
+            graffiti.togglePlayback();
+          } else {
+            // Check for other keypress actions
+            switch (keyCode) {
+              case 27: // escape key cancels playback
                 stopProp = true;
-                graffiti.togglePlayback();
-              }
-              break;
-            case 27: // escape key stops playback
-              stopProp = true;
-              switch (activity) {
-                case 'playing':
-                case 'playbackPaused':
-                case 'scrubbing':
+                if ((activity === 'playing') || (activity === 'playbackPaused') || (activity === 'scrubbing')) {
                   graffiti.cancelPlayback({cancelAnimation:true});
-                  break;
-              }
-              break;
-            case 77: // cmd-m key finishes a recording in progress or cancels a pending recording
-              // cf http://jsbin.com/vezof/1/edit?js,output
-              if (e.metaKey) { // may only work on Chrome
-                if (e.ctrlKey) {
-                  console.log('Graffiti: you pressed ctrl ⌘-m');
-                } else {
-                  console.log('Graffiti: you pressed ⌘-m');
                 }
-                stopProp = true;
-                switch (activity) {
-                  case 'recording':
-                    if (e.ctrlKey) {
-                    } else {
-                      graffiti.toggleRecording();
-                    }
-                    break;
-                  case 'recordingPending':
-                    graffiti.changeActivity('idle');
-                    break;
+                break;
+              case 77: // cmd-m key finishes a recording in progress or cancels a pending recording
+                // cf http://jsbin.com/vezof/1/edit?js,output
+                if (e.metaKey) { // may only work on Chrome
+                  if (e.ctrlKey) {
+                    console.log('Graffiti: you pressed ctrl ⌘-m');
+                  } else {
+                    console.log('Graffiti: you pressed ⌘-m');
+                  }
+                  stopProp = true;
+                  switch (activity) {
+                    case 'recording':
+                      if (e.ctrlKey) {
+                      } else {
+                        graffiti.toggleRecording();
+                      }
+                      break;
+                    case 'recordingPending':
+                      graffiti.changeActivity('idle');
+                      break;
+                  }
                 }
-              }
-              break;
-            case 16: // shift key
-              graffiti.shiftKeyIsDown = true;
-              state.updateDrawingState([ { change: 'stickerOnGrid', data: true } ]);
-              //console.log('Graffiti: shiftKeyIsDown');
-              break;
+                break;
+              case 16: // shift key
+                graffiti.shiftKeyIsDown = true;
+                state.updateDrawingState([ { change: 'stickerOnGrid', data: true } ]);
+                //console.log('Graffiti: shiftKeyIsDown');
+                break;
               // case 13: // enter key
-              //            break;
+                //            break;
               // case 18: // meta key
-              // break;
+                // break;
               // case 91: // option key
-              // break;
-            default:
-              break; // let other keys pass through
+                // break;
+              default:
+                break; // let any other keys pass through
+            }
           }
           
           if (stopProp) {

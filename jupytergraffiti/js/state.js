@@ -944,7 +944,7 @@ define([
     },
 
     setDontRestoreCellContentsAfterPlayback: (status) => {
-      console.trace('setDontRestoreCellContentsAfterPlayback:', status);
+      //console.trace('setDontRestoreCellContentsAfterPlayback:', status);
       state.dontRestoreCellContentsAfterPlayback = status;
     },
 
