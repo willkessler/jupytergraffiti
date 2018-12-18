@@ -123,7 +123,9 @@ define([
             'ACTIVATE_GRAFFITI_ADVISORY':        'Enable Graffiti on this Notebook, so you can begin using Graffiti for the first time?<br>' +
                                                  'If you click Cancel, we will not change the notebook in any way.' +
                                                  '<br><br><i>(This process merely adds some metadata to the cells, but does not otherwise change the Notebook\'s contents.)</i>',
+            'SCRUB':                             'scrub',
             'TOOLTIP_HINT':                      'Without moving your mouse, click now to watch a movie about this.',
+            'MOVIE_DURATION':                    'Movie duration',
           }
           break;
         case 'CN':
@@ -214,7 +216,9 @@ define([
             'ACTIVATE_GRAFFITI_ADVISORY':        '在该 Notebook 上启用 Graffiti，就能进行录屏操作啦' +
                                                  '如果点击取消，不会更改 notebook' +
                                                  '<br><br><i>(该操作只会增加单元格的元数据，不会更改 Notebook 的内容)</i>',
+            'SCRUB':                             'scrub',
             'TOOLTIP_HINT':                      'Click the underlined text (below) to watch a movie about this.',
+            'MOVIE_DURATION':                    'Movie duration',
           };
           break;
       }
