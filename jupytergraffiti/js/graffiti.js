@@ -419,7 +419,7 @@ define([
                                       '</div>' +
                                       '<div id="graffiti-scrub-controls">' +
                                       '  <div id="graffiti-playback-range">' +
-                                      '    <input title="scrub" type="range" min="0" max="1000" value="0" id="graffiti-recorder-range"></input>' +
+                                      '    <input title="' + localizer.getString('SCRUB') + '" type="range" min="0" max="1000" value="0" id="graffiti-recorder-range"></input>' +
                                       '  </div>' +
                                       '  <div id="graffiti-time-display-playback">00:00</div>' +
                                       '</div>',
@@ -1058,13 +1058,15 @@ define([
           case 'playing':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-play-btn').hide().parent().find('#graffiti-pause-btn').show();
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-narrator-info').hide();
-            if ((graffiti.narratorName !== undefined) || (graffiti.narratorPic !== undefined)) {
+            const narratorName = state.getNarratorInfo('name');
+            const narratorPicture = state.getNarratorInfo('picture');
+            if ((narratorName !== undefined) || (narratorPicture !== undefined)) {
               graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-narrator-info').show();
-              if (graffiti.narratorPicture !== undefined) {
-                graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-narrator-pic').html('<img src="' + graffiti.narratorPicture + '" />');
+              if (narratorPicture !== undefined) {
+                graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-narrator-pic').html('<img src="' + narratorPicture + '" />');
               }
-              if (graffiti.narratorName !== undefined) {
-                graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-narrator-name').html(graffiti.narratorName);
+              if (narratorName !== undefined) {
+                graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-narrator-name').html(narratorName);
               }              
             }
             graffiti.showControlPanels(['graffiti-playback-controls']);
@@ -2498,13 +2500,11 @@ define([
                     }
                     break;
                   case 'narrator_name': // set the name of the narrator to display in the control panel during playback
-                    graffiti.narratorName = undefined;
                     if (subPart1 !== undefined) {
                       partsRecord.narratorName = subPart1;
                     }
                     break;
                   case 'narrator_pic': // specify a picture to display in the control panel during playback
-                    graffiti.narratorPicture = undefined;
                     if (subPart1 !== undefined) {
                       partsRecord.narratorPicture = subPart1;
                     }
@@ -4370,6 +4370,8 @@ define([
           recorderTimeDisplay = $('#graffiti-time-display-recording');
         } else {
           recorderTimeDisplay = $('#graffiti-time-display-playback');
+          const duration = utils.formatTime(state.getHistoryDuration());
+          $('#graffiti-time-display-playback').attr({title:localizer.getString('MOVIE_DURATION') + ': ' + duration});
         }
         recorderTimeDisplay.text(timeDisplay);
       },
@@ -4510,6 +4512,7 @@ define([
         console.log('Graffiti: Cancelling playback');
         graffiti.cancelPlaybackNoVisualUpdates();
         state.clearAnimationIntervals();
+        state.clearNarratorInfo();
         graffiti.resetStickerCanvases();
         graffiti.cancelRapidPlay();
         graffiti.graffitiCursor.hide();
@@ -4518,8 +4521,6 @@ define([
         graffiti.refreshGraffitiTooltips(); 
         graffiti.updateControlPanels();
         graffiti.highlightIntersectingGraffitiRange();
-        graffiti.narratorName = undefined;
-        graffiti.narratorPicture = undefined;
         graffiti.clearJupyterMenuHint();
 
         if (opts.cancelAnimation) {
@@ -4727,8 +4728,8 @@ define([
           console.log('Graffiti: Movie loaded for cellId, recordingKey:', playableMovie.cellId, playableMovie.recordingKey);
           // big hack
           const recording = state.getManifestSingleRecording(playableMovie.cellId, playableMovie.recordingKey);
-          graffiti.narratorName = recording.narratorName;
-          graffiti.narratorPicture = recording.narratorPicture;
+          state.setNarratorInfo('name', recording.narratorName);
+          state.setNarratorInfo('picture', recording.narratorPicture);
           if (playableMovie.cellType === 'markdown') {
             playableMovie.cell.render(); // always render a markdown cell first before playing a movie on a graffiti inside it
           }

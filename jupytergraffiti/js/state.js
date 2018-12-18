@@ -67,6 +67,7 @@ define([
       state.playbackCellAdditions = {};
       state.highlightsRefreshCellId = undefined;
       state.graffitiEditCellId = undefined;
+      state.narratorInfo = {};
 
       // Usage statistic gathering for the current session (since last load of the notebook)
       state.usageStats = {
@@ -251,6 +252,18 @@ define([
 
     setGraffitiEditCellId: (cellId) => {
       state.graffitiEditCellId = cellId;
+    },
+
+    getNarratorInfo: (which) => {
+      return state.narratorInfo[which];
+    },
+
+    clearNarratorInfo: () => {
+      state.narratorInfo = {};
+    },
+
+    setNarratorInfo: (which, val) => {
+      state.narratorInfo[which] = val;
     },
 
     scanForSpeakingStatus: () => {
