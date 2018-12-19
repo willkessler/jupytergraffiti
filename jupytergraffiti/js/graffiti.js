@@ -3580,21 +3580,27 @@ define([
             graffiti.updateControlPanels(cm); // this is necessary because you can move the cursor from inside a graffiti to outside one
           }
           //console.log('graffiti.selectedTokens:', graffiti.selectedTokens);
-          const affectedCell = utils.findCellByCodeMirror(cm);
+          let affectedCell = utils.findCellByCodeMirror(cm);
+          if (affectedCell === undefined) {
+            utils.refreshCellMaps();
+            affectedCell = utils.findCellByCodeMirror(cm);
+            console.log('Graffiti: cursorActivity handler had to refreshCellMaps twice. Should never occur!');
+          }
           state.storeCellIdAffectedByActivity(utils.getMetadataCellId(affectedCell.metadata));
           state.storeHistoryRecord('selections');
-          const activityCell = utils.findCellByCodeMirror(cm);
-          graffiti.refreshGraffitiSideMarkers(activityCell);
+          graffiti.refreshGraffitiSideMarkers(affectedCell);
         });
 
         cm.on('change', (cm, changeObj) => {
           //console.log('change activity:', changeObj);
           const affectedCell = utils.findCellByCodeMirror(cm);
-          state.storeCellIdAffectedByActivity(utils.getMetadataCellId(affectedCell.metadata));
-          state.storeHistoryRecord('contents');
-          if (state.getActivity() === 'idle') {
-            state.setHighlightsRefreshCellId(utils.getMetadataCellId(affectedCell.metadata));
-            setTimeout(graffiti.updateRefreshableCell, 250); // set up to refresh side markers shortly after changes
+          if (affectedCell !== undefined) {
+            state.storeCellIdAffectedByActivity(utils.getMetadataCellId(affectedCell.metadata));
+            state.storeHistoryRecord('contents');
+            if (state.getActivity() === 'idle') {
+              state.setHighlightsRefreshCellId(utils.getMetadataCellId(affectedCell.metadata));
+              setTimeout(graffiti.updateRefreshableCell, 250); // set up to refresh side markers shortly after changes
+            }
           }
         });
 
@@ -3652,7 +3658,14 @@ define([
           //console.log(results);
           const newCell = results.cell;
           const newCellIndex = results.index;
-          const newCellId = utils.setMetadataCellId(newCell.metadata,utils.generateUniqueId());
+          let newCellId;
+          if (utils.getMetadataCellId(newCell.metadata) === undefined) { 
+            // Do not assign a graffiti id if we already have one. This may happen when applyCellListToNotebook is reinserting cells from the history
+            // and has set the new cell's id to the value of a historical cell's id.
+            newCellId = utils.setMetadataCellId(newCell.metadata,utils.generateUniqueId());
+          } else {
+            newCellId = utils.getMetadataCellId(newCell.metadata);
+          }
           utils.refreshCellMaps();
           graffiti.addCMEventsToSingleCell(newCell);
           state.storeCellAddition(newCellId, newCellIndex);
@@ -4242,18 +4255,20 @@ define([
         const cellsPresentIds = Object.keys(cellsPresentThisFrame);
         const numCellsPresent = cellsPresentIds.length;
         let mustRefreshCellMaps = false;
+        let deletableCellId;
         if (numCellsPresent > 0) {
           // First figure out which cells are extra and need to be deleted on this cell
           let deleteCellId, deleteCellIndex;
           const cellAdditions = state.getCellAdditions(); // all cells added during this recording
-          const cellAdditionsIds = Object.keys(cellAdditions);
+          const cellAdditionsIds = Object.values(cellAdditions);
           // Any cells that may have been added during the movie, not present in this timeframe, must be deleted.
           const deletableCellIds = _.difference(cellAdditionsIds, cellsPresentIds); 
-          //console.log('deletableCellIds', deletableCellIds, cellAdditions, cellsPresentIds);
-          for (deleteCellId of deletableCellIds) {
-            deleteCellIndex = utils.findCellIndexByCellId(deleteCellId);
+          console.log('deletableCellIds', deletableCellIds, cellAdditions, cellsPresentIds);
+          for (deletableCellId of deletableCellIds) {
+            console.log('Trying to delete cellid:', deletableCellId);
+            deleteCellIndex = utils.findCellIndexByCellId(deletableCellId);
             if (deleteCellIndex !== undefined) {
-              //console.log('Going to delete:', deleteCellId, 'at index:', deleteCellIndex);
+              console.log('Going to delete:', deleteCellId, 'at index:', deleteCellIndex);
               Jupyter.notebook.delete_cell(deleteCellIndex);
             }
           }
@@ -4276,11 +4291,12 @@ define([
                 }
               }              
               newCell = Jupyter.notebook.insert_cell_above('code', cellPosition);
-              newCell.metadata.graffitiCellId = checkCellId;
+              utils.setMetadataCellId(newCell.metadata, checkCellId);
               state.storePlaybackCellAddition(checkCellId, cellPosition);
               mustRefreshCellMaps = true;
-              //console.log('Graffiti: Just inserted new cell.');              
-              graffiti.applyScrollNudgeAtCell(newCell, record, false);
+              console.log('Graffiti: Just inserted new cell, cellId:', checkCellId, 'at position', cellPosition);
+              // This causes excessive scrolling and isn't really necessary if the author moves the cursor to a new cell anyway
+              // graffiti.applyScrollNudgeAtCell(newCell, record, false);
             }
           }
         }
