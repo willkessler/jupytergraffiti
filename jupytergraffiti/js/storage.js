@@ -30,14 +30,6 @@ define([
     defaultKernel: 'python3',
     cplusplusKernel: 'xeus-cling-cpp',
     executorCell: undefined,
-
-    // Commands to run through the python kernel after switching to it, eg to store the manifest
-    kernelCommand: undefined,
-    // Id of the kernel command we've run so we can close things off when it's done
-    kernelCommandId: undefined,
-    // Whatever kernel was live before we switched to the python kernel to execute the kernelStorageCommands.
-    liveKernelName: undefined,
-    readyToRestoreLiveKernel: false,
     movieCompleteCallback: undefined,
 
     createExecutorCell: () => {
@@ -73,95 +65,6 @@ define([
         }
         storage.executorCell = undefined;
       }        
-    },
-
-    // -------------------------
-
-    runQueuedKernelCommand: () => {
-      let returnVal = false;
-      if (storage.kernelCommand !== undefined) {
-        storage.kernelCommandId = Jupyter.notebook.kernel.execute(storage.kernelCommand,
-                                                                  undefined,
-                                                                  {
-                                                                    silent: false,
-                                                                    store_history: false,
-                                                                    stop_on_error : true
-                                                                  }
-        );
-        console.log('Ran kernel command and recorded command id:', storage.kernelCommandId);
-        storage.kernelCommand = undefined;
-        returnVal = true;
-      }
-      return returnVal;
-    },
-
-    checkForMovieCompleteCallback: () => {
-      if (storage.liveKernelName !== undefined && (Jupyter.notebook.kernel.name === storage.liveKernelName)) {
-        storage.liveKernelName = undefined;
-        utils.saveNotebook(); // need to save to ensure we save the correct current kernel after switching back and forth
-        storage.executeMovieCompleteCallback();
-        return true;
-      }
-      return false;
-    },
-
-    queueKernelCommand: (cmd) => {
-      console.log('queueKernelCommand', cmd);
-      storage.kernelCommand = cmd;
-    },
-
-    runKernelCommand: (cmd) => {
-      console.log('runKernelCommand, cmd:', cmd, 'current kernel', Jupyter.notebook.kernel.name);
-      const currentKernelName = Jupyter.notebook.kernel.name;
-      // If we are already using the python3 kernel, then we can just run the kernel command immediately without switching back and forth between the current 
-      // kernel and the python kernel. Otherwise, queue this command up for after kernel fully switches to the python3 kernel.
-      if (currentKernelName === storage.defaultKernel) {
-        storage.kernelCommandId = Jupyter.notebook.kernel.execute(cmd,
-                                                                  undefined,
-                                                                  {
-                                                                    silent: false,
-                                                                    store_history: false,
-                                                                    stop_on_error : true
-                                                                  }
-        );
-      } else {
-        // Switch to the python kernel and queue this command for running after that kernel is up.
-        storage.queueKernelCommand(cmd);
-        // When this is complete, it will fire kernel_ready.Kernel, picked up by loader.js, which will run the queued kernel command. When that's complete we'll
-        // switch back to the liveKernelName.
-        if (storage.liveKernelName === undefined) {
-          storage.liveKernelName = currentKernelName;
-        }
-        Jupyter.kernelselector.set_kernel(storage.defaultKernel); 
-      }
-    },
-
-    processedKernelShellResponse: (results) => {
-      console.log('processedKernelShellResponse, results', results);
-      if ((results !== undefined) && (results.reply !== undefined) && (results.reply.parent_header !== undefined) && (results.reply.parent_header.msg_id !== undefined)) {
-        const msgId = results.reply.parent_header.msg_id;
-        if (msgId === storage.kernelCommandId) {
-          console.log('kernel shell cmd id', msgId, 'completed.');
-          if (state.getMovieRecordingStarted()) {
-            storage.completeMovieStorage();
-          }
-
-          if (storage.readyToRestoreLiveKernel) {
-            // Switch back to the live kernel if it isn't python3.
-            const currentKernelName = Jupyter.notebook.kernel.name;
-            console.log('Checking to see if we have to go back to the live kernel', currentKernelName, storage.liveKernelName);
-            if (storage.liveKernelName === undefined) {
-              storage.executeMovieCompleteCallback();
-            } else if (currentKernelName !== storage.liveKernelName) {
-              Jupyter.kernelselector.set_kernel(storage.liveKernelName);
-            }
-            storage.readyToRestoreLiveKernel = false;
-          } 
-
-          return true; // we're done, we can proceed with last phases of storage
-        }
-      }
-      return false;
     },
 
     setMovieCompleteCallback: (cb) => {
@@ -259,7 +162,10 @@ define([
       state.setMovieRecordingStarted(false);
       console.log('Graffiti: completeMovieStorage is saving manifest, current kernel', Jupyter.notebook.kernel.name);
       storage.storeManifest();
-      storage.executeMovieCompleteCallback();
+      utils.saveNotebook(() => {
+        storage.executeMovieCompleteCallback();
+        state.setActivity('idle'); // cancel "executing" state
+      });
     },
 
     storeMovie: () => {
@@ -278,16 +184,6 @@ define([
           recordingKey: recordingCellInfo.recordingKey,
           activeTakeId: recordingCellInfo.recordingRecord.activeTakeId
         });
-
-        /*
-        pythonScript = utils.addCR("import os") +
-                       utils.addCR('os.system("mkdir -p ' + graffitiPath + '")') +
-                       utils.addCR("with open('" + graffitiPath + "audio.txt', 'w') as f:") +
-                       utils.addCR("    f.write('" + encodedAudio + "')") +
-                       utils.addCR("with open('" + graffitiPath + "history.txt', 'w') as f:") +
-                       utils.addCR("    f.write('" + base64CompressedHistory + "')");
-        storage.runKernelCommand(pythonScript);
-        */
 
         storage.runShellCommand('mkdir -p ' + graffitiPath);
         storage.writeTextToFile(graffitiPath + 'audio.txt', encodedAudio);
@@ -353,14 +249,6 @@ define([
       const manifestFullFilePath = manifestInfo.path + manifestInfo.file;
       console.log('Graffiti: Saving manifest to:', manifestFullFilePath);
       
-      /*
-      pythonScript = utils.addCR("import os") +
-                     utils.addCR('os.system("mkdir -p ' + manifestInfo.path + '")') +
-                     utils.addCR("with open('" + manifestFullFilePath + "', 'w') as f:") +
-                     utils.addCR("    f.write('" + base64CompressedManifest + "')");
-      storage.runKernelCommand(pythonScript);
-      */
-
       storage.runShellCommand('mkdir -p ' + manifestInfo.path);
       storage.writeTextToFile(manifestFullFilePath, base64CompressedManifest);
       storage.cleanUpExecutorCell();
@@ -426,9 +314,6 @@ define([
         recordingCellId: recordingCellId, 
         recordingKey: recordingKey 
       });
-      //const deletePython = "import os\nos.system('rm -r " + graffitiPath + "')\n";
-      //console.log('Graffiti: deleteNotebookStorage:', deletePython);
-      //storage.runKernelCommand(deletePython);
       storage.runShellCommand('rm -r ' + graffitiPath);
       storage.cleanUpExecutorCell();
     },
@@ -447,9 +332,6 @@ define([
         const notebookPath = "jupytergraffiti_data/notebooks/";
         const sourceTree = notebookPath + originalGraffitiId;
         const destTree = notebookPath + newGraffitiId;
-        //const copyPython = "import shutil\nshutil.copytree('" + sourceTree + "','" + destTree + "')\n";
-        //console.log('Graffiti: transferGraffitis will run:', copyPython);
-        //storage.runKernelCommand(copyPython);
         storage.runShellCommand('cp -pr ' + sourceTree + ' ' + destTree);
         storage.cleanUpExecutorCell();
       });
@@ -462,10 +344,6 @@ define([
       const notebook = Jupyter.notebook;
       const notebookName = notebook.get_notebook_name();
       const archiveName = 'graffiti_archive_' + utils.generateUniqueId().replace('id_','') + '.tgz';
-      //const packagePython = "import os\nos.system('tar zcf " + archiveName + " " + '"' + notebookName + '.ipynb"' + " jupytergraffiti_data')\n";
-      //console.log('Graffiti: packageGraffitis will run:', packagePython);
-      //storage.runKernelCommand(packagePython);
-
       const tarCmd = 'tar zcf ' + archiveName + ' "' + notebookName + '.ipynb"' + ' jupytergraffiti_data';
       storage.runShellCommand(tarCmd);
       storage.cleanUpExecutorCell();
@@ -487,9 +365,6 @@ define([
     // Delete all a notebook's stored graffitis and its data directory (but not the global jupytergraffiti_data directory)
     deleteDataDirectory: (graffitiId) => {
       const notebookStoragePath = 'jupytergraffiti_data/notebooks/' + graffitiId;
-      //const deletePython = "import os\nos.system('rm -r " + notebookStoragePath + "')\n";
-      //console.log('Graffiti: deleteNotebookStorage:', deletePython);
-      //storage.runKernelCommand(deletePython);
       storage.runShellCommand('rm -r ' + notebookStoragePath);
       storage.cleanUpExecutorCell();      
     },

@@ -3722,9 +3722,8 @@ define([
         Jupyter.notebook.events.on('shell_reply.Kernel', (e, results) => {
           console.log('Graffiti: Kernel shell reply event fired, e, results:',e, results);
           utils.refreshCellMaps();
-          if (state.getActivity() === 'executing') {
-            console.log('Graffiti: going from activity "executing" to "idle"');
-            state.setActivity('idle');
+          const activity = state.getActivity();
+          if (activity === 'idle') {
             graffiti.updateAllGraffitiDisplays();
             graffiti.updateControlPanels(); // necessary because we just finished a save
           }
