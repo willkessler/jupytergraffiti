@@ -28,6 +28,8 @@ define([
   const storage = {
 
     defaultKernel: 'python3',
+    cplusplusKernel: 'xeus-cling-cpp',
+    executorCell: undefined,
 
     // Commands to run through the python kernel after switching to it, eg to store the manifest
     kernelCommand: undefined,
@@ -37,6 +39,43 @@ define([
     liveKernelName: undefined,
     readyToRestoreLiveKernel: false,
     movieCompleteCallback: undefined,
+
+    createExecutorCell: () => {
+      if (storage.executorCell === undefined) {
+        const cells = Jupyter.notebook.get_cells();
+        const numCells = cells.length;
+        storage.executorCell = Jupyter.notebook.insert_cell_below('code', numCells);
+        state.setActivity('executing');
+      }
+      return storage.executorCell;
+    },
+
+    runShellCommand: (cmd) => {
+      const executorCell = storage.createExecutorCell();
+      executorCell.set_text('!' + cmd);
+      executorCell.execute();
+    },
+
+    writeTextToFile: (path, contents) => {
+      const executorCell = storage.createExecutorCell();
+      const currentKernelName = Jupyter.notebook.kernel.name;
+      const writeMagic = ((currentKernelName.indexOf(storage.cplusplusKernel) === 0) ? '%%file' : '%%writefile');
+      executorCell.set_text(writeMagic + ' ' + path + "\n" + contents);
+      executorCell.execute();
+    },
+
+    cleanUpExecutorCell: () => {
+      if (storage.executorCell !== undefined) {
+        const executorCellId = utils.getMetadataCellId(storage.executorCell.metadata);
+        const deleteCellIndex = utils.findCellIndexByCellId(executorCellId);
+        if (deleteCellIndex !== undefined) {
+          Jupyter.notebook.delete_cell(deleteCellIndex);
+        }
+        storage.executorCell = undefined;
+      }        
+    },
+
+    // -------------------------
 
     runQueuedKernelCommand: () => {
       let returnVal = false;
@@ -220,6 +259,7 @@ define([
       state.setMovieRecordingStarted(false);
       console.log('Graffiti: completeMovieStorage is saving manifest, current kernel', Jupyter.notebook.kernel.name);
       storage.storeManifest();
+      storage.executeMovieCompleteCallback();
     },
 
     storeMovie: () => {
@@ -239,6 +279,7 @@ define([
           activeTakeId: recordingCellInfo.recordingRecord.activeTakeId
         });
 
+        /*
         pythonScript = utils.addCR("import os") +
                        utils.addCR('os.system("mkdir -p ' + graffitiPath + '")') +
                        utils.addCR("with open('" + graffitiPath + "audio.txt', 'w') as f:") +
@@ -246,6 +287,14 @@ define([
                        utils.addCR("with open('" + graffitiPath + "history.txt', 'w') as f:") +
                        utils.addCR("    f.write('" + base64CompressedHistory + "')");
         storage.runKernelCommand(pythonScript);
+        */
+
+        storage.runShellCommand('mkdir -p ' + graffitiPath);
+        storage.writeTextToFile(graffitiPath + 'audio.txt', encodedAudio);
+        storage.writeTextToFile(graffitiPath + 'history.txt', base64CompressedHistory);
+        storage.completeMovieStorage();
+        storage.cleanUpExecutorCell();
+        
         storage.readyToRestoreLiveKernel = false; // make sure we don't run the kernel command yet; we will run this when completeMovieStorage calls storeManifest.
       } else {
         console.log('Graffiti: could not fetch JSON history.');
@@ -299,17 +348,23 @@ define([
 
     storeManifest: () => {
       const manifest = state.getManifest();
-      console.log('saving manifest:', manifest);
       const manifestInfo = storage.constructManifestPath();
-      console.log('Graffiti: Saving manifest to:', manifestInfo.file);
       const base64CompressedManifest = LZString.compressToBase64(JSON.stringify(manifest));
       const manifestFullFilePath = manifestInfo.path + manifestInfo.file;
+      console.log('Graffiti: Saving manifest to:', manifestFullFilePath);
       
+      /*
       pythonScript = utils.addCR("import os") +
                      utils.addCR('os.system("mkdir -p ' + manifestInfo.path + '")') +
                      utils.addCR("with open('" + manifestFullFilePath + "', 'w') as f:") +
                      utils.addCR("    f.write('" + base64CompressedManifest + "')");
       storage.runKernelCommand(pythonScript);
+      */
+
+      storage.runShellCommand('mkdir -p ' + manifestInfo.path);
+      storage.writeTextToFile(manifestFullFilePath, base64CompressedManifest);
+      storage.cleanUpExecutorCell();
+
       storage.readyToRestoreLiveKernel = true; // this will ensure we switch back to the user's choice of kernel when everything's done
     },
 
@@ -371,9 +426,11 @@ define([
         recordingCellId: recordingCellId, 
         recordingKey: recordingKey 
       });
-      const deletePython = "import os\nos.system('rm -r " + graffitiPath + "')\n";
-      console.log('Graffiti: deleteNotebookStorage:', deletePython);
-      storage.runKernelCommand(deletePython);
+      //const deletePython = "import os\nos.system('rm -r " + graffitiPath + "')\n";
+      //console.log('Graffiti: deleteNotebookStorage:', deletePython);
+      //storage.runKernelCommand(deletePython);
+      storage.runShellCommand('rm -r ' + graffitiPath);
+      storage.cleanUpExecutorCell();
     },
 
     transferGraffitis: () => {
@@ -390,10 +447,11 @@ define([
         const notebookPath = "jupytergraffiti_data/notebooks/";
         const sourceTree = notebookPath + originalGraffitiId;
         const destTree = notebookPath + newGraffitiId;
-        const copyPython = "import shutil\nshutil.copytree('" + sourceTree + "','" + destTree + "')\n";
-        console.log('Graffiti: transferGraffitis will run:', copyPython);
-
-        storage.runKernelCommand(copyPython);
+        //const copyPython = "import shutil\nshutil.copytree('" + sourceTree + "','" + destTree + "')\n";
+        //console.log('Graffiti: transferGraffitis will run:', copyPython);
+        //storage.runKernelCommand(copyPython);
+        storage.runShellCommand('cp -pr ' + sourceTree + ' ' + destTree);
+        storage.cleanUpExecutorCell();
       });
 
       return Promise.resolve(); // not really doing this right but...
@@ -404,10 +462,14 @@ define([
       const notebook = Jupyter.notebook;
       const notebookName = notebook.get_notebook_name();
       const archiveName = 'graffiti_archive_' + utils.generateUniqueId().replace('id_','') + '.tgz';
-      const packagePython = "import os\nos.system('tar zcf " + archiveName + " " + '"' + notebookName + '.ipynb"' + " jupytergraffiti_data')\n";
-      console.log('Graffiti: packageGraffitis will run:', packagePython);
+      //const packagePython = "import os\nos.system('tar zcf " + archiveName + " " + '"' + notebookName + '.ipynb"' + " jupytergraffiti_data')\n";
+      //console.log('Graffiti: packageGraffitis will run:', packagePython);
+      //storage.runKernelCommand(packagePython);
 
-      storage.runKernelCommand(packagePython);
+      const tarCmd = 'tar zcf ' + archiveName + ' "' + notebookName + '.ipynb"' + ' jupytergraffiti_data';
+      storage.runShellCommand(tarCmd);
+      storage.cleanUpExecutorCell();
+
       return Promise.resolve(archiveName);
     },
 
@@ -425,9 +487,11 @@ define([
     // Delete all a notebook's stored graffitis and its data directory (but not the global jupytergraffiti_data directory)
     deleteDataDirectory: (graffitiId) => {
       const notebookStoragePath = 'jupytergraffiti_data/notebooks/' + graffitiId;
-      const deletePython = "import os\nos.system('rm -r " + notebookStoragePath + "')\n";
-      console.log('Graffiti: deleteNotebookStorage:', deletePython);
-      storage.runKernelCommand(deletePython);
+      //const deletePython = "import os\nos.system('rm -r " + notebookStoragePath + "')\n";
+      //console.log('Graffiti: deleteNotebookStorage:', deletePython);
+      //storage.runKernelCommand(deletePython);
+      storage.runShellCommand('rm -r ' + notebookStoragePath);
+      storage.cleanUpExecutorCell();      
     },
 
   }

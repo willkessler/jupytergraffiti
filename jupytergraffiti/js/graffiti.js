@@ -2709,7 +2709,7 @@ define([
               const activeTakeId = recording.activeTakeId;
               //console.log('refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
               if (recording.hasMovie) {
-                console.log('refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
+                console.log('Graffiti: refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
                 state.setPlayableMovie('tip', cellId, recordingKey);
               }                
               state.setHidePlayerAfterPlayback(false); // default for any recording is not to hide player
@@ -3722,7 +3722,9 @@ define([
         Jupyter.notebook.events.on('shell_reply.Kernel', (e, results) => {
           console.log('Graffiti: Kernel shell reply event fired, e, results:',e, results);
           utils.refreshCellMaps();
-          if (storage.processedKernelShellResponse(results)) {
+          if (state.getActivity() === 'executing') {
+            console.log('Graffiti: going from activity "executing" to "idle"');
+            state.setActivity('idle');
             graffiti.updateAllGraffitiDisplays();
             graffiti.updateControlPanels(); // necessary because we just finished a save
           }
@@ -4263,12 +4265,12 @@ define([
           const cellAdditionsIds = Object.values(cellAdditions);
           // Any cells that may have been added during the movie, not present in this timeframe, must be deleted.
           const deletableCellIds = _.difference(cellAdditionsIds, cellsPresentIds); 
-          console.log('deletableCellIds', deletableCellIds, cellAdditions, cellsPresentIds);
+          //console.log('deletableCellIds', deletableCellIds, cellAdditions, cellsPresentIds);
           for (deletableCellId of deletableCellIds) {
             console.log('Trying to delete cellid:', deletableCellId);
             deleteCellIndex = utils.findCellIndexByCellId(deletableCellId);
             if (deleteCellIndex !== undefined) {
-              console.log('Going to delete:', deleteCellId, 'at index:', deleteCellIndex);
+              //console.log('Going to delete:', deleteCellId, 'at index:', deleteCellIndex);
               Jupyter.notebook.delete_cell(deleteCellIndex);
             }
           }
