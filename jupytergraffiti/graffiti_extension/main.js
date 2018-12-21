@@ -18,11 +18,9 @@ define([
 
     Jupyter.notebook.events.on('kernel_ready.Kernel', (e) => { 
       console.log('Graffiti: kernel ready, possible kernel restart.', e);
-      if (!(storage.runQueuedKernelCommand() || storage.checkForMovieCompleteCallback())) {
-        console.log('Reloading loader.js');
-        require(['jupytergraffiti/js/loader.js']);
-        utils.saveNotebook();
-      }
+      console.log('Reloading loader.js');
+      require(['jupytergraffiti/js/loader.js']);
+      utils.saveNotebook();
     });
     
   }
