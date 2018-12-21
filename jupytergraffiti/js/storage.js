@@ -282,8 +282,7 @@ define([
           const uncompressedHistory = LZString.decompressFromBase64(base64CompressedHistory);
           const parsedHistory = JSON.parse(uncompressedHistory);
           state.storeWholeHistory(parsedHistory);
-          console.log('Graffiti: Loaded previous history.');
-          console.log(parsedHistory);
+          console.log('Graffiti: Loaded previous history:', parsedHistory);
           const audioUrl = graffitiPath + 'audio.txt';
           return fetch(audioUrl, { credentials: 'include' }).then((response) => {
             if (!response.ok) {

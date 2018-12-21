@@ -2709,14 +2709,14 @@ define([
               const activeTakeId = recording.activeTakeId;
               //console.log('refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
               if (recording.hasMovie) {
-                console.log('Graffiti: refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
+                //console.log('Graffiti: refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
                 state.setPlayableMovie('tip', cellId, recordingKey);
               }                
               state.setHidePlayerAfterPlayback(false); // default for any recording is not to hide player
               const tooltipCommands = graffiti.extractTooltipCommands(recording.markdown);
 
               if (recording.playOnClick) {
-                console.log('binding target for click', highlightElem);
+                //console.log('binding target for click', highlightElem);
                 highlightElem.off('click').click((e) => {
                   state.clearTipTimeout();
                   e.stopPropagation(); // for reasons unknown event still propogates to the codemirror editing area undeneath...
