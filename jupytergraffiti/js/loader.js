@@ -15,7 +15,6 @@ if (window.Graffiti === undefined) {
     });
 
     Jupyter.notebook.events.on('kernel_ready.Kernel', (e) => { 
-      debugger;
       console.log('Graffiti: kernel ready, possible kernel restart.', e);
       require(['jupytergraffiti/js/loader.js']);
       utils.saveNotebook();
