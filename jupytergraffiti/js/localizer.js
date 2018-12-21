@@ -46,7 +46,7 @@ define([
             'CREATE_1':                          'Create',
             'CREATE_2':                          'Record',
             'EDIT' :                             'Edit',
-            'EDIT_TOOLTIP' :                     'Edit Graffiti tooltip',
+            'EDIT_TOOLTIP' :                     'Edit Tooltip / Graffiti Settings',
             'START_RECORDING':                   'Start Recording',
             'END_RECORDING':                     'End Recording',
             'RECORD' :                           'Record',
