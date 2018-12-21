@@ -252,11 +252,21 @@ define([
         };
         setTimeout(graffiti.performWindowResizeCheck, graffiti.windowSizeCheckInterval);
 
+        const iconConfiguration = {
+          dimensions: { x: 0, y: 0, width: 8, height: 8 },
+          color:'black',
+          strokeWidth:1,
+          fillOpacity: 0
+        };
+
+        const settingsIcon = stickerLib.makeSettingsIcon(iconConfiguration);
+
         graffiti.setupOneControlPanel('graffiti-record-controls', 
                                       '  <button class="btn btn-default" id="graffiti-create-btn" title="' + localizer.getString('CREATE_1') + '">' +
                                       '<i class="fa fa-edit"></i>&nbsp; <span>' + localizer.getString('CREATE_1') + '</span></button>' +
                                       '  <button class="btn btn-default" id="graffiti-edit-btn" title="' + localizer.getString('EDIT_TOOLTIP') + '">' +
-                                      '<i class="fa fa-edit"></i>&nbsp; <span>' + localizer.getString('EDIT') + '</span></button>' +
+                                      '  <span style="position:absolute;margin-top:4px;margin-left:2px;">' + settingsIcon + '</span> ' +
+                                      '  <span style="padding-left:16px;">' +  localizer.getString('EDIT') + '</span></button>' +
                                       '  <button class="btn btn-default" id="graffiti-begin-recording-btn" title="' + localizer.getString('RECORD_MOVIE') + '">' +
                                       '<i class="fa fa-film graffiti-recorder-button"></i>&nbsp;<span>' + localizer.getString('RECORD') + '</span></button>' +
                                       '  <button class="btn btn-default" id="graffiti-begin-rerecording-btn" title="' + localizer.getString('RERECORD_MOVIE') + '">' +
