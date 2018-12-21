@@ -600,7 +600,7 @@ define([
       return(strNum.length < 2 ? '0' + strNum : strNum);
     },
 
-    formatTime: (currentTimeMilliseconds) => {
+    formatTime: (currentTimeMilliseconds, opts) => {
       const currentTimeSeconds = currentTimeMilliseconds / 1000;
       const computedHour = Math.floor(currentTimeSeconds / 3600);
       const computedMinutes = Math.floor((currentTimeSeconds - (computedHour * 3600)) / 60);
@@ -612,7 +612,12 @@ define([
       let displaySeconds = utils.timeZeroPad(computedSeconds);
       let displayMinutes = utils.timeZeroPad(computedMinutes);
       let displayHour = utils.timeZeroPad(computedHour);
-      const currentTimeFormatted = `${displayMinutes}:${displaySeconds}:${displayMilliseconds}`;
+      let currentTimeFormatted;
+      if (opts.includeMillis) {
+        currentTimeFormatted = `${displayMinutes}:${displaySeconds}:${displayMilliseconds}`;
+      } else {
+        currentTimeFormatted = `${displayMinutes}:${displaySeconds}`;
+      }
       return(currentTimeFormatted);
     },
 

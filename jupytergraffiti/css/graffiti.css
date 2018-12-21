@@ -406,6 +406,7 @@
 #graffiti-time-display-playback {
   padding: 4px 2px 0px 4px;
   font-family:monospace;
+  font-size:0.9em;
   cursor:pointer;
 }
 
