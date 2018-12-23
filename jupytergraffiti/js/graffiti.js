@@ -3695,7 +3695,7 @@ define([
         });
 
         Jupyter.notebook.events.on('finished_execute.CodeCell', (e, results) => {
-          console.log('Graffiti: Finished execution event fired, e, results:',e, results);
+          //console.log('Graffiti: Finished execution event fired, e, results:',e, results);
           utils.refreshCellMaps();
           state.storeHistoryRecord('contents');
           graffiti.resizeCanvases();
@@ -3730,7 +3730,7 @@ define([
         });
 
         Jupyter.notebook.events.on('shell_reply.Kernel', (e, results) => {
-          console.log('Graffiti: Kernel shell reply event fired, e, results:',e, results);
+          // console.log('Graffiti: Kernel shell reply event fired, e, results:',e, results);
           utils.refreshCellMaps();
           const activity = state.getActivity();
           if (activity === 'idle') {
