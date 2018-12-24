@@ -52,13 +52,29 @@ define([
       const executorCell = storage.createExecutorCell();
       const currentKernelName = Jupyter.notebook.kernel.name;
       const writeMagic = ((currentKernelName.indexOf(storage.cplusplusKernel) === 0) ? '%%file' : '%%writefile');
-      executorCell.set_text(writeMagic + ' ' + path + "\n" + contents);
+      const chunkSize = ((currentKernelName.indexOf(storage.cplusplusKernel) === 0) ? 5000 : 100000);
+      // tr -d '\n' < checker.txt > checker2.txt
+      const contentLength = contents.length;
+      let chunkPtr = 0, chunk, appendFlag, cmd;
+      const pathWithCrs = path + '.cr';
+      while (chunkPtr < contentLength) {
+        chunk = contents.substr(chunkPtr, chunkSize);
+        appendFlag = (chunkPtr === 0 ? ' ' : ' -a ');
+        cmd = writeMagic + appendFlag + pathWithCrs + "\n" + chunk;
+        executorCell.set_text(cmd);
+        executorCell.execute();
+        chunkPtr += chunkSize;
+      }
+      executorCell.set_text('!/usr/bin/tr -d "\\n" < ' + pathWithCrs + ' > ' + path); // remove all the CR's produced by the %%writefile appends.
+      executorCell.execute();
+      executorCell.set_text('!rm ' + pathWithCrs);
       executorCell.execute();
     },
 
     cleanUpExecutorCell: () => {
-      if (storage.executorCell !== undefined) {
-        const executorCellId = utils.getMetadataCellId(storage.executorCell.metadata);
+      const executorCell = storage.createExecutorCell();
+      if (executorCell !== undefined) {
+        const executorCellId = utils.getMetadataCellId(executorCell.metadata);
         const deleteCellIndex = utils.findCellIndexByCellId(executorCellId);
         if (deleteCellIndex !== undefined) {
           Jupyter.notebook.delete_cell(deleteCellIndex);
@@ -189,7 +205,7 @@ define([
         storage.writeTextToFile(graffitiPath + 'audio.txt', encodedAudio);
         storage.writeTextToFile(graffitiPath + 'history.txt', base64CompressedHistory);
         storage.completeMovieStorage();
-        storage.cleanUpExecutorCell();
+        storage.cleanUpExecutorCell(graffitiPath);
         
         storage.readyToRestoreLiveKernel = false; // make sure we don't run the kernel command yet; we will run this when completeMovieStorage calls storeManifest.
       } else {
@@ -280,6 +296,7 @@ define([
         try {
           //console.log('Loaded history:', base64CompressedHistory);
           const uncompressedHistory = LZString.decompressFromBase64(base64CompressedHistory);
+          //console.log('uncompressedHistory:', uncompressedHistory);
           const parsedHistory = JSON.parse(uncompressedHistory);
           state.storeWholeHistory(parsedHistory);
           console.log('Graffiti: Loaded previous history:', parsedHistory);

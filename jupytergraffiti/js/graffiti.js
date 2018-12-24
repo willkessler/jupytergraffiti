@@ -3704,7 +3704,7 @@ define([
         });
 
         Jupyter.notebook.events.on('finished_execute.CodeCell', (e, results) => {
-          console.log('Graffiti: Finished execution event fired, e, results:',e, results);
+          //console.log('Graffiti: Finished execution event fired, e, results:',e, results);
           utils.refreshCellMaps();
           state.storeHistoryRecord('contents');
           graffiti.resizeCanvases();
@@ -3739,7 +3739,7 @@ define([
         });
 
         Jupyter.notebook.events.on('shell_reply.Kernel', (e, results) => {
-          console.log('Graffiti: Kernel shell reply event fired, e, results:',e, results);
+          // console.log('Graffiti: Kernel shell reply event fired, e, results:',e, results);
           utils.refreshCellMaps();
           const activity = state.getActivity();
           if (activity === 'idle') {
@@ -4400,10 +4400,12 @@ define([
 
       // update the timer display for play or recording
       updateTimeDisplay: (playedSoFar) => {
-        const timeDisplay = utils.formatTime(playedSoFar, { includeMillis: false });
+        const activity = state.getActivity();
+        const playTimeDisplay = utils.formatTime(playedSoFar, { includeMillis: false });
+        const recordingTimeDisplay = utils.formatTime(playedSoFar, { includeMillis: true });
         const durationDisplay = utils.formatTime(state.getHistoryDuration(), { includeMillis: false });
-        const totalTimeDisplay = timeDisplay + '/' + durationDisplay;
-        const recorderTimeElem = (state.getActivity() === 'recording' ? $('#graffiti-time-display-recording') : $('#graffiti-time-display-playback'));
+        const totalTimeDisplay = (activity === 'recording' ? recordingTimeDisplay : playTimeDisplay + '/' + durationDisplay);
+        const recorderTimeElem = (activity === 'recording' ? $('#graffiti-time-display-recording') : $('#graffiti-time-display-playback'));
         recorderTimeElem.text(totalTimeDisplay);
       },
 
