@@ -32,6 +32,16 @@ define([
       return cellId;
     },
 
+    parseRecordingFullId: (recordingFullId) => {
+      const parts = recordingFullId.split('_');
+      const recordingCellId = 'id_' + parts[0];
+      const recordingKey = 'id_' + parts[1];
+      return {
+        recordingCellId: recordingCellId,
+        recordingKey: recordingKey
+      };
+    },
+
     computeArrayAverage: (array) => {
       let average = 0;
       for (let i = 0; i < array.length;++i) {

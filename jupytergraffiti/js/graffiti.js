@@ -99,10 +99,12 @@ define([
       provideAPIKeyExamples: () => {
         let recorderApiKeyCell = Jupyter.notebook.insert_cell_below('code');
         let invocationLine = "import jupytergraffiti\n" +
-                             "jupytergraffiti.api.play_recording('" + graffiti.recordingAPIKey + "')\n" +
+                             "# jupytergraffiti.api.play_recording('" + graffiti.recordingAPIKey + "')\n" +
                              "# jupytergraffiti.api.play_recording_with_prompt('" + graffiti.recordingAPIKey +
                              "', '![idea](../images/lightbulb_small.jpg) Click **here** to learn more.')\n" +
-                             "# jupytergraffiti.api.stop_playback()";
+                             "# jupytergraffiti.api.stop_playback()\n" +
+                             "jupytergraffiti.api.remove_unused_takes('" + graffiti.recordingAPIKey + "')\n" +
+                             "# jupytergraffiti.api.remove_all_unused_takes()\n";
         recorderApiKeyCell.set_text(invocationLine);          
         Jupyter.notebook.select_next();
         recorderApiKeyCell.code_mirror.focus();
@@ -3372,7 +3374,7 @@ define([
 
       removeAllGraffitis: (graffitiDisabled) => {
         const manifest = state.getManifest(); // save manifest before we wipe it out
-        state.setManifest({});
+        state.setManifest({}); // clear ALL graffiti in the manifest
         let recording, recordingCellId, recordingCell, recordingIds, recordingKeys, destructions = 0;
         for (recordingCellId of Object.keys(manifest)) {
           console.log('Graffiti: Removing recordings from cell:', recordingCellId);
@@ -3434,18 +3436,19 @@ define([
 
       },
 
+      refreshAfterDeletions: (recordingCell) => {
+        graffiti.highlightIntersectingGraffitiRange();
+        graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
+        graffiti.refreshGraffitiSideMarkers(recordingCell);
+        graffiti.refreshGraffitiTooltips();
+        graffiti.updateControlPanels();
+      },
+
       removeGraffiti: (recordingCell, recordingKey) => {
         graffiti.removeGraffitiCore(recordingCell, recordingKey);
         if (state.removeManifestEntry(utils.getMetadataCellId(recordingCell.metadata), recordingKey)) {
-          graffiti.highlightIntersectingGraffitiRange();
-          graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
-          graffiti.refreshGraffitiSideMarkers(recordingCell);
-          graffiti.refreshGraffitiTooltips();
           storage.storeManifest();
-          // utils.saveNotebook(() => {
-          // graffiti.updateControlPanels();
-          // });
-          graffiti.updateControlPanels();
+          graffiti.refreshAfterDeletions(recordingCell);
         }
       },
 
@@ -3459,6 +3462,100 @@ define([
               click: (e) => {
                 console.log('Graffiti: You clicked ok, you want to remove ALL graffitis');
                 graffiti.removeAllGraffitis(false);
+
+              }
+            },
+            'Cancel': { click: (e) => { console.log('Graffiti: you cancelled:', $(e.target).parent()); } },
+          }
+        });
+
+      },
+
+      removeUnusedTakes: (recordingFullId) => {
+        const parts = utils.parseRecordingFullId(recordingFullId);
+        const recordingCell = utils.findCellByCellId(parts.recordingCellId);
+        if (recordingCell !== undefined) {
+          storage.removeUnusedTakes(parts.recordingCellId, parts.recordingKey);
+          graffiti.refreshAfterDeletions(recordingCell);
+        }
+      },
+
+      removeAllUnusedTakes: () => {
+        const manifest = state.getManifest(); // save manifest before we wipe it out
+        let recording, recordingCellId, recordingCell, recordingIds, recordingKeys, deletedTakes = 0;
+        for (recordingCellId of Object.keys(manifest)) {
+          console.log('Graffiti: Removing unused takes from cell:', recordingCellId);
+          recordingKeys = Object.keys(manifest[recordingCellId]);
+          if (recordingKeys.length > 0) {
+            recordingCell = utils.findCellByCellId(recordingCellId);
+            for (recordingKey of recordingKeys) {
+              console.log('Graffiti: Removing unused takes from recording id:', recordingKey);
+              recording = manifest[recordingCellId][recordingKey];
+              deletedTakes += storage.removeUnusedTakesCore(recordingCellId, recordingKey);
+            }
+          }
+        }
+        storage.storeManifest();
+        graffiti.highlightIntersectingGraffitiRange();
+        graffiti.refreshGraffitiTooltips();
+        graffiti.updateControlPanels();
+
+        utils.saveNotebook(() => {
+          if (deletedTakes === 0) {
+            deletedTakes = 'all';
+          } else {
+            storage.storeManifest();
+            storage.cleanUpExecutorCell();
+            utils.saveNotebook(() => {
+              state.setActivity('idle'); // cancel "executing" state
+            });
+          }
+
+          const title = 'Unused takes removed.';
+          const body = 'We removed ' + deletedTakes + ' unused takes.'
+          dialog.modal({
+            title: title,
+            body: body,
+            sanitize:false,
+            buttons: {
+              'OK': {
+                click: (e) => {
+                  console.log('Graffiti: You clicked ok');
+                }
+              }
+            }
+          });
+        });
+      },
+
+      removeAllUnusedTakesWithConfirmation: () => {
+        dialog.modal({
+          title: 'Are you sure you want to remove ALL unused takes from this notebook?',
+          body: 'Note: this cannot be undone.',
+          sanitize:false,
+          buttons: {
+            'OK': {
+              click: (e) => {
+                console.log('Graffiti: You clicked ok, you want to remove unused takes.');
+                graffiti.removeAllUnusedTakes();
+
+              }
+            },
+            'Cancel': { click: (e) => { console.log('Graffiti: you cancelled:', $(e.target).parent()); } },
+          }
+        });
+      },
+
+      removeUnusedTakesWithConfirmation: (recordingFullId) => {
+        dialog.modal({
+          title: 'Are you sure you want to remove unused takes from this recording?',
+          body: 'Note: this cannot be undone.',
+          sanitize:false,
+          buttons: {
+            'OK': {
+              click: (e) => {
+                console.log('Graffiti: You clicked ok, you want to remove unused takes.');
+                graffiti.removeUnusedTakes(recordingFullId);
 
               }
             },
@@ -4793,23 +4890,21 @@ define([
 
       },
 
-      playRecordingById: (cellId, recordingKey) => {
-        const recording = state.setPlayableMovie('api', cellId, recordingKey);
+      playRecordingById: (recordingCellId, recordingKey) => {
+        const recording = state.setPlayableMovie('api', recordingCellId, recordingKey);
         if (recording !== undefined) {
           graffiti.loadAndPlayMovie('api');
         } else {
           // Putting an error message in console for this failure mode is gentler than the dialog box put up by loadAndPlayMovie(),
           // because if we are being called by an autoplay movie that was on a delete cell, the
           // endless dialog boxes would drive the user crazy (because they could not remove the graffiti from our manifest)
-          console.log('Graffiti: not playing movie ' + cellId + ':' + recordingKey + ', as it was not available.');
+          console.log('Graffiti: not playing movie ' + recordingCellId + ':' + recordingKey + ', as it was not available.');
         }
       },      
 
       playRecordingByIdString: (recordingFullId) => {
-        const parts = recordingFullId.split('_');
-        const cellId = 'id_' + parts[0];
-        const recordingKey = 'id_' + parts[1];
-        graffiti.playRecordingById(cellId, recordingKey);
+        const parts = utils.parseRecordingFullId(recordingFullId);
+        graffiti.playRecordingById(parts.recordingCellId, parts.recordingKey);
       },
 
       playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => {
@@ -5007,7 +5102,8 @@ define([
       playRecordingById: (recordingFullId) => { graffiti.playRecordingByIdString(recordingFullId) },
       playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => { graffiti.playRecordingByIdWithPrompt(recordingFullId, promptMarkdown) },
       cancelPlayback: () => { graffiti.cancelPlayback({cancelAnimation:false}) },
-      removeUnusedTakes: (recordingId) => { graffiti.removeUnusedTakes(recordingId) },
+      removeUnusedTakes: (recordingFullId) => { graffiti.removeUnusedTakesWithConfirmation(recordingFullId) },
+      removeAllUnusedTakes: () => { graffiti.removeAllUnusedTakesWithConfirmation() },
       removeMovie:       (recordingId) => { graffiti.removeMovie(recordingId) },
       removeAllGraffiti:  graffiti.removeAllGraffitisWithConfirmation,
       disableGraffiti: graffiti.disableGraffitiWithConfirmation,

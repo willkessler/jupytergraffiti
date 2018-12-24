@@ -151,7 +151,7 @@ define([
     },
 
     constructGraffitiTakePath: (pathParts) => {
-      let graffitiPath = storage.constructGraffitiMoviePath(pathParts) + 'takes/' + pathParts.activeTakeId + '/';
+      let graffitiPath = storage.constructGraffitiMoviePath(pathParts) + 'takes/' + pathParts.takeId + '/';
       return graffitiPath;
     },
 
@@ -198,7 +198,7 @@ define([
         const graffitiPath = storage.constructGraffitiTakePath({
           recordingCellId: recordingCellInfo.recordingCellId,
           recordingKey: recordingCellInfo.recordingKey,
-          activeTakeId: recordingCellInfo.recordingRecord.activeTakeId
+          takeId: recordingCellInfo.recordingRecord.activeTakeId
         });
 
         storage.runShellCommand('mkdir -p ' + graffitiPath);
@@ -281,7 +281,7 @@ define([
       const graffitiPath = storage.constructGraffitiTakePath( {
         recordingCellId: recordingCellId,
         recordingKey: recordingKey,
-        activeTakeId: activeTakeId,
+        takeId: activeTakeId,
       });
       const credentials = { credentials: 'include'};
       storage.successfulLoad = false; /* assume we cannot fetch this recording ok */
@@ -383,6 +383,39 @@ define([
       const notebookStoragePath = 'jupytergraffiti_data/notebooks/' + graffitiId;
       storage.runShellCommand('rm -r ' + notebookStoragePath);
       storage.cleanUpExecutorCell();      
+    },
+
+    removeUnusedTakesCore: (recordingCellId, recordingKey) => {
+      const recording = state.getManifestSingleRecording(recordingCellId, recordingKey);
+      const activeTakeId = recording.activeTakeId;
+      let deletedTakes = 0;
+
+      if (recording.takes !== undefined) {
+        for (let takeId of Object.keys(recording.takes)) {
+          if (takeId !== activeTakeId) {
+            const graffitiTakePath = storage.constructGraffitiTakePath({ 
+              recordingCellId: recordingCellId, 
+              recordingKey: recordingKey,
+              takeId: takeId
+            });
+            storage.runShellCommand('rm -r ' + graffitiTakePath);
+            delete(recording.takes[takeId]);
+            deletedTakes++;
+          }
+        }
+      }
+      return deletedTakes;
+    },
+
+    removeUnusedTakes: (recordingCellId, recordingKey) => {
+      const deletedTakes = storage.removeUnusedTakesCore(recordingCellId, recordingKey);
+      if (deletedTakes > 0) {
+        storage.storeManifest();
+        storage.cleanUpExecutorCell();
+        utils.saveNotebook(() => {
+          state.setActivity('idle'); // cancel "executing" state
+        });
+      }
     },
 
   }

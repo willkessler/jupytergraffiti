@@ -35,6 +35,10 @@ def stop_playback():
 def remove_unused_takes(recording_id):
     run_js("window.Graffiti.removeUnusedTakes('" + recording_id + "')", False)
 
+# Remove all the unused takes from the notebook. You will be prompted by a confirmation dialog.
+def remove_all_unused_takes():
+    run_js("window.Graffiti.removeAllUnusedTakes()", False)
+
 # Remove movie with all takes from a Graffiti. You will be prompted by a confirmation dialog.
 def remove_movie(recording_id):
     run_js("window.Graffiti.removeMovie('" + recording_id + "')", False)
