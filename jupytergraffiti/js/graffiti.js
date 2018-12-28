@@ -807,6 +807,21 @@ define([
         );                                        
 
 
+        graffiti.setupOneControlPanel('graffiti-access-skips',
+                                      '<button class="btn btn-default" id="graffiti-access-skips-btn" title="' + 
+                                      localizer.getString('SKIPS_API') + '"></i>&nbsp; <span>' +
+                                      localizer.getString('SKIPS_API') + '</span></button>',
+                                      [
+                                        { 
+                                          ids: ['graffiti-access-skips-btn'],
+                                          event: 'click', 
+                                          fn: (e) => { 
+                                            graffiti.replaceSkipsWithConfirmation();
+                                          }
+                                        }
+                                      ]
+        );
+
         graffiti.setupOneControlPanel('graffiti-access-api',
                                       '<button class="btn btn-default" id="graffiti-access-api-btn" title="' + localizer.getString('SAMPLE_API') + '"></i>&nbsp; <span>' +
                                       localizer.getString('SAMPLE_API') + '</span></button>',
@@ -1039,6 +1054,7 @@ define([
                   state.setPlayableMovie('cursorActivity', recordingCellId, recordingKey);
                   graffiti.recordingAPIKey = recordingCellId.replace('id_','') + '_' + 
                                              recordingKey.replace('id_','');
+                  visibleControlPanels.push('graffiti-access-skips');
                   visibleControlPanels.push('graffiti-access-api');
                   visibleControlPanels.push('graffiti-notifier');
                   visibleControlPanels.push('graffiti-takes-controls');
@@ -1249,6 +1265,7 @@ define([
         graffiti.setupDrawingScreen();
         graffiti.setupSavingScrim();
         graffiti.playAutoplayGraffiti(); // play any autoplay graffiti if there is one set up
+
 /*
         let body = '<div>Enter the Graffiti Hub Key to import Graffiti into this notebook.</div>';
         body += '<div style="font-weight:bold;margin-top:15px;">Key: <input type="text" value="R5a7Hb"/ width="60"></div>';
@@ -2893,6 +2910,103 @@ define([
         }
       },
 
+      handleKeydown: (e) => {
+        const keyCode = e.which;
+        const activity = state.getActivity();
+        let stopProp = false;
+        console.log('handleKeydown keyCode:', keyCode, String.fromCharCode(keyCode));
+        if (state.getReplacingSkips()) { // only if primed to replace skips
+          if (activity === 'playing') {
+            stopProp = true;
+            if ( ((49 <= keyCode) && (keyCode <= 54)) || (keyCode === 32) ) { // keys 2,3,4,5 and space activate/deactivate skips
+              const currentSkipStatus = state.getSkipStatus();
+              let newSkipStatus = 0; // assume stopping skipping
+              if (keyCode === 32) {
+                // Space bar.
+                if (currentSkipStatus > 0) {
+                  // Currently skipping: stop skipping
+                  console.log('spacebar clearing skip status:', currentSkipStatus);
+                  newSkipStatus = 0;
+                } else {
+                  // start fixed time skipping
+                  newSkipStatus = 1;
+                }
+              } else if (keyCode > 49) { 
+                // (note: implicitly if you press the "1" key (49) you will end up stopping skipping.)
+                const computedSkipStatus = keyCode - 50 + 2;
+                if (computedSkipStatus !== currentSkipStatus) {
+                  // start/update variable speed skipping
+                  newSkipStatus = computedSkipStatus; // this will be 2,3,4, or 5
+                  console.log('newSkipStatus:', newSkipStatus, 'vs currentSkipStatus', currentSkipStatus);
+                }
+              }
+              state.storeSkipRecord(newSkipStatus);
+            }
+          }
+        } else if ((((48 <= keyCode) && (keyCode <= 57)) ||    // A-Z
+                    ((65 <= keyCode) && (keyCode <= 90)) ||    // 0-9
+                    ((37 <= keyCode) && (keyCode <= 40)) ||    // arrow keys                
+                    (keyCode === 32))                          // space bar
+                   && activity === 'playing') {
+          // Pressing keys : A-Z, 0-9, arrows, and spacebar stop playback
+          stopProp = true;
+          graffiti.togglePlayback();
+        } else {
+          // Check for other keypress actions
+          switch (keyCode) {
+            case 27: // escape key cancels playback
+              stopProp = true;
+              if ((activity === 'playing') || (activity === 'playbackPaused') || (activity === 'scrubbing')) {
+                graffiti.cancelPlayback({cancelAnimation:true});
+              }
+              break;
+            case 77: // cmd-m key finishes a recording in progress or cancels a pending recording
+              // cf http://jsbin.com/vezof/1/edit?js,output
+              if (e.metaKey) { // may only work on Chrome
+                if (e.ctrlKey) {
+                  console.log('Graffiti: you pressed ctrl ⌘-m');
+                } else {
+                  console.log('Graffiti: you pressed ⌘-m');
+                }
+                stopProp = true;
+                switch (activity) {
+                  case 'recording':
+                    if (e.ctrlKey) {
+                    } else {
+                      graffiti.toggleRecording();
+                    }
+                    break;
+                  case 'recordingPending':
+                    graffiti.changeActivity('idle');
+                    break;
+                }
+              }
+              break;
+            case 16: // shift key
+              graffiti.shiftKeyIsDown = true;
+              state.updateDrawingState([ { change: 'stickerOnGrid', data: true } ]);
+              //console.log('Graffiti: shiftKeyIsDown');
+              break;
+              // case 13: // enter key
+              //            break;
+              // case 18: // meta key
+              // break;
+              // case 91: // option key
+              // break;
+            default:
+              break; // let any other keys pass through
+          }
+        }
+        
+        if (stopProp) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }
+
+        return true;
+      },
+
       setupBackgroundEvents: () => {
         // Handle rubber banding scrolling that occurs on short notebooks so cursor doesn't look wrong (possibly, only chrome?).
         console.log('Graffiti: setupBackgroundEvents');
@@ -2920,72 +3034,7 @@ define([
         });
 
         $('body').keydown((e) => {
-          const activity = state.getActivity();
-          let stopProp = false;
-          //console.log('keydown e.which:', e.which, String.fromCharCode(e.which));
-          const keyCode = e.which;
-          if ((((48 <= keyCode) && (keyCode <= 57)) ||    // A-Z
-               ((65 <= keyCode) && (keyCode <= 90)) ||    // 0-9
-               ((37 <= keyCode) && (keyCode <= 40)) ||    // arrow keys                
-               (keyCode === 32))                          // space bar
-              && activity === 'playing') {
-            // Pressing keys : A-Z, 0-9, arrows, and spacebar stop playback
-            stopProp = true;
-            graffiti.togglePlayback();
-          } else {
-            // Check for other keypress actions
-            switch (keyCode) {
-              case 27: // escape key cancels playback
-                stopProp = true;
-                if ((activity === 'playing') || (activity === 'playbackPaused') || (activity === 'scrubbing')) {
-                  graffiti.cancelPlayback({cancelAnimation:true});
-                }
-                break;
-              case 77: // cmd-m key finishes a recording in progress or cancels a pending recording
-                // cf http://jsbin.com/vezof/1/edit?js,output
-                if (e.metaKey) { // may only work on Chrome
-                  if (e.ctrlKey) {
-                    console.log('Graffiti: you pressed ctrl ⌘-m');
-                  } else {
-                    console.log('Graffiti: you pressed ⌘-m');
-                  }
-                  stopProp = true;
-                  switch (activity) {
-                    case 'recording':
-                      if (e.ctrlKey) {
-                      } else {
-                        graffiti.toggleRecording();
-                      }
-                      break;
-                    case 'recordingPending':
-                      graffiti.changeActivity('idle');
-                      break;
-                  }
-                }
-                break;
-              case 16: // shift key
-                graffiti.shiftKeyIsDown = true;
-                state.updateDrawingState([ { change: 'stickerOnGrid', data: true } ]);
-                //console.log('Graffiti: shiftKeyIsDown');
-                break;
-              // case 13: // enter key
-                //            break;
-              // case 18: // meta key
-                // break;
-              // case 91: // option key
-                // break;
-              default:
-                break; // let any other keys pass through
-            }
-          }
-          
-          if (stopProp) {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-          }
-
-          return true;
+          return graffiti.handleKeydown(e);
         });
 
         $('body').keyup((e) => {
@@ -3469,6 +3518,34 @@ define([
           }
         });
 
+      },
+
+      // Confirm adding skips. Note that skip compression period defaults to 2 seconds but can be changed with a tooltip directive.
+      replaceSkipsWithConfirmation: () => {
+        dialog.modal({
+          title: 'Add/Replace Skips on This Recording?',
+          body: 'When you click OK, the recording will play. You can use then these keys to add skips:<br><br>' +
+                '<ul>' +
+                '<li>Number 2, 3, or 4 : Activate 2x/3x/4x playback</li>' +
+                '<li>Spacebar: if 2x/3x/4x playback is activated, deactivate it. If not, begin/end fixed-duration skip.</li>' +
+                '</ul>',
+          sanitize:false,
+          buttons: {
+            'OK': {
+              click: (e) => {
+                state.setReplacingSkips(true);
+                console.log('Graffiti: You clicked ok, you want replace all skips.');
+                graffiti.loadAndPlayMovie('tip');
+              }
+            },
+            'Cancel': { 
+              click: (e) => { 
+                state.setReplacingSkips(false);
+                console.log('Graffiti: you cancelled:', $(e.target).parent()); 
+              }
+            },
+          }
+        });
       },
 
       removeUnusedTakes: (recordingFullId) => {
@@ -4634,6 +4711,7 @@ define([
         graffiti.cancelPlaybackNoVisualUpdates();
         state.clearAnimationIntervals();
         state.clearNarratorInfo();
+        state.finalizeSkipRecords();
         graffiti.resetStickerCanvases();
         graffiti.cancelRapidPlay();
         graffiti.graffitiCursor.hide();
@@ -4868,6 +4946,9 @@ define([
               actions: ['resetCurrentPlayTime', 'incrementPlayCount']
             }
           });
+          if (state.getReplacingSkips()) {
+            state.clearSkipRecords();
+          }
           graffiti.togglePlayback();
           graffiti.hideTip();
         }).catch( (ex) => {

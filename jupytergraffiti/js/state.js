@@ -58,6 +58,8 @@ define([
       state.cellIdsAddedDuringRecording = {};
       state.userId = undefined;
       state.speakingStatus = false; // true when the graffiti creator is currently speaking (not silent)
+      state.skipStatus = 0; // value to show we have activated a skip, and what speed (0 = regular speed/user choice, 1 = fixed compression, 2,3,4 = 2x,3x,4x.
+      state.replacingSkips = false;
       state.cellStates = {
         contents: {},
         changedCells: {},
@@ -242,8 +244,25 @@ define([
       state.storeHistoryRecord('speaking'); // record speaking status, if we are currently recording
     },
     
+    getSkipStatus: () => {
+      return state.skipStatus;
+    },
+
+    setSkipStatus: (skipStatus) => {
+      state.skipStatus = skipStatus;
+      state.storeHistoryRecord('skip'); // record skip status, if we are currently in a skip (time compression)
+    },
+
     clearHighlightsRefreshableCell: () => {
       state.highlightsRefreshCellId = undefined;
+    },
+
+    getReplacingSkips: () => {
+      return state.replacingSkips;
+    },
+
+    setReplacingSkips: (val) => {
+      state.replacingSkips = val;
     },
 
     getGraffitiEditCellId: () => {
@@ -1232,6 +1251,10 @@ define([
       return { speaking: state.speakingStatus };
     },
 
+    createSkipRecord: () => {
+      return { status: state.skipStatus };
+    },
+    
     storeHistoryRecord: (type, time) => {
       if (state.activity !== 'recording' || state.recordingBlocked)
         return;
@@ -1280,6 +1303,45 @@ define([
       state.history[type].push(record);
     },
 
+    clearSkipRecords: () => {
+      state.history['skip'] = [];
+    },
+
+    storeSkipRecord: (newSkipStatus) => {
+      const timeSoFar = state.getTimePlayedSoFar();
+      const numRecords = state.history['skip'].length;
+      if (numRecords > 0) {
+        // Close off last record created with an end time, if it exists.
+        const lastRecord = state.history['skip'][numRecords - 1];
+        if (!lastRecord.hasOwnProperty('endTime')) {
+          lastRecord.endTime = Math.max(0,timeSoFar - 1);
+        }
+      }
+      const currentSkipStatus = state.getSkipStatus();
+      state.setSkipStatus(newSkipStatus);
+      if ((newSkipStatus > 0) && (newSkipStatus !== currentSkipStatus)) {
+        // Only add a new skip record for non-zero and new skip statuses.
+        const record = state.createSkipRecord();
+        record.startTime = timeSoFar;
+        state.history['skip'].push(record);
+      }
+    },
+
+    finalizeSkipRecords: () => {
+      if (state.replacingSkips) {
+        const numRecords = state.history['skip'].length;
+        if (numRecords > 0) {
+          const lastRecord = state.history['skip'][numRecords - 1];
+          if (!lastRecord.hasOwnProperty('endTime')) {
+            lastRecord.endTime = state.history.duration - 1;
+          }
+        }
+        state.adjustTimeRecords('skip');
+        state.setSkipStatus(0);
+        state.dumpHistory();
+      }
+    },
+
     initHistory: (initialValues) => {
       const now = state.utils.getNow();
       state.history = {
@@ -1292,6 +1354,7 @@ define([
         contents:    [],                          // contents state: what cells present, and what their contents are, and cell outputs
         drawings:    [],                          // drawing record, of type: ['draw', 'fade', 'wipe', 'sticker']
         speaking:    [],                          // time ranges where creator is speaking or silent
+        skip:        [],                          // time ranges when creator has requested either an acceleration or a time compression
 
         // Where we are in each track, during playback.
         lastVisited: {
@@ -1300,6 +1363,7 @@ define([
           contents:   0,
           drawings:   0,
           speaking:   0,
+          skip:       0,
         },
 
         cellContentsTracking: {},                  // this enables back-referencing to reduce storage costs on content recording
@@ -1321,7 +1385,7 @@ define([
     finalizeHistory: () => {
       state.setHistoryDuration();
       state.normalizeTimeframes();
-      state.adjustSpeakingRecords(); // move timing of speaking records back by 1/10th of a second since they lag
+      state.adjustTimeRecords('speaking'); // move timing of speaking records back by 1/10th of a second since they lag
       state.setupForReset();
     },
 
@@ -1349,8 +1413,8 @@ define([
       state.history.duration = state.utils.getNow() - state.history.recordingStartTime;
     },
 
-    adjustSpeakingRecords: () => {
-      const historyArray = state.history['speaking'];
+    adjustTimeRecords: (type) => {
+      const historyArray = state.history[type];
       const adjustment = 100; // ms
       if (historyArray.length > 0) {
         for (let i = 0; i < historyArray.length; ++i) {

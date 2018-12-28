@@ -71,6 +71,7 @@ define([
             'BELOW_TYPE_MARKDOWN':               "%% Below, type any markdown to display in the Graffiti tip.\n" +
                                                  "%% Then run this cell to save it.\n",
             'SAMPLE_API':                        'Create Sample API Calls',
+            'SKIPS_API':                         'Add/Replace Skip Periods',
             'TAKES':                             'Takes',
             'SELECT_SOME_TEXT_MARKDOWN' :        'Select some text in this Markdown cell to add or modify Graffiti, or click inside any existing Graffiti text to modify it.',
             'EDIT_IN_MARKDOWN_CELL' :            'Edit the Markdown cell to add or modify Graffiti in the cell.',
@@ -164,6 +165,7 @@ define([
             'BELOW_TYPE_MARKDOWN':               '在以下输入 markdown 文本，将展示在 Graffiti 中。' +
                                                  '然后运行文本以保存。',
             'SAMPLE_API':                        '创建示例 API Calls',
+            'SKIPS_API':                         'Add/Replace Skip Periods',
             'TAKES':                             '版本',
             'SELECT_SOME_TEXT_MARKDOWN' :        '选择文本以创建或者修改 Graffiti，或者点击已有的 Graffiti 进行修改',
             'EDIT_IN_MARKDOWN_CELL' :            '编辑 Markdown 单元格来添加或者修改 Graffiti ',
