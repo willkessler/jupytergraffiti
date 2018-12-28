@@ -4711,7 +4711,11 @@ define([
         graffiti.cancelPlaybackNoVisualUpdates();
         state.clearAnimationIntervals();
         state.clearNarratorInfo();
-        state.finalizeSkipRecords();
+        if (state.getReplacingSkips()) {
+          state.finalizeSkipRecords();
+          const skippedMovie = state.getPlayableMovie('tip');
+          storage.writeOutMovieData(skippedMovie, state.getJSONHistory());
+        }
         graffiti.resetStickerCanvases();
         graffiti.cancelRapidPlay();
         graffiti.graffitiCursor.hide();
@@ -4883,7 +4887,7 @@ define([
               click: (e) => {
                 console.log('Graffiti: you want to preserve cell contents after playback.');
                 // Must restore playable movie values because jupyter dialog causes the tip to hide, which clears the playableMovie
-                state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey);
+                state.setPlayableMovie('tip', playableMovie.recordingCellId, playableMovie.recordingKey);
                 state.setDontRestoreCellContentsAfterPlayback(false);
                 graffiti.loadAndPlayMovie('tip');
               }
@@ -4892,7 +4896,7 @@ define([
             { 
               click: (e) => { 
                 // Must restore playable movie values because jupyter dialog causes the tip to hide, which clears the playableMovie
-                state.setPlayableMovie('tip', playableMovie.cellId, playableMovie.recordingKey);
+                state.setPlayableMovie('tip', playableMovie.recordingCellId, playableMovie.recordingKey);
                 state.setDontRestoreCellContentsAfterPlayback(true);
                 graffiti.loadAndPlayMovie('tip'); 
               }
@@ -4923,10 +4927,10 @@ define([
 
         $('#graffiti-movie-play-btn').html('<i>' + localizer.getString('LOADING') + '</i>').prop('disabled',true);
         graffiti.setJupyterMenuHint(localizer.getString('LOADING_PLEASE_WAIT'));
-        storage.loadMovie(playableMovie.cellId, playableMovie.recordingKey, playableMovie.activeTakeId).then( () => {
-          console.log('Graffiti: Movie loaded for cellId, recordingKey:', playableMovie.cellId, playableMovie.recordingKey);
+        storage.loadMovie(playableMovie.recordingCellId, playableMovie.recordingKey, playableMovie.activeTakeId).then( () => {
+          console.log('Graffiti: Movie loaded for cellId, recordingKey:', playableMovie.recordingCellId, playableMovie.recordingKey);
           // big hack
-          const recording = state.getManifestSingleRecording(playableMovie.cellId, playableMovie.recordingKey);
+          const recording = state.getManifestSingleRecording(playableMovie.recordingCellId, playableMovie.recordingKey);
           state.setNarratorInfo('name', recording.narratorName);
           state.setNarratorInfo('picture', recording.narratorPicture);
           if (playableMovie.cellType === 'markdown') {
@@ -4935,7 +4939,7 @@ define([
           state.updateUsageStats({
             type: 'setup',
             data: {
-              cellId:        playableMovie.cellId,
+              cellId:        playableMovie.recordingCellId,
               recordingKey:  playableMovie.recordingKey,
               activeTakeId:  playableMovie.activeTakeId,
             }

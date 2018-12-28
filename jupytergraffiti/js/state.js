@@ -943,7 +943,7 @@ define([
       if (cell !== undefined) {
         const recording = state.getManifestSingleRecording(cellId, recordingKey);
         const activeTakeId = recording.activeTakeId;
-        state.playableMovies[kind] = { cellId: cellId, recordingKey: recordingKey, activeTakeId: activeTakeId, cell: cell, cellType: cell.cell_type, };
+        state.playableMovies[kind] = { recordingCellId: cellId, recordingKey: recordingKey, activeTakeId: activeTakeId, cell: cell, cellType: cell.cell_type, };
         state.setStickerImageCandidateUrl(recording.stickerImageUrl);
         return recording;
       }
@@ -1328,18 +1328,16 @@ define([
     },
 
     finalizeSkipRecords: () => {
-      if (state.replacingSkips) {
-        const numRecords = state.history['skip'].length;
-        if (numRecords > 0) {
-          const lastRecord = state.history['skip'][numRecords - 1];
-          if (!lastRecord.hasOwnProperty('endTime')) {
-            lastRecord.endTime = state.history.duration - 1;
-          }
+      const numRecords = state.history['skip'].length;
+      if (numRecords > 0) {
+        const lastRecord = state.history['skip'][numRecords - 1];
+        if (!lastRecord.hasOwnProperty('endTime')) {
+          lastRecord.endTime = state.history.duration - 1;
         }
-        state.adjustTimeRecords('skip');
-        state.setSkipStatus(0);
-        state.dumpHistory();
       }
+      state.adjustTimeRecords('skip');
+      state.setSkipStatus(0);
+      state.dumpHistory();
     },
 
     initHistory: (initialValues) => {

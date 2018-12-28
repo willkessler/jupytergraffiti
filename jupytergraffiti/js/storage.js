@@ -184,6 +184,25 @@ define([
       });
     },
 
+    writeOutMovieData: (movieInfo, jsonHistory, encodedAudio) => {
+      console.log('writeOutMovieData, movieInfo:', movieInfo, 'history:', jsonHistory);
+      const graffitiPath = storage.constructGraffitiTakePath({
+        recordingCellId: movieInfo.recordingCellId,
+        recordingKey:    movieInfo.recordingKey,
+        takeId:          movieInfo.activeTakeId
+      });
+
+      storage.runShellCommand('mkdir -p ' + graffitiPath);
+      if (encodedAudio !== undefined) {
+        storage.writeTextToFile(graffitiPath + 'audio.txt', encodedAudio);
+      }
+      if (jsonHistory !== undefined) {
+        const base64CompressedHistory = LZString.compressToBase64(jsonHistory);
+        storage.writeTextToFile(graffitiPath + 'history.txt', base64CompressedHistory);
+      }
+      storage.cleanUpExecutorCell(graffitiPath);
+    },
+
     storeMovie: () => {
       const recordingCellInfo = state.getRecordingCellInfo();
 
@@ -191,23 +210,16 @@ define([
       const jsonHistory = state.getJSONHistory();
       if (jsonHistory !== undefined) {
         //console.log(jsonHistory);
-        const base64CompressedHistory = LZString.compressToBase64(jsonHistory);
         const encodedAudio = audio.getRecordedAudio();
-
-        const numCells = Jupyter.notebook.get_cells().length;
-        const graffitiPath = storage.constructGraffitiTakePath({
-          recordingCellId: recordingCellInfo.recordingCellId,
-          recordingKey: recordingCellInfo.recordingKey,
-          takeId: recordingCellInfo.recordingRecord.activeTakeId
-        });
-
-        storage.runShellCommand('mkdir -p ' + graffitiPath);
-        storage.writeTextToFile(graffitiPath + 'audio.txt', encodedAudio);
-        storage.writeTextToFile(graffitiPath + 'history.txt', base64CompressedHistory);
+        storage.writeOutMovieData(
+          {
+            recordingCellId: recordingCellInfo.recordingCellId,
+            recordingKey: recordingCellInfo.recordingKey,
+            activeTakeId: recordingCellInfo.recordingRecord.activeTakeId
+          },
+          jsonHistory, 
+          encodedAudio);
         storage.completeMovieStorage();
-        storage.cleanUpExecutorCell(graffitiPath);
-        
-        storage.readyToRestoreLiveKernel = false; // make sure we don't run the kernel command yet; we will run this when completeMovieStorage calls storeManifest.
       } else {
         console.log('Graffiti: could not fetch JSON history.');
       }
@@ -268,8 +280,6 @@ define([
       storage.runShellCommand('mkdir -p ' + manifestInfo.path);
       storage.writeTextToFile(manifestFullFilePath, base64CompressedManifest);
       storage.cleanUpExecutorCell();
-
-      storage.readyToRestoreLiveKernel = true; // this will ensure we switch back to the user's choice of kernel when everything's done
     },
 
     //
