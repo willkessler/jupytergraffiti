@@ -241,7 +241,8 @@
   max-width:50px;
 }
 
-#graffiti-access-api-btn {
+#graffiti-access-api-btn,
+#graffiti-access-skips-btn {
   font-size:0.8em;
   padding:2px;
 }
