@@ -59,6 +59,7 @@ define([
       state.userId = undefined;
       state.speakingStatus = false; // true when the graffiti creator is currently speaking (not silent)
       state.skipStatus = 0; // value to show we have activated a skip, and what speed (0 = regular speed/user choice, 1 = fixed compression, 2,3,4 = 2x,3x,4x.
+      state.editingSkips = false;
       state.replacingSkips = false;
       state.cellStates = {
         contents: {},
@@ -70,6 +71,7 @@ define([
       state.highlightsRefreshCellId = undefined;
       state.graffitiEditCellId = undefined;
       state.narratorInfo = {};
+      state.shiftKeyIsDown = false;
 
       // Usage statistic gathering for the current session (since last load of the notebook)
       state.usageStats = {
@@ -113,6 +115,12 @@ define([
         opacity: state.maxDrawingOpacity
       };
 
+      state.SKIP_STATUS_NONE = 0;
+      state.SKIP_STATUS_COMPRESS = 1;
+      state.SKIP_STATUS_2X = 2;
+      state.SKIP_STATUS_3X = 3;
+      state.SKIP_STATUS_4X = 4;
+      state.SKIP_STATUS_ABSOLUTE = -1;
       
       utils.refreshCellMaps();
 
@@ -249,12 +257,24 @@ define([
     },
 
     setSkipStatus: (skipStatus) => {
-      state.skipStatus = skipStatus;
+      if (state.skipStatus === skipStatus) {
+        state.skipStatus = state.SKIP_STATUS_NONE;
+      } else {
+        state.skipStatus = skipStatus;
+      }
       state.storeHistoryRecord('skip'); // record skip status, if we are currently in a skip (time compression)
     },
 
     clearHighlightsRefreshableCell: () => {
       state.highlightsRefreshCellId = undefined;
+    },
+
+    getEditingSkips: () => {
+      return state.editingSkips;
+    },
+
+    setEditingSkips: (val) => {
+      state.editingSkips = val;
     },
 
     getReplacingSkips: () => {
@@ -263,6 +283,14 @@ define([
 
     setReplacingSkips: (val) => {
       state.replacingSkips = val;
+    },
+
+    getShiftKeyIsDown: () => {
+      return state.shiftKeyIsDown;
+    },
+
+    setShiftKeyIsDown: (val) => {
+      state.shiftKeyIsDown = val;
     },
 
     getGraffitiEditCellId: () => {
@@ -1317,13 +1345,14 @@ define([
           lastRecord.endTime = Math.max(0,timeSoFar - 1);
         }
       }
-      const currentSkipStatus = state.getSkipStatus();
+      const previousSkipStatus = state.getSkipStatus();
       state.setSkipStatus(newSkipStatus);
-      if ((newSkipStatus > 0) && (newSkipStatus !== currentSkipStatus)) {
+      if (newSkipStatus !== previousSkipStatus) {
         // Only add a new skip record for non-zero and new skip statuses.
         const record = state.createSkipRecord();
         record.startTime = timeSoFar;
         state.history['skip'].push(record);
+        console.log('skip history:', state.history['skip']);
       }
     },
 
@@ -1594,7 +1623,7 @@ define([
     getTimePlayedSoFar: () => {
       const now = utils.getNow();
       let timePlayedSoFar = 0;
-      if (state.playTimes[state.currentPlaySpeed].start !== undefined) {
+      if ((state.playTimes[state.currentPlaySpeed].start !== undefined) && (state.activity === 'playing')) {
         const playRateScalar = state.getPlayRateScalar();
         timePlayedSoFar += (now - state.playTimes[state.currentPlaySpeed].start) * playRateScalar;
       }

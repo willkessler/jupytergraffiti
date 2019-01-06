@@ -37,10 +37,11 @@
 }
 
 #graffiti-rapidplay-off-btn,
-#graffiti-rapidscan-off-btn {
+#graffiti-rapidscan-off-btn,
+.graffiti-skips-off-btn {
   display:none;
-  background:black;
-  color:white;
+  background:black !important;
+  color:white !important;
 }
 
 .graffiti-cursor {
@@ -339,21 +340,36 @@
 #graffiti-stickers-shell {
 }
 
-#graffiti-stickers-header {
+#graffiti-stickers-header,
+#graffiti-skips-controls-header {
   text-transform:uppercase;
   margin-bottom:2px;
   display:flex;
   cursor:pointer;
 }
 
-#graffiti-stickers-header span {
+#graffiti-stickers-header span,
+#graffiti-skips-controls-header span {
   text-transform: none !important;
   font-style:italic;
+}
+
+#graffiti-skips-controls-header span {
+  border-bottom:1px dotted grey;
+  margin-bottom:2px;
 }
 
 #graffiti-stickers-body {
   display:none;
   align-items:left;
+}
+
+#graffiti-skips-controls-body {
+  align-items:left;
+}
+
+#graffiti-skips-controls-body button {
+  width:23px;
 }
 
 #graffiti-stickers-body div {

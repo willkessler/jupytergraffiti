@@ -980,6 +980,11 @@ define([
       );
     },
 
+    makeCompressTimeIcon: (fill) => {
+      const compressTimeIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="-434 236 90 80" style="enable-background:new -434 236 90 90;" xml:space="preserve"><g fill-rule="evenodd" fill="' + fill + '"><path d="M-354.9,251.1h-5.3h-2.6v2.6v27.8c-0.1-0.3-0.3-0.5-0.5-0.8l-29.1-29.1c-0.5-0.5-1-0.7-1.3-0.5c-0.4,0.2-0.5,0.6-0.5,1.3   v29.1c-0.1-0.3-0.3-0.5-0.5-0.8l-29.1-29.1c-0.5-0.5-1-0.7-1.3-0.5c-0.4,0.2-0.5,0.6-0.5,1.3v60.4c0,0.7,0.2,1.1,0.5,1.3   c0.4,0.2,0.8,0,1.3-0.5l29.1-29.1c0.2-0.2,0.4-0.5,0.5-0.8v29.1c0,0.7,0.2,1.1,0.5,1.3c0.4,0.2,0.8,0,1.3-0.5l29.1-29.1   c0.2-0.2,0.4-0.5,0.5-0.8v27.8v2.6h2.6h5.3h2.6v-2.6v-57.8v-2.6H-354.9z"/></g></svg>';
+      return compressTimeIcon;
+    },
+
     makeSmallUdacityIcon: (opts) => {
       const udacityHtml = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" x="0px" y="0px" width="' +
                           opts.width + 'px" height="' + opts.height + 'px" viewBox="0 0 32 32" ' +
