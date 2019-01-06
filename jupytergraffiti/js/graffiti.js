@@ -27,7 +27,7 @@ define([
 
         graffiti.LZString = LZString;
         graffiti.rewindAmt = 1;  // seconds
-        graffiti.rewindSkipEditAmt = 0.1;  // seconds
+        graffiti.rewindSkipEditAmt = 0.05;  // seconds
         graffiti.CMEvents = {};
         graffiti.halfBullseye = 12;
         graffiti.sitePanel = $('#site');
@@ -448,7 +448,7 @@ define([
                                             if (($(e.target).attr('id') === 'graffiti-rewind-btn') || ($(e.target).hasClass('fa-backward'))) {
                                               direction = -1;
                                             }
-                                            graffiti.jumpPlayback(direction, (state.editingSkips() ? graffiti.rewindSkipEditAmt : graffiti.rewindAmt));
+                                            graffiti.jumpPlayback(direction, (state.getEditingSkips() ? graffiti.rewindSkipEditAmt : graffiti.rewindAmt));
                                           }
                                         },
                                         {
@@ -823,7 +823,8 @@ define([
         const compressTimeOffIcon = stickerLib.makeCompressTimeIcon('white');
         const absoluteSkipOnIcon = stickerLib.makeScan('black');
         const absoluteSkipOffIcon = stickerLib.makeScan('white');
-        const clearSkipsIcon = stickerLib.makeNoEntryIcon('red');
+        //const clearSkipsIcon = stickerLib.makeNoEntryIcon('red');
+        const clearSkipsIcon = stickerLib.makeTrashIcon('black');
 
         graffiti.setupOneControlPanel('graffiti-skips-controls',
                                       '<div id="graffiti-skips-controls">' +

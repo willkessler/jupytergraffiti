@@ -248,6 +248,14 @@
   padding:2px;
 }
 
+#graffiti-skips-clear-btn {
+  margin-left:15px;
+}
+
+#graffiti-skips-clear-btn svg {
+  top:5px;
+}
+
 #graffiti-notifier {
   max-width:160px;
   font-size:0.9em;
