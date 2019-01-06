@@ -115,11 +115,11 @@ define([
         opacity: state.maxDrawingOpacity
       };
 
-      state.SKIP_STATUS_NONE = 0;
-      state.SKIP_STATUS_COMPRESS = 1;
-      state.SKIP_STATUS_2X = 2;
-      state.SKIP_STATUS_3X = 3;
-      state.SKIP_STATUS_4X = 4;
+      state.SKIP_STATUS_NONE =      0;
+      state.SKIP_STATUS_COMPRESS =  1;
+      state.SKIP_STATUS_2X =        2;
+      state.SKIP_STATUS_3X =        3;
+      state.SKIP_STATUS_4X =        4;
       state.SKIP_STATUS_ABSOLUTE = -1;
       
       utils.refreshCellMaps();
@@ -1342,7 +1342,13 @@ define([
         // Close off last record created with an end time, if it exists.
         const lastRecord = state.history['skip'][numRecords - 1];
         if (!lastRecord.hasOwnProperty('endTime')) {
-          lastRecord.endTime = Math.max(0,timeSoFar - 1);
+          lastRecord.endTime = parseInt(Math.max(0,timeSoFar - 1));
+          if (lastRecord.endTime < lastRecord.startTime) {
+            // Swap reversed times to allow user to specify skips back-to-front.
+            const tmp = lastRecord.startTime;
+            lastRecord.startTime = lastRecord.endTime;
+            lastRecord.endTime = tmp;
+          }
         }
       }
       const previousSkipStatus = state.getSkipStatus();
@@ -1352,8 +1358,8 @@ define([
         const record = state.createSkipRecord();
         record.startTime = timeSoFar;
         state.history['skip'].push(record);
-        console.log('skip history:', state.history['skip']);
       }
+      console.log('storeSkipRecord, skip history:', state.history['skip']);
     },
 
     finalizeSkipRecords: () => {

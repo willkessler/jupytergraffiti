@@ -71,23 +71,19 @@ define([
             'BELOW_TYPE_MARKDOWN':               "%% Below, type any markdown to display in the Graffiti tip.\n" +
                                                  "%% Then run this cell to save it.\n",
             'SAMPLE_API':                        'Create Sample API Calls',
-            'SKIPS_API':                         'Add/Replace Skip Periods',
-            'SKIPS_DIALOG_TITLE':                'Add/Replace Skips on This Recording?',
-            'SKIPS_DIALOG_BODY':                 'When you click OK, the recording will play. You can use then these keys to add skips:<br><br>' +
-                                                 '<ul>' +
-                                                 '<li>Number 2, 3, or 4 : Activate 2x/3x/4x playback</li>' +
-                                                 '<li>Spacebar: if 2x/3x/4x playback is activated, deactivate it. If not, begin/end fixed-duration skip.</li>' +
-                                                 '</ul>',
-            'SKIPS_DIALOG_CONFIRM_1':            'Proceed (Replace Previous Skips)',
-            'SKIPS_DIALOG_CONFIRM_2':            'Proceed (Keep Previous Skips)',
-            'SKIPS_DIALOG_CONFIRM_3':            'Cancel',
-            'SKIPS_HEADER':                      'Add Fast Forwards/Skips',
+            'SKIPS_API':                         'Fast Forwards / Skips',
+            'SKIPS_DIALOG_TITLE':                'Clear Skips on This Recording?',
+            'SKIPS_DIALOG_BODY':                 'This will remove all skips you have set so far. Are you positive?',
+            'SKIPS_DIALOG_CONFIRM_1':            'Proceed',
+            'SKIPS_DIALOG_CANCEL':               'Cancel',
+            'SKIPS_HEADER':                      'Fast Forwards & Skips',
             'SKIPS_COMPRESS_BTN':                'Compress time to fixed length',
             'SKIPS_2X_BTN':                      'Set to fast forward at 2x speed',
             'SKIPS_3X_BTN':                      'Set to fast forward at 3x speed',
             'SKIPS_4X_BTN':                      'Set to fast forward at 4x speed',
             'SKIPS_COMPRESS_BTN':                'Compress time to fixed length',
             'SKIPS_ABSOLUTE_BTN':                'Skip a section entirely',
+            'SKIPS_CLEAR_BTN':                   'Clear all skips',
             'TAKES':                             'Takes',
             'SELECT_SOME_TEXT_MARKDOWN' :        'Select some text in this Markdown cell to add or modify Graffiti, or click inside any existing Graffiti text to modify it.',
             'EDIT_IN_MARKDOWN_CELL' :            'Edit the Markdown cell to add or modify Graffiti in the cell.',
@@ -181,24 +177,20 @@ define([
             'BELOW_TYPE_MARKDOWN':               '在以下输入 markdown 文本，将展示在 Graffiti 中。' +
                                                  '然后运行文本以保存。',
             'SAMPLE_API':                        '创建示例 API Calls',
+            'SKIPS_API':                         'Fast Forwards / Skips',
             'SKIPS_API':                         'Add/Replace Skip Periods',
-            'SKIPS_API':                         'Add/Replace Skip Periods',
-            'SKIPS_DIALOG_TITLE':                'Add/Replace Skips on This Recording?',
-            'SKIPS_DIALOG_BODY':                 'When you click OK, the recording will play. You can use then these keys to add skips:<br><br>' +
-                                                 '<ul>' +
-                                                 '<li>Number 2, 3, or 4 : Activate 2x/3x/4x playback</li>' +
-                                                 '<li>Spacebar: if 2x/3x/4x playback is activated, deactivate it. If not, begin/end fixed-duration skip.</li>' +
-                                                 '</ul>',
-            'SKIPS_DIALOG_CONFIRM_1':            'Proceed (Replace Previous Skips)',
-            'SKIPS_DIALOG_CONFIRM_2':            'Proceed (Keep Previous Skips)',
-            'SKIPS_DIALOG_CONFIRM_3':            'Cancel',
-            'SKIPS_HEADER':                      'Add Fast Forwards/Skips',
+            'SKIPS_DIALOG_TITLE':                'Clear Skips on This Recording?',
+            'SKIPS_DIALOG_BODY':                 'This will remove all skips you have set so far. Are you positive?',
+            'SKIPS_DIALOG_CONFIRM_1':            'Proceed',
+            'SKIPS_DIALOG_CANCEL':               'Cancel',
+            'SKIPS_HEADER':                      'Fast Forwards & Skips',
             'SKIPS_COMPRESS_BTN':                'Compress time to fixed length',
             'SKIPS_2X_BTN':                      'Set to fast forward at 2x speed',
             'SKIPS_3X_BTN':                      'Set to fast forward at 3x speed',
             'SKIPS_4X_BTN':                      'Set to fast forward at 4x speed',
             'SKIPS_COMPRESS_BTN':                'Compress time to fixed length',
             'SKIPS_ABSOLUTE_BTN':                'Skip a section entirely',
+            'SKIPS_CLEAR_BTN':                   'Clear all skips',
             'TAKES':                             '版本',
             'SELECT_SOME_TEXT_MARKDOWN' :        '选择文本以创建或者修改 Graffiti，或者点击已有的 Graffiti 进行修改',
             'EDIT_IN_MARKDOWN_CELL' :            '编辑 Markdown 单元格来添加或者修改 Graffiti ',

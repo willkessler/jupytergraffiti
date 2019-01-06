@@ -980,6 +980,11 @@ define([
       );
     },
 
+    makeNoEntryIcon: (fill) => {
+      const noEntryIcon = '<svg xmlns="http://www.w3.org/2000/svg" data-name="Layer 1" viewBox="0 0 100 100" x="0px" y="5px"><g fill-rule="evenodd" fill="' + fill + '"><path data-name="Compound Path" d="M50,89.11A39.11,39.11,0,1,0,22.33,77.66,39,39,0,0,0,50,89.11ZM72,72a31.17,31.17,0,0,1-41.28,2.42l43.71-43.7A31.17,31.17,0,0,1,72,72ZM28,28a31.16,31.16,0,0,1,40.72-2.86L25.14,68.71A31.17,31.17,0,0,1,28,28Z"/></g></svg>';
+      return noEntryIcon;
+    },
+
     makeCompressTimeIcon: (fill) => {
       const compressTimeIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="-434 236 90 80" style="enable-background:new -434 236 90 90;" xml:space="preserve"><g fill-rule="evenodd" fill="' + fill + '"><path d="M-354.9,251.1h-5.3h-2.6v2.6v27.8c-0.1-0.3-0.3-0.5-0.5-0.8l-29.1-29.1c-0.5-0.5-1-0.7-1.3-0.5c-0.4,0.2-0.5,0.6-0.5,1.3   v29.1c-0.1-0.3-0.3-0.5-0.5-0.8l-29.1-29.1c-0.5-0.5-1-0.7-1.3-0.5c-0.4,0.2-0.5,0.6-0.5,1.3v60.4c0,0.7,0.2,1.1,0.5,1.3   c0.4,0.2,0.8,0,1.3-0.5l29.1-29.1c0.2-0.2,0.4-0.5,0.5-0.8v29.1c0,0.7,0.2,1.1,0.5,1.3c0.4,0.2,0.8,0,1.3-0.5l29.1-29.1   c0.2-0.2,0.4-0.5,0.5-0.8v27.8v2.6h2.6h5.3h2.6v-2.6v-57.8v-2.6H-354.9z"/></g></svg>';
       return compressTimeIcon;

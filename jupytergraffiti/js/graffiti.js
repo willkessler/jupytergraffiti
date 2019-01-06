@@ -448,7 +448,7 @@ define([
                                             if (($(e.target).attr('id') === 'graffiti-rewind-btn') || ($(e.target).hasClass('fa-backward'))) {
                                               direction = -1;
                                             }
-                                            graffiti.jumpPlayback(direction, graffiti.rewindAmt);
+                                            graffiti.jumpPlayback(direction, (state.editingSkips() ? graffiti.rewindSkipEditAmt : graffiti.rewindAmt));
                                           }
                                         },
                                         {
@@ -807,13 +807,13 @@ define([
         graffiti.setupOneControlPanel('graffiti-access-skips',
                                       '<button class="btn btn-default" id="graffiti-access-skips-btn" title="' + 
                                       localizer.getString('SKIPS_API') + '"></i>&nbsp; <span>' +
-                                      localizer.getString('SKIPS_API') + '</span></button>',
+                                      localizer.getString('SKIPS_API') + '&nbsp; </span></button>',
                                       [
                                         { 
                                           ids: ['graffiti-access-skips-btn'],
                                           event: 'click', 
                                           fn: (e) => { 
-                                            graffiti.replaceSkipsWithConfirmation();
+                                            graffiti.editSkips();
                                           }
                                         }
                                       ]
@@ -823,6 +823,7 @@ define([
         const compressTimeOffIcon = stickerLib.makeCompressTimeIcon('white');
         const absoluteSkipOnIcon = stickerLib.makeScan('black');
         const absoluteSkipOffIcon = stickerLib.makeScan('white');
+        const clearSkipsIcon = stickerLib.makeNoEntryIcon('red');
 
         graffiti.setupOneControlPanel('graffiti-skips-controls',
                                       '<div id="graffiti-skips-controls">' +
@@ -853,6 +854,11 @@ define([
                                       localizer.getString('SKIPS_ABSOLUTE_BTN') + '">' + absoluteSkipOnIcon + '</button>' +
                                       '    <button class="btn btn-default graffiti-skips-off-btn" id="graffiti-skips-absolute-off-btn" title="' +
                                       localizer.getString('SKIPS_ABSOLUTE_BTN') + '">' + absoluteSkipOffIcon + '</button>' +
+
+
+                                      '    <button class="btn btn-default" id="graffiti-skips-clear-btn" title="' +
+                                      localizer.getString('SKIPS_CLEAR_BTN') + '">' + clearSkipsIcon + '</button>' +
+                                      
                                       '  </div>' +
                                       '</div>',
                                       [
@@ -889,6 +895,13 @@ define([
                                           event: 'click', 
                                           fn: (e) => { 
                                             graffiti.storeSkipRecord(state.SKIP_STATUS_ABSOLUTE);
+                                          }
+                                        },
+                                        { 
+                                          ids: ['graffiti-skips-clear-btn'], // clear all skips
+                                          event: 'click', 
+                                          fn: (e) => { 
+                                            graffiti.clearAllSkipsWithConfirm();
                                           }
                                         }
 
@@ -3015,130 +3028,61 @@ define([
         }
       },
 
-      // Skip codes: 
-      // -1: absolute skipping. 
-      // 0: stop skipping.
-      // 1: fixed time skipping.
-      // 2-4 : acceleration skipping.
-
-      processSkipsUpdate: (keyCode) => {
-        const minusKeyCode = 189;
-        const zeroKeyCode = 48;
-        const oneKeyCode = 49;
-        const fiveKeyCode = 53;
-        const leftArrowKeyCode = 37;
-        const rightArrowKeyCode = 39;
-        if ( ((49 <= oneKeyCode) && (keyCode <= fiveKeyCode)) ||  // keys 2,3,4,5 activate/deactivate accelerations
-             (keyCode === leftArrowKeyCode) ||  // jump time back 0.25s
-             (keyCode === rightArrowKeyCode) || // jump time forward 0.25s
-             (keyCode === minusKeyCode) ||  // activate/deactivate compressed skips
-             (keyCode === zeroKeyCode) ) { //  activate/deactivate absolute skips
-          const currentSkipStatus = state.getSkipStatus();
-          let newSkipStatus = 0; // assume we'll stop skipping if we were
-          if ((keyCode === leftArrowKeyCode) || (keyCode === rightArrowKeyCode)) {
-            // scrub forwards/backwards a small amount
-            const direction = (keyCode === leftArrowKeyCode ? -1 : 1);
-            graffiti.jumpPlayback(direction, graffiti.rewindSkipEditAmt);
-          } else if (keyCode === zeroKeyCode) {
-            // zero key "zeroes" out or skips immediately past a section
-            if (currentSkipStatus > 0) {
-              // Currently skipping: stop skipping
-              newSkipStatus = 0;
-            } else {
-              newSkipStatus = -1;
-            }
-          } else if (keyCode === minusKeyCode) {
-            // Minus key "shrinks" time into a set time period. (default 2s)
-            if (currentSkipStatus > 0) {
-              // Currently skipping: stop skipping
-              console.log('Clearing skip status:', currentSkipStatus);
-              newSkipStatus = 0;
-            } else {
-              // start fixed time skipping
-              newSkipStatus = 1;
-            }
-          } else if (keyCode > oneKeyCode) { 
-            // (note: implicitly if you press the "1" key you will end up stopping skipping.)
-            const computedSkipStatus = keyCode - 50 + 2;
-            if (computedSkipStatus !== currentSkipStatus) {
-              // start/update variable speed skipping
-              newSkipStatus = computedSkipStatus; // this will be 2,3,4, or 5
-              console.log('newSkipStatus:', newSkipStatus, 'vs currentSkipStatus', currentSkipStatus);
-            }
-          }
-          state.storeSkipRecord(newSkipStatus);
-          return false; // do not proceed to look for keypresses after this function.
-        }
-        return true;
-      },
-
       handleKeydown: (e) => {
         const keyCode = e.which;
         const activity = state.getActivity();
         let stopProp = false;
-        let proceed = true;
         // console.log('handleKeydown keyCode:', keyCode, String.fromCharCode(keyCode));
-        if (state.getEditingSkips()) { // if prompted to replace skips, then process any update keys.
-          console.log('we are replacing skips, activity:', activity);
-          if (activity === 'playbackPaused') {
-            proceed = graffiti.processSkipsUpdate(keyCode);
-            if (!proceed) {
+        if ((((48 <= keyCode) && (keyCode <= 57)) ||    // A-Z
+             ((65 <= keyCode) && (keyCode <= 90)) ||    // 0-9
+             ((37 <= keyCode) && (keyCode <= 40)) ||    // arrow keys                
+             (keyCode === 32))                          // space bar
+            && activity === 'playing') {
+          // Pressing keys : A-Z, 0-9, arrows, and spacebar stop any playback in progress.
+          stopProp = true;
+          graffiti.togglePlayback();
+        } else {
+          // Check for other keypress actions
+          switch (keyCode) {
+            case 27: // escape key CANCELS playback
               stopProp = true;
-            }
-          }
-        }
-        if (proceed) {
-          if ((((48 <= keyCode) && (keyCode <= 57)) ||    // A-Z
-               ((65 <= keyCode) && (keyCode <= 90)) ||    // 0-9
-               ((37 <= keyCode) && (keyCode <= 40)) ||    // arrow keys                
-               (keyCode === 32))                          // space bar
-              && activity === 'playing') {
-            // Pressing keys : A-Z, 0-9, arrows, and spacebar stop any playback in progress.
-            stopProp = true;
-            graffiti.togglePlayback();
-          } else {
-            // Check for other keypress actions
-            switch (keyCode) {
-              case 27: // escape key CANCELS playback
+              if ((activity === 'playing') || (activity === 'playbackPaused') || (activity === 'scrubbing')) {
+                graffiti.cancelPlayback({cancelAnimation:true});
+              }
+              break;
+            case 77: // cmd-m key finishes a recording in progress or cancels a pending recording
+              // cf http://jsbin.com/vezof/1/edit?js,output
+              if (e.metaKey) { // may only work on Chrome
+                if (e.ctrlKey) {
+                  console.log('Graffiti: you pressed ctrl ⌘-m');
+                } else {
+                  console.log('Graffiti: you pressed ⌘-m');
+                }
                 stopProp = true;
-                if ((activity === 'playing') || (activity === 'playbackPaused') || (activity === 'scrubbing')) {
-                  graffiti.cancelPlayback({cancelAnimation:true});
+                switch (activity) {
+                  case 'recording':
+                    if (e.ctrlKey) {
+                    } else {
+                      graffiti.toggleRecording();
+                    }
+                    break;
+                  case 'recordingPending':
+                    graffiti.changeActivity('idle');
+                    break;
                 }
-                break;
-              case 77: // cmd-m key finishes a recording in progress or cancels a pending recording
-                // cf http://jsbin.com/vezof/1/edit?js,output
-                if (e.metaKey) { // may only work on Chrome
-                  if (e.ctrlKey) {
-                    console.log('Graffiti: you pressed ctrl ⌘-m');
-                  } else {
-                    console.log('Graffiti: you pressed ⌘-m');
-                  }
-                  stopProp = true;
-                  switch (activity) {
-                    case 'recording':
-                      if (e.ctrlKey) {
-                      } else {
-                        graffiti.toggleRecording();
-                      }
-                      break;
-                    case 'recordingPending':
-                      graffiti.changeActivity('idle');
-                      break;
-                  }
-                }
-                break;
-              case 16: // shift key
-                state.setShiftKeyIsDown(true);
-                state.updateDrawingState([ { change: 'stickerOnGrid', data: true } ]);
-                //console.log('Graffiti: shiftKeyIsDown');
-                break;
+              }
+              break;
+            case 16: // shift key
+              state.setShiftKeyIsDown(true);
+              state.updateDrawingState([ { change: 'stickerOnGrid', data: true } ]);
+              //console.log('Graffiti: shiftKeyIsDown');
+              break;
               // case 13: // enter key
               // case 18: // meta key
               // case 91: // option key
               //   break;
-              default:
-                break; // let any other keys pass through
-            }
+            default:
+              break; // let any other keys pass through
           }
         }
         
@@ -3664,29 +3608,23 @@ define([
 
       },
 
-      // Confirm adding skips. Note that skip compression period defaults to 2 seconds but can be changed with a tooltip directive.
-      replaceSkipsWithConfirmation: () => {
+      editSkips: () => {
+        state.setEditingSkips(true);
+        state.setReplacingSkips(true);
+        graffiti.loadAndPlayMovie('tip');
+      },
+
+      // Confirm clearing any existing skips.
+      clearAllSkipsWithConfirm: () => {
         const btn1 = localizer.getString('SKIPS_DIALOG_CONFIRM_1');
-        const btn2 = localizer.getString('SKIPS_DIALOG_CONFIRM_2');
-        const btn3 = localizer.getString('SKIPS_DIALOG_CONFIRM_3');
+        const btn2 = localizer.getString('SKIPS_DIALOG_CANCEL');
         let btns = {};
         btns[btn1] = {
           click: (e) => {
-            state.setEditingSkips(true);
-            state.setReplacingSkips(true);
-            console.log('Graffiti: You clicked ok, you want replace all skips.');
-            graffiti.loadAndPlayMovie('tip');
+            console.log('Graffiti: You clicked ok, you want clear all skips.');
           }
         };
         btns[btn2] = {
-              click: (e) => {
-                state.setEditingSkips(true);
-                state.setReplacingSkips(false);
-                console.log('Graffiti: You clicked ok, you want replace all skips.');
-                graffiti.loadAndPlayMovie('tip');
-              }
-        };
-        btns[btn3] = {
           click: (e) => { 
             state.setEditingSkips(false);
             state.setReplacingSkips(false);
@@ -4979,7 +4917,7 @@ define([
         if (activity !== 'recording') {
           if (activity === 'playing') {
             state.clearAnimationIntervals();
-            if (state.getHidePlayerAfterPlayback() && state.getSetupForReset()) {
+            if (state.getHidePlayerAfterPlayback() && state.getSetupForReset() && (!state.getEditingSkips())) {
               graffiti.cancelPlayback({ cancelAnimation: true});
             } else {
               graffiti.pausePlayback();
