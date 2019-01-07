@@ -27,7 +27,8 @@ define([
         const currentAccessLevel = state.getAccessLevel();
 
         graffiti.LZString = LZString;
-        graffiti.rewindAmt = 2; /*seconds */
+        graffiti.rewindAmt = 1;  // seconds
+        graffiti.rewindSkipEditAmt = 0.05;  // seconds
         graffiti.CMEvents = {};
         graffiti.halfBullseye = 12;
         graffiti.sitePanel = $('#site');
@@ -159,6 +160,11 @@ define([
         e.stopPropagation();
       },
       
+      storeSkipRecord: (newStatus) => {
+        state.storeSkipRecord(newStatus);
+        graffiti.updateControlPanels();
+      },
+        
       setupOneControlPanel: (elemId,elemHtml, callbacks) => {
         if (graffiti.controlPanelIds === undefined) {
           graffiti.controlPanelIds = {};
@@ -375,11 +381,9 @@ define([
                                         }
                                       ]
         );
-
+        
         const runnerOnIcon = stickerLib.makeRunningMan('black');
         const runnerOffIcon = stickerLib.makeRunningMan('white');
-        const rapidScanOnIcon = stickerLib.makeScan('black');
-        const rapidScanOffIcon = stickerLib.makeScan('white');
 
         graffiti.setupOneControlPanel('graffiti-playback-controls', 
                                       '<div id="graffiti-narrator-info">' +
@@ -421,14 +425,6 @@ define([
                                       localizer.getString('REGULAR_SPEED_PLAYBACK') + '">' + runnerOffIcon +
                                       '   </button>' +
                                       '  </div>' +
-                                      '  <div id="graffiti-rapidscan-buttons">' +
-                                      '    <button class="btn btn-default btn-rapidscan-on" id="graffiti-rapidscan-on-btn" title="' +
-                                      localizer.getString('HIGH_SPEED_SILENCES') + '">' + rapidScanOnIcon +
-                                      '   </button>' +
-                                      '   <button class="btn btn-default btn-rapidscan-off" id="graffiti-rapidscan-off-btn" title="' +
-                                      localizer.getString('REGULAR_SPEED_SILENCES') + '">' + rapidScanOffIcon +
-                                      '   </button>' +
-                                      '  </div>' +
                                       '</div>' +
                                       '<div id="graffiti-scrub-controls">' +
                                       '  <div id="graffiti-playback-range">' +
@@ -453,7 +449,7 @@ define([
                                             if (($(e.target).attr('id') === 'graffiti-rewind-btn') || ($(e.target).hasClass('fa-backward'))) {
                                               direction = -1;
                                             }
-                                            graffiti.jumpPlayback(direction);
+                                            graffiti.jumpPlayback(direction, (state.getEditingSkips() ? graffiti.rewindSkipEditAmt : graffiti.rewindAmt));
                                           }
                                         },
                                         {
@@ -505,6 +501,7 @@ define([
                                           fn: (e) => {
                                             //console.log('slider:mouseup')
                                             graffiti.handleSliderDrag(); // rerun slider drag on mouseup because we may not have gotten the last input event.
+                                            graffiti.changeActivity('playbackPaused');
                                             if (previousPlayState === 'playing') {
                                               graffiti.startPlayback();
                                             }
@@ -811,15 +808,105 @@ define([
         graffiti.setupOneControlPanel('graffiti-access-skips',
                                       '<button class="btn btn-default" id="graffiti-access-skips-btn" title="' + 
                                       localizer.getString('SKIPS_API') + '"></i>&nbsp; <span>' +
-                                      localizer.getString('SKIPS_API') + '</span></button>',
+                                      localizer.getString('SKIPS_API') + '&nbsp; </span></button>',
                                       [
                                         { 
                                           ids: ['graffiti-access-skips-btn'],
                                           event: 'click', 
                                           fn: (e) => { 
-                                            graffiti.replaceSkipsWithConfirmation();
+                                            graffiti.editSkips();
                                           }
                                         }
+                                      ]
+        );
+
+        const compressTimeOnIcon = stickerLib.makeCompressTimeIcon('black');
+        const compressTimeOffIcon = stickerLib.makeCompressTimeIcon('white');
+        const absoluteSkipOnIcon = stickerLib.makeScan('black');
+        const absoluteSkipOffIcon = stickerLib.makeScan('white');
+        //const clearSkipsIcon = stickerLib.makeNoEntryIcon('red');
+        const clearSkipsIcon = stickerLib.makeTrashIcon('black');
+
+        graffiti.setupOneControlPanel('graffiti-skips-controls',
+                                      '<div id="graffiti-skips-controls">' +
+                                      '  <div id="graffiti-skips-controls-header"><span>' + localizer.getString('SKIPS_HEADER') + '</span></div>' +
+
+                                      '  <div id="graffiti-skips-controls-body">' +
+                                      '    <button class="btn btn-default graffiti-skips-on-btn" id="graffiti-skips-2x-on-btn" title="' +
+                                      localizer.getString('SKIPS_2X_BTN') + '">2x</button>' +
+                                      '    <button class="btn btn-default graffiti-skips-off-btn" id="graffiti-skips-2x-off-btn" title="' +
+                                      localizer.getString('SKIPS_2X_BTN') + '">2x</button>' +
+
+                                      '    <button class="btn btn-default graffiti-skips-on-btn" id="graffiti-skips-3x-on-btn" title="' +
+                                      localizer.getString('SKIPS_3X_BTN') + '">3x</button>' +
+                                      '    <button class="btn btn-default graffiti-skips-off-btn" id="graffiti-skips-3x-off-btn" title="' +
+                                      localizer.getString('SKIPS_3X_BTN') + '">3x</button>' +
+
+                                      '    <button class="btn btn-default graffiti-skips-on-btn" id="graffiti-skips-4x-on-btn" title="' +
+                                      localizer.getString('SKIPS_4X_BTN') + '">4x</button>' +
+                                      '    <button class="btn btn-default graffiti-skips-off-btn" id="graffiti-skips-4x-off-btn" title="' +
+                                      localizer.getString('SKIPS_4X_BTN') + '">4x</button>' +
+
+                                      '    <button class="btn btn-default graffiti-skips-on-btn" id="graffiti-skips-compress-on-btn" title="' +
+                                      localizer.getString('SKIPS_COMPRESS_BTN') + '">' + compressTimeOnIcon + '</button>' +
+                                      '    <button class="btn btn-default graffiti-skips-off-btn" id="graffiti-skips-compress-off-btn" title="' +
+                                      localizer.getString('SKIPS_COMPRESS_BTN') + '">' + compressTimeOffIcon + '</button>' +
+
+                                      '    <button class="btn btn-default graffiti-skips-on-btn" id="graffiti-skips-absolute-on-btn" title="' +
+                                      localizer.getString('SKIPS_ABSOLUTE_BTN') + '">' + absoluteSkipOnIcon + '</button>' +
+                                      '    <button class="btn btn-default graffiti-skips-off-btn" id="graffiti-skips-absolute-off-btn" title="' +
+                                      localizer.getString('SKIPS_ABSOLUTE_BTN') + '">' + absoluteSkipOffIcon + '</button>' +
+
+
+                                      '    <button class="btn btn-default" id="graffiti-skips-clear-btn" title="' +
+                                      localizer.getString('SKIPS_CLEAR_BTN') + '">' + clearSkipsIcon + '</button>' +
+                                      
+                                      '  </div>' +
+                                      '</div>',
+                                      [
+                                        { 
+                                          ids: ['graffiti-skips-2x-on-btn','graffiti-skips-2x-off-btn'],
+                                          event: 'click', 
+                                          fn: (e) => { 
+                                            graffiti.storeSkipRecord(state.SKIP_STATUS_2X);
+                                          }
+                                        },
+                                        { 
+                                          ids: ['graffiti-skips-3x-on-btn', 'graffiti-skips-3x-off-btn'],
+                                          event: 'click', 
+                                          fn: (e) => { 
+                                            graffiti.storeSkipRecord(state.SKIP_STATUS_3X);
+                                          }
+                                        },
+                                        { 
+                                          ids: ['graffiti-skips-4x-on-btn', 'graffiti-skips-4x-off-btn'],
+                                          event: 'click', 
+                                          fn: (e) => { 
+                                            graffiti.storeSkipRecord(state.SKIP_STATUS_4X);
+                                          }
+                                        },
+                                        { 
+                                          ids: ['graffiti-skips-compress-on-btn', 'graffiti-skips-compress-off-btn'], // compress time to 2s
+                                          event: 'click', 
+                                          fn: (e) => { 
+                                            graffiti.storeSkipRecord(state.SKIP_STATUS_COMPRESS);
+                                          }
+                                        },
+                                        { 
+                                          ids: ['graffiti-skips-absolute-on-btn','graffiti-skips-absolute-off-btn'], // absolutely skip over a section
+                                          event: 'click', 
+                                          fn: (e) => { 
+                                            graffiti.storeSkipRecord(state.SKIP_STATUS_ABSOLUTE);
+                                          }
+                                        },
+                                        { 
+                                          ids: ['graffiti-skips-clear-btn'], // clear all skips
+                                          event: 'click', 
+                                          fn: (e) => { 
+                                            graffiti.clearAllSkipsWithConfirm();
+                                          }
+                                        }
+
                                       ]
         );
 
@@ -988,6 +1075,30 @@ define([
             break;
         }
 
+        if (true || state.getEditingSkips()) {
+          graffiti.controlPanelIds['graffiti-skips-controls'].find('.graffiti-skips-off-btn').hide().parent().find('.graffiti-skips-on-btn').show();
+          const skipStatus = state.getSkipStatus();
+          console.log('skipStatus:', skipStatus);
+          switch (skipStatus) {
+            case state.SKIP_STATUS_COMPRESS:
+              graffiti.controlPanelIds['graffiti-skips-controls'].find('#graffiti-skips-compress-off-btn').show().parent().find('#graffiti-skips-compress-on-btn').hide();
+              break;
+            case state.SKIP_STATUS_2X:
+              graffiti.controlPanelIds['graffiti-skips-controls'].find('#graffiti-skips-2x-off-btn').show().parent().find('#graffiti-skips-2x-on-btn').hide();
+              break;
+            case state.SKIP_STATUS_3X:
+              graffiti.controlPanelIds['graffiti-skips-controls'].find('#graffiti-skips-3x-off-btn').show().parent().find('#graffiti-skips-3x-on-btn').hide();
+              break;
+            case state.SKIP_STATUS_4X:
+              graffiti.controlPanelIds['graffiti-skips-controls'].find('#graffiti-skips-4x-off-btn').show().parent().find('#graffiti-skips-4x-on-btn').hide();
+              break;
+            case state.SKIP_STATUS_ABSOLUTE:
+              graffiti.controlPanelIds['graffiti-skips-controls'].find('#graffiti-skips-absolute-off-btn').show().parent().find('#graffiti-skips-absolute-on-btn').hide();
+              break;
+          }              
+        }
+
+        let visibleControlPanels;
         switch (activity) {
           case 'idle':
             // Check if anchor or head of current selection is inside an existing recording token set. Controls will be different if so.
@@ -1001,7 +1112,6 @@ define([
             const selectedTokens = graffiti.selectedTokens;
             //console.log('Graffiti: selectedTokens:', selectedTokens);
             graffiti.highlightIntersectingGraffitiRange();
-            let visibleControlPanels;
             const isMarkdownCell = (activeCell.cell_type === 'markdown');
             if (isMarkdownCell && !selectedTokens.isIntersecting) {
               // swap out the CREATE and RECORD strings depending on what type of new Graffiti could possibly be made
@@ -1064,7 +1174,7 @@ define([
                   graffiti.controlPanelIds['graffiti-record-controls'].find('#graffiti-begin-recording-btn').hide().parent().
                            find('#graffiti-begin-rerecording-btn').show();
                   // This "play" link is not reliable because its info is only updated by mousing over tooltips, yet you may be editing
-                  // a graffiti that you did not show the tooltip on, making it play the wrong movie. Therefore instruct users to use the tooltip. 
+                  // a graffiti that you did not show the tooltip on, making it play the wrong movie. Therefore we instruct users to use the tooltip to play the movie.
                   /*
                   graffiti.setNotifier('<div>You can <span class="graffiti-notifier-link" id="graffiti-idle-play-link">play</span> this movie any time.</div>',
                                        [
@@ -1098,7 +1208,11 @@ define([
                 graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-narrator-name').html(narratorName);
               }              
             }
-            graffiti.showControlPanels(['graffiti-playback-controls']);
+            visibleControlPanels = ['graffiti-playback-controls'];
+            if (true || state.getEditingSkips()) {
+              visibleControlPanels.push('graffiti-skips-controls');
+            }
+            graffiti.showControlPanels(visibleControlPanels);
             graffiti.setNotifier('<div>' + localizer.getString('PAUSE_TO_INTERACT') + '</div>' +
                                  '<div>' + localizer.getString('CANCEL_MOVIE_PLAYBACK_1') + '</div>',
                                  [
@@ -1120,6 +1234,11 @@ define([
             break;
           case 'playbackPaused':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-pause-btn').hide().parent().find('#graffiti-play-btn').show();
+            visibleControlPanels = ['graffiti-playback-controls'];
+            if (true || state.getEditingSkips()) {
+              visibleControlPanels.push('graffiti-skips-controls');
+            }
+            graffiti.showControlPanels(visibleControlPanels);
             if (state.getSetupForReset()) {
               graffiti.setNotifier('<div>' + localizer.getString('PLAY_MOVIE_AGAIN') + '</div>' +
                                    '<div>' + localizer.getString('CANCEL_MOVIE_PLAYBACK_2') + '</div>',
@@ -2915,47 +3034,19 @@ define([
         const keyCode = e.which;
         const activity = state.getActivity();
         let stopProp = false;
-        console.log('handleKeydown keyCode:', keyCode, String.fromCharCode(keyCode));
-        if (state.getReplacingSkips()) { // only if primed to replace skips
-          if (activity === 'playing') {
-            stopProp = true;
-            if ( ((49 <= keyCode) && (keyCode <= 54)) || (keyCode === 32) ) { // keys 2,3,4,5 and space activate/deactivate skips
-              const currentSkipStatus = state.getSkipStatus();
-              let newSkipStatus = 0; // assume stopping skipping
-              if (keyCode === 32) {
-                // Space bar.
-                if (currentSkipStatus > 0) {
-                  // Currently skipping: stop skipping
-                  console.log('spacebar clearing skip status:', currentSkipStatus);
-                  newSkipStatus = 0;
-                } else {
-                  // start fixed time skipping
-                  newSkipStatus = 1;
-                }
-              } else if (keyCode > 49) { 
-                // (note: implicitly if you press the "1" key (49) you will end up stopping skipping.)
-                const computedSkipStatus = keyCode - 50 + 2;
-                if (computedSkipStatus !== currentSkipStatus) {
-                  // start/update variable speed skipping
-                  newSkipStatus = computedSkipStatus; // this will be 2,3,4, or 5
-                  console.log('newSkipStatus:', newSkipStatus, 'vs currentSkipStatus', currentSkipStatus);
-                }
-              }
-              state.storeSkipRecord(newSkipStatus);
-            }
-          }
-        } else if ((((48 <= keyCode) && (keyCode <= 57)) ||    // A-Z
-                    ((65 <= keyCode) && (keyCode <= 90)) ||    // 0-9
-                    ((37 <= keyCode) && (keyCode <= 40)) ||    // arrow keys                
-                    (keyCode === 32))                          // space bar
-                   && activity === 'playing') {
-          // Pressing keys : A-Z, 0-9, arrows, and spacebar stop playback
+        // console.log('handleKeydown keyCode:', keyCode, String.fromCharCode(keyCode));
+        if ((((48 <= keyCode) && (keyCode <= 57)) ||    // A-Z
+             ((65 <= keyCode) && (keyCode <= 90)) ||    // 0-9
+             ((37 <= keyCode) && (keyCode <= 40)) ||    // arrow keys                
+             (keyCode === 32))                          // space bar
+            && activity === 'playing') {
+          // Pressing keys : A-Z, 0-9, arrows, and spacebar stop any playback in progress.
           stopProp = true;
           graffiti.togglePlayback();
         } else {
           // Check for other keypress actions
           switch (keyCode) {
-            case 27: // escape key cancels playback
+            case 27: // escape key CANCELS playback
               stopProp = true;
               if ((activity === 'playing') || (activity === 'playbackPaused') || (activity === 'scrubbing')) {
                 graffiti.cancelPlayback({cancelAnimation:true});
@@ -2984,16 +3075,14 @@ define([
               }
               break;
             case 16: // shift key
-              graffiti.shiftKeyIsDown = true;
+              state.setShiftKeyIsDown(true);
               state.updateDrawingState([ { change: 'stickerOnGrid', data: true } ]);
               //console.log('Graffiti: shiftKeyIsDown');
               break;
               // case 13: // enter key
-              //            break;
               // case 18: // meta key
-              // break;
               // case 91: // option key
-              // break;
+              //   break;
             default:
               break; // let any other keys pass through
           }
@@ -3043,7 +3132,7 @@ define([
           switch (e.which) {
             case 16:
               //console.log('Graffiti: shiftKeyIsUp');
-              graffiti.shiftKeyIsDown = false;
+              state.setShiftKeyIsDown(false);
               state.updateDrawingState([ { change: 'stickerOnGrid', data: false } ]);
               break;
           }
@@ -3529,31 +3618,35 @@ define([
 
       },
 
-      // Confirm adding skips. Note that skip compression period defaults to 2 seconds but can be changed with a tooltip directive.
-      replaceSkipsWithConfirmation: () => {
-        dialog.modal({
-          title: 'Add/Replace Skips on This Recording?',
-          body: 'When you click OK, the recording will play. You can use then these keys to add skips:<br><br>' +
-                '<ul>' +
-                '<li>Number 2, 3, or 4 : Activate 2x/3x/4x playback</li>' +
-                '<li>Spacebar: if 2x/3x/4x playback is activated, deactivate it. If not, begin/end fixed-duration skip.</li>' +
-                '</ul>',
-          sanitize:false,
-          buttons: {
-            'OK': {
-              click: (e) => {
-                state.setReplacingSkips(true);
-                console.log('Graffiti: You clicked ok, you want replace all skips.');
-                graffiti.loadAndPlayMovie('tip');
-              }
-            },
-            'Cancel': { 
-              click: (e) => { 
-                state.setReplacingSkips(false);
-                console.log('Graffiti: you cancelled:', $(e.target).parent()); 
-              }
-            },
+      editSkips: () => {
+        state.setEditingSkips(true);
+        state.setReplacingSkips(true);
+        graffiti.loadAndPlayMovie('tip');
+      },
+
+      // Confirm clearing any existing skips.
+      clearAllSkipsWithConfirm: () => {
+        const btn1 = localizer.getString('SKIPS_DIALOG_CONFIRM_1');
+        const btn2 = localizer.getString('SKIPS_DIALOG_CANCEL');
+        let btns = {};
+        btns[btn1] = {
+          click: (e) => {
+            console.log('Graffiti: You clicked ok, you want clear all skips.');
           }
+        };
+        btns[btn2] = {
+          click: (e) => { 
+            state.setEditingSkips(false);
+            state.setReplacingSkips(false);
+            console.log('Graffiti: you cancelled:', $(e.target).parent()); 
+          }
+        };
+
+        dialog.modal({
+          title: localizer.getString('SKIPS_DIALOG_TITLE'),
+          body: localizer.getString('SKIPS_DIALOG_BODY'),
+          sanitize:false,
+          buttons: btns
         });
       },
 
@@ -4578,7 +4671,12 @@ define([
         const playTimeDisplay = utils.formatTime(playedSoFar, { includeMillis: false });
         const recordingTimeDisplay = utils.formatTime(playedSoFar, { includeMillis: true });
         const durationDisplay = utils.formatTime(state.getHistoryDuration(), { includeMillis: false });
-        const totalTimeDisplay = (activity === 'recording' ? recordingTimeDisplay : playTimeDisplay + '/' + durationDisplay);
+        let totalTimeDisplay;
+        if ((activity === 'recording') || state.getEditingSkips()) {
+          totalTimeDisplay = recordingTimeDisplay;
+        } else {
+          totalTimeDisplay = playTimeDisplay + '/' + durationDisplay;
+        }
         const recorderTimeElem = (activity === 'recording' ? $('#graffiti-time-display-recording') : $('#graffiti-time-display-playback'));
         recorderTimeElem.text(totalTimeDisplay);
       },
@@ -4607,16 +4705,16 @@ define([
       },
 
       // Skip around by X seconds forward or back.
-      jumpPlayback: (direction) => {
+      jumpPlayback: (direction, jumpAmount) => {
         const previousPlayState = state.getActivity();
         graffiti.pausePlayback();
         const timeElapsed = state.getTimePlayedSoFar();
         //console.log('jumpPlayback timeElapsed',timeElapsed);
         let t, frameIndexes;
         if (state.scanningIsOn()) {
-          t = state.findSpeakingStartNearestTime(timeElapsed,direction, graffiti.rewindAmt);
+          t = state.findSpeakingStartNearestTime(timeElapsed,direction, jumpAmount);
         } else {
-          t = Math.max(0, Math.min(timeElapsed + (graffiti.rewindAmt * 1000 * direction * state.getPlayRateScalar()), state.getHistoryDuration() - 1 ));
+          t = Math.max(0, Math.min(timeElapsed + (jumpAmount * 1000 * direction * state.getPlayRateScalar()), state.getHistoryDuration() - 1 ));
         }
         // console.log('Graffiti: t:', t);
         state.resetPlayTimes(t);
@@ -4720,7 +4818,7 @@ define([
         graffiti.cancelPlaybackNoVisualUpdates();
         state.clearAnimationIntervals();
         state.clearNarratorInfo();
-        if (state.getReplacingSkips()) {
+        if (state.getEditingSkips()) {
           state.finalizeSkipRecords();
           const skippedMovie = state.getPlayableMovie('tip');
           storage.writeOutMovieData(skippedMovie, state.getJSONHistory());
@@ -4829,7 +4927,7 @@ define([
         if (activity !== 'recording') {
           if (activity === 'playing') {
             state.clearAnimationIntervals();
-            if (state.getHidePlayerAfterPlayback() && state.getSetupForReset()) {
+            if (state.getHidePlayerAfterPlayback() && state.getSetupForReset() && (!state.getEditingSkips())) {
               graffiti.cancelPlayback({ cancelAnimation: true});
             } else {
               graffiti.pausePlayback();
@@ -4959,7 +5057,7 @@ define([
               actions: ['resetCurrentPlayTime', 'incrementPlayCount']
             }
           });
-          if (state.getReplacingSkips()) {
+          if (true || state.getEditingSkips() && state.getReplacingSkips()) {
             state.clearSkipRecords();
           }
           graffiti.togglePlayback();
