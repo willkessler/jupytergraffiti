@@ -1331,6 +1331,10 @@ define([
       state.history[type].push(record);
     },
 
+    getSkipRecords: () => {
+      return state.history['skip'];
+    },
+
     clearSkipRecords: () => {
       state.history['skip'] = [];
     },
@@ -1349,6 +1353,42 @@ define([
             lastRecord.startTime = lastRecord.endTime;
             lastRecord.endTime = tmp;
           }
+          if (lastRecord.endTime - lastRecord.startTime < 10) {
+            // Delete this record as it has insignificant time in it, ie user just flipped the button on and off.
+            state.history['skip'].pop();
+          } else {
+            // Clean up any overlaps in the previous records
+            if (numRecords > 1) {
+              let i = 0, rec, newRecords = [], recCopy;
+              while (i < numRecords - 1) {
+                rec = state.history['skip'][i];
+                recCopy = undefined;
+                if ((rec.endTime < lastRecord.startTime) ||
+                    (rec.startTime > lastRecord.endTime)) {
+                  recCopy = $.extend({}, true, rec); // rec is before or after current record
+                } else if ((rec.startTime < lastRecord.startTime) &&
+                           (rec.endTime <= lastRecord.endTime)) {
+                  // this record overlaps the new record at its head so adjust old rec's tail
+                  recCopy = { status: rec.status, 
+                              startTime: rec.startTime,
+                              endtime: lastRecord.startTime };
+                } else if ((rec.startTime >= lastRecord.startTime) &&
+                           (rec.endTime > lastRecord.endTime)) {
+                  // this record overlaps the new record at its tail, so adjust old rec's head
+                  recCopy = { status: rec.status,
+                              startTime: lastRecord.endTime,
+                              endtime: rec.endTime };
+                } // else, completely drop the old record (since it must be inside the new record).
+                if (recCopy !== undefined) {
+                  newRecords.push(recCopy);
+                }
+                i++;
+              }
+              newRecords.push($.extend({}, true, lastRecord));
+              console.log('previous history:', state.history['skip'], 'new history:', newRecords);
+              state.history['skip'] = newRecords;
+            }
+          } 
         }
       }
       const previousSkipStatus = state.getSkipStatus();
@@ -1370,7 +1410,6 @@ define([
           lastRecord.endTime = state.history.duration - 1;
         }
       }
-      state.adjustTimeRecords('skip');
       state.setSkipStatus(0);
       state.dumpHistory();
     },

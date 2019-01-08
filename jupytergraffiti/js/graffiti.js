@@ -159,8 +159,17 @@ define([
         e.stopPropagation();
       },
       
+      updateSkipsBar: () => {
+        const skipRecords = state.getSkipRecords();
+        const bar = $('#graffiti-skips-display-bar');
+        bar.empty();
+        const barWidth = bar.width();
+
+      },
+
       storeSkipRecord: (newStatus) => {
         state.storeSkipRecord(newStatus);
+        graffiti.updateSkipsBar();
         graffiti.updateControlPanels();
       },
         
@@ -428,6 +437,7 @@ define([
                                       '<div id="graffiti-scrub-controls">' +
                                       '  <div id="graffiti-playback-range">' +
                                       '    <input title="' + localizer.getString('SCRUB') + '" type="range" min="0" max="1000" value="0" id="graffiti-recorder-range"></input>' +
+                                      '    <div id="graffiti-skips-display-bar" title="foo"></div>' +
                                       '  </div>' +
                                       '  <div id="graffiti-time-display-playback">00:00</div>' +
                                       '</div>',
@@ -1208,8 +1218,10 @@ define([
               }              
             }
             visibleControlPanels = ['graffiti-playback-controls'];
+            $('#graffiti-skips-display-bar').hide();
             if (true || state.getEditingSkips()) {
               visibleControlPanels.push('graffiti-skips-controls');
+              $('#graffiti-skips-display-bar').show();
             }
             graffiti.showControlPanels(visibleControlPanels);
             graffiti.setNotifier('<div>' + localizer.getString('PAUSE_TO_INTERACT') + '</div>' +
@@ -1234,8 +1246,10 @@ define([
           case 'playbackPaused':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-pause-btn').hide().parent().find('#graffiti-play-btn').show();
             visibleControlPanels = ['graffiti-playback-controls'];
+            $('#graffiti-skips-display-bar').hide();
             if (true || state.getEditingSkips()) {
               visibleControlPanels.push('graffiti-skips-controls');
+              $('#graffiti-skips-display-bar').show();
             }
             graffiti.showControlPanels(visibleControlPanels);
             if (state.getSetupForReset()) {
