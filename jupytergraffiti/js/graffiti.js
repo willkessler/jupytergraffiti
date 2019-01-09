@@ -160,7 +160,7 @@ define([
       },
       
       updateSkipsBar: () => {
-        if (!(true || state.getEditingSkips())) {
+        if (!(state.getEditingSkips())) {
           return;
         }
         const skipRecords = state.getSkipsRecords();
@@ -1102,7 +1102,7 @@ define([
             break;
         }
 
-        if (true || state.getEditingSkips()) {
+        if (state.getEditingSkips()) {
           graffiti.controlPanelIds['graffiti-skips-controls'].find('.graffiti-skips-off-btn').hide().parent().find('.graffiti-skips-on-btn').show();
           const skipStatus = state.getSkipStatus();
           //console.log('skipStatus:', skipStatus);
@@ -1237,7 +1237,7 @@ define([
             }
             visibleControlPanels = ['graffiti-playback-controls'];
             $('#graffiti-skips-display-bar').hide();
-            if (true || state.getEditingSkips()) {
+            if (state.getEditingSkips()) {
               visibleControlPanels.push('graffiti-skips-controls');
               $('#graffiti-skips-display-bar').show();
             }
@@ -1265,7 +1265,7 @@ define([
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-pause-btn').hide().parent().find('#graffiti-play-btn').show();
             visibleControlPanels = ['graffiti-playback-controls'];
             $('#graffiti-skips-display-bar').hide();
-            if (true || state.getEditingSkips()) {
+            if (state.getEditingSkips()) {
               visibleControlPanels.push('graffiti-skips-controls');
               $('#graffiti-skips-display-bar').show();
             }
@@ -4895,7 +4895,7 @@ define([
           } else {
             state.setStickerImageUrl(undefined);
           }
-          if (true || state.getEditingSkips()) {
+          if (state.getEditingSkips()) {
             graffiti.updateSkipsBar();
           }
         }
@@ -5086,7 +5086,7 @@ define([
               actions: ['resetCurrentPlayTime', 'incrementPlayCount']
             }
           });
-          if (true || state.getEditingSkips() && state.getReplacingSkips()) {
+          if (state.getEditingSkips() && state.getReplacingSkips()) {
             state.clearSkipsRecords();
           }
           graffiti.togglePlayback();
