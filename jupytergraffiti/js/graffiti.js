@@ -164,7 +164,6 @@ define([
         const bar = $('#graffiti-skips-display-bar');
         bar.empty();
         const barWidth = bar.width();
-
       },
 
       storeSkipRecord: (newStatus) => {
@@ -436,8 +435,8 @@ define([
                                       '</div>' +
                                       '<div id="graffiti-scrub-controls">' +
                                       '  <div id="graffiti-playback-range">' +
-                                      '    <input title="' + localizer.getString('SCRUB') + '" type="range" min="0" max="1000" value="0" id="graffiti-recorder-range"></input>' +
                                       '    <div id="graffiti-skips-display-bar" title="foo"></div>' +
+                                      '    <input title="' + localizer.getString('SCRUB') + '" type="range" min="0" max="1000" value="0" id="graffiti-recorder-range"></input>' +
                                       '  </div>' +
                                       '  <div id="graffiti-time-display-playback">00:00</div>' +
                                       '</div>',
@@ -2636,17 +2635,18 @@ define([
                   }
                 }
                 const subPart1 = subParts[1];
+                const subPart1ToEnd = subParts.slice(1).join(' ');
                 switch (subPart0) {
                   case 'comment':
                     break; // we just ignore these. Used to instruct content creators how to use the editing tip cells.
                   case 'title_tag':
-                    state.setTooltipTitleTag(subPart1);
+                    state.setTooltipTitleTag(subPart1ToEnd);
                     break;
                   case 'button_name':
-                    partsRecord.buttonName = subPart1;
+                    partsRecord.buttonName = subPart1ToEnd;
                     break;
                   case 'caption': // you can make a special caption for this tip
-                    partsRecord.caption = subPart1;
+                    partsRecord.caption = subPart1ToEnd;
                     break;
                   case 'caption_pic': // you can put a tiny pic next to the caption (use markdown)
                     partsRecord.captionPic = utils.renderMarkdown(subPart1);
@@ -2663,7 +2663,7 @@ define([
                     break;
                   case 'narrator_name': // set the name of the narrator to display in the control panel during playback
                     if (subPart1 !== undefined) {
-                      partsRecord.narratorName = subPart1;
+                      partsRecord.narratorName = subPart1ToEnd;
                     }
                     break;
                   case 'narrator_pic': // specify a picture to display in the control panel during playback
