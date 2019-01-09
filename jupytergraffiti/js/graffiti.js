@@ -4848,6 +4848,7 @@ define([
           state.finalizeSkipRecords();
           const skippedMovie = state.getPlayableMovie('tip');
           storage.writeOutMovieData(skippedMovie, state.getJSONHistory());
+          state.setEditingSkips(false);
         }
         graffiti.resetStickerCanvases();
         graffiti.cancelRapidPlay();
