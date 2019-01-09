@@ -161,8 +161,35 @@ define([
         e.stopPropagation();
       },
       
+      updateSkipsBar: () => {
+        if (!(state.getEditingSkips())) {
+          return;
+        }
+        const skipRecords = state.getSkipsRecords();
+        const bar = $('#graffiti-skips-display-bar');
+        bar.empty();
+        const barWidth = bar.width();
+        const barHeight = bar.height();
+        let skipBarLeft, skipBarWidth, skipBarColor, rec, endTime;
+        const duration = state.getHistoryDuration();
+        for (let i = 0; i < skipRecords.length; ++i) {
+          rec = skipRecords[i];
+          endTime = (rec.endTime !== undefined ? rec.endTime : state.getTimePlayedSoFar() );
+          //console.log('updateSkipsBar, endTime:', endTime);
+          skipBarLeft = parseInt((rec.startTime / duration) * barWidth);
+          skipBarWidth = parseInt(((endTime - rec.startTime) / duration) * barWidth);
+          if (skipBarWidth < 0) {
+            skipBarLeft += skipBarWidth;
+            skipBarWidth = Math.abs(skipBarWidth);
+          }
+          skipBarColor = state.getSkipStatusColor(rec.status);
+          $('<div class="graffiti-skips-display-sub-bar" style="width:' + skipBarWidth + 'px;left:' + skipBarLeft + 'px;background:#' + skipBarColor + '"></div>').appendTo(bar);
+        }
+      },
+
       storeSkipRecord: (newStatus) => {
         state.storeSkipRecord(newStatus);
+        graffiti.updateSkipsBar();
         graffiti.updateControlPanels();
       },
         
@@ -429,6 +456,7 @@ define([
                                       '</div>' +
                                       '<div id="graffiti-scrub-controls">' +
                                       '  <div id="graffiti-playback-range">' +
+                                      '    <div id="graffiti-skips-display-bar"></div>' +
                                       '    <input title="' + localizer.getString('SCRUB') + '" type="range" min="0" max="1000" value="0" id="graffiti-recorder-range"></input>' +
                                       '  </div>' +
                                       '  <div id="graffiti-time-display-playback">00:00</div>' +
@@ -1076,10 +1104,10 @@ define([
             break;
         }
 
-        if (true || state.getEditingSkips()) {
+        if (state.getEditingSkips()) {
           graffiti.controlPanelIds['graffiti-skips-controls'].find('.graffiti-skips-off-btn').hide().parent().find('.graffiti-skips-on-btn').show();
           const skipStatus = state.getSkipStatus();
-          console.log('skipStatus:', skipStatus);
+          //console.log('skipStatus:', skipStatus);
           switch (skipStatus) {
             case state.SKIP_STATUS_COMPRESS:
               graffiti.controlPanelIds['graffiti-skips-controls'].find('#graffiti-skips-compress-off-btn').show().parent().find('#graffiti-skips-compress-on-btn').hide();
@@ -1210,8 +1238,10 @@ define([
               }              
             }
             visibleControlPanels = ['graffiti-playback-controls'];
-            if (true || state.getEditingSkips()) {
+            $('#graffiti-skips-display-bar').hide();
+            if (state.getEditingSkips()) {
               visibleControlPanels.push('graffiti-skips-controls');
+              $('#graffiti-skips-display-bar').show();
             }
             graffiti.showControlPanels(visibleControlPanels);
             graffiti.setNotifier('<div>' + localizer.getString('PAUSE_TO_INTERACT') + '</div>' +
@@ -1236,8 +1266,10 @@ define([
           case 'playbackPaused':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-pause-btn').hide().parent().find('#graffiti-play-btn').show();
             visibleControlPanels = ['graffiti-playback-controls'];
-            if (true || state.getEditingSkips()) {
+            $('#graffiti-skips-display-bar').hide();
+            if (state.getEditingSkips()) {
               visibleControlPanels.push('graffiti-skips-controls');
+              $('#graffiti-skips-display-bar').show();
             }
             graffiti.showControlPanels(visibleControlPanels);
             if (state.getSetupForReset()) {
@@ -2624,17 +2656,18 @@ define([
                   }
                 }
                 const subPart1 = subParts[1];
+                const subPart1ToEnd = subParts.slice(1).join(' ');
                 switch (subPart0) {
                   case 'comment':
                     break; // we just ignore these. Used to instruct content creators how to use the editing tip cells.
                   case 'title_tag':
-                    state.setTooltipTitleTag(subPart1);
+                    state.setTooltipTitleTag(subPart1ToEnd);
                     break;
                   case 'button_name':
-                    partsRecord.buttonName = subPart1;
+                    partsRecord.buttonName = subPart1ToEnd;
                     break;
                   case 'caption': // you can make a special caption for this tip
-                    partsRecord.caption = subPart1;
+                    partsRecord.caption = subPart1ToEnd;
                     break;
                   case 'caption_pic': // you can put a tiny pic next to the caption (use markdown)
                     partsRecord.captionPic = utils.renderMarkdown(subPart1);
@@ -2651,7 +2684,7 @@ define([
                     break;
                   case 'narrator_name': // set the name of the narrator to display in the control panel during playback
                     if (subPart1 !== undefined) {
-                      partsRecord.narratorName = subPart1;
+                      partsRecord.narratorName = subPart1ToEnd;
                     }
                     break;
                   case 'narrator_pic': // specify a picture to display in the control panel during playback
@@ -3633,12 +3666,12 @@ define([
         btns[btn1] = {
           click: (e) => {
             console.log('Graffiti: You clicked ok, you want clear all skips.');
+            state.clearSkipsRecords();
+            graffiti.updateSkipsBar();
           }
         };
         btns[btn2] = {
           click: (e) => { 
-            state.setEditingSkips(false);
-            state.setReplacingSkips(false);
             console.log('Graffiti: you cancelled:', $(e.target).parent()); 
           }
         };
@@ -4726,6 +4759,7 @@ define([
         graffiti.updateDisplay(frameIndexes);
         graffiti.updateSlider(t);
         graffiti.updateTimeDisplay(t);
+        graffiti.updateSkipsBar();
         graffiti.redrawAllDrawings(t);
         if (previousPlayState === 'playing') {
           graffiti.startPlayback();
@@ -4749,6 +4783,7 @@ define([
         graffiti.wipeAllStickerDomCanvases();
         graffiti.updateDisplay(frameIndexes); // can replay scroll diffs, and in playback use cumulative scroll diff
         graffiti.updateTimeDisplay(t);
+        graffiti.updateSkipsBar();
         graffiti.redrawAllDrawings(t);
         graffiti.applyRawCalculatedScrollTop(frameIndexes.view.index);
       },
@@ -4823,6 +4858,7 @@ define([
           state.finalizeSkipRecords();
           const skippedMovie = state.getPlayableMovie('tip');
           storage.writeOutMovieData(skippedMovie, state.getJSONHistory());
+          state.setEditingSkips(false);
         }
         graffiti.resetStickerCanvases();
         graffiti.cancelRapidPlay();
@@ -4869,6 +4905,9 @@ define([
             state.setStickerImageUrl(stickerImageCandidateUrl);
           } else {
             state.setStickerImageUrl(undefined);
+          }
+          if (state.getEditingSkips()) {
+            graffiti.updateSkipsBar();
           }
         }
 
@@ -5058,8 +5097,8 @@ define([
               actions: ['resetCurrentPlayTime', 'incrementPlayCount']
             }
           });
-          if (true || state.getEditingSkips() && state.getReplacingSkips()) {
-            state.clearSkipRecords();
+          if (state.getEditingSkips() && state.getReplacingSkips()) {
+            state.clearSkipsRecords();
           }
           graffiti.togglePlayback();
           graffiti.hideTip();

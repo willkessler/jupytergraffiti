@@ -210,6 +210,16 @@
   justify-content:left;
 }
 
+#graffiti-scrub-controls {
+  height:20px;
+}
+
+#graffiti-playback-range {
+  display:flex;
+  position:relative;
+  width:86px;
+}
+
 #graffiti-playback-buttons #graffiti-play-btn,
 #graffiti-playback-buttons #graffiti-pause-btn {
   width:38px;
@@ -240,6 +250,21 @@
 
 #graffiti-narrator-pic img {
   max-width:50px;
+}
+
+#graffiti-skips-display-bar {
+  display:none;
+  position:absolute;
+  width:100%;
+  top:-7px;
+  height:20px;
+  background:#5e5;
+  border-radius:2px;
+}
+
+.graffiti-skips-display-sub-bar {
+  position:absolute;
+  height:20px;
 }
 
 #graffiti-access-api-btn,
@@ -286,6 +311,8 @@
 }
 
 #graffiti-recorder-range {
+  position:absolute;
+  top:-5px;
   width:86px;
   flex-grow:1.25;
 }
@@ -432,11 +459,18 @@
   padding: 4px 2px 0px 4px;
   font-family:monospace;
   font-size:0.9em;
-  cursor:pointer;
+  cursor:pointer;  
+  position:absolute;
+}
+
+#graffiti-time-display-playback {
+  left:104px;
 }
 
 #graffiti-time-display-recording {
   color:red;
+  height:20px;
+  left:28px;
 }
 
 #graffiti-recording-flash-icon {

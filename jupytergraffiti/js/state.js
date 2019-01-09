@@ -122,9 +122,20 @@ define([
       state.SKIP_STATUS_3X =        3;
       state.SKIP_STATUS_4X =        4;
       state.SKIP_STATUS_ABSOLUTE = -1;
+      state.skipStatusColorMap = {};
+      state.skipStatusColorMap[state.SKIP_STATUS_NONE] = '5e5';
+      state.skipStatusColorMap[state.SKIP_STATUS_COMPRESS] = 'ddd';
+      state.skipStatusColorMap[state.SKIP_STATUS_2X] = '500';
+      state.skipStatusColorMap[state.SKIP_STATUS_3X] = 'a00';
+      state.skipStatusColorMap[state.SKIP_STATUS_4X] = 'f00';
+      state.skipStatusColorMap[state.SKIP_STATUS_ABSOLUTE] = '000';
       
       utils.refreshCellMaps();
 
+    },
+
+    getSkipStatusColor: (status) => {
+      return state.skipStatusColorMap[status];
     },
 
     getManifest: () => {
@@ -1340,7 +1351,11 @@ define([
       state.history[type].push(record);
     },
 
-    clearSkipRecords: () => {
+    getSkipsRecords: () => {
+      return state.history['skip'];
+    },
+
+    clearSkipsRecords: () => {
       state.history['skip'] = [];
     },
 
@@ -1358,6 +1373,44 @@ define([
             lastRecord.startTime = lastRecord.endTime;
             lastRecord.endTime = tmp;
           }
+          if (lastRecord.endTime - lastRecord.startTime < 10) {
+            // Delete this record as it has insignificant time in it, ie user just flipped the button on and off.
+            state.history['skip'].pop();
+          } else {
+            // Clean up any overlaps in the previous records
+            if (numRecords > 1) {
+              let i = 0, rec, newRecords = [], newRecordsSorted, recCopy;
+              while (i < numRecords - 1) {
+                rec = state.history['skip'][i];
+                recCopy = undefined;
+                if ((rec.endTime < lastRecord.startTime) ||
+                    (rec.startTime > lastRecord.endTime)) {
+                  recCopy = $.extend({}, true, rec); // rec is before or after current record
+                } else if ((rec.startTime < lastRecord.startTime) &&
+                           (rec.endTime <= lastRecord.endTime)) {
+                  // this record overlaps the new record at its head so adjust old rec's tail
+                  recCopy = { status: rec.status, 
+                              startTime: rec.startTime,
+                              endtime: lastRecord.startTime };
+                } else if ((rec.startTime >= lastRecord.startTime) &&
+                           (rec.endTime > lastRecord.endTime)) {
+                  // this record overlaps the new record at its tail, so adjust old rec's head
+                  recCopy = { status: rec.status,
+                              startTime: lastRecord.endTime,
+                              endtime: rec.endTime };
+                } // else, completely drop the old record (since it must be inside the new record).
+                if (recCopy !== undefined) {
+                  newRecords.push(recCopy);
+                }
+                i++;
+              }
+              newRecords.push($.extend({}, true, lastRecord));
+              newRecordsSorted = _.sortBy(newRecords, 'startTime');
+              
+              console.log('previous history:', state.history['skip'], 'new history:', newRecordsSorted);
+              state.history['skip'] = newRecordsSorted;
+            }
+          } 
         }
       }
       const previousSkipStatus = state.getSkipStatus();
@@ -1368,7 +1421,7 @@ define([
         record.startTime = timeSoFar;
         state.history['skip'].push(record);
       }
-      console.log('storeSkipRecord, skip history:', state.history['skip']);
+      //console.log('storeSkipRecord, skip history:', state.history['skip']);
     },
 
     finalizeSkipRecords: () => {
@@ -1379,7 +1432,6 @@ define([
           lastRecord.endTime = state.history.duration - 1;
         }
       }
-      state.adjustTimeRecords('skip');
       state.setSkipStatus(0);
       state.dumpHistory();
     },
