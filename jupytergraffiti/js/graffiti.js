@@ -160,10 +160,29 @@ define([
       },
       
       updateSkipsBar: () => {
-        const skipRecords = state.getSkipRecords();
+        if (!(true || state.getEditingSkips())) {
+          return;
+        }
+        const skipRecords = state.getSkipsRecords();
         const bar = $('#graffiti-skips-display-bar');
         bar.empty();
         const barWidth = bar.width();
+        const barHeight = bar.height();
+        let skipBarLeft, skipBarWidth, skipBarColor, rec, endTime;
+        const duration = state.getHistoryDuration();
+        for (let i = 0; i < skipRecords.length; ++i) {
+          rec = skipRecords[i];
+          endTime = (rec.endTime !== undefined ? rec.endTime : state.getTimePlayedSoFar() );
+          //console.log('updateSkipsBar, endTime:', endTime);
+          skipBarLeft = parseInt((rec.startTime / duration) * barWidth);
+          skipBarWidth = parseInt(((endTime - rec.startTime) / duration) * barWidth);
+          if (skipBarWidth < 0) {
+            skipBarLeft += skipBarWidth;
+            skipBarWidth = Math.abs(skipBarWidth);
+          }
+          skipBarColor = state.getSkipStatusColor(rec.status);
+          $('<div class="graffiti-skips-display-sub-bar" style="width:' + skipBarWidth + 'px;left:' + skipBarLeft + 'px;background:#' + skipBarColor + '"></div>').appendTo(bar);
+        }
       },
 
       storeSkipRecord: (newStatus) => {
@@ -435,7 +454,7 @@ define([
                                       '</div>' +
                                       '<div id="graffiti-scrub-controls">' +
                                       '  <div id="graffiti-playback-range">' +
-                                      '    <div id="graffiti-skips-display-bar" title="foo"></div>' +
+                                      '    <div id="graffiti-skips-display-bar"></div>' +
                                       '    <input title="' + localizer.getString('SCRUB') + '" type="range" min="0" max="1000" value="0" id="graffiti-recorder-range"></input>' +
                                       '  </div>' +
                                       '  <div id="graffiti-time-display-playback">00:00</div>' +
@@ -1086,7 +1105,7 @@ define([
         if (true || state.getEditingSkips()) {
           graffiti.controlPanelIds['graffiti-skips-controls'].find('.graffiti-skips-off-btn').hide().parent().find('.graffiti-skips-on-btn').show();
           const skipStatus = state.getSkipStatus();
-          console.log('skipStatus:', skipStatus);
+          //console.log('skipStatus:', skipStatus);
           switch (skipStatus) {
             case state.SKIP_STATUS_COMPRESS:
               graffiti.controlPanelIds['graffiti-skips-controls'].find('#graffiti-skips-compress-off-btn').show().parent().find('#graffiti-skips-compress-on-btn').hide();
@@ -3637,12 +3656,12 @@ define([
         btns[btn1] = {
           click: (e) => {
             console.log('Graffiti: You clicked ok, you want clear all skips.');
+            state.clearSkipsRecords();
+            graffiti.updateSkipsBar();
           }
         };
         btns[btn2] = {
           click: (e) => { 
-            state.setEditingSkips(false);
-            state.setReplacingSkips(false);
             console.log('Graffiti: you cancelled:', $(e.target).parent()); 
           }
         };
@@ -4730,6 +4749,7 @@ define([
         graffiti.updateDisplay(frameIndexes);
         graffiti.updateSlider(t);
         graffiti.updateTimeDisplay(t);
+        graffiti.updateSkipsBar();
         graffiti.redrawAllDrawings(t);
         if (previousPlayState === 'playing') {
           graffiti.startPlayback();
@@ -4753,6 +4773,7 @@ define([
         graffiti.wipeAllStickerDomCanvases();
         graffiti.updateDisplay(frameIndexes); // can replay scroll diffs, and in playback use cumulative scroll diff
         graffiti.updateTimeDisplay(t);
+        graffiti.updateSkipsBar();
         graffiti.redrawAllDrawings(t);
         graffiti.applyRawCalculatedScrollTop(frameIndexes.view.index);
       },
@@ -4873,6 +4894,9 @@ define([
             state.setStickerImageUrl(stickerImageCandidateUrl);
           } else {
             state.setStickerImageUrl(undefined);
+          }
+          if (true || state.getEditingSkips()) {
+            graffiti.updateSkipsBar();
           }
         }
 
@@ -5063,7 +5087,7 @@ define([
             }
           });
           if (true || state.getEditingSkips() && state.getReplacingSkips()) {
-            state.clearSkipRecords();
+            state.clearSkipsRecords();
           }
           graffiti.togglePlayback();
           graffiti.hideTip();

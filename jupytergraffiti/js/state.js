@@ -121,9 +121,20 @@ define([
       state.SKIP_STATUS_3X =        3;
       state.SKIP_STATUS_4X =        4;
       state.SKIP_STATUS_ABSOLUTE = -1;
+      state.skipStatusColorMap = {};
+      state.skipStatusColorMap[state.SKIP_STATUS_NONE] = '5e5';
+      state.skipStatusColorMap[state.SKIP_STATUS_COMPRESS] = 'ddd';
+      state.skipStatusColorMap[state.SKIP_STATUS_2X] = '500';
+      state.skipStatusColorMap[state.SKIP_STATUS_3X] = 'a00';
+      state.skipStatusColorMap[state.SKIP_STATUS_4X] = 'f00';
+      state.skipStatusColorMap[state.SKIP_STATUS_ABSOLUTE] = '000';
       
       utils.refreshCellMaps();
 
+    },
+
+    getSkipStatusColor: (status) => {
+      return state.skipStatusColorMap[status];
     },
 
     getManifest: () => {
@@ -1331,11 +1342,11 @@ define([
       state.history[type].push(record);
     },
 
-    getSkipRecords: () => {
+    getSkipsRecords: () => {
       return state.history['skip'];
     },
 
-    clearSkipRecords: () => {
+    clearSkipsRecords: () => {
       state.history['skip'] = [];
     },
 
@@ -1359,7 +1370,7 @@ define([
           } else {
             // Clean up any overlaps in the previous records
             if (numRecords > 1) {
-              let i = 0, rec, newRecords = [], recCopy;
+              let i = 0, rec, newRecords = [], newRecordsSorted, recCopy;
               while (i < numRecords - 1) {
                 rec = state.history['skip'][i];
                 recCopy = undefined;
@@ -1385,8 +1396,10 @@ define([
                 i++;
               }
               newRecords.push($.extend({}, true, lastRecord));
-              console.log('previous history:', state.history['skip'], 'new history:', newRecords);
-              state.history['skip'] = newRecords;
+              newRecordsSorted = _.sortBy(newRecords, 'startTime');
+              
+              console.log('previous history:', state.history['skip'], 'new history:', newRecordsSorted);
+              state.history['skip'] = newRecordsSorted;
             }
           } 
         }
@@ -1399,7 +1412,7 @@ define([
         record.startTime = timeSoFar;
         state.history['skip'].push(record);
       }
-      console.log('storeSkipRecord, skip history:', state.history['skip']);
+      //console.log('storeSkipRecord, skip history:', state.history['skip']);
     },
 
     finalizeSkipRecords: () => {
