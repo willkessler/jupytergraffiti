@@ -88,6 +88,7 @@ define([
 
           if (Jupyter.notebook.metadata.hasOwnProperty('graffiti')) { // do not try to load the manifest if this notebook has not yet been graffiti-ized.
             storage.loadManifest(currentAccessLevel).then(() => {
+              utils.createApiSymlink();
               graffiti.initInteractivity();
             }).catch((ex) => {
               console.log('Graffiti: Not setting up Graffiti because this notebook has never had any authoring done yet (no recordingId).');
