@@ -8,8 +8,9 @@ define([
   './sticker.js',
   './localizer.js',
   './selectionSerializer.js',
+  './xterm/terminals.js',
   'components/marked/lib/marked'
-], function(dialog, LZString, state, utils, audio, storage, stickerLib, localizer, selectionSerializer, marked) {
+], function(dialog, LZString, state, utils, audio, storage, stickerLib, localizer, selectionSerializer, terminalLib, marked) {
   const Graffiti = (function() {
     const graffiti = {
 
@@ -17,7 +18,8 @@ define([
         console.log('Graffiti: Main constructor running.');
         
         utils.loadCss([
-          'jupytergraffiti/css/graffiti.css'
+          'jupytergraffiti/css/graffiti.css',
+          'jupytergraffiti/css/xterm/xterm.css'
         ]);
 
         const location = document.location;
@@ -168,7 +170,7 @@ define([
         bar.empty();
         const barWidth = bar.width();
         const barHeight = bar.height();
-        let skipBarLeft, skipBarWidth, skipBarColor, rec, endTime;
+        let skipBarLeft, skipBarWidth, skipBarColor, skipBarCaption, rec, endTime;
         const duration = state.getHistoryDuration();
         for (let i = 0; i < skipRecords.length; ++i) {
           rec = skipRecords[i];
@@ -181,7 +183,9 @@ define([
             skipBarWidth = Math.abs(skipBarWidth);
           }
           skipBarColor = state.getSkipStatusColor(rec.status);
-          $('<div class="graffiti-skips-display-sub-bar" style="width:' + skipBarWidth + 'px;left:' + skipBarLeft + 'px;background:#' + skipBarColor + '"></div>').appendTo(bar);
+          skipBarCaption = state.getSkipStatusCaption(rec.status);
+          $('<div class="graffiti-skips-display-sub-bar" style="width:' + skipBarWidth + 'px;left:' + skipBarLeft + 'px;background:#' + skipBarColor + '"' +
+            'title="' + skipBarCaption + '"></div>').appendTo(bar);
         }
       },
 
@@ -455,7 +459,7 @@ define([
                                       '<div id="graffiti-scrub-controls">' +
                                       '  <div id="graffiti-playback-range">' +
                                       '    <div id="graffiti-skips-display-bar"></div>' +
-                                      '    <input title="' + localizer.getString('SCRUB') + '" type="range" min="0" max="1000" value="0" id="graffiti-recorder-range"></input>' +
+                                      '    <input type="range" min="0" max="1000" value="0" id="graffiti-recorder-range"></input>' +
                                       '  </div>' +
                                       '  <div id="graffiti-time-display-playback">00:00</div>' +
                                       '</div>',
@@ -1371,7 +1375,7 @@ define([
             break;
         }
 
-        graffiti.windowResizeHandler();
+        graffiti.performWindowResizeCheck();
       },
 
       updateControlPanelPosition: (hardPosition) => {
@@ -1417,6 +1421,7 @@ define([
         graffiti.setupSavingScrim();
         graffiti.playAutoplayGraffiti(); // play any autoplay graffiti if there is one set up
 
+        terminalLib.init();
 /*
         let body = '<div>Enter the Graffiti Hub Key to import Graffiti into this notebook.</div>';
         body += '<div style="font-weight:bold;margin-top:15px;">Key: <input type="text" value="R5a7Hb"/ width="60"></div>';
@@ -2820,6 +2825,10 @@ define([
       },
 
       refreshAllGraffitiSideMarkers: () => {
+        const activity = state.getActivity();
+        if (activity === 'playing' || activity === 'recording' || activity === 'scrubbing') {
+          return; // don't update these during playback, recording or scrubbing... too slow
+        }
         const cells = Jupyter.notebook.get_cells();
         for (let cell of cells) {
           graffiti.refreshGraffitiSideMarkers(cell);
@@ -3066,6 +3075,13 @@ define([
         const keyCode = e.which;
         const activity = state.getActivity();
         let stopProp = false;
+        if (terminalLib.getFocusedTerminal() !== undefined) {
+          // Let any focused terminal handle the event. Don't let jupyter or anybody else get it. 
+          // (Graffiti will need to capture the data during recording though.)
+          e.stopPropagation(); 
+          return true;
+        }
+          
         // console.log('handleKeydown keyCode:', keyCode, String.fromCharCode(keyCode));
         if ((((48 <= keyCode) && (keyCode <= 57)) ||    // A-Z
              ((65 <= keyCode) && (keyCode <= 90)) ||    // 0-9
@@ -4576,7 +4592,7 @@ define([
           const deletableCellIds = _.difference(cellAdditionsIds, cellsPresentIds); 
           //console.log('deletableCellIds', deletableCellIds, cellAdditions, cellsPresentIds);
           for (deletableCellId of deletableCellIds) {
-            console.log('Trying to delete cellid:', deletableCellId);
+            // console.log('Trying to delete cellid:', deletableCellId);
             deleteCellIndex = utils.findCellIndexByCellId(deletableCellId);
             if (deleteCellIndex !== undefined) {
               //console.log('Going to delete:', deleteCellId, 'at index:', deleteCellIndex);
@@ -4834,7 +4850,24 @@ define([
         console.log('Graffiti: Got these stats:', state.getUsageStats());
       },
 
+      cancelPlaybackFinish: (cancelAnimation) => {
+        graffiti.resetStickerCanvases();
+        graffiti.cancelRapidPlay();
+        graffiti.graffitiCursor.hide();
+        graffiti.clearCanvases('all');
+        graffiti.refreshAllGraffitiHighlights();
+        graffiti.refreshGraffitiTooltips(); 
+        graffiti.updateControlPanels();
+        graffiti.highlightIntersectingGraffitiRange();
+        graffiti.clearJupyterMenuHint();
+
+        if (cancelAnimation) {
+          graffiti.sitePanel.animate({ scrollTop: graffiti.prePlaybackScrolltop }, 750);
+        }
+      },
+
       cancelPlayback: (opts) => {
+        console.log('cancelPlayback called');
         const activity = state.getActivity();
         if ((activity !== 'playing') && (activity !== 'playbackPaused') && (activity !== 'scrubbing')) {
           return;
@@ -4847,21 +4880,12 @@ define([
         if (state.getEditingSkips()) {
           state.finalizeSkipRecords();
           const skippedMovie = state.getPlayableMovie('tip');
-          storage.writeOutMovieData(skippedMovie, state.getJSONHistory());
-          state.setEditingSkips(false);
-        }
-        graffiti.resetStickerCanvases();
-        graffiti.cancelRapidPlay();
-        graffiti.graffitiCursor.hide();
-        graffiti.clearCanvases('all');
-        graffiti.refreshAllGraffitiHighlights();
-        graffiti.refreshGraffitiTooltips(); 
-        graffiti.updateControlPanels();
-        graffiti.highlightIntersectingGraffitiRange();
-        graffiti.clearJupyterMenuHint();
-
-        if (opts.cancelAnimation) {
-          graffiti.sitePanel.animate({ scrollTop: graffiti.prePlaybackScrolltop }, 750);
+          storage.writeOutMovieData(skippedMovie, state.getJSONHistory()).then(() => {
+            state.setEditingSkips(false);
+            graffiti.cancelPlaybackFinish(opts.cancelAnimation);
+          });
+        } else {
+          graffiti.cancelPlaybackFinish(opts.cancelAnimation);
         }
       },
 
@@ -5313,8 +5337,8 @@ define([
           }
         });
       },
-
     };
+
 
     // Functions exposed externally to the Python API.
     return {
@@ -5334,6 +5358,7 @@ define([
       packageGraffitis: () => { graffiti.packageGraffitis() },
       getUsageStats: () => { return state.getUsageStats() },
       selectionSerializer: selectionSerializer,
+      controlTerminal: (opts) => { graffiti.controlTerminal(opts) },
       // showCreatorsChooser: graffiti.showCreatorsChooser, // demo only
     }
 

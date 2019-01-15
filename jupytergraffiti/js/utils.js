@@ -94,6 +94,12 @@ define([
       }
     },
 
+    assignCellGraffitiConfig: (cell, graffitiConfig) => {
+      if (!cell.metadata.hasOwnProperty('graffitiConfig')) {
+        cell.metadata['graffitiConfig'] = graffitiConfig;
+      }
+    },
+
     refreshCellMaps: () => {
       utils.cellMaps = {
         cells: Jupyter.notebook.get_cells(),

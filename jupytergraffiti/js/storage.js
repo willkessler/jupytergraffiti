@@ -201,6 +201,8 @@ define([
         storage.writeTextToFile(graffitiPath + 'history.txt', base64CompressedHistory);
       }
       storage.cleanUpExecutorCell(graffitiPath);
+      state.setActivity('idle'); // cancel "executing" state
+      return Promise.resolve();
     },
 
     storeMovie: () => {
@@ -218,8 +220,9 @@ define([
             activeTakeId: recordingCellInfo.recordingRecord.activeTakeId
           },
           jsonHistory, 
-          encodedAudio);
-        storage.completeMovieStorage();
+          encodedAudio).then(() => {
+            storage.completeMovieStorage();
+          });
       } else {
         console.log('Graffiti: could not fetch JSON history.');
       }

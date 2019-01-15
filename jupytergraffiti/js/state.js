@@ -121,6 +121,7 @@ define([
       state.SKIP_STATUS_3X =        3;
       state.SKIP_STATUS_4X =        4;
       state.SKIP_STATUS_ABSOLUTE = -1;
+
       state.skipStatusColorMap = {};
       state.skipStatusColorMap[state.SKIP_STATUS_NONE] = '5e5';
       state.skipStatusColorMap[state.SKIP_STATUS_COMPRESS] = 'ddd';
@@ -128,6 +129,14 @@ define([
       state.skipStatusColorMap[state.SKIP_STATUS_3X] = 'a00';
       state.skipStatusColorMap[state.SKIP_STATUS_4X] = 'f00';
       state.skipStatusColorMap[state.SKIP_STATUS_ABSOLUTE] = '000';
+
+      state.skipStatusCaptions = {};
+      state.skipStatusCaptions[state.SKIP_STATUS_NONE] = 'Regular speed';
+      state.skipStatusCaptions[state.SKIP_STATUS_COMPRESS] = 'Compress to fixed duration';
+      state.skipStatusCaptions[state.SKIP_STATUS_2X] = '2x speed';
+      state.skipStatusCaptions[state.SKIP_STATUS_3X] = '3x speed';
+      state.skipStatusCaptions[state.SKIP_STATUS_4X] = '4x speed';
+      state.skipStatusCaptions[state.SKIP_STATUS_ABSOLUTE] = 'Skip entire section';
       
       utils.refreshCellMaps();
 
@@ -135,6 +144,10 @@ define([
 
     getSkipStatusColor: (status) => {
       return state.skipStatusColorMap[status];
+    },
+
+    getSkipStatusCaption: (status) => {
+      return state.skipStatusCaptions[status];
     },
 
     getManifest: () => {
@@ -281,6 +294,7 @@ define([
     },
 
     getEditingSkips: () => {
+      //return true;
       return state.editingSkips;
     },
 
@@ -341,7 +355,7 @@ define([
       state.highlightsRefreshCellId = cellId;
     },
 
-      getHighlightsRefreshCellId: () => {
+    getHighlightsRefreshCellId: () => {
       return state.highlightsRefreshCellId;
     },
 
@@ -1374,8 +1388,18 @@ define([
               while (i < numRecords - 1) {
                 rec = state.history['skip'][i];
                 recCopy = undefined;
-                if ((rec.endTime < lastRecord.startTime) ||
-                    (rec.startTime > lastRecord.endTime)) {
+                if ((rec.startTime < lastRecord.startTime) &&
+                    (rec.endTime > lastRecord.endTime)) {
+                  // if new record is totally inside an existing record, split old record in two.
+                  const rightRec = { status:rec.status,
+                                     startTime:lastRecord.endTime,
+                                     endTime: rec.endTime };
+                  newRecords.push(rightRec);
+                  recCopy = { status:rec.status,
+                              startTime: rec.startTime,
+                              endTime: lastRecord.startTime };
+                } else if ((rec.endTime < lastRecord.startTime) ||
+                           (rec.startTime > lastRecord.endTime)) {
                   recCopy = $.extend({}, true, rec); // rec is before or after current record
                 } else if ((rec.startTime < lastRecord.startTime) &&
                            (rec.endTime <= lastRecord.endTime)) {
@@ -1398,7 +1422,7 @@ define([
               newRecords.push($.extend({}, true, lastRecord));
               newRecordsSorted = _.sortBy(newRecords, 'startTime');
               
-              console.log('previous history:', state.history['skip'], 'new history:', newRecordsSorted);
+              console.log('previous history:', state.history['skip'], 'new history:', newRecords, newRecordsSorted);
               state.history['skip'] = newRecordsSorted;
             }
           } 
