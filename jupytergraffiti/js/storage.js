@@ -68,9 +68,11 @@ define([
         chunkPtr += chunkSize;
       }
       if (opts.stripCRs) {
-        executorCell.set_text('!/usr/bin/tr -d "\\n" < ' + pathWithCrs + ' > ' + path); // remove all the CR's produced by the %%writefile appends.
-        executorCell.execute();
-      }
+        executorCell.set_text('!/usr/bin/tr -d "\\n" < ' + pathWithCrs + ' > ' + path); // remove all the CR's produced by the %%writefile appends and write to the final filename
+      } else {
+        executorCell.set_text('!mv ' + pathWithCrs + ' ' + path); // just rename the .cr file with the final file name
+      }        
+      executorCell.execute();
       executorCell.set_text('!rm ' + pathWithCrs);
       executorCell.execute();
     },
