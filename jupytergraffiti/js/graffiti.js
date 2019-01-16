@@ -2641,7 +2641,8 @@ define([
             playback_pic: undefined,
             autoplay: 'never',
             hideTooltip: false,
-            playOnClick: false
+            playOnClick: false,
+            saveToFile: undefined, // may be array of save_to_file directives
           };
           for (let i = 0; i < commandParts.length; ++i) {
             part = $.trim(commandParts[i]);
@@ -2721,6 +2722,20 @@ define([
                   case 'custom_sticker':
                     // Path to an image or svg that will be a custom sticker.
                     partsRecord.stickerImageUrl = subPart1;
+                    break;
+                  case 'save_to_file':
+                    // Param 1: id of cell to save; param 2: path of file to save cell contents to. You can have more than one of these in a tooltip
+                    if (partsRecord.saveToFile === undefined) {
+                      partsRecord.saveToFile = [];
+                    }
+                    const saveFile = subParts[2].replace(/^"/,'').replace(/"$/,'');
+                    const sourceCell = subPart1;
+                    partsRecord.saveToFile.push({ cellId: sourceCell, path: saveFile });
+                    break;
+                  case 'terminal_command':
+                    // pass a shell command to execute, enclosed by double quotes. The outside quotes will be removed.
+                    const command = subParts.slice(2).join(' ').replace(/^"/,'').replace(/"$/,'');
+                    partsRecord.terminalCommand = { terminalId: subPart1, command: command };
                     break;
                 }
               }
@@ -2920,8 +2935,8 @@ define([
                 });
               }
 
-              if (recording.hideTooltip) {
-                console.log('Graffiti: recording is set to hide tip.');
+              if ((recording.hideTooltip) || (recording.terminalCommand !== undefined)) {
+                console.log('Graffiti: recording is set to hide tip or recording is set to run a terminal command');
                 return;
               }
               let existingTip = graffiti.notebookContainer.find('.graffiti-tip');
@@ -2954,6 +2969,7 @@ define([
                                          '</div>';
                     }
                     contentMarkdown = utils.renderMarkdown(recording.markdown)
+                    // if no tooltip is defined, show a default message
                     if ((contentMarkdown.length === 0) && (recording.hidePlayButton)) {
                       contentMarkdown = utils.renderMarkdown('_' + localizer.getString('TOOLTIP_HINT') + '_');
                     }
@@ -3078,6 +3094,7 @@ define([
         if (terminalLib.getFocusedTerminal() !== undefined) {
           // Let any focused terminal handle the event. Don't let jupyter or anybody else get it. 
           // (Graffiti will need to capture the data during recording though.)
+          console.log('Focused terminal so stopping propogation');
           e.stopPropagation(); 
           return true;
         }
@@ -3479,6 +3496,9 @@ define([
             recording.narratorName = tooltipCommands.narratorName;
             recording.narratorPicture = tooltipCommands.narratorPicture;
             recording.stickerImageUrl = tooltipCommands.stickerImageUrl;
+            recording.saveToFile = tooltipCommands.saveToFile;
+            recording.terminalCommand = tooltipCommands.terminalCommand;
+            console.log('storing tooltip parms like this:', recording);
 
             state.updateUsageStats({
               type:'create',
@@ -5076,6 +5096,26 @@ define([
         }
       },
 
+      executeSaveToFileDirectives: (recording) => {
+        if (recording.hasOwnProperty('saveToFile')) {
+          if (recording.saveToFile.length > 0) {
+            let saveToFileEntry, fileContents, cell;
+            // Loop over all directives and save all files.
+            for (let i = 0; i < recording.saveToFile.length; ++i) {
+              saveToFileEntry = recording.saveToFile[i];
+              cell = utils.findCellByCellId(saveToFileEntry.cellId);
+              if (cell !== undefined) {
+                fileContents = cell.get_text();
+                storage.writeTextToFile({ path: saveToFileEntry.path, 
+                                          contents: fileContents,
+                                          stripCRs: false });
+              }
+            }
+            storage.cleanUpExecutorCell();
+          }
+        }
+      },
+
       loadAndPlayMovie: (kind) => {
         const playableMovie = state.getPlayableMovie(kind);
         if (playableMovie === undefined) {
@@ -5097,24 +5137,38 @@ define([
           if (playableMovie.cellType === 'markdown') {
             playableMovie.cell.render(); // always render a markdown cell first before playing a movie on a graffiti inside it
           }
-          state.updateUsageStats({
-            type: 'setup',
-            data: {
-              cellId:        playableMovie.recordingCellId,
-              recordingKey:  playableMovie.recordingKey,
-              activeTakeId:  playableMovie.activeTakeId,
-            }
-          });            
-          state.updateUsageStats({
-            type:'play',
-            data: {
-              actions: ['resetCurrentPlayTime', 'incrementPlayCount']
-            }
-          });
-          if (state.getEditingSkips() && state.getReplacingSkips()) {
-            state.clearSkipsRecords();
+          // Execute any "save code cell contents to files" directives
+          graffiti.executeSaveToFileDirectives(recording);
+          if (recording.terminalCommand !== undefined) {
+            const terminalCommand = recording.terminalCommand;
+            terminalLib.runTerminalCommand(terminalCommand.terminalId, terminalCommand.command, true);
+            graffiti.clearJupyterMenuHint();
+            graffiti.cancelPlayback({cancelAnimation:false});
+            state.updateUsageStats({
+              type: 'terminalCommand',
+              data: {
+                cellId:        playableMovie.recordingCellId,
+                recordingKey:  playableMovie.recordingKey,
+                command:       recording.terminalCommand,
+              }
+            });            
+          } else {
+            state.updateUsageStats({
+              type: 'setup',
+              data: {
+                cellId:        playableMovie.recordingCellId,
+                recordingKey:  playableMovie.recordingKey,
+                activeTakeId:  playableMovie.activeTakeId,
+              }
+            });            
+            state.updateUsageStats({
+              type:'play',
+              data: {
+                actions: ['resetCurrentPlayTime', 'incrementPlayCount']
+              }
+            });
+            graffiti.togglePlayback();
           }
-          graffiti.togglePlayback();
           graffiti.hideTip();
         }).catch( (ex) => {
           graffiti.changeActivity('idle');
@@ -5259,7 +5313,7 @@ define([
           dialog.modal({
             title: 'Packaging Complete',
             body: 'Your Notebook\'s Graffitis, and your notebook, have been copied into a archive file.<br><br>' +
-                  'Now you can copy and unpack that archive file anywhere Graffiti is supported, using the shell command: ' +
+                  'Now you can copy and unpack that archive file anywhere Graffiti is supported, using the terminal command: ' +
                   '<code>tar zxf ' + fileName + '</code>',
             sanitize:false,
             buttons: {

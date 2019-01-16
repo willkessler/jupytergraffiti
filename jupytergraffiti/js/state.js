@@ -78,11 +78,13 @@ define([
         notebookLoadedAt: utils.getNow(),
         created: {},   // how many graffiti were created
         played: {},    // how much time and how many plays were done
+        terminalCommands: {}, // what terminal commands were executed by graffiti
         totalTipsShown: 0,  // how many times we've shown tips
         totalUniqueTipsShown: 0,
         totalUniquePlays: 0,
         totalPlaysAllGraffiti: 0,
         totalPlayTimeAllGraffiti: 0,
+        totalTerminalCommandsRun: 0,
         uniqueTips: {},
       };        
       state.statsKey = undefined;
@@ -581,7 +583,7 @@ define([
       const playStats = state.usageStats.played;
       const createStats = state.usageStats.created;
       let cellId, recordingKey, activeTakeId, statsKey;
-      if ((type === 'create') || (type === 'setup')) {
+      if ((type === 'create') || (type === 'setup') || (type === 'terminalCommand')) {
         cellId = data.cellId;
         recordingKey = data.recordingKey;
       }
@@ -591,11 +593,10 @@ define([
           if (!createStats.hasOwnProperty(statsKey)) {
             createStats[statsKey] = {
               createDate: data.createDate,
-              numEditsThisSession: 1
+              numEditsThisSession: 0
             };
-          } else {
-            createStats[statsKey].numEditsThisSession++;
           }
+          createStats[statsKey].numEditsThisSession++;
           createStats[statsKey].numTakes = data.numTakes;
           break;
         case 'setup':
@@ -616,6 +617,20 @@ define([
             state.usageStats.uniqueTips[tipKey] = 0;
           }
           state.usageStats.uniqueTips[tipKey]++;
+          break;
+        case 'terminalCommand':
+          const terminalCommandsStats = state.usageStats.terminalCommands;
+          statsKey = [cellId.replace('id_', ''),recordingKey.replace('id_', '')].join('_');
+          state.usageStats.totalTerminalCommandsRun++;
+          if (!terminalCommandsStats.hasOwnProperty(statsKey)) {
+            terminalCommandsStats[statsKey] = {
+              createDate: data.createDate,
+              commands: [],
+              numRunsThisSession: 0
+            };
+          } 
+          terminalCommandsStats[statsKey].numRunsThisSession++;
+          terminalCommandsStats[statsKey].commands.push(opts.command);
           break;
         case 'play':
           const usageRecord = playStats[state.currentStatsKey];

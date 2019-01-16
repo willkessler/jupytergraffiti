@@ -48,7 +48,9 @@ define([
       executorCell.execute();
     },
 
-    writeTextToFile: (path, contents) => {
+    writeTextToFile: (opts) => {
+      const path = opts.path;
+      const contents = opts.contents;
       const executorCell = storage.createExecutorCell();
       const currentKernelName = Jupyter.notebook.kernel.name;
       const writeMagic = ((currentKernelName.indexOf(storage.cplusplusKernel) === 0) ? '%%file' : '%%writefile');
@@ -65,8 +67,10 @@ define([
         executorCell.execute();
         chunkPtr += chunkSize;
       }
-      executorCell.set_text('!/usr/bin/tr -d "\\n" < ' + pathWithCrs + ' > ' + path); // remove all the CR's produced by the %%writefile appends.
-      executorCell.execute();
+      if (opts.stripCRs) {
+        executorCell.set_text('!/usr/bin/tr -d "\\n" < ' + pathWithCrs + ' > ' + path); // remove all the CR's produced by the %%writefile appends.
+        executorCell.execute();
+      }
       executorCell.set_text('!rm ' + pathWithCrs);
       executorCell.execute();
     },
@@ -194,11 +198,15 @@ define([
 
       storage.runShellCommand('mkdir -p ' + graffitiPath);
       if (encodedAudio !== undefined) {
-        storage.writeTextToFile(graffitiPath + 'audio.txt', encodedAudio);
+        storage.writeTextToFile({ path: graffitiPath + 'audio.txt', 
+                                  contents: encodedAudio,
+                                  stripCRs: true });
       }
       if (jsonHistory !== undefined) {
         const base64CompressedHistory = LZString.compressToBase64(jsonHistory);
-        storage.writeTextToFile(graffitiPath + 'history.txt', base64CompressedHistory);
+        storage.writeTextToFile({ path: graffitiPath + 'history.txt', 
+                                  contents: base64CompressedHistory,
+                                  stripCRs: true });
       }
       storage.cleanUpExecutorCell(graffitiPath);
       state.setActivity('idle'); // cancel "executing" state
@@ -281,7 +289,9 @@ define([
       console.log('Graffiti: Saving manifest to:', manifestFullFilePath);
       
       storage.runShellCommand('mkdir -p ' + manifestInfo.path);
-      storage.writeTextToFile(manifestFullFilePath, base64CompressedManifest);
+      storage.writeTextToFile({ path: manifestFullFilePath, 
+                                contents: base64CompressedManifest,
+                                stripCRs: true });
       storage.cleanUpExecutorCell();
     },
 
