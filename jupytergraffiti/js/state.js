@@ -72,6 +72,7 @@ define([
       state.graffitiEditCellId = undefined;
       state.narratorInfo = {};
       state.shiftKeyIsDown = false;
+      state.executionSourceChoiceId = undefined;
 
       // Usage statistic gathering for the current session (since last load of the notebook)
       state.usageStats = {
@@ -310,6 +311,18 @@ define([
 
     setReplacingSkips: (val) => {
       state.replacingSkips = val;
+    },
+
+    setExecutionSourceChoiceId: (choiceId) => {
+      state.executionSourceChoiceId = choiceId;
+    },
+
+    clearExecutionSourceChoiceId: () => {
+      state.executionSourceChoiceId = undefined;
+    },
+
+    getExecutionSourceChoiceId: () => {
+      return state.executionSourceChoiceId;
     },
 
     getShiftKeyIsDown: () => {
@@ -583,13 +596,13 @@ define([
       const playStats = state.usageStats.played;
       const createStats = state.usageStats.created;
       let cellId, recordingKey, activeTakeId, statsKey;
-      if ((type === 'create') || (type === 'setup') || (type === 'terminalCommand')) {
+      if ((type === 'create') || (type === 'setup') || (type === 'terminalCommand') || (type === 'tip')) {
         cellId = data.cellId;
         recordingKey = data.recordingKey;
       }
       switch (type) {
         case 'create':
-          statsKey = [cellId.replace('id_', ''),recordingKey.replace('id_', '')].join('_');
+          statsKey = utils.composeGraffitiId(cellId, recordingKey);
           if (!createStats.hasOwnProperty(statsKey)) {
             createStats[statsKey] = {
               createDate: data.createDate,
@@ -601,7 +614,7 @@ define([
           break;
         case 'setup':
           activeTakeId = data.activeTakeId;
-          statsKey = [cellId.replace('id_', ''),recordingKey.replace('id_', ''), activeTakeId.replace('id_','')].join('_');
+          statsKey = utils.composeGraffitiId(cellId, recordingKey, activeTakeId);
           if (!playStats.hasOwnProperty(statsKey)) {
             playStats[statsKey] = {
               totalTime: 0, 
@@ -612,7 +625,7 @@ define([
           break;
         case 'tip':
           state.usageStats.totalTipsShown++;
-          const tipKey = [data.cellId.replace('id_', ''), data.recordingKey.replace('id_', '')].join('_');
+          const tipKey = utils.composeGraffitiId(cellId, recordingKey);
           if (!state.usageStats.uniqueTips.hasOwnProperty(tipKey)) {
             state.usageStats.uniqueTips[tipKey] = 0;
           }
@@ -620,7 +633,7 @@ define([
           break;
         case 'terminalCommand':
           const terminalCommandsStats = state.usageStats.terminalCommands;
-          statsKey = [cellId.replace('id_', ''),recordingKey.replace('id_', '')].join('_');
+          statsKey = utils.composeGraffitiId(cellId, recordingKey);
           state.usageStats.totalTerminalCommandsRun++;
           if (!terminalCommandsStats.hasOwnProperty(statsKey)) {
             terminalCommandsStats[statsKey] = {

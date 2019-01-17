@@ -1215,8 +1215,7 @@ define([
                   const recordingCellId = selectedTokens.recordingCellId;
                   const recordingKey = selectedTokens.recordingKey;
                   state.setPlayableMovie('cursorActivity', recordingCellId, recordingKey);
-                  graffiti.recordingAPIKey = recordingCellId.replace('id_','') + '_' + 
-                                             recordingKey.replace('id_','');
+                  graffiti.recordingAPIKey = utils.composeGraffitiId(recordingCellId, recordingKey);
                   visibleControlPanels.push('graffiti-access-skips');
                   visibleControlPanels.push('graffiti-access-api');
                   visibleControlPanels.push('graffiti-notifier');
@@ -3116,23 +3115,9 @@ define([
       markSelectedCellForExecution: () => {
         const selectedCell = Jupyter.notebook.get_selected_cell();
         if (selectedCell !== undefined && selectedCell.cell_type === 'code') {
-          utils.setCellGraffitiConfigEntry(selectedCell, 'executeCellViaGraffiti', ''); // needs to be set by the content author
-          utils.saveNotebook();
+          state.setExecutionSourceChoiceId(utils.getMetadataCellId(selectedCell.metadata));
+          graffiti.setJupyterMenuHint(localizer.getString('CELL_EXECUTE_CHOICE'));
         }
-        dialog.modal({
-          title: localizer.getString('CELL_EXECUTES_GRAFFITI_CONFIRM_TITLE'),
-          body: localizer.getString('CELL_EXECUTES_GRAFFITI_CONFIRM_BODY'),
-          sanitize:false,
-          buttons: {
-            'OK': {
-              click: (e) => {
-                console.log('Graffiti: You clicked ok');
-                console.log($('#graffiti_executable_id').val());
-              }
-            }
-          }
-        });
-
       },
 
       handleExecuteCellViaGraffiti: () => {
@@ -3157,7 +3142,7 @@ define([
         const activity = state.getActivity();
         let stopProp = false;
 
-        console.log('handleKeydown keyCode:', keyCode, String.fromCharCode(keyCode));
+        // console.log('handleKeydown keyCode:', keyCode, String.fromCharCode(keyCode));
 
         if (terminalLib.getFocusedTerminal() !== undefined) {
           // Let any focused terminal handle the event. Don't let jupyter or anybody else get it. 
@@ -3168,24 +3153,17 @@ define([
         }
           
         // If user hit shift-enter or ctrl-enter, in a code cell, and it is marked as "executeCellViaGraffiti" then it will
-        // actuallly run a graffiti movie when you try to execute that cell, rather than the jupyter default.
-        if (keyCode === 13) {
-          if (e.ctrlKey || e.shiftKey) {
-            if (graffiti.handleExecuteCellViaGraffiti()) {
-              console.log('Graffiti: executedCellViaGraffiti ran so intercepting keypress.');
-              e.stopPropagation();
-              return true;
+        // actually run a graffiti movie when you try to execute that cell, rather than the jupyter default (only when in 'idle' activity)
+        if (activity === 'idle') {
+          if (keyCode === 13) {
+            if (e.ctrlKey || e.shiftKey) {
+              if (graffiti.handleExecuteCellViaGraffiti()) {
+                console.log('Graffiti: executedCellViaGraffiti ran, so: intercepting return-key press.');
+                e.stopPropagation();
+                return true;
+              }
             }
           }
-        }
-
-        // If user is typing into a graffiti modal text input, intercept and stop prop
-        if ($(e.target).hasClass('graffiti-modal-text-input')) {
-          console.log('entering into graffiti text modal');
-          e.stopPropagation();
-          
-          console.log('cp:', e.clipboardData.getData('text/plain'));
-          return true;
         }
 
         if ((((48 <= keyCode) && (keyCode <= 57)) ||    // A-Z
@@ -4975,7 +4953,7 @@ define([
       },
 
       cancelPlayback: (opts) => {
-        console.log('cancelPlayback called');
+        console.log('Graffiti: cancelPlayback called');
         const activity = state.getActivity();
         if ((activity !== 'playing') && (activity !== 'playbackPaused') && (activity !== 'scrubbing')) {
           return;
@@ -5185,7 +5163,7 @@ define([
       },
 
       executeSaveToFileDirectives: (recording) => {
-        if (recording.hasOwnProperty('saveToFile')) {
+        if (recording.saveToFile !== undefined) {
           if (recording.saveToFile.length > 0) {
             let saveToFileEntry, fileContents, cell;
             // Loop over all directives and save all files.
@@ -5202,6 +5180,13 @@ define([
             storage.cleanUpExecutorCell();
           }
         }
+      },
+
+      cleanupAfterLoadAndPlayDidNotPlay: () => {
+        graffiti.clearJupyterMenuHint();
+        graffiti.changeActivity('idle');
+        graffiti.updateControlPanels();
+        utils.saveNotebook();
       },
 
       loadAndPlayMovie: (kind) => {
@@ -5225,41 +5210,50 @@ define([
           if (playableMovie.cellType === 'markdown') {
             playableMovie.cell.render(); // always render a markdown cell first before playing a movie on a graffiti inside it
           }
-          // Execute any "save code cell contents to files" directives
-          graffiti.executeSaveToFileDirectives(recording);
-          if (recording.terminalCommand !== undefined) {
-            const terminalCommand = recording.terminalCommand;
-            terminalLib.runTerminalCommand(terminalCommand.terminalId, terminalCommand.command, true);
-            graffiti.clearJupyterMenuHint();
-            graffiti.changeActivity('idle');
-            graffiti.updateControlPanels();
-            
-            state.updateUsageStats({
-              type: 'terminalCommand',
-              data: {
-                cellId:        playableMovie.recordingCellId,
-                recordingKey:  playableMovie.recordingKey,
-                command:       recording.terminalCommand,
-              }
-            });            
+          // If we are in cellExecuteChoice state, we don't want to run this movie at all, we just want to do that wiring for the author.
+          const executionSourceChoiceId = state.getExecutionSourceChoiceId();
+          if (executionSourceChoiceId !== undefined) {
+            const targetGraffitiId = utils.composeGraffitiId(playableMovie.recordingCellId, playableMovie.recordingKey);
+            const executionSourceChoiceCell = utils.findCellByCellId(executionSourceChoiceId);
+            utils.setCellGraffitiConfigEntry(executionSourceChoiceCell, 'executeCellViaGraffiti', targetGraffitiId ); // needs to be set by the content author
+            state.clearExecutionSourceChoiceId();
+            graffiti.cleanupAfterLoadAndPlayDidNotPlay();
+            graffiti.setJupyterMenuHint(localizer.getString('CELL_EXECUTE_CHOICE_SET'));
           } else {
-            state.updateUsageStats({
-              type: 'setup',
-              data: {
-                cellId:        playableMovie.recordingCellId,
-                recordingKey:  playableMovie.recordingKey,
-                activeTakeId:  playableMovie.activeTakeId,
-              }
-            });            
-            state.updateUsageStats({
-              type:'play',
-              data: {
-                actions: ['resetCurrentPlayTime', 'incrementPlayCount']
-              }
-            });
-            graffiti.togglePlayback();
+            // Execute any "save code cell contents to files" directives
+            graffiti.executeSaveToFileDirectives(recording);
+            if (recording.terminalCommand !== undefined) {
+              const terminalCommand = recording.terminalCommand;
+              terminalLib.runTerminalCommand(terminalCommand.terminalId, terminalCommand.command, true);
+              graffiti.cleanupAfterLoadAndPlayDidNotPlay();
+              
+              state.updateUsageStats({
+                type: 'terminalCommand',
+                data: {
+                  cellId:        playableMovie.recordingCellId,
+                  recordingKey:  playableMovie.recordingKey,
+                  command:       recording.terminalCommand,
+                }
+              });            
+            } else {
+              state.updateUsageStats({
+                type: 'setup',
+                data: {
+                  cellId:        playableMovie.recordingCellId,
+                  recordingKey:  playableMovie.recordingKey,
+                  activeTakeId:  playableMovie.activeTakeId,
+                }
+              });            
+              state.updateUsageStats({
+                type:'play',
+                data: {
+                  actions: ['resetCurrentPlayTime', 'incrementPlayCount']
+                }
+              });
+              graffiti.togglePlayback();
+            }
+            graffiti.hideTip();
           }
-          graffiti.hideTip();
         }).catch( (ex) => {
           graffiti.changeActivity('idle');
           dialog.modal({

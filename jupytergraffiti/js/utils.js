@@ -88,6 +88,15 @@ define([
       }
     },
 
+    composeGraffitiId: (cellId, recordingKey, activeTakeId) => {
+      const combinedIds = [cellId.replace('id_',''),recordingKey.replace('id_','')];
+      if (activeTakeId !== undefined) {
+        combinedIds.push(activeTakeId.replace('id_',''));
+      }
+      const combinedIdStr = combinedIds.join('_');
+      return combinedIdStr;
+    },
+
     // Assign cellIds to any cells that don't have them yet.
     assignCellIds: () => {
       const cells = Jupyter.notebook.get_cells();

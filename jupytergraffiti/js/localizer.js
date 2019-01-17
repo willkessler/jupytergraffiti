@@ -141,13 +141,9 @@ define([
             'MOVIE_DURATION':                    'Movie duration',
             'INSERT_TERMINAL':                   'Insert Terminal Above',
             'INSERT_TERMINAL_ALT_TAG':           'Insert a terminal cell above the currently active cell',
-            'CELL_EXECUTES_GRAFFITI_TAG':        'A Graffiti will run when you execute this cell',
             'CELL_EXECUTES_GRAFFITI':            'Code Cell, Executes Graffiti',
-            'CELL_EXECUTES_GRAFFITI_CONFIRM_TITLE': 'This cell is ready to execute a Graffiti.',
-            'CELL_EXECUTES_GRAFFITI_CONFIRM_BODY':'Now you must edit the metadata of this cell.<br><br>' +
-                                                  'Enter the Graffiti ID you want to execute when the user hits Shift-enter or Ctrl-enter in this cell.<br><br>' +
-                                                  '<input type="text" class="graffiti-modal-text-input" id="graffiti_executable_id" placeholder="enter an id" /><br><br>' +
-                                                  'You can find the ID of the desired Graffiti by using the Graffiti API.',
+            'CELL_EXECUTE_CHOICE':               'Now click on the element that contains the Graffiti you want this cell to run...',
+            'CELL_EXECUTE_CHOICE_SET':           'Your choice has been saved.',
           }
           break;
         case 'CN':
@@ -257,10 +253,9 @@ define([
             'MOVIE_DURATION':                    'Movie duration',
             'INSERT_TERMINAL':                   'Insert Terminal Above',
             'INSERT_TERMINAL_ALT_TAG':           'Insert a terminal cell above the currently active cell',
-            'CELL_EXECUTES_GRAFFITI_TAG':        'A Graffiti will run when you execute this cell',
             'CELL_EXECUTES_GRAFFITI':            'Code Cell, Executes Graffiti',
-            'CELL_EXECUTES_GRAFFITI_CONFIRM_TITLE': 'This cell is ready to execute a Graffiti.',
-            'CELL_EXECUTES_GRAFFITI_CONFIRM_BODY':'Now you must edit the metadata of this cell.<br><br>Set the key:<pre>graffitiConfig/executeCellViaGraffiti</pre> to be the ID of the Graffiti you want to execute when the user hits Shift-enter or Ctrl-enter in this cell.<br><br>You can find the ID of the desired Graffiti by using the Graffiti API.',
+            'CELL_EXECUTE_CHOICE':               'Now click on the element that contains the Graffiti you want this cell to run...',
+            'CELL_EXECUTE_CHOICE_SET':           'Your choice has been saved.',
           };
           break;
       }
