@@ -3183,6 +3183,7 @@ define([
         if ($(e.target).hasClass('graffiti-modal-text-input')) {
           console.log('entering into graffiti text modal');
           e.stopPropagation();
+          
           console.log('cp:', e.clipboardData.getData('text/plain'));
           return true;
         }
