@@ -81,6 +81,13 @@ define([
       }       
     },
 
+    clearSelectedCellOutput: () => {
+      const selectedCell = Jupyter.notebook.get_selected_cell();
+      if (selectedCell !== undefined) {
+        selectedCell.clear_output();
+      }
+    },
+
     // Assign cellIds to any cells that don't have them yet.
     assignCellIds: () => {
       const cells = Jupyter.notebook.get_cells();
@@ -98,6 +105,20 @@ define([
       if (!cell.metadata.hasOwnProperty('graffitiConfig')) {
         cell.metadata['graffitiConfig'] = graffitiConfig;
       }
+    },
+
+    setCellGraffitiConfigEntry: (cell, key, val) => {
+      if (!cell.metadata.hasOwnProperty('graffitiConfig')) {
+        cell.metadata['graffitiConfig'] = {};
+      }
+      cell.metadata.graffitiConfig[key] = val;
+    },
+
+    getCellGraffitiConfig: (cell) => {
+      if (cell.metadata.hasOwnProperty('graffitiConfig')) {
+        return cell.metadata['graffitiConfig'];
+      }
+      return undefined;
     },
 
     refreshCellMaps: () => {

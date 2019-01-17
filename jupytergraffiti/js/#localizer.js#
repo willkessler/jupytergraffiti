@@ -144,6 +144,7 @@ define([
             'CELL_EXECUTES_GRAFFITI_TAG':        'A Graffiti will run when you execute this cell',
             'CELL_EXECUTES_GRAFFITI':            'Code Cell, Executes Graffiti',
             'CELL_EXECUTES_GRAFFITI_CONFIRM_TITLE': 'This cell is ready to execute a Graffiti.',
+
             'CELL_EXECUTES_GRAFFITI_CONFIRM_BODY':'Now you must edit the metadata of this cell.<br><br>' +
                                                   'Enter the Graffiti ID you want to execute when the user hits Shift-enter or Ctrl-enter in this cell.<br><br>' +
                                                   '<input type="text" class="graffiti-modal-text-input" id="graffiti_executable_id" placeholder="enter an id" /><br><br>' +

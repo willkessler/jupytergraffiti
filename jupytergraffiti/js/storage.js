@@ -272,7 +272,7 @@ define([
           //console.log('uncompressed manifest:', uncompressedManifestString);
           const manifestDataParsed = JSON.parse(uncompressedManifestString);
           state.setManifest(manifestDataParsed);
-          console.log('Manifest:', manifestDataParsed);
+          console.log('Graffiti Manifest:', manifestDataParsed);
         }
       });
     },

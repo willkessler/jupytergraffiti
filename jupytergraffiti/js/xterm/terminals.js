@@ -53,7 +53,7 @@ define ([
           switch(json_msg[0]) {
             case "stdout":
               term.write(json_msg[1]);
-              console.log('received string of length:', json_msg[1].length, 'from server');
+              // console.log('received string of length:', json_msg[1].length, 'from server');
               break;
             case "disconnect":
               term.write("\r\n\r\n[CLOSED]\r\n");
@@ -174,14 +174,6 @@ define ([
     },
 
     init: () => {
-      // Insert the menu item that allows the user to create new terminals.
-      $('<li id="insert_terminal_above" title="Insert a terminal cell above the currently active cell">' +
-        '<a href="#">Insert Terminal Above</a></li>').appendTo($('#insert_menu'));
-      $('#insert_terminal_above').click(() => { 
-        window.latestTerminal = terminals.createTerminalCellAboveSelectedCell();
-        utils.saveNotebook();
-      });
-
       terminals.renderAllTerminals();
     },
 

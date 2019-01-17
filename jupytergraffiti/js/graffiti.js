@@ -101,13 +101,16 @@ define([
 
       provideAPIKeyExamples: () => {
         let recorderApiKeyCell = Jupyter.notebook.insert_cell_below('code');
-        let invocationLine = "import jupytergraffiti\n" +
-                             "# jupytergraffiti.api.play_recording('" + graffiti.recordingAPIKey + "')\n" +
-                             "# jupytergraffiti.api.play_recording_with_prompt('" + graffiti.recordingAPIKey +
-                             "', '![idea](../images/lightbulb_small.jpg) Click **here** to learn more.')\n" +
-                             "# jupytergraffiti.api.stop_playback()\n" +
-                             "jupytergraffiti.api.remove_unused_takes('" + graffiti.recordingAPIKey + "')\n" +
-                             "# jupytergraffiti.api.remove_all_unused_takes()\n";
+        let invocationLine = 
+          "# Graffiti Id: " + graffiti.recordingAPIKey + "\n\n" +
+          "# --------------------------------------\n" +
+          "import jupytergraffiti\n" +
+          "# jupytergraffiti.api.play_recording('" + graffiti.recordingAPIKey + "')\n" +
+          "# jupytergraffiti.api.play_recording_with_prompt('" + graffiti.recordingAPIKey +
+          "', '![idea](../images/lightbulb_small.jpg) Click **here** to learn more.')\n" +
+          "# jupytergraffiti.api.stop_playback()\n" +
+          "# jupytergraffiti.api.remove_unused_takes('" + graffiti.recordingAPIKey + "')\n" +
+          "# jupytergraffiti.api.remove_all_unused_takes()\n";
         recorderApiKeyCell.set_text(invocationLine);          
         Jupyter.notebook.select_next();
         recorderApiKeyCell.code_mirror.focus();
@@ -122,6 +125,24 @@ define([
             }
           }
         }
+      },
+
+      setupTerminalMenus: () => {
+        // Insert the menu item that allows the user to create new terminals.
+        $('<li id="insert_terminal_above" title="' + localizer.getString('INSERT_TERMINAL_ALT_TAG') + '">' +
+          '<a href="#">' + localizer.getString('INSERT_TERMINAL') + '</a></li>').appendTo($('#insert_menu'));
+        $('#insert_terminal_above').click(() => { 
+          terminalLib.createTerminalCellAboveSelectedCell();
+          utils.saveNotebook();
+        });
+        // Insert the menu item that allows the user to mark cells as executing graffitis.
+        $('<li id="cell_executes_graffiti" title="' + localizer.getString('CELL_EXECUTES_GRAFFITI_TAG') + '">' +
+          '<a href="#">' + localizer.getString('CELL_EXECUTES_GRAFFITI') + '</a></li>').insertAfter($('#change_cell_type #to_code'));
+        $('#cell_executes_graffiti').mouseup((e) => { 
+          console.log('Code executes graffiti');
+          graffiti.markSelectedCellForExecution();
+          e.stopPropagation();
+        });
       },
 
       setNotifier: (notificationMsg, callbacks) => {
@@ -1373,6 +1394,9 @@ define([
           case 'notifying': // Just showing notifier alone. Used when prompting user to play a graffiti with the notifier
             graffiti.showControlPanels(['graffiti-notifier']);
             break;
+          default:
+            console.log('Graffiti: updateControlPanels hit unknown activity:', activity);
+            break;
         }
 
         graffiti.performWindowResizeCheck();
@@ -1422,6 +1446,8 @@ define([
         graffiti.playAutoplayGraffiti(); // play any autoplay graffiti if there is one set up
 
         terminalLib.init();
+        graffiti.setupTerminalMenus();
+
 /*
         let body = '<div>Enter the Graffiti Hub Key to import Graffiti into this notebook.</div>';
         body += '<div style="font-weight:bold;margin-top:15px;">Key: <input type="text" value="R5a7Hb"/ width="60"></div>';
@@ -3087,19 +3113,80 @@ define([
         }
       },
 
+      markSelectedCellForExecution: () => {
+        const selectedCell = Jupyter.notebook.get_selected_cell();
+        if (selectedCell !== undefined && selectedCell.cell_type === 'code') {
+          utils.setCellGraffitiConfigEntry(selectedCell, 'executeCellViaGraffiti', ''); // needs to be set by the content author
+          utils.saveNotebook();
+        }
+        dialog.modal({
+          title: localizer.getString('CELL_EXECUTES_GRAFFITI_CONFIRM_TITLE'),
+          body: localizer.getString('CELL_EXECUTES_GRAFFITI_CONFIRM_BODY'),
+          sanitize:false,
+          buttons: {
+            'OK': {
+              click: (e) => {
+                console.log('Graffiti: You clicked ok');
+                console.log($('#graffiti_executable_id').val());
+              }
+            }
+          }
+        });
+
+      },
+
+      handleExecuteCellViaGraffiti: () => {
+        const selectedCell = Jupyter.notebook.get_selected_cell();
+        if (selectedCell.cell_type === 'code') {
+          const config = utils.getCellGraffitiConfig(selectedCell);
+          if (config !== undefined) {
+            if (config.hasOwnProperty('executeCellViaGraffiti')) {
+              const execKey = config['executeCellViaGraffiti'];
+              const keyParts = execKey.split('_');
+              state.setPlayableMovie('cellExecute', 'id_' + keyParts[0], 'id_' + keyParts[1]);
+              graffiti.loadAndPlayMovie('cellExecute');
+              return true;
+            }
+          }
+        }
+        return false;
+      },
+
       handleKeydown: (e) => {
         const keyCode = e.which;
         const activity = state.getActivity();
         let stopProp = false;
+
+        console.log('handleKeydown keyCode:', keyCode, String.fromCharCode(keyCode));
+
         if (terminalLib.getFocusedTerminal() !== undefined) {
           // Let any focused terminal handle the event. Don't let jupyter or anybody else get it. 
           // (Graffiti will need to capture the data during recording though.)
-          console.log('Focused terminal so stopping propogation');
+          console.log('Graffiti: Focused terminal so stopping propogation');
           e.stopPropagation(); 
           return true;
         }
           
-        // console.log('handleKeydown keyCode:', keyCode, String.fromCharCode(keyCode));
+        // If user hit shift-enter or ctrl-enter, in a code cell, and it is marked as "executeCellViaGraffiti" then it will
+        // actuallly run a graffiti movie when you try to execute that cell, rather than the jupyter default.
+        if (keyCode === 13) {
+          if (e.ctrlKey || e.shiftKey) {
+            if (graffiti.handleExecuteCellViaGraffiti()) {
+              console.log('Graffiti: executedCellViaGraffiti ran so intercepting keypress.');
+              e.stopPropagation();
+              return true;
+            }
+          }
+        }
+
+        // If user is typing into a graffiti modal text input, intercept and stop prop
+        if ($(e.target).hasClass('graffiti-modal-text-input')) {
+          console.log('entering into graffiti text modal');
+          e.stopPropagation();
+          console.log('cp:', e.clipboardData.getData('text/plain'));
+          return true;
+        }
+
         if ((((48 <= keyCode) && (keyCode <= 57)) ||    // A-Z
              ((65 <= keyCode) && (keyCode <= 90)) ||    // 0-9
              ((37 <= keyCode) && (keyCode <= 40)) ||    // arrow keys                
@@ -5143,7 +5230,9 @@ define([
             const terminalCommand = recording.terminalCommand;
             terminalLib.runTerminalCommand(terminalCommand.terminalId, terminalCommand.command, true);
             graffiti.clearJupyterMenuHint();
-            graffiti.cancelPlayback({cancelAnimation:false});
+            graffiti.changeActivity('idle');
+            graffiti.updateControlPanels();
+            
             state.updateUsageStats({
               type: 'terminalCommand',
               data: {
