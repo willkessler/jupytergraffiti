@@ -9,8 +9,9 @@ define([
   './localizer.js',
   './selectionSerializer.js',
   './udacityUser.js',
+  './xterm/terminals.js',
   'components/marked/lib/marked'
-], function(dialog, LZString, state, utils, audio, storage, stickerLib, localizer, selectionSerializer, udacityUser, marked) {
+], function(dialog, LZString, state, utils, audio, storage, stickerLib, localizer, selectionSerializer, udacityUser, terminalLib, marked) {
   const Graffiti = (function() {
     const graffiti = {
 
@@ -18,7 +19,8 @@ define([
         console.log('Graffiti: Main constructor running.');
         
         utils.loadCss([
-          'jupytergraffiti/css/graffiti.css'
+          'jupytergraffiti/css/graffiti.css',
+          'jupytergraffiti/css/xterm/xterm.css'
         ]);
 
         const location = document.location;
@@ -101,13 +103,16 @@ define([
 
       provideAPIKeyExamples: () => {
         let recorderApiKeyCell = Jupyter.notebook.insert_cell_below('code');
-        let invocationLine = "import jupytergraffiti\n" +
-                             "# jupytergraffiti.api.play_recording('" + graffiti.recordingAPIKey + "')\n" +
-                             "# jupytergraffiti.api.play_recording_with_prompt('" + graffiti.recordingAPIKey +
-                             "', '![idea](../images/lightbulb_small.jpg) Click **here** to learn more.')\n" +
-                             "# jupytergraffiti.api.stop_playback()\n" +
-                             "jupytergraffiti.api.remove_unused_takes('" + graffiti.recordingAPIKey + "')\n" +
-                             "# jupytergraffiti.api.remove_all_unused_takes()\n";
+        let invocationLine = 
+          "# Graffiti Id: " + graffiti.recordingAPIKey + "\n\n" +
+          "# --------------------------------------\n" +
+          "import jupytergraffiti\n" +
+          "# jupytergraffiti.api.play_recording('" + graffiti.recordingAPIKey + "')\n" +
+          "# jupytergraffiti.api.play_recording_with_prompt('" + graffiti.recordingAPIKey +
+          "', '![idea](../images/lightbulb_small.jpg) Click **here** to learn more.')\n" +
+          "# jupytergraffiti.api.stop_playback()\n" +
+          "# jupytergraffiti.api.remove_unused_takes('" + graffiti.recordingAPIKey + "')\n" +
+          "# jupytergraffiti.api.remove_all_unused_takes()\n";
         recorderApiKeyCell.set_text(invocationLine);          
         Jupyter.notebook.select_next();
         recorderApiKeyCell.code_mirror.focus();
@@ -122,6 +127,24 @@ define([
             }
           }
         }
+      },
+
+      setupTerminalMenus: () => {
+        // Insert the menu item that allows the user to create new terminals.
+        $('<li id="insert_terminal_above" title="' + localizer.getString('INSERT_TERMINAL_ALT_TAG') + '">' +
+          '<a href="#">' + localizer.getString('INSERT_TERMINAL') + '</a></li>').appendTo($('#insert_menu'));
+        $('#insert_terminal_above').click(() => { 
+          terminalLib.createTerminalCellAboveSelectedCell();
+          utils.saveNotebook();
+        });
+        // Insert the menu item that allows the user to mark cells as executing graffitis.
+        $('<li id="cell_executes_graffiti" title="' + localizer.getString('CELL_EXECUTES_GRAFFITI_TAG') + '">' +
+          '<a href="#">' + localizer.getString('CELL_EXECUTES_GRAFFITI') + '</a></li>').insertAfter($('#change_cell_type #to_code'));
+        $('#cell_executes_graffiti').mouseup((e) => { 
+          console.log('Code executes graffiti');
+          graffiti.markSelectedCellForExecution();
+          e.stopPropagation();
+        });
       },
 
       setNotifier: (notificationMsg, callbacks) => {
@@ -170,7 +193,7 @@ define([
         bar.empty();
         const barWidth = bar.width();
         const barHeight = bar.height();
-        let skipBarLeft, skipBarWidth, skipBarColor, rec, endTime;
+        let skipBarLeft, skipBarWidth, skipBarColor, skipBarCaption, rec, endTime;
         const duration = state.getHistoryDuration();
         for (let i = 0; i < skipRecords.length; ++i) {
           rec = skipRecords[i];
@@ -183,7 +206,9 @@ define([
             skipBarWidth = Math.abs(skipBarWidth);
           }
           skipBarColor = state.getSkipStatusColor(rec.status);
-          $('<div class="graffiti-skips-display-sub-bar" style="width:' + skipBarWidth + 'px;left:' + skipBarLeft + 'px;background:#' + skipBarColor + '"></div>').appendTo(bar);
+          skipBarCaption = state.getSkipStatusCaption(rec.status);
+          $('<div class="graffiti-skips-display-sub-bar" style="width:' + skipBarWidth + 'px;left:' + skipBarLeft + 'px;background:#' + skipBarColor + '"' +
+            'title="' + skipBarCaption + '"></div>').appendTo(bar);
         }
       },
 
@@ -457,7 +482,7 @@ define([
                                       '<div id="graffiti-scrub-controls">' +
                                       '  <div id="graffiti-playback-range">' +
                                       '    <div id="graffiti-skips-display-bar"></div>' +
-                                      '    <input title="' + localizer.getString('SCRUB') + '" type="range" min="0" max="1000" value="0" id="graffiti-recorder-range"></input>' +
+                                      '    <input type="range" min="0" max="1000" value="0" id="graffiti-recorder-range"></input>' +
                                       '  </div>' +
                                       '  <div id="graffiti-time-display-playback">00:00</div>' +
                                       '</div>',
@@ -1192,8 +1217,7 @@ define([
                   const recordingCellId = selectedTokens.recordingCellId;
                   const recordingKey = selectedTokens.recordingKey;
                   state.setPlayableMovie('cursorActivity', recordingCellId, recordingKey);
-                  graffiti.recordingAPIKey = recordingCellId.replace('id_','') + '_' + 
-                                             recordingKey.replace('id_','');
+                  graffiti.recordingAPIKey = utils.composeGraffitiId(recordingCellId, recordingKey);
                   visibleControlPanels.push('graffiti-access-skips');
                   visibleControlPanels.push('graffiti-access-api');
                   visibleControlPanels.push('graffiti-notifier');
@@ -1371,9 +1395,15 @@ define([
           case 'notifying': // Just showing notifier alone. Used when prompting user to play a graffiti with the notifier
             graffiti.showControlPanels(['graffiti-notifier']);
             break;
+          case 'scrubbing':
+            // do nothing special while scrubbing
+            break;
+          default:
+            console.log('Graffiti: updateControlPanels hit unknown activity:', activity);
+            break;
         }
 
-        graffiti.windowResizeHandler();
+        graffiti.performWindowResizeCheck();
       },
 
       updateControlPanelPosition: (hardPosition) => {
@@ -1418,6 +1448,9 @@ define([
         graffiti.setupDrawingScreen();
         graffiti.setupSavingScrim();
         graffiti.playAutoplayGraffiti(); // play any autoplay graffiti if there is one set up
+
+        terminalLib.init();
+        graffiti.setupTerminalMenus();
 
 /*
         let body = '<div>Enter the Graffiti Hub Key to import Graffiti into this notebook.</div>';
@@ -2638,7 +2671,8 @@ define([
             playback_pic: undefined,
             autoplay: 'never',
             hideTooltip: false,
-            playOnClick: false
+            playOnClick: false,
+            saveToFile: undefined, // may be array of save_to_file directives
           };
           for (let i = 0; i < commandParts.length; ++i) {
             part = $.trim(commandParts[i]);
@@ -2718,6 +2752,20 @@ define([
                   case 'custom_sticker':
                     // Path to an image or svg that will be a custom sticker.
                     partsRecord.stickerImageUrl = subPart1;
+                    break;
+                  case 'save_to_file':
+                    // Param 1: id of cell to save; param 2: path of file to save cell contents to. You can have more than one of these in a tooltip
+                    if (partsRecord.saveToFile === undefined) {
+                      partsRecord.saveToFile = [];
+                    }
+                    const saveFile = subParts[2].replace(/^"/,'').replace(/"$/,'');
+                    const sourceCell = subPart1;
+                    partsRecord.saveToFile.push({ cellId: sourceCell, path: saveFile });
+                    break;
+                  case 'terminal_command':
+                    // pass a shell command to execute, enclosed by double quotes. The outside quotes will be removed.
+                    const command = subParts.slice(2).join(' ').replace(/^"/,'').replace(/"$/,'');
+                    partsRecord.terminalCommand = { terminalId: subPart1, command: command };
                     break;
                 }
               }
@@ -2822,6 +2870,10 @@ define([
       },
 
       refreshAllGraffitiSideMarkers: () => {
+        const activity = state.getActivity();
+        if (activity === 'playing' || activity === 'recording' || activity === 'scrubbing') {
+          return; // don't update these during playback, recording or scrubbing... too slow
+        }
         const cells = Jupyter.notebook.get_cells();
         for (let cell of cells) {
           graffiti.refreshGraffitiSideMarkers(cell);
@@ -2913,8 +2965,8 @@ define([
                 });
               }
 
-              if (recording.hideTooltip) {
-                console.log('Graffiti: recording is set to hide tip.');
+              if ((recording.hideTooltip) || (recording.terminalCommand !== undefined)) {
+                console.log('Graffiti: recording is set to hide tip or recording is set to run a terminal command');
                 return;
               }
               let existingTip = graffiti.notebookContainer.find('.graffiti-tip');
@@ -2947,6 +2999,7 @@ define([
                                          '</div>';
                     }
                     contentMarkdown = utils.renderMarkdown(recording.markdown)
+                    // if no tooltip is defined, show a default message
                     if ((contentMarkdown.length === 0) && (recording.hidePlayButton)) {
                       contentMarkdown = utils.renderMarkdown('_' + localizer.getString('TOOLTIP_HINT') + '_');
                     }
@@ -3064,11 +3117,60 @@ define([
         }
       },
 
+      markSelectedCellForExecution: () => {
+        const selectedCell = Jupyter.notebook.get_selected_cell();
+        if (selectedCell !== undefined && selectedCell.cell_type === 'code') {
+          state.setExecutionSourceChoiceId(utils.getMetadataCellId(selectedCell.metadata));
+          graffiti.setJupyterMenuHint(localizer.getString('CELL_EXECUTE_CHOICE'));
+        }
+      },
+
+      handleExecuteCellViaGraffiti: () => {
+        const selectedCell = Jupyter.notebook.get_selected_cell();
+        if (selectedCell.cell_type === 'code') {
+          const config = utils.getCellGraffitiConfig(selectedCell);
+          if (config !== undefined) {
+            if (config.hasOwnProperty('executeCellViaGraffiti')) {
+              const execKey = config['executeCellViaGraffiti'];
+              const keyParts = execKey.split('_');
+              state.setPlayableMovie('cellExecute', 'id_' + keyParts[0], 'id_' + keyParts[1]);
+              graffiti.loadAndPlayMovie('cellExecute');
+              return true;
+            }
+          }
+        }
+        return false;
+      },
+
       handleKeydown: (e) => {
         const keyCode = e.which;
         const activity = state.getActivity();
         let stopProp = false;
+
         // console.log('handleKeydown keyCode:', keyCode, String.fromCharCode(keyCode));
+
+        if (terminalLib.getFocusedTerminal() !== undefined) {
+          // Let any focused terminal handle the event. Don't let jupyter or anybody else get it. 
+          // (Graffiti will need to capture the data during recording though.)
+          // console.log('Graffiti: Focused terminal so stopping propogation');
+          e.stopPropagation(); 
+          return true;
+        }
+          
+        // If user hit shift-enter or ctrl-enter, in a code cell, and it is marked as "executeCellViaGraffiti" then it will
+        // actually run a graffiti movie when you try to execute that cell, rather than the jupyter default (only when in 'idle' activity)
+        if (activity === 'idle') {
+          if (keyCode === 13) {
+            if (e.ctrlKey || e.shiftKey) {
+              if (graffiti.handleExecuteCellViaGraffiti()) {
+                console.log('Graffiti: executedCellViaGraffiti ran, so: intercepting return-key press.');
+                e.stopPropagation();
+                return true;
+              }
+            }
+          }
+        }
+
         if ((((48 <= keyCode) && (keyCode <= 57)) ||    // A-Z
              ((65 <= keyCode) && (keyCode <= 90)) ||    // 0-9
              ((37 <= keyCode) && (keyCode <= 40)) ||    // arrow keys                
@@ -3473,6 +3575,9 @@ define([
             recording.narratorName = tooltipCommands.narratorName;
             recording.narratorPicture = tooltipCommands.narratorPicture;
             recording.stickerImageUrl = tooltipCommands.stickerImageUrl;
+            recording.saveToFile = tooltipCommands.saveToFile;
+            recording.terminalCommand = tooltipCommands.terminalCommand;
+            console.log('storing tooltip parms like this:', recording);
 
             state.updateUsageStats({
               type:'create',
@@ -4586,7 +4691,7 @@ define([
           const deletableCellIds = _.difference(cellAdditionsIds, cellsPresentIds); 
           //console.log('deletableCellIds', deletableCellIds, cellAdditions, cellsPresentIds);
           for (deletableCellId of deletableCellIds) {
-            console.log('Trying to delete cellid:', deletableCellId);
+            // console.log('Trying to delete cellid:', deletableCellId);
             deleteCellIndex = utils.findCellIndexByCellId(deletableCellId);
             if (deleteCellIndex !== undefined) {
               //console.log('Going to delete:', deleteCellId, 'at index:', deleteCellIndex);
@@ -4844,7 +4949,24 @@ define([
         console.log('Graffiti: Got these stats:', state.getUsageStats());
       },
 
+      cancelPlaybackFinish: (cancelAnimation) => {
+        graffiti.resetStickerCanvases();
+        graffiti.cancelRapidPlay();
+        graffiti.graffitiCursor.hide();
+        graffiti.clearCanvases('all');
+        graffiti.refreshAllGraffitiHighlights();
+        graffiti.refreshGraffitiTooltips(); 
+        graffiti.updateControlPanels();
+        graffiti.highlightIntersectingGraffitiRange();
+        graffiti.clearJupyterMenuHint();
+
+        if (cancelAnimation) {
+          graffiti.sitePanel.animate({ scrollTop: graffiti.prePlaybackScrolltop }, 750);
+        }
+      },
+
       cancelPlayback: (opts) => {
+        console.log('Graffiti: cancelPlayback called');
         const activity = state.getActivity();
         if ((activity !== 'playing') && (activity !== 'playbackPaused') && (activity !== 'scrubbing')) {
           return;
@@ -4857,21 +4979,12 @@ define([
         if (state.getEditingSkips()) {
           state.finalizeSkipRecords();
           const skippedMovie = state.getPlayableMovie('tip');
-          storage.writeOutMovieData(skippedMovie, state.getJSONHistory());
-          state.setEditingSkips(false);
-        }
-        graffiti.resetStickerCanvases();
-        graffiti.cancelRapidPlay();
-        graffiti.graffitiCursor.hide();
-        graffiti.clearCanvases('all');
-        graffiti.refreshAllGraffitiHighlights();
-        graffiti.refreshGraffitiTooltips(); 
-        graffiti.updateControlPanels();
-        graffiti.highlightIntersectingGraffitiRange();
-        graffiti.clearJupyterMenuHint();
-
-        if (opts.cancelAnimation) {
-          graffiti.sitePanel.animate({ scrollTop: graffiti.prePlaybackScrolltop }, 750);
+          storage.writeOutMovieData(skippedMovie, state.getJSONHistory()).then(() => {
+            state.setEditingSkips(false);
+            graffiti.cancelPlaybackFinish(opts.cancelAnimation);
+          });
+        } else {
+          graffiti.cancelPlaybackFinish(opts.cancelAnimation);
         }
       },
 
@@ -5062,6 +5175,33 @@ define([
         }
       },
 
+      executeSaveToFileDirectives: (recording) => {
+        if (recording.saveToFile !== undefined) {
+          if (recording.saveToFile.length > 0) {
+            let saveToFileEntry, fileContents, cell;
+            // Loop over all directives and save all files.
+            for (let i = 0; i < recording.saveToFile.length; ++i) {
+              saveToFileEntry = recording.saveToFile[i];
+              cell = utils.findCellByCellId(saveToFileEntry.cellId);
+              if (cell !== undefined) {
+                fileContents = cell.get_text();
+                storage.writeTextToFile({ path: saveToFileEntry.path, 
+                                          contents: fileContents,
+                                          stripCRs: false });
+              }
+            }
+            storage.cleanUpExecutorCell();
+          }
+        }
+      },
+
+      cleanupAfterLoadAndPlayDidNotPlay: () => {
+        graffiti.clearJupyterMenuHint();
+        graffiti.changeActivity('idle');
+        graffiti.updateControlPanels();
+        utils.saveNotebook();
+      },
+
       loadAndPlayMovie: (kind) => {
         const playableMovie = state.getPlayableMovie(kind);
         if (playableMovie === undefined) {
@@ -5083,25 +5223,50 @@ define([
           if (playableMovie.cellType === 'markdown') {
             playableMovie.cell.render(); // always render a markdown cell first before playing a movie on a graffiti inside it
           }
-          state.updateUsageStats({
-            type: 'setup',
-            data: {
-              cellId:        playableMovie.recordingCellId,
-              recordingKey:  playableMovie.recordingKey,
-              activeTakeId:  playableMovie.activeTakeId,
+          // If we are in cellExecuteChoice state, we don't want to run this movie at all, we just want to do that wiring for the author.
+          const executionSourceChoiceId = state.getExecutionSourceChoiceId();
+          if (executionSourceChoiceId !== undefined) {
+            const targetGraffitiId = utils.composeGraffitiId(playableMovie.recordingCellId, playableMovie.recordingKey);
+            const executionSourceChoiceCell = utils.findCellByCellId(executionSourceChoiceId);
+            utils.setCellGraffitiConfigEntry(executionSourceChoiceCell, 'executeCellViaGraffiti', targetGraffitiId ); // needs to be set by the content author
+            state.clearExecutionSourceChoiceId();
+            graffiti.cleanupAfterLoadAndPlayDidNotPlay();
+            graffiti.setJupyterMenuHint(localizer.getString('CELL_EXECUTE_CHOICE_SET'));
+          } else {
+            // Execute any "save code cell contents to files" directives
+            graffiti.executeSaveToFileDirectives(recording);
+            if (recording.terminalCommand !== undefined) {
+              const terminalCommand = recording.terminalCommand;
+              terminalLib.runTerminalCommand(terminalCommand.terminalId, terminalCommand.command, true);
+              graffiti.cleanupAfterLoadAndPlayDidNotPlay();
+              
+              state.updateUsageStats({
+                type: 'terminalCommand',
+                data: {
+                  cellId:        playableMovie.recordingCellId,
+                  recordingKey:  playableMovie.recordingKey,
+                  command:       recording.terminalCommand,
+                }
+              });            
+            } else {
+              state.updateUsageStats({
+                type: 'setup',
+                data: {
+                  cellId:        playableMovie.recordingCellId,
+                  recordingKey:  playableMovie.recordingKey,
+                  activeTakeId:  playableMovie.activeTakeId,
+                }
+              });            
+              state.updateUsageStats({
+                type:'play',
+                data: {
+                  actions: ['resetCurrentPlayTime', 'incrementPlayCount']
+                }
+              });
+              graffiti.togglePlayback();
             }
-          });            
-          state.updateUsageStats({
-            type:'play',
-            data: {
-              actions: ['resetCurrentPlayTime', 'incrementPlayCount']
-            }
-          });
-          if (state.getEditingSkips() && state.getReplacingSkips()) {
-            state.clearSkipsRecords();
+            graffiti.hideTip();
           }
-          graffiti.togglePlayback();
-          graffiti.hideTip();
         }).catch( (ex) => {
           graffiti.changeActivity('idle');
           dialog.modal({
@@ -5245,7 +5410,7 @@ define([
           dialog.modal({
             title: 'Packaging Complete',
             body: 'Your Notebook\'s Graffitis, and your notebook, have been copied into a archive file.<br><br>' +
-                  'Now you can copy and unpack that archive file anywhere Graffiti is supported, using the shell command: ' +
+                  'Now you can copy and unpack that archive file anywhere Graffiti is supported, using the terminal command: ' +
                   '<code>tar zxf ' + fileName + '</code>',
             sanitize:false,
             buttons: {
@@ -5324,8 +5489,8 @@ define([
           }
         });
       },
-
     };
+
 
     // Functions exposed externally to the Python API.
     return {
@@ -5345,6 +5510,7 @@ define([
       packageGraffitis: () => { graffiti.packageGraffitis() },
       getUsageStats: () => { return state.getUsageStats() },
       selectionSerializer: selectionSerializer,
+      controlTerminal: (opts) => { graffiti.controlTerminal(opts) },
       // showCreatorsChooser: graffiti.showCreatorsChooser, // demo only
     }
 

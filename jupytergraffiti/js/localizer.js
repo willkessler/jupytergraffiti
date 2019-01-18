@@ -139,6 +139,11 @@ define([
             'SCRUB':                             'scrub',
             'TOOLTIP_HINT':                      'Without moving your mouse, click now to watch a movie about this.',
             'MOVIE_DURATION':                    'Movie duration',
+            'INSERT_TERMINAL':                   'Insert Terminal Above',
+            'INSERT_TERMINAL_ALT_TAG':           'Insert a terminal cell above the currently active cell',
+            'CELL_EXECUTES_GRAFFITI':            'Code Cell, Executes Graffiti',
+            'CELL_EXECUTE_CHOICE':               'Now click on the element that contains the Graffiti you want this cell to run...',
+            'CELL_EXECUTE_CHOICE_SET':           'Your choice has been saved.',
           }
           break;
         case 'CN':
@@ -246,6 +251,11 @@ define([
             'SCRUB':                             'scrub',
             'TOOLTIP_HINT':                      'Click the underlined text (below) to watch a movie about this.',
             'MOVIE_DURATION':                    'Movie duration',
+            'INSERT_TERMINAL':                   'Insert Terminal Above',
+            'INSERT_TERMINAL_ALT_TAG':           'Insert a terminal cell above the currently active cell',
+            'CELL_EXECUTES_GRAFFITI':            'Code Cell, Executes Graffiti',
+            'CELL_EXECUTE_CHOICE':               'Now click on the element that contains the Graffiti you want this cell to run...',
+            'CELL_EXECUTE_CHOICE_SET':           'Your choice has been saved.',
           };
           break;
       }

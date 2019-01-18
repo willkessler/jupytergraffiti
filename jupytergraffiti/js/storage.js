@@ -48,7 +48,9 @@ define([
       executorCell.execute();
     },
 
-    writeTextToFile: (path, contents) => {
+    writeTextToFile: (opts) => {
+      const path = opts.path;
+      const contents = opts.contents;
       const executorCell = storage.createExecutorCell();
       const currentKernelName = Jupyter.notebook.kernel.name;
       const writeMagic = ((currentKernelName.indexOf(storage.cplusplusKernel) === 0) ? '%%file' : '%%writefile');
@@ -65,7 +67,11 @@ define([
         executorCell.execute();
         chunkPtr += chunkSize;
       }
-      executorCell.set_text('!/usr/bin/tr -d "\\n" < ' + pathWithCrs + ' > ' + path); // remove all the CR's produced by the %%writefile appends.
+      if (opts.stripCRs) {
+        executorCell.set_text('!/usr/bin/tr -d "\\n" < ' + pathWithCrs + ' > ' + path); // remove all the CR's produced by the %%writefile appends and write to the final filename
+      } else {
+        executorCell.set_text('!mv ' + pathWithCrs + ' ' + path); // just rename the .cr file with the final file name
+      }        
       executorCell.execute();
       executorCell.set_text('!rm ' + pathWithCrs);
       executorCell.execute();
@@ -194,13 +200,19 @@ define([
 
       storage.runShellCommand('mkdir -p ' + graffitiPath);
       if (encodedAudio !== undefined) {
-        storage.writeTextToFile(graffitiPath + 'audio.txt', encodedAudio);
+        storage.writeTextToFile({ path: graffitiPath + 'audio.txt', 
+                                  contents: encodedAudio,
+                                  stripCRs: true });
       }
       if (jsonHistory !== undefined) {
         const base64CompressedHistory = LZString.compressToBase64(jsonHistory);
-        storage.writeTextToFile(graffitiPath + 'history.txt', base64CompressedHistory);
+        storage.writeTextToFile({ path: graffitiPath + 'history.txt', 
+                                  contents: base64CompressedHistory,
+                                  stripCRs: true });
       }
       storage.cleanUpExecutorCell(graffitiPath);
+      state.setActivity('idle'); // cancel "executing" state
+      return Promise.resolve();
     },
 
     storeMovie: () => {
@@ -218,8 +230,9 @@ define([
             activeTakeId: recordingCellInfo.recordingRecord.activeTakeId
           },
           jsonHistory, 
-          encodedAudio);
-        storage.completeMovieStorage();
+          encodedAudio).then(() => {
+            storage.completeMovieStorage();
+          });
       } else {
         console.log('Graffiti: could not fetch JSON history.');
       }
@@ -259,7 +272,7 @@ define([
           //console.log('uncompressed manifest:', uncompressedManifestString);
           const manifestDataParsed = JSON.parse(uncompressedManifestString);
           state.setManifest(manifestDataParsed);
-          console.log('Manifest:', manifestDataParsed);
+          console.log('Graffiti Manifest:', manifestDataParsed);
         }
       });
     },
@@ -278,7 +291,9 @@ define([
       console.log('Graffiti: Saving manifest to:', manifestFullFilePath);
       
       storage.runShellCommand('mkdir -p ' + manifestInfo.path);
-      storage.writeTextToFile(manifestFullFilePath, base64CompressedManifest);
+      storage.writeTextToFile({ path: manifestFullFilePath, 
+                                contents: base64CompressedManifest,
+                                stripCRs: true });
       storage.cleanUpExecutorCell();
     },
 

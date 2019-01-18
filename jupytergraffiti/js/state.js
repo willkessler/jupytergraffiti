@@ -73,17 +73,20 @@ define([
       state.graffitiEditCellId = undefined;
       state.narratorInfo = {};
       state.shiftKeyIsDown = false;
+      state.executionSourceChoiceId = undefined;
 
       // Usage statistic gathering for the current session (since last load of the notebook)
       state.usageStats = {
         notebookLoadedAt: utils.getNow(),
         created: {},   // how many graffiti were created
         played: {},    // how much time and how many plays were done
+        terminalCommands: {}, // what terminal commands were executed by graffiti
         totalTipsShown: 0,  // how many times we've shown tips
         totalUniqueTipsShown: 0,
         totalUniquePlays: 0,
         totalPlaysAllGraffiti: 0,
         totalPlayTimeAllGraffiti: 0,
+        totalTerminalCommandsRun: 0,
         uniqueTips: {},
       };        
       state.statsKey = undefined;
@@ -122,6 +125,7 @@ define([
       state.SKIP_STATUS_3X =        3;
       state.SKIP_STATUS_4X =        4;
       state.SKIP_STATUS_ABSOLUTE = -1;
+
       state.skipStatusColorMap = {};
       state.skipStatusColorMap[state.SKIP_STATUS_NONE] = '5e5';
       state.skipStatusColorMap[state.SKIP_STATUS_COMPRESS] = 'ddd';
@@ -129,6 +133,14 @@ define([
       state.skipStatusColorMap[state.SKIP_STATUS_3X] = 'a00';
       state.skipStatusColorMap[state.SKIP_STATUS_4X] = 'f00';
       state.skipStatusColorMap[state.SKIP_STATUS_ABSOLUTE] = '000';
+
+      state.skipStatusCaptions = {};
+      state.skipStatusCaptions[state.SKIP_STATUS_NONE] = 'Regular speed';
+      state.skipStatusCaptions[state.SKIP_STATUS_COMPRESS] = 'Compress to fixed duration';
+      state.skipStatusCaptions[state.SKIP_STATUS_2X] = '2x speed';
+      state.skipStatusCaptions[state.SKIP_STATUS_3X] = '3x speed';
+      state.skipStatusCaptions[state.SKIP_STATUS_4X] = '4x speed';
+      state.skipStatusCaptions[state.SKIP_STATUS_ABSOLUTE] = 'Skip entire section';
       
       utils.refreshCellMaps();
 
@@ -136,6 +148,10 @@ define([
 
     getSkipStatusColor: (status) => {
       return state.skipStatusColorMap[status];
+    },
+
+    getSkipStatusCaption: (status) => {
+      return state.skipStatusCaptions[status];
     },
 
     getManifest: () => {
@@ -290,6 +306,7 @@ define([
     },
 
     getEditingSkips: () => {
+      //return true;
       return state.editingSkips;
     },
 
@@ -303,6 +320,18 @@ define([
 
     setReplacingSkips: (val) => {
       state.replacingSkips = val;
+    },
+
+    setExecutionSourceChoiceId: (choiceId) => {
+      state.executionSourceChoiceId = choiceId;
+    },
+
+    clearExecutionSourceChoiceId: () => {
+      state.executionSourceChoiceId = undefined;
+    },
+
+    getExecutionSourceChoiceId: () => {
+      return state.executionSourceChoiceId;
     },
 
     getShiftKeyIsDown: () => {
@@ -350,7 +379,7 @@ define([
       state.highlightsRefreshCellId = cellId;
     },
 
-      getHighlightsRefreshCellId: () => {
+    getHighlightsRefreshCellId: () => {
       return state.highlightsRefreshCellId;
     },
 
@@ -576,26 +605,25 @@ define([
       const playStats = state.usageStats.played;
       const createStats = state.usageStats.created;
       let cellId, recordingKey, activeTakeId, statsKey;
-      if ((type === 'create') || (type === 'setup')) {
+      if ((type === 'create') || (type === 'setup') || (type === 'terminalCommand') || (type === 'tip')) {
         cellId = data.cellId;
         recordingKey = data.recordingKey;
       }
       switch (type) {
         case 'create':
-          statsKey = [cellId.replace('id_', ''),recordingKey.replace('id_', '')].join('_');
+          statsKey = utils.composeGraffitiId(cellId, recordingKey);
           if (!createStats.hasOwnProperty(statsKey)) {
             createStats[statsKey] = {
               createDate: data.createDate,
-              numEditsThisSession: 1
+              numEditsThisSession: 0
             };
-          } else {
-            createStats[statsKey].numEditsThisSession++;
           }
+          createStats[statsKey].numEditsThisSession++;
           createStats[statsKey].numTakes = data.numTakes;
           break;
         case 'setup':
           activeTakeId = data.activeTakeId;
-          statsKey = [cellId.replace('id_', ''),recordingKey.replace('id_', ''), activeTakeId.replace('id_','')].join('_');
+          statsKey = utils.composeGraffitiId(cellId, recordingKey, activeTakeId);
           if (!playStats.hasOwnProperty(statsKey)) {
             playStats[statsKey] = {
               totalTime: 0, 
@@ -606,11 +634,25 @@ define([
           break;
         case 'tip':
           state.usageStats.totalTipsShown++;
-          const tipKey = [data.cellId.replace('id_', ''), data.recordingKey.replace('id_', '')].join('_');
+          const tipKey = utils.composeGraffitiId(cellId, recordingKey);
           if (!state.usageStats.uniqueTips.hasOwnProperty(tipKey)) {
             state.usageStats.uniqueTips[tipKey] = 0;
           }
           state.usageStats.uniqueTips[tipKey]++;
+          break;
+        case 'terminalCommand':
+          const terminalCommandsStats = state.usageStats.terminalCommands;
+          statsKey = utils.composeGraffitiId(cellId, recordingKey);
+          state.usageStats.totalTerminalCommandsRun++;
+          if (!terminalCommandsStats.hasOwnProperty(statsKey)) {
+            terminalCommandsStats[statsKey] = {
+              createDate: data.createDate,
+              commands: [],
+              numRunsThisSession: 0
+            };
+          } 
+          terminalCommandsStats[statsKey].numRunsThisSession++;
+          terminalCommandsStats[statsKey].commands.push(opts.command);
           break;
         case 'play':
           const usageRecord = playStats[state.currentStatsKey];
@@ -1383,8 +1425,18 @@ define([
               while (i < numRecords - 1) {
                 rec = state.history['skip'][i];
                 recCopy = undefined;
-                if ((rec.endTime < lastRecord.startTime) ||
-                    (rec.startTime > lastRecord.endTime)) {
+                if ((rec.startTime < lastRecord.startTime) &&
+                    (rec.endTime > lastRecord.endTime)) {
+                  // if new record is totally inside an existing record, split old record in two.
+                  const rightRec = { status:rec.status,
+                                     startTime:lastRecord.endTime,
+                                     endTime: rec.endTime };
+                  newRecords.push(rightRec);
+                  recCopy = { status:rec.status,
+                              startTime: rec.startTime,
+                              endTime: lastRecord.startTime };
+                } else if ((rec.endTime < lastRecord.startTime) ||
+                           (rec.startTime > lastRecord.endTime)) {
                   recCopy = $.extend({}, true, rec); // rec is before or after current record
                 } else if ((rec.startTime < lastRecord.startTime) &&
                            (rec.endTime <= lastRecord.endTime)) {
@@ -1407,7 +1459,7 @@ define([
               newRecords.push($.extend({}, true, lastRecord));
               newRecordsSorted = _.sortBy(newRecords, 'startTime');
               
-              console.log('previous history:', state.history['skip'], 'new history:', newRecordsSorted);
+              console.log('previous history:', state.history['skip'], 'new history:', newRecords, newRecordsSorted);
               state.history['skip'] = newRecordsSorted;
             }
           } 

@@ -81,6 +81,22 @@ define([
       }       
     },
 
+    clearSelectedCellOutput: () => {
+      const selectedCell = Jupyter.notebook.get_selected_cell();
+      if (selectedCell !== undefined) {
+        selectedCell.clear_output();
+      }
+    },
+
+    composeGraffitiId: (cellId, recordingKey, activeTakeId) => {
+      const combinedIds = [cellId.replace('id_',''),recordingKey.replace('id_','')];
+      if (activeTakeId !== undefined) {
+        combinedIds.push(activeTakeId.replace('id_',''));
+      }
+      const combinedIdStr = combinedIds.join('_');
+      return combinedIdStr;
+    },
+
     // Assign cellIds to any cells that don't have them yet.
     assignCellIds: () => {
       const cells = Jupyter.notebook.get_cells();
@@ -92,6 +108,26 @@ define([
           utils.setMetadataCellId(cell.metadata, cellId);
         }
       }
+    },
+
+    assignCellGraffitiConfig: (cell, graffitiConfig) => {
+      if (!cell.metadata.hasOwnProperty('graffitiConfig')) {
+        cell.metadata['graffitiConfig'] = graffitiConfig;
+      }
+    },
+
+    setCellGraffitiConfigEntry: (cell, key, val) => {
+      if (!cell.metadata.hasOwnProperty('graffitiConfig')) {
+        cell.metadata['graffitiConfig'] = {};
+      }
+      cell.metadata.graffitiConfig[key] = val;
+    },
+
+    getCellGraffitiConfig: (cell) => {
+      if (cell.metadata.hasOwnProperty('graffitiConfig')) {
+        return cell.metadata['graffitiConfig'];
+      }
+      return undefined;
     },
 
     refreshCellMaps: () => {
