@@ -68,28 +68,22 @@ define ([
       return terminals.focusedTerminal;
     },
 
-// axe me, seems unnecesary
-/*        renderArea.html('<div style="position:absolute; left:-1000em">' +
-                        '  <pre id="dummy-screen" style="border: solid 5px white;" class="terminal">' + dummyOutput +
-                        '    <span id="dummy-screen-rows" style="">01234567890123456789012345678901234567890123456789012345678901234567890123456789</span>' +
-                        '  </pre>' +
-                        '</div>' +
-                        '<div id="' + terminalContainerId + '" class="container" style="width:100%;height:' + terminalHeight + 'px;"></div>')
-                  .show();
-        const dummyOutput = '012345678901234567890123'.split('').join("\n") + "\n";
-*/
-
     createTerminalCell: (cellId, config) => {
-      const cell = utils.findCellByCellId(cellId);
       if (terminals.terminalsList.hasOwnProperty(cellId)) {
         return terminals.terminalsList[cellId]; // already have this terminal set up
       }
+      const cell = utils.findCellByCellId(cellId);
       if (cell !== undefined) {
         const cellJq = $(cell.element);
         const renderArea = cellJq.find('.rendered_html');
+
+        renderArea.html('<div>' +
+                        '  <span id="dummy-screen-rows" style="font-family:courier; font-weight:bold; font-size:15px;">bash-3.2$ </span>' +
+                        '</div>');
+        const lineHeight = renderArea.find('#dummy-screen-rows').height();
         renderArea.html('Loading...');
 
-        const terminalHeight = 100; // pixels
+        const terminalHeight = lineHeight * config.rows; // pixels
         const terminalContainerId = 'terminal-container-' + cellId;
         // height should be set by the number of desired rows passed in with config...
         renderArea.html('<div id="' + terminalContainerId + '" class="container" style="width:100%;height:' + terminalHeight + 'px;"></div>').show();
@@ -106,6 +100,7 @@ define ([
           const cdCommand = 'cd ' + config.startingDirectory + ';clear' + "\n";
           newTerminal.term.send(cdCommand);
         }
+
         return newTerminal;
       } else {
         return undefined;
@@ -127,14 +122,9 @@ define ([
           }
           const graffitiConfig = {
             type : 'terminal',
-            initCommand: '',
             startingDirectory: notebookPath,
             terminalId: newTerminalCellId, // defaults to the graffiti cell id, but can be changed if author wants to display the same terminal twice in one notebook.
-            runGraffitiOnCellExecute: '',
-            dimensions: {
-              rows:12,
-              cols:120
-            }
+            rows: 6, // default is 6 but can be changed in metadata
           };
           utils.assignCellGraffitiConfig(newTerminalCell, graffitiConfig);
           newTerminalCell.set_text('<i>Loading terminal (' + newTerminalCellId + '), please wait...</i>');
@@ -156,6 +146,11 @@ define ([
             cellId = utils.getMetadataCellId(cell.metadata);
             if (cell.metadata.graffitiConfig.type === 'terminal') {
               terminals.createTerminalCell(cellId, cell.metadata.graffitiConfig);
+              // make sure you can't double click this cell because that would break the terminal
+              $(cell.element[0]).unbind('dblclick').bind('dblclick', ((e) => { 
+                e.stopPropagation();
+                return false;
+              }));
             }
           }
         }
