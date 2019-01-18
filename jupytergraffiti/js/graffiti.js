@@ -1393,6 +1393,9 @@ define([
           case 'notifying': // Just showing notifier alone. Used when prompting user to play a graffiti with the notifier
             graffiti.showControlPanels(['graffiti-notifier']);
             break;
+          case 'scrubbing':
+            // do nothing special while scrubbing
+            break;
           default:
             console.log('Graffiti: updateControlPanels hit unknown activity:', activity);
             break;
@@ -3147,7 +3150,7 @@ define([
         if (terminalLib.getFocusedTerminal() !== undefined) {
           // Let any focused terminal handle the event. Don't let jupyter or anybody else get it. 
           // (Graffiti will need to capture the data during recording though.)
-          console.log('Graffiti: Focused terminal so stopping propogation');
+          // console.log('Graffiti: Focused terminal so stopping propogation');
           e.stopPropagation(); 
           return true;
         }

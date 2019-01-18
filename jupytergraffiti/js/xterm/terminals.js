@@ -35,11 +35,11 @@ define ([
         });
 
         term.on('focus', () => { 
-          console.log('terminal ' + term.id + ' focused');
+          // console.log('terminal ' + term.id + ' focused');
           terminals.focusedTerminal = term;
         });
         term.on('blur', () => { 
-          console.log('terminal defocused'); 
+          // console.log('terminal defocused'); 
           terminals.focusedTerminal = undefined;
         });
 
@@ -87,7 +87,7 @@ define ([
         const terminalContainerId = 'terminal-container-' + cellId;
         // height should be set by the number of desired rows passed in with config...
         renderArea.html('<div id="' + terminalContainerId + '" class="container" style="width:100%;height:' + terminalHeight + 'px;"></div>').show();
-        const wsUrl = location.protocol.replace('http', 'ws') + '//' + location.host + '/terminals/websocket/' + cellId;
+        const wsUrl = location.protocol.replace('http', 'ws') + '//' + location.host + '/terminals/websocket/' + config.terminalId;
         const elem = $('#' + terminalContainerId);
         const sizeObj = {cols:40, rows:10};
 
