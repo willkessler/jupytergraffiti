@@ -111,9 +111,7 @@ define([
     },
 
     assignCellGraffitiConfig: (cell, graffitiConfig) => {
-      if (!cell.metadata.hasOwnProperty('graffitiConfig')) {
-        cell.metadata['graffitiConfig'] = graffitiConfig;
-      }
+      cell.metadata['graffitiConfig'] = graffitiConfig;
     },
 
     setCellGraffitiConfigEntry: (cell, key, val) => {
