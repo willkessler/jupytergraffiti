@@ -85,11 +85,18 @@ define ([
 
         const terminalHeight = lineHeight * config.rows; // pixels
         const terminalContainerId = 'terminal-container-' + cellId;
-        // height should be set by the number of desired rows passed in with config...
-        renderArea.html('<div id="' + terminalContainerId + '" class="container" style="width:100%;height:' + terminalHeight + 'px;"></div>').show();
+
+        renderArea.html('<div id="' + terminalContainerId + '" class="container" style="width:100%;height:' + terminalHeight + 'px;"></div>' +
+                        '<div class="graffiti-terminal-reset">Reset Terminal</div>').show();
         const wsUrl = location.protocol.replace('http', 'ws') + '//' + location.host + '/terminals/websocket/' + config.terminalId;
         const elem = $('#' + terminalContainerId);
         const sizeObj = {cols:40, rows:10};
+        renderArea.find('.graffiti-terminal-reset').click((e) => {
+          const target = $(e.target);
+          const cellDOM = target.parents('.cell');
+          const cellId = cellDOM.attr('graffiti-cell-id');
+          terminals.resetTerminalCell(cellId);
+        });
 
         const newTerminal = terminals._makeTerminal(elem[0], cellId, wsUrl, sizeObj);
         terminals.terminalsList[cellId] = newTerminal;
@@ -107,54 +114,84 @@ define ([
       }
     },
 
+    createTerminalInCell: (cell, terminalId) => {
+      const cellId = utils.getMetadataCellId(cell.metadata);
+      if (terminalId === undefined) {
+        terminalId = cellId;
+      }
+      if (cellId !== undefined) {
+        const fullNotebookPath = Jupyter.notebook.notebook_path;
+        let notebookPath, notebookPathParts;
+        if (fullNotebookPath.indexOf('/') === -1) {
+          notebookPath = fullNotebookPath;
+        } else {
+          notebookPathParts = fullNotebookPath.split('/');
+          notebookPath = notebookPathParts.slice(0,notebookPathParts.length - 1).join('/');
+        }
+        const graffitiConfig = {
+          type : 'terminal',
+          startingDirectory: notebookPath,
+          terminalId: terminalId, // defaults to the graffiti cell id, but can be changed if author wants to display the same terminal twice in one notebook.
+          rows: 6, // default is 6 but can be changed in metadata
+        };
+        utils.assignCellGraffitiConfig(cell, graffitiConfig);
+        cell.set_text('<i>Loading terminal (' + cellId + '), please wait...</i>');
+        cell.render();
+        return terminals.createTerminalCell(cellId, graffitiConfig);
+      }
+    },
+
+    resetTerminalCell: (cellId) => {
+      const cell = utils.findCellByCellId(cellId);
+      if (cell.metadata.hasOwnProperty('graffitiConfig')) {
+        if (cell.metadata.graffitiConfig.type === 'terminal') {
+          // Create a new terminal id so we'll connect to a fresh socket.
+          delete(terminals.terminalsList[cellId]);
+          terminals.createTerminalInCell(cell, utils.generateUniqueId() );
+          utils.saveNotebook();
+        }
+      }
+    },
+
     createTerminalCellAboveSelectedCell: () => {
       const newTerminalCell = Jupyter.notebook.insert_cell_above('markdown');
       if (newTerminalCell !== undefined) {
-        const newTerminalCellId = utils.getMetadataCellId(newTerminalCell.metadata);
-        if (newTerminalCellId !== undefined) {
-          const fullNotebookPath = Jupyter.notebook.notebook_path;
-          let notebookPath, notebookPathParts;
-          if (fullNotebookPath.indexOf('/') === -1) {
-            notebookPath = fullNotebookPath;
-          } else {
-            notebookPathParts = fullNotebookPath.split('/');
-            notebookPath = notebookPathParts.slice(0,notebookPathParts.length - 1).join('/');
-          }
-          const graffitiConfig = {
-            type : 'terminal',
-            startingDirectory: notebookPath,
-            terminalId: newTerminalCellId, // defaults to the graffiti cell id, but can be changed if author wants to display the same terminal twice in one notebook.
-            rows: 6, // default is 6 but can be changed in metadata
-          };
-          utils.assignCellGraffitiConfig(newTerminalCell, graffitiConfig);
-          newTerminalCell.set_text('<i>Loading terminal (' + newTerminalCellId + '), please wait...</i>');
-          newTerminalCell.render();
-          return terminals.createTerminalCell(newTerminalCellId, graffitiConfig);
-        }
+        return terminals.createTerminalInCell(newTerminalCell);
       }
       return undefined;
+    },
+
+    processRenderQueue: () => {
+      if (terminals.renderQueue.length > 0) {
+        const rq = terminals.renderQueue.shift();
+        const cellId = utils.getMetadataCellId(rq.cell.metadata);
+        console.log('Processing render queue entry:', rq);
+        terminals.createTerminalCell(cellId, rq.cell.metadata.graffitiConfig);
+        // make sure you can't double click this cell because that would break the terminal
+        $(rq.cell.element[0]).unbind('dblclick').bind('dblclick', ((e) => { 
+          e.stopPropagation();
+          return false;
+        }));
+        setTimeout(terminals.processRenderQueue, 250);
+      }
     },
 
     // If there are terminals present in this notebook, render them.
     renderAllTerminals: () => {
       const cells = Jupyter.notebook.get_cells();
       let cell, cellId;
+      terminals.renderQueue = [];
       for (let i = 0; i < cells.length; ++i) {
         cell = cells[i];
         if (cell.cell_type === 'markdown') {
           if (cell.metadata.hasOwnProperty('graffitiConfig')) {
-            cellId = utils.getMetadataCellId(cell.metadata);
             if (cell.metadata.graffitiConfig.type === 'terminal') {
-              terminals.createTerminalCell(cellId, cell.metadata.graffitiConfig);
-              // make sure you can't double click this cell because that would break the terminal
-              $(cell.element[0]).unbind('dblclick').bind('dblclick', ((e) => { 
-                e.stopPropagation();
-                return false;
-              }));
+              terminals.renderQueue.push({cell: cell, config: cell.metadata.graffitiConfig });
             }
           }
         }
       }
+      terminals.processRenderQueue();
     },
 
     runTerminalCommand: (terminalId, command, addCR) => {

@@ -5237,6 +5237,7 @@ define([
             graffiti.executeSaveToFileDirectives(recording);
             if (recording.terminalCommand !== undefined) {
               const terminalCommand = recording.terminalCommand;
+              terminalLib.resetTerminal(terminalCommand.terminalId);
               terminalLib.runTerminalCommand(terminalCommand.terminalId, terminalCommand.command, true);
               graffiti.cleanupAfterLoadAndPlayDidNotPlay();
               
