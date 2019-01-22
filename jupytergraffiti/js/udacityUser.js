@@ -55,6 +55,11 @@ define([
       });
     },
     setUser: () => {
+      // Can't get star token if kernel is not set.
+      if (!Jupyter.notebook.kernel) {
+        return;
+      }
+
       udacityUser.getUser()
       .then(user => {
         state.setUserId(user.userId);

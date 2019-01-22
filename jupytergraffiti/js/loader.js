@@ -16,6 +16,9 @@ if (window.Graffiti === undefined) {
 
     Jupyter.notebook.events.on('kernel_ready.Kernel', (e) => { 
       console.log('Graffiti: kernel ready, possible kernel restart.', e);
+      if (!udacityUser.token) {
+        udacityUser.setUser();
+      } 
       require(['jupytergraffiti/js/loader.js']);
       utils.saveNotebook();
     });
