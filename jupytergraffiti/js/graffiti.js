@@ -3645,6 +3645,9 @@ define([
         }
 
         storage.deleteMovie(recordingCellId, recordingKey);
+        utils.saveNotebook(() => {
+          graffiti.updateControlPanels();
+        });
       },
 
 
@@ -3814,9 +3817,7 @@ define([
           } else {
             storage.storeManifest();
             storage.cleanUpExecutorCell();
-            utils.saveNotebook(() => {
-              state.setActivity('idle'); // cancel "executing" state
-            });
+            utils.saveNotebook();
           }
 
           const title = 'Unused takes removed.';
@@ -4681,7 +4682,7 @@ define([
           const deletableCellIds = _.difference(cellAdditionsIds, cellsPresentIds); 
           //console.log('deletableCellIds', deletableCellIds, cellAdditions, cellsPresentIds);
           for (deletableCellId of deletableCellIds) {
-            // console.log('Trying to delete cellid:', deletableCellId);
+            // console.log('Graffiti: Trying to delete cellid:', deletableCellId);
             deleteCellIndex = utils.findCellIndexByCellId(deletableCellId);
             if (deleteCellIndex !== undefined) {
               //console.log('Going to delete:', deleteCellId, 'at index:', deleteCellIndex);
@@ -5491,7 +5492,6 @@ define([
       cancelPlayback: () => { graffiti.cancelPlayback({cancelAnimation:false}) },
       removeUnusedTakes: (recordingFullId) => { graffiti.removeUnusedTakesWithConfirmation(recordingFullId) },
       removeAllUnusedTakes: () => { graffiti.removeAllUnusedTakesWithConfirmation() },
-      removeMovie:       (recordingId) => { graffiti.removeMovie(recordingId) },
       removeAllGraffiti:  graffiti.removeAllGraffitisWithConfirmation,
       disableGraffiti: graffiti.disableGraffitiWithConfirmation,
       setAccessLevel: (level) => { graffiti.toggleAccessLevel(level) },

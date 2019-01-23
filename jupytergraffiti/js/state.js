@@ -13,6 +13,7 @@ define([
       state.audioInitialized = false;
       state.recordingBlocked = false;
       state.activity = 'idle'; // one of "recording", "playing", "idle"
+      state.previousActivity = undefined;
       state.pointer = { x : 0, y: 0 };
       state.windowSize = state.getWindowSize();
       state.resetOnNextPlay = false;
@@ -967,6 +968,18 @@ define([
     setActivity: (newState) => {
       console.log('Graffiti: setting activity to:', newState);
       state.activity = newState;
+    },
+
+    getPreviousActivity: () => {
+      return state.previousActivity;
+    },
+
+    storePreviousActivity: () => {
+      state.previousActivity = state.activity;
+    },
+
+    restorePreviousActivity: () => {
+      state.activity = state.previousActivity;
     },
 
     getPointerPosition: () => {

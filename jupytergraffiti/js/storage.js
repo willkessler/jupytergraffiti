@@ -37,6 +37,7 @@ define([
         const cells = Jupyter.notebook.get_cells();
         const numCells = cells.length;
         storage.executorCell = Jupyter.notebook.insert_cell_below('code', numCells);
+        state.storePreviousActivity();
         state.setActivity('executing');
       }
       return storage.executorCell;
@@ -86,6 +87,7 @@ define([
           Jupyter.notebook.delete_cell(deleteCellIndex);
         }
         storage.executorCell = undefined;
+        state.restorePreviousActivity();
       }        
     },
 
@@ -186,7 +188,6 @@ define([
       storage.storeManifest();
       utils.saveNotebook(() => {
         storage.executeMovieCompleteCallback();
-        state.setActivity('idle'); // cancel "executing" state
       });
     },
 
@@ -211,7 +212,6 @@ define([
                                   stripCRs: true });
       }
       storage.cleanUpExecutorCell(graffitiPath);
-      state.setActivity('idle'); // cancel "executing" state
       return Promise.resolve();
     },
 
@@ -437,9 +437,7 @@ define([
       if (deletedTakes > 0) {
         storage.storeManifest();
         storage.cleanUpExecutorCell();
-        utils.saveNotebook(() => {
-          state.setActivity('idle'); // cancel "executing" state
-        });
+        utils.saveNotebook();
       }
     },
 
