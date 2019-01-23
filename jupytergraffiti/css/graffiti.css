@@ -783,3 +783,9 @@ http://www.patternify.com/
   opacity:0.5;
   cursor:pointer;
 }
+
+.graffiti-terminal-reset {
+  text-decoration:underline;
+  cursor:pointer;
+  text-align:right;
+}
