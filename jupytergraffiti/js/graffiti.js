@@ -4095,6 +4095,7 @@ define([
             const deletedCellId = utils.getMetadataCellId(deletedCell.metadata);
             if (deletedCellId !== undefined) {
               graffiti.removeCanvasRecordsForCell(deletedCellId);              
+              terminalLib.removeTerminal(deletedCellId);
             }
           }
           state.storeHistoryRecord('contents');
@@ -4230,6 +4231,7 @@ define([
             graffiti.stopRecordingCore(true);
             state.unblockRecording();
             graffiti.clearJupyterMenuHint();
+            terminals.saveOrRestoreTerminalOutputs('restore');
             console.log('Graffiti: Stopped recording.');
           } else {
 
@@ -4245,6 +4247,7 @@ define([
             }
             console.log('Graffiti: Begin recording for cell id:', recordingCellInfo.recordingCellId);
 
+            terminalLib.saveOrRestoreTerminalOutputs('save');
             state.resetPlayState();
             graffiti.changeActivity('recording');
             utils.assignCellIds();
@@ -4752,8 +4755,23 @@ define([
 
       updateTerminals: (index) => {
         const record = state.getHistoryItem('terminals', index);
-        const termRecord = record.terminal;
-        terminalLib.loadWithPartialOutput(termRecord.id, termRecord.portion);
+        const termRecords = record.terminals;
+        if (termRecords !== undefined) {
+          if (termRecords.length > 0) {
+            let termRecord;
+            for (let i = 0; i < termRecords.length; ++i) {
+              termRecord = termRecords[i];
+              switch (termRecord.type) {
+                case 'focus':
+                  terminalLib.focusTerminal(termRecord.id);
+                  break;
+                case 'output':
+                  terminalLib.loadWithPartialOutput(termRecord.id, termRecord.portion);
+                  break;
+              }
+            }
+          }
+        }
       },
 
       updateSpeaking: (index) => {
@@ -4896,14 +4914,21 @@ define([
 
       handleTerminalEvents: (event) => {
         switch (event.type) {
+          case 'focus':
+            state.storeTerminalState([{
+              type: 'focus',
+              id: event.data.id,
+            }]);
+            break;
           case 'output':
             if (state.getActivity() === 'recording') {
               // If we are recording, we need to record latest terminal output for replay
               console.log('Terminal output event:', event.data.portion);
-              state.storeTerminalState({
+              state.storeTerminalState([{
+                type: 'output',
                 id: event.data.id,
-                portion: event.data.portion
-              });
+                portion: event.data.portion,
+              }]);
               state.storeHistoryRecord('terminals');
             }
             break;

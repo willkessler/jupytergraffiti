@@ -21,7 +21,9 @@ define ([
       terminalLib.applyAddon(fit);
       const term = new terminalLib();
       term.id = terminalId;
-      let contents = ''; // all chars in and out of the terminal over the socket
+      // contents: contains all chars in and out of the terminal over the socket
+      // contentsPortion: contains latest subportion of those contents for recorded replay usage
+      let termObject = {socket: ws, term: term, contents: '', contentsPortion: ''};
       ws.onopen = function(event) {
         term.on('data', function(data) {
           ws.send(JSON.stringify(['stdin', data]));
@@ -36,8 +38,14 @@ define ([
         });
 
         term.on('focus', () => { 
-          // console.log('terminal ' + term.id + ' focused');
+          console.log('terminal ' + term.id + ' focused');
           terminals.focusedTerminal = term;
+          terminals.eventsCallback({
+            type: 'focus',
+            data: {
+              id: term.id
+            }
+          });
         });
         term.on('blur', () => { 
           // console.log('terminal defocused'); 
@@ -49,24 +57,24 @@ define ([
         // send the terminal size to the server.
         ws.send(JSON.stringify(["set_size", term.rows, term.cols,
                                 window.innerHeight, window.innerWidth]));
+
         ws.onmessage = function(event) {
           const json_msg = JSON.parse(event.data);
           switch(json_msg[0]) {
             case "stdout":
               term.write(json_msg[1]);
-              contents += json_msg[1];
-              const portionLength = (term.rows * term.cols) * 2;
-              const contentsPortion = contents.substr(Math.max(0,contents.length - portionLength));
+              termObject.contents += json_msg[1];
+              termObject.contentsPortion = terminals.getContentsPortion(termObject);
               terminals.eventsCallback({ 
                 type: 'output',
                 data: { 
                   id: term.id,
                   new: json_msg[1],
-                  all: contents,
-                  portion: contentsPortion,
+                  all: termObject.contents,
+                  portion: termObject.contentsPortion,
                 }
               });
-              // console.log('received string of length:', json_msg[1].length, 'from server');
+              console.log('termId:', terminalId,'received string of length:', json_msg[1].length, 'from server, contents now has:', termObject.contents);
               break;
             case "disconnect":
               term.write("\r\n\r\n[CLOSED]\r\n");
@@ -74,11 +82,20 @@ define ([
           }
         };
       };
-      return {socket: ws, term: term, contents: contents};
+
+      return termObject;
     },
 
     getFocusedTerminal: () => {
       return terminals.focusedTerminal;
+    },
+
+    getContentsPortion: (terminal) => {
+      const portionMultiplier = 4;
+      const term = terminal.term;
+      const portionLength = (term.rows * term.cols) * portionMultiplier;
+      const contentsPortion = terminal.contents.substr(Math.max(0,terminal.contents.length - portionLength));
+      return contentsPortion;
     },
 
     createTerminalCell: (cellId, config) => {
@@ -100,7 +117,10 @@ define ([
         const terminalContainerId = 'terminal-container-' + cellId;
 
         renderArea.html('<div id="' + terminalContainerId + '" class="container" style="width:100%;height:' + terminalHeight + 'px;"></div>' +
-                        '<div class="graffiti-terminal-reset">Reset Terminal</div>').show();
+                        '<div class="graffiti-terminal-links">' +
+                        ' <div class="graffiti-terminal-go-notebook-dir">Jump to Notebook\'s Dir</div>' +
+                        ' <div class="graffiti-terminal-reset">Reset Terminal</div>' +
+                        '</div>').show();
         const wsUrl = location.protocol.replace('http', 'ws') + '//' + location.host + '/terminals/websocket/' + config.terminalId;
         const elem = $('#' + terminalContainerId);
         const sizeObj = {cols:40, rows:10};
@@ -117,8 +137,14 @@ define ([
         elem.bind('click', () => { newTerminal.term.focus(); });
 
         if (config.startingDirectory !== undefined) {
-          const cdCommand = 'cd ' + config.startingDirectory + ';clear' + "\n";
-          newTerminal.term.send(cdCommand);
+          // in theory we could check to see if we're already in the directory we are supposed to be in using basename:
+          // https://stackoverflow.com/questions/23162299/how-to-get-the-last-part-of-dirname-in-bash
+          const cdCommand = "" + 'cd ' + config.startingDirectory + "\n";
+          renderArea.find('.graffiti-terminal-go-notebook-dir').click((e) => {
+            newTerminal.term.send(cdCommand);
+          });
+        } else {
+          renderArea.find('.graffiti-terminal-go-notebook-dir').hide(); // if this link is inactive, just hide it.
         }
 
         return newTerminal;
@@ -137,6 +163,9 @@ define ([
         let notebookPath, notebookPathParts;
         if (fullNotebookPath.indexOf('/') === -1) {
           notebookPath = fullNotebookPath;
+          if (notebookPath.indexOf('.ipynb') !== -1) {
+            notebookPath = undefined; // at the top level, we don't set a CD command
+          }
         } else {
           notebookPathParts = fullNotebookPath.split('/');
           notebookPath = notebookPathParts.slice(0,notebookPathParts.length - 1).join('/');
@@ -164,6 +193,11 @@ define ([
           utils.saveNotebook();
         }
       }
+    },
+
+    // Just remove the cellId from the list we keep of terminals in the nb.
+    removeTerminal: (cellId) => {
+      delete(terminals.terminalsList[cellId]);
     },
 
     createTerminalCellAboveSelectedCell: () => {
@@ -207,53 +241,63 @@ define ([
       terminals.processRenderQueue();
     },
 
-    saveTerminalOutput: (cellId) => {
-      if (terminals.terminalsList[cellId] !== undefined) {
-        const termRecord = terminals.terminalsList[cellId];
-        termRecord.contentsBackup = termRecord.contents;
+    backupTerminalOutput: (cellId) => {
+      const terminal = terminals.terminalsList[cellId];
+      if (terminal !== undefined) {
+        terminal.contentsBackup = terminal.contents;
       }
     },
 
     loadWithPartialOutput: (cellId, portion) => {
-      if (terminals.terminalsList[cellId] !== undefined) {
-        const termRecord = terminals.terminalsList[cellId];
-        termRecord.term.clear();
-        termRecord.term.write(portion);
-        termRecord.term.contents = portion;
+      const terminal = terminals.terminalsList[cellId];
+      if (terminal !== undefined) {
+        terminal.term.clear();
+        terminal.term.write(portion);
+        terminal.contents = portion;
+      }
+    },
+
+    focusTerminal: (cellId) => {
+      const termRecord = terminals.terminalsList[cellId];
+      if (termRecord !== undefined) {
+        termRecord.term.focus();
       }
     },
 
     restoreTerminalOutput: (cellId) => {
-      if (terminals.terminalsList[cellId] !== undefined) {
-        const termRecord = terminals.terminalsList[cellId];
-        if (termRecord.contentsBackup !== undefined) {
-          if (termRecord.contents != termRecord.contentsBackup) {
-            termRecord.contents = termRecord.contentsBackup;
-            termRecord.term.reset();
-            termRecord.term.write(termRecord.contents);
+      const terminal = terminals.terminalsList[cellId];
+      if (terminal !== undefined) {
+        if (terminal.contentsBackup !== undefined) {
+          if (terminal.contents != terminal.contentsBackup) {
+            terminal.contents = terminal.contentsBackup;
+            terminal.term.reset();
+            terminal.term.write(terminal.contents);
           }
         }
       }      
     },
 
     saveOrRestoreTerminalOutputs: (action) => {
-      const cells = Jupyter.notebook.get_cells();
-      let cell, cellId;
-      for (let i = 0; i < cells.length; ++i) {
-        cell = cells[i];
-        cellId = utils.getMetadataCellId(cell.metadata);
-        const graffitiConfig = utils.getCellGraffitiConfig(cell);
-        if (graffitiConfig !== undefined) {
-          const graffitiType = graffitiConfig.type;
-          if ((graffitiType !== undefined) && (graffitiType === 'terminal')) {
-            if (action === 'save') {
-              terminals.saveTerminalOutput(cellId);
-            } else {
-              terminals.restoreTerminalOutput(cellId);
-            }
-          }
+      for (let cellId of Object.keys(terminals.terminalsList)) {
+        if (action === 'save') {
+          terminals.backupTerminalOutput(cellId);
+        } else {
+          terminals.restoreTerminalOutput(cellId);
         }
       }
+    },
+
+    collectAllTerminalsContents: () => {
+      const contents = [];
+      for (let cellId of Object.keys(terminals.terminalsList)) {
+        terminal = terminals.terminalsList[cellId];
+        contents.push({
+          type: 'output',
+          id: cellId,
+          portion: terminal.contentsPortion,
+        });
+      }
+      return contents;
     },
 
     runTerminalCommand: (terminalId, command, addCR) => {

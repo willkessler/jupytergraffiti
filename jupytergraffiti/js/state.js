@@ -77,6 +77,7 @@ define([
       state.shiftKeyIsDown = false;
       state.executionSourceChoiceId = undefined;
       state.terminalState = undefined;
+      state.recordAllTerminalStates = false;
 
       // Usage statistic gathering for the current session (since last load of the notebook)
       state.usageStats = {
@@ -1106,7 +1107,7 @@ define([
     },
 
     storeTerminalState: (newState) => {
-      state.terminalState = newState;
+      state.terminalsState = newState; // state of one or more terminals at any given time
     },
 
     // In any history:
@@ -1355,8 +1356,14 @@ define([
       return { cellsContent: cellsContent, cellsPresentThisFrame: cellsPresentThisFrame };
     },
 
-    createTerminalRecord: () => {
-      return { terminal: state.terminalState };
+    createTerminalsRecord: () => {
+      if (state.recordAllTerminalStates) {
+        state.recordAllTerminalStates = false;
+        // Collect contents of all terminals and store them all. This is only done at the beginning of a graffiti to set all terminals to
+        // have whatever contents they had when the recording was begun.
+        state.terminalsState = terminalLib.collectAllTerminalsContents();
+      }
+      return { terminals: state.terminalsState };
     },
 
     createSpeakingRecord: () => {
@@ -1408,7 +1415,7 @@ define([
           record = state.createContentsRecord(true);
           break;
         case 'terminals':
-          record = state.createTerminalRecord();
+          record = state.createTerminalsRecord();
           break;
         case 'speaking':
           record = state.createSpeakingRecord();
@@ -1546,6 +1553,10 @@ define([
 
       // Set up to keep track of the latest record processed during playback (so we don't process a record twice).
       state.resetProcessedArrays();
+
+      // Set things up to record the state of all known terminals at the start of any recording. This value
+      // is used by createTerminalsRecord().
+      state.recordAllTerminalStates = true;
 
       // Store initial state records at the start of recording.
       state.storeHistoryRecord('pointer',    now);
