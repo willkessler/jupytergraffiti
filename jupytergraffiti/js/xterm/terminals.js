@@ -21,6 +21,7 @@ define ([
       terminalLib.applyAddon(fit);
       const term = new terminalLib();
       term.id = terminalId;
+      let contents = ''; // all chars in and out of the terminal over the socket
       ws.onopen = function(event) {
         term.on('data', function(data) {
           ws.send(JSON.stringify(['stdin', data]));
@@ -53,6 +54,18 @@ define ([
           switch(json_msg[0]) {
             case "stdout":
               term.write(json_msg[1]);
+              contents += json_msg[1];
+              const portionLength = (term.rows * term.cols) * 2;
+              const contentsPortion = contents.substr(Math.max(0,contents.length - portionLength));
+              terminals.eventsCallback({ 
+                type: 'output',
+                data: { 
+                  id: term.id,
+                  new: json_msg[1],
+                  all: contents,
+                  portion: contentsPortion,
+                }
+              });
               // console.log('received string of length:', json_msg[1].length, 'from server');
               break;
             case "disconnect":
@@ -61,7 +74,7 @@ define ([
           }
         };
       };
-      return {socket: ws, term: term};
+      return {socket: ws, term: term, contents: contents};
     },
 
     getFocusedTerminal: () => {
@@ -194,6 +207,55 @@ define ([
       terminals.processRenderQueue();
     },
 
+    saveTerminalOutput: (cellId) => {
+      if (terminals.terminalsList[cellId] !== undefined) {
+        const termRecord = terminals.terminalsList[cellId];
+        termRecord.contentsBackup = termRecord.contents;
+      }
+    },
+
+    loadWithPartialOutput: (cellId, portion) => {
+      if (terminals.terminalsList[cellId] !== undefined) {
+        const termRecord = terminals.terminalsList[cellId];
+        termRecord.term.clear();
+        termRecord.term.write(portion);
+        termRecord.term.contents = portion;
+      }
+    },
+
+    restoreTerminalOutput: (cellId) => {
+      if (terminals.terminalsList[cellId] !== undefined) {
+        const termRecord = terminals.terminalsList[cellId];
+        if (termRecord.contentsBackup !== undefined) {
+          if (termRecord.contents != termRecord.contentsBackup) {
+            termRecord.contents = termRecord.contentsBackup;
+            termRecord.term.reset();
+            termRecord.term.write(termRecord.contents);
+          }
+        }
+      }      
+    },
+
+    saveOrRestoreTerminalOutputs: (action) => {
+      const cells = Jupyter.notebook.get_cells();
+      let cell, cellId;
+      for (let i = 0; i < cells.length; ++i) {
+        cell = cells[i];
+        cellId = utils.getMetadataCellId(cell.metadata);
+        const graffitiConfig = utils.getCellGraffitiConfig(cell);
+        if (graffitiConfig !== undefined) {
+          const graffitiType = graffitiConfig.type;
+          if ((graffitiType !== undefined) && (graffitiType === 'terminal')) {
+            if (action === 'save') {
+              terminals.saveTerminalOutput(cellId);
+            } else {
+              terminals.restoreTerminalOutput(cellId);
+            }
+          }
+        }
+      }
+    },
+
     runTerminalCommand: (terminalId, command, addCR) => {
       // Inject the terminal command into the target terminal (if found).
       if (terminals.terminalsList[terminalId] !== undefined) {
@@ -205,7 +267,8 @@ define ([
       }
     },
 
-    init: () => {
+    init: (eventsCallback) => {
+      terminals.eventsCallback = eventsCallback;
       terminals.renderAllTerminals();
     },
 

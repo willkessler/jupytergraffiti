@@ -1,6 +1,7 @@
 define([
   './utils.js',
-], function (utils) {
+  './xterm/terminals.js',
+], function (utils, terminalLib) {
   const state = {
     init: () => {
       console.log('Graffiti: state constructor running.');
@@ -19,7 +20,7 @@ define([
       state.resetOnNextPlay = false;
       state.recordedAudioString = '';
       state.audioStorageCallback = undefined;
-      state.frameArrays = ['view', 'selections', 'contents', 'drawings', 'speaking'];
+      state.frameArrays = ['view', 'selections', 'contents', 'drawings', 'terminals', 'speaking'];
       state.scrollTop = undefined;
       state.selectedCellId = undefined;
       state.mute = false;
@@ -38,6 +39,7 @@ define([
       state.displayedTipInfo = undefined;
       state.movieRecordingStarted = false;
       state.cellsAffectedByActivity = {};
+      state.terminalsAffectedByActivity = undefined;
       state.drawingFadeClockAllowed = true;
       state.drawingFadeStart;
       state.drawingFadeDuration = 1000;
@@ -74,6 +76,7 @@ define([
       state.narratorInfo = {};
       state.shiftKeyIsDown = false;
       state.executionSourceChoiceId = undefined;
+      state.terminalState = undefined;
 
       // Usage statistic gathering for the current session (since last load of the notebook)
       state.usageStats = {
@@ -1102,6 +1105,10 @@ define([
       state.playbackCellAdditions = {};
     },
 
+    storeTerminalState: (newState) => {
+      state.terminalState = newState;
+    },
+
     // In any history:
     //
     // Each entry in pointer[] is an object with:
@@ -1310,6 +1317,13 @@ define([
       let cellsContent = {}, cellsPresentThisFrame = {};
       for (let i = 0; i < cells.length; ++i) {
         cell = cells[i];
+        const graffitiConfig = utils.getCellGraffitiConfig(cell);
+        if (graffitiConfig !== undefined) {
+          const graffitiType = graffitiConfig.type;
+          if ((graffitiType !== undefined) && (graffitiType === 'terminal')) {
+            continue; // don't save terminal cell state here, it's saved by a separate fn
+          }
+        }
         cellId = utils.getMetadataCellId(cell.metadata);
         cellsPresentThisFrame[cellId] = utils.findCellIndexByCellId(cellId);
         contents = cell.get_text();
@@ -1339,6 +1353,10 @@ define([
       }
 
       return { cellsContent: cellsContent, cellsPresentThisFrame: cellsPresentThisFrame };
+    },
+
+    createTerminalRecord: () => {
+      return { terminal: state.terminalState };
     },
 
     createSpeakingRecord: () => {
@@ -1388,6 +1406,9 @@ define([
           break;
         case 'contents':
           record = state.createContentsRecord(true);
+          break;
+        case 'terminals':
+          record = state.createTerminalRecord();
           break;
         case 'speaking':
           record = state.createSpeakingRecord();
@@ -1503,6 +1524,7 @@ define([
         selections:  [],                          // cell selections
         contents:    [],                          // contents state: what cells present, and what their contents are, and cell outputs
         drawings:    [],                          // drawing record, of type: ['draw', 'fade', 'wipe', 'sticker']
+        terminals:   [],                          // terminal record. Records (recent) changes to contents of a terminal
         speaking:    [],                          // time ranges where creator is speaking or silent
         skip:        [],                          // time ranges when creator has requested either an acceleration or a time compression
 
@@ -1512,6 +1534,7 @@ define([
           selections: 0,
           contents:   0,
           drawings:   0,
+          terminals:  0,
           speaking:   0,
           skip:       0,
         },
@@ -1758,6 +1781,7 @@ define([
 
     storeCellStates: () => {
       state.cellsAffectedByActivity = {};
+      state.terminalsAffectedByActivity = [];
       const cells = Jupyter.notebook.get_cells();
       state.cellStates = {
         contents: state.createContentsRecord(false),
