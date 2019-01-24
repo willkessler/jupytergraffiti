@@ -1358,10 +1358,18 @@ define([
 
     createTerminalsRecord: () => {
       if (state.recordAllTerminalStates) {
-        state.recordAllTerminalStates = false;
         // Collect contents of all terminals and store them all. This is only done at the beginning of a graffiti to set all terminals to
         // have whatever contents they had when the recording was begun.
         state.terminalsState = terminalLib.collectAllTerminalsContents();
+        const focusedTerminal = terminalLib.getFocusedTerminal();
+        if (focusedTerminal !== undefined) {
+          const termRecord = {
+            type: 'focus',
+            id: focusedTerminal
+          };
+          state.terminalsState.push(termRecord);
+        }
+        state.recordAllTerminalStates = false;
       }
       return { terminals: state.terminalsState };
     },
@@ -1564,6 +1572,7 @@ define([
       state.storeHistoryRecord('focus',      now);
       state.storeHistoryRecord('selections', now);
       state.storeHistoryRecord('contents',   now);
+      state.storeHistoryRecord('terminals',  now);
     },
 
     finalizeHistory: () => {

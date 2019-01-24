@@ -38,8 +38,8 @@ define ([
         });
 
         term.on('focus', () => { 
-          console.log('terminal ' + term.id + ' focused');
-          terminals.focusedTerminal = term;
+          console.log('Graffiti: terminal ' + term.id + ' focused');
+          terminals.focusedTerminal = term.id;
           terminals.eventsCallback({
             type: 'focus',
             data: {

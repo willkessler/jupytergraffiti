@@ -4231,7 +4231,7 @@ define([
             graffiti.stopRecordingCore(true);
             state.unblockRecording();
             graffiti.clearJupyterMenuHint();
-            terminals.saveOrRestoreTerminalOutputs('restore');
+            terminalLib.saveOrRestoreTerminalOutputs('restore');
             console.log('Graffiti: Stopped recording.');
           } else {
 

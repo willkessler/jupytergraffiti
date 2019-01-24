@@ -192,7 +192,7 @@ define([
     },
 
     writeOutMovieData: (movieInfo, jsonHistory, encodedAudio) => {
-      console.log('writeOutMovieData, movieInfo:', movieInfo, 'history:', jsonHistory);
+      //console.log('writeOutMovieData, movieInfo:', movieInfo, 'history:', jsonHistory);
       const graffitiPath = storage.constructGraffitiTakePath({
         recordingCellId: movieInfo.recordingCellId,
         recordingKey:    movieInfo.recordingKey,
