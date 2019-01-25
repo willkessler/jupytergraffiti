@@ -32,9 +32,8 @@ define ([
         }
       });
       term.id = terminalId;
-      // contents: contains all chars in and out of the terminal over the socket
-      // contentsPortion: contains latest subportion of those contents for recorded replay usage
-      let termObject = {socket: ws, term: term, contents: '', contentsPortion: ''};
+      // contents: contains all chars in and out of the terminal over the socket.
+      let termObject = {socket: ws, term: term, contents: ''};
       ws.onopen = function(event) {
         term.on('data', function(data) {
           ws.send(JSON.stringify(['stdin', data]));
@@ -45,7 +44,7 @@ define ([
         // });
         
         term.on('scroll', (data) => {
-          console.log('term scroll:', data);
+          //console.log('term scroll:', data);
         });
 
         // term.on('selection', (data) => {
@@ -72,17 +71,15 @@ define ([
           const json_msg = JSON.parse(event.data);
           switch(json_msg[0]) {
             case "stdout":
-              term.write(json_msg[1]);
-              termObject.contents += json_msg[1];
-              termObject.contentsPortion = terminals.getContentsPortion(termObject);
+              const newChars = json_msg[1];
+              term.write(newChars);
+              //console.log('received newCharslength:', newChars.length, newChars);
+              termObject.contents += newChars;
               terminals.eventsCallback({ 
-                type: 'output',
-                data: { 
-                  id: term.id,
-                  new: json_msg[1],
-                  all: termObject.contents,
-                  portion: termObject.contentsPortion,
-                }
+                id: term.id,
+                position: termObject.contents.length,
+                focusedTerminal: terminals.focusedTerminal,
+                firstRecord: false,
               });
               // console.log('termId:', terminalId,'received string of length:', json_msg[1].length, 'from server, contents now has:', termObject.contents);
               break;
@@ -100,11 +97,15 @@ define ([
       return terminals.focusedTerminal;
     },
 
-    getContentsPortion: (terminal) => {
+    // Get enough content to fill a terminal sufficiently during scrubbing or just starting playback.
+    // We don't restore the entire contents we may have had for the terminal because it could be huge,
+    // but we restore about 4x the terminal contents so you can scroll back a bit and to account for
+    // curses program output and multibyte characters, etc.
+    getContentToFillTerminal: (terminal, contents, contentsPointer) => {
       const portionMultiplier = 4;
       const term = terminal.term;
       const portionLength = (term.rows * term.cols) * portionMultiplier;
-      const contentsPortion = terminal.contents.substr(Math.max(0,terminal.contents.length - portionLength));
+      const contentsPortion = contents.substr(0, contentsPointer);
       return contentsPortion;
     },
 
@@ -129,7 +130,8 @@ define ([
         renderArea.html('<div class="graffiti-terminal-container" id="' + terminalContainerId + '" class="container" style="width:100%;height:' + terminalHeight + 'px;"></div>' +
                         '<div class="graffiti-terminal-links">' +
                         ' <div class="graffiti-terminal-go-notebook-dir">Jump to Notebook\'s Dir</div>' +
-                        ' <div class="graffiti-terminal-reset">Reset Terminal</div>' +
+                        ' <div class="graffiti-terminal-refresh">Refresh</div>' +
+                        ' <div class="graffiti-terminal-reset">Reset</div>' +
                         '</div>').show();
         const wsUrl = location.protocol.replace('http', 'ws') + '//' + location.host + '/terminals/websocket/' + config.terminalId;
         const elem = $('#' + terminalContainerId);
@@ -139,6 +141,12 @@ define ([
           const cellDOM = target.parents('.cell');
           const cellId = cellDOM.attr('graffiti-cell-id');
           terminals.resetTerminalCell(cellId);
+        });
+        renderArea.find('.graffiti-terminal-refresh').click((e) => {
+          const target = $(e.target);
+          const cellDOM = target.parents('.cell');
+          const cellId = cellDOM.attr('graffiti-cell-id');
+          terminals.refreshTerminalCell(cellId);
         });
 
         const newTerminal = terminals._makeTerminal(elem[0], cellId, wsUrl, sizeObj);
@@ -193,15 +201,22 @@ define ([
       }
     },
 
+    refreshTerminalCell: (cellId) => {
+      if (terminals.terminalsList[cellId] !== undefined) {
+        // Create a new terminal id so we'll connect to a fresh socket.
+        const term = terminals.terminalsList[cellId].term;
+        term.refresh(0,100000);
+        term.focus();        
+      }
+    },
+
     resetTerminalCell: (cellId) => {
-      const cell = utils.findCellByCellId(cellId);
-      if (cell.metadata.hasOwnProperty('graffitiConfig')) {
-        if (cell.metadata.graffitiConfig.type === 'terminal') {
-          // Create a new terminal id so we'll connect to a fresh socket.
-          delete(terminals.terminalsList[cellId]);
-          terminals.createTerminalInCell(cell, utils.generateUniqueId() );
-          utils.saveNotebook();
-        }
+      if (terminals.terminalsList[cellId] !== undefined) {
+        // Create a new terminal id so we'll connect to a fresh socket.
+        delete(terminals.terminalsList[cellId]);
+        const cell = utils.findCellByCellId(cellId);
+        terminals.createTerminalInCell(cell, utils.generateUniqueId() );
+        utils.saveNotebook();
       }
     },
 
@@ -258,12 +273,29 @@ define ([
       }
     },
 
-    loadWithPartialOutput: (cellId, portion) => {
+    setTerminalContents: (opts) => {
+      const cellId = opts.id;
       const terminal = terminals.terminalsList[cellId];
+      terminal.contents = opts.terminalsContents[cellId];
+      console.log('loadWithPartialOutput', opts);
       if (terminal !== undefined) {
-        terminal.term.reset();
-        terminal.term.write(portion);
-        terminal.contents = portion;
+        if (!opts.incremental || opts.firstRecord || terminal.lastPosition === undefined) {
+          terminal.term.reset();
+          const portion = terminals.getContentToFillTerminal(terminal, terminal.contents, opts.position);
+          terminal.term.write(portion);
+          terminal.lastPosition = opts.position;
+        } else {
+          const newPortion = terminal.contents.substr(terminal.lastPosition, opts.position - terminal.lastPosition);
+          console.log('writing newPortion', newPortion);
+          terminal.term.write(newPortion);
+          terminal.lastPosition = opts.position;
+        }
+      }
+    },
+
+    clearTerminalsContentsPositions: () => {
+      for (let cellId of Object.keys(terminals.terminalsList)) {
+        terminals.terminalsList[cellId].lastPosition = undefined;
       }
     },
 
@@ -300,17 +332,25 @@ define ([
       }
     },
 
-    collectAllTerminalsContents: () => {
-      const contents = [];
-      const focusedTerminal = terminals.getFocusedTerminal();
+    getTerminalsStates: () => {
+      const states = [];
       for (let cellId of Object.keys(terminals.terminalsList)) {
         terminal = terminals.terminalsList[cellId];
-        contents.push({
-          type: 'output',
+        states.push({
           id: cellId,
-          portion: terminal.contentsPortion,
-          focusedTerminal: focusedTerminal,
+          position: terminal.contents.length,
+          focusedTerminal: terminals.focusedTerminal,
+          firstRecord: true, // these records are always the first records used in a recording, so set the flag to reset terminal contents when playback restarted
         });
+      }
+      return states;
+    },
+
+    getTerminalsContents: () => {
+      const contents = {};
+      for (let cellId of Object.keys(terminals.terminalsList)) {
+        terminal = terminals.terminalsList[cellId];
+        contents[cellId] = terminal.contents;
       }
       return contents;
     },

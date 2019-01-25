@@ -1447,7 +1447,7 @@ define([
         graffiti.setupSavingScrim();
         graffiti.playAutoplayGraffiti(); // play any autoplay graffiti if there is one set up
 
-        terminalLib.init(graffiti.handleTerminalEvents);
+        terminalLib.init(graffiti.handleTerminalsEvents);
         graffiti.setupTerminalMenus();
 
 /*
@@ -4156,12 +4156,14 @@ define([
         graffiti.clearCanvases('all');
         graffiti.hideDrawingScreen();
         graffiti.resetDrawingColor();
+        state.storeTerminalsContentsInHistory();
         state.setSpeakingStatus(false); // if we were still speaking, record a history record that will terminate that state during playback.
         state.finalizeHistory();
         if (useCallback) {
           state.dumpHistory();
         }
         state.clearAnimationIntervals();
+
         // This will use the callback defined in setAudioStorageCallback to actually persist the
         // whole recording, if useCallback (passed in to this fn) is true.
         audio.stopRecording();
@@ -4758,17 +4760,13 @@ define([
         const termRecords = record.terminals;
         let focusedTerminal = undefined;
         if (termRecords !== undefined) {
-          if (termRecords.length > 0) {
-            let termRecord;
-            for (let i = 0; i < termRecords.length; ++i) {
-              termRecord = termRecords[i];
-              switch (termRecord.type) {
-                case 'output':
-                  terminalLib.loadWithPartialOutput(termRecord.id, termRecord.portion);
-                  focusedTerminal = termRecord.focusedTerminal;
-                  break;
-              }
-            }
+          const terminalsContents = state.getHistoryTerminalsContents();
+          for (let i = 0; i < termRecords.length; ++i) {
+            terminalLib.setTerminalContents($.extend(true, termRecords[i], { 
+              incremental: (state.getActivity() === 'playing'), 
+              terminalsContents: terminalsContents,
+            }));
+            focusedTerminal = termRecords[i].focusedTerminal;
           }
         }
         terminalLib.focusTerminal(focusedTerminal);        
@@ -4912,21 +4910,12 @@ define([
         graffiti.applyRawCalculatedScrollTop(frameIndexes.view.index);
       },
 
-      handleTerminalEvents: (event) => {
-        switch (event.type) {
-          case 'output':
-            if (state.getActivity() === 'recording') {
-              // If we are recording, we need to record latest terminal output for replay
-              //console.log('Terminal output event:', event.data.portion);
-              state.storeTerminalState([{
-                type: 'output',
-                id: event.data.id,
-                portion: event.data.portion,
-                focusedTerminal: terminalLib.getFocusedTerminal(),
-              }]);
-              state.storeHistoryRecord('terminals');
-            }
-            break;
+      handleTerminalsEvents: (event) => {
+        if (state.getActivity() === 'recording') {
+          // If we are recording, we need to record latest terminal output for replay
+          //console.log('Terminal output event:', event.data.portion);
+          state.storeTerminalsState([event]);
+          state.storeHistoryRecord('terminals');
         }
       },
 
@@ -5042,6 +5031,7 @@ define([
           state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.setCurrentPlaySpeed('regular');
           state.setSpeakingStatus(false);
+          terminalLib.clearTerminalsContentsPositions();
           state.resetPlayTimes();
           graffiti.prePlaybackScrolltop = state.getScrollTop();
           graffiti.lastScrollViewId = undefined;
