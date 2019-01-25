@@ -19,7 +19,7 @@ define ([
     _makeTerminal: (element, terminalId, wsUrl, sizeObj) => {
       const ws = new WebSocket(wsUrl);
       terminalLib.applyAddon(fit);
-      const term = new terminalLib();
+      const term = new terminalLib({ scrollback: 10000, theme: { foreground:'black', background: '#eee', cursor:'#f73', cursorAccent: '#f22' }});
       term.id = terminalId;
       // contents: contains all chars in and out of the terminal over the socket
       // contentsPortion: contains latest subportion of those contents for recorded replay usage
@@ -116,7 +116,7 @@ define ([
         const terminalHeight = lineHeight * config.rows; // pixels
         const terminalContainerId = 'terminal-container-' + cellId;
 
-        renderArea.html('<div id="' + terminalContainerId + '" class="container" style="width:100%;height:' + terminalHeight + 'px;"></div>' +
+        renderArea.html('<div class="graffiti-terminal-container" id="' + terminalContainerId + '" class="container" style="width:100%;height:' + terminalHeight + 'px;"></div>' +
                         '<div class="graffiti-terminal-links">' +
                         ' <div class="graffiti-terminal-go-notebook-dir">Jump to Notebook\'s Dir</div>' +
                         ' <div class="graffiti-terminal-reset">Reset Terminal</div>' +

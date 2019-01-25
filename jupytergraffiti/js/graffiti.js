@@ -4763,6 +4763,7 @@ define([
               termRecord = termRecords[i];
               switch (termRecord.type) {
                 case 'focus':
+                  console.log('Graffiti: switching focus to', termRecord.id);
                   terminalLib.focusTerminal(termRecord.id);
                   break;
                 case 'output':
