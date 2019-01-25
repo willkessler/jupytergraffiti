@@ -19,7 +19,16 @@ define ([
     _makeTerminal: (element, terminalId, wsUrl, sizeObj) => {
       const ws = new WebSocket(wsUrl);
       terminalLib.applyAddon(fit);
-      const term = new terminalLib({ scrollback: 10000, theme: { foreground:'black', background: '#eee', cursor:'#f73', cursorAccent: '#f22' }});
+      const term = new terminalLib({ 
+        scrollback: 10000, 
+        theme: { 
+          foreground:'black', 
+          background: '#eee', 
+          selection: '#fff',
+          cursor:'#f73', 
+          cursorAccent: '#f22' 
+        }
+      });
       term.id = terminalId;
       // contents: contains all chars in and out of the terminal over the socket
       // contentsPortion: contains latest subportion of those contents for recorded replay usage
@@ -34,8 +43,12 @@ define ([
         // });
         
         term.on('scroll', (data) => {
-          // console.log('term scroll:', data);
+          console.log('term scroll:', data);
         });
+
+        // term.on('selection', (data) => {
+        //   console.log('term selection:', term.getSelection());
+        // });
 
         term.on('focus', () => { 
           console.log('Graffiti: terminal ' + term.id + ' focused');
