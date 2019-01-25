@@ -84,7 +84,7 @@ define ([
                   portion: termObject.contentsPortion,
                 }
               });
-              console.log('termId:', terminalId,'received string of length:', json_msg[1].length, 'from server, contents now has:', termObject.contents);
+              // console.log('termId:', terminalId,'received string of length:', json_msg[1].length, 'from server, contents now has:', termObject.contents);
               break;
             case "disconnect":
               term.write("\r\n\r\n[CLOSED]\r\n");
