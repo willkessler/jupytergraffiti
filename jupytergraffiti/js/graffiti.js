@@ -4919,11 +4919,12 @@ define([
               type: 'focus',
               id: event.data.id,
             }]);
+            state.storeHistoryRecord('terminals');
             break;
           case 'output':
             if (state.getActivity() === 'recording') {
               // If we are recording, we need to record latest terminal output for replay
-              console.log('Terminal output event:', event.data.portion);
+              //console.log('Terminal output event:', event.data.portion);
               state.storeTerminalState([{
                 type: 'output',
                 id: event.data.id,

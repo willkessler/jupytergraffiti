@@ -251,7 +251,7 @@ define ([
     loadWithPartialOutput: (cellId, portion) => {
       const terminal = terminals.terminalsList[cellId];
       if (terminal !== undefined) {
-        terminal.term.clear();
+        terminal.term.reset();
         terminal.term.write(portion);
         terminal.contents = portion;
       }
@@ -260,6 +260,8 @@ define ([
     focusTerminal: (cellId) => {
       const termRecord = terminals.terminalsList[cellId];
       if (termRecord !== undefined) {
+        const cell = utils.findCellByCellId(cellId);
+        // cell.focus_cell();
         termRecord.term.focus();
       }
     },
