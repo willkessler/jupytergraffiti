@@ -19,7 +19,18 @@ define ([
     _makeTerminal: (element, terminalId, wsUrl, sizeObj) => {
       const ws = new WebSocket(wsUrl);
       terminalLib.applyAddon(fit);
-      const term = new terminalLib({ scrollback: 10000, theme: { foreground:'black', background: '#eee', cursor:'#f73', cursorAccent: '#f22' }});
+      const term = new terminalLib({ 
+        scrollback: 10000, 
+        theme: { 
+          // foreground:'white',
+          // background: '#444',
+          foreground: 'black',
+          background: '#eee',
+          selection: '#fff',
+          cursor:'#f73', 
+          cursorAccent: '#f22' 
+        }
+      });
       term.id = terminalId;
       // contents: contains all chars in and out of the terminal over the socket
       // contentsPortion: contains latest subportion of those contents for recorded replay usage
@@ -34,19 +45,18 @@ define ([
         // });
         
         term.on('scroll', (data) => {
-          // console.log('term scroll:', data);
+          console.log('term scroll:', data);
         });
+
+        // term.on('selection', (data) => {
+        //   console.log('term selection:', term.getSelection());
+        // });
 
         term.on('focus', () => { 
           console.log('Graffiti: terminal ' + term.id + ' focused');
           terminals.focusedTerminal = term.id;
-          terminals.eventsCallback({
-            type: 'focus',
-            data: {
-              id: term.id
-            }
-          });
         });
+
         term.on('blur', () => { 
           // console.log('terminal defocused'); 
           terminals.focusedTerminal = undefined;
@@ -261,7 +271,8 @@ define ([
       const termRecord = terminals.terminalsList[cellId];
       if (termRecord !== undefined) {
         const cell = utils.findCellByCellId(cellId);
-        // cell.focus_cell();
+        cell.focus_cell();
+        terminals.focusedTerminal = cellId;
         termRecord.term.focus();
       }
     },
@@ -291,12 +302,14 @@ define ([
 
     collectAllTerminalsContents: () => {
       const contents = [];
+      const focusedTerminal = terminals.getFocusedTerminal();
       for (let cellId of Object.keys(terminals.terminalsList)) {
         terminal = terminals.terminalsList[cellId];
         contents.push({
           type: 'output',
           id: cellId,
           portion: terminal.contentsPortion,
+          focusedTerminal: focusedTerminal,
         });
       }
       return contents;
