@@ -1449,7 +1449,7 @@ define([
         graffiti.setupSavingScrim();
         graffiti.playAutoplayGraffiti(); // play any autoplay graffiti if there is one set up
 
-        terminalLib.init();
+        terminalLib.init(graffiti.handleTerminalEvents);
         graffiti.setupTerminalMenus();
 
 /*
@@ -4105,6 +4105,7 @@ define([
             const deletedCellId = utils.getMetadataCellId(deletedCell.metadata);
             if (deletedCellId !== undefined) {
               graffiti.removeCanvasRecordsForCell(deletedCellId);              
+              terminalLib.removeTerminal(deletedCellId);
             }
           }
           state.storeHistoryRecord('contents');
@@ -4240,6 +4241,7 @@ define([
             graffiti.stopRecordingCore(true);
             state.unblockRecording();
             graffiti.clearJupyterMenuHint();
+            terminalLib.saveOrRestoreTerminalOutputs('restore');
             console.log('Graffiti: Stopped recording.');
           } else {
 
@@ -4255,6 +4257,7 @@ define([
             }
             console.log('Graffiti: Begin recording for cell id:', recordingCellInfo.recordingCellId);
 
+            terminalLib.saveOrRestoreTerminalOutputs('save');
             state.resetPlayState();
             graffiti.changeActivity('recording');
             utils.assignCellIds();
@@ -4760,6 +4763,28 @@ define([
         }
       },
 
+      updateTerminals: (index) => {
+        const record = state.getHistoryItem('terminals', index);
+        const termRecords = record.terminals;
+        if (termRecords !== undefined) {
+          if (termRecords.length > 0) {
+            let termRecord;
+            for (let i = 0; i < termRecords.length; ++i) {
+              termRecord = termRecords[i];
+              switch (termRecord.type) {
+                case 'focus':
+                  console.log('Graffiti: switching focus to', termRecord.id);
+                  terminalLib.focusTerminal(termRecord.id);
+                  break;
+                case 'output':
+                  terminalLib.loadWithPartialOutput(termRecord.id, termRecord.portion);
+                  break;
+              }
+            }
+          }
+        }
+      },
+
       updateSpeaking: (index) => {
         const record = state.getHistoryItem('speaking', index);
         //console.log('Processing speaking record', index, record);
@@ -4793,6 +4818,10 @@ define([
             // console.log('calling updateDrawings from updateDisplay');
             graffiti.updateDrawings(frameIndexes.drawings);
           }
+        }
+        if (state.shouldUpdateDisplay('terminals', frameIndexes.terminals)) {
+          //console.log(state.history.processed);
+          graffiti.updateTerminals(frameIndexes.terminals.index);
         }
         if (state.shouldUpdateDisplay('speaking', frameIndexes.speaking)) {
           //console.log(state.history.processed);
@@ -4894,6 +4923,30 @@ define([
         graffiti.applyRawCalculatedScrollTop(frameIndexes.view.index);
       },
 
+      handleTerminalEvents: (event) => {
+        switch (event.type) {
+          case 'focus':
+            state.storeTerminalState([{
+              type: 'focus',
+              id: event.data.id,
+            }]);
+            state.storeHistoryRecord('terminals');
+            break;
+          case 'output':
+            if (state.getActivity() === 'recording') {
+              // If we are recording, we need to record latest terminal output for replay
+              //console.log('Terminal output event:', event.data.portion);
+              state.storeTerminalState([{
+                type: 'output',
+                id: event.data.id,
+                portion: event.data.portion,
+              }]);
+              state.storeHistoryRecord('terminals');
+            }
+            break;
+        }
+      },
+
       pausePlaybackNoVisualUpdates: () => {
         if (state.getActivity() === 'playing') {
           graffiti.changeActivity('playbackPaused');
@@ -4946,6 +4999,7 @@ define([
           state.restoreLineNumbersStates();
         }
         state.setDontRestoreCellContentsAfterPlayback(false); // make sure by default we restore contents.
+        terminalLib.saveOrRestoreTerminalOutputs('restore');  // restore any terminals affected by playback
         utils.saveNotebook();
         console.log('Graffiti: Got these stats:', state.getUsageStats());
       },
@@ -5012,6 +5066,7 @@ define([
           graffiti.lastDrawingEraseIndex = undefined;
           state.storeCellStates();
           state.clearCellOutputsSent();
+          terminalLib.saveOrRestoreTerminalOutputs('save');
           graffiti.scrollNudgeAverages = [];
           graffiti.setJupyterMenuHint(localizer.getString('PRESS_ESC_TO_END_MOVIE_PLAYBACK'));
           const stickerImageCandidateUrl = state.getStickerImageCandidateUrl();

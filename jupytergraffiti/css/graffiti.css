@@ -784,8 +784,17 @@ http://www.patternify.com/
   cursor:pointer;
 }
 
-.graffiti-terminal-reset {
+.graffiti-terminal-container {
+  border: 1px solid #cfcfcf;
+}
+
+.graffiti-terminal-links {
+  display:flex;
+  justify-content:flex-end;
+}
+
+.graffiti-terminal-links div {
   text-decoration:underline;
   cursor:pointer;
-  text-align:right;
+  margin-right:10px;
 }
