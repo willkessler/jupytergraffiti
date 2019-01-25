@@ -22,8 +22,10 @@ define ([
       const term = new terminalLib({ 
         scrollback: 10000, 
         theme: { 
-          foreground:'black', 
-          background: '#eee', 
+          // foreground:'white',
+          // background: '#444',
+          foreground: 'black',
+          background: '#eee',
           selection: '#fff',
           cursor:'#f73', 
           cursorAccent: '#f22' 
@@ -53,13 +55,8 @@ define ([
         term.on('focus', () => { 
           console.log('Graffiti: terminal ' + term.id + ' focused');
           terminals.focusedTerminal = term.id;
-          terminals.eventsCallback({
-            type: 'focus',
-            data: {
-              id: term.id
-            }
-          });
         });
+
         term.on('blur', () => { 
           // console.log('terminal defocused'); 
           terminals.focusedTerminal = undefined;
@@ -274,7 +271,8 @@ define ([
       const termRecord = terminals.terminalsList[cellId];
       if (termRecord !== undefined) {
         const cell = utils.findCellByCellId(cellId);
-        // cell.focus_cell();
+        cell.focus_cell();
+        terminals.focusedTerminal = cellId;
         termRecord.term.focus();
       }
     },
@@ -304,12 +302,14 @@ define ([
 
     collectAllTerminalsContents: () => {
       const contents = [];
+      const focusedTerminal = terminals.getFocusedTerminal();
       for (let cellId of Object.keys(terminals.terminalsList)) {
         terminal = terminals.terminalsList[cellId];
         contents.push({
           type: 'output',
           id: cellId,
           portion: terminal.contentsPortion,
+          focusedTerminal: focusedTerminal,
         });
       }
       return contents;

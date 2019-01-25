@@ -4756,23 +4756,22 @@ define([
       updateTerminals: (index) => {
         const record = state.getHistoryItem('terminals', index);
         const termRecords = record.terminals;
+        let focusedTerminal = undefined;
         if (termRecords !== undefined) {
           if (termRecords.length > 0) {
             let termRecord;
             for (let i = 0; i < termRecords.length; ++i) {
               termRecord = termRecords[i];
               switch (termRecord.type) {
-                case 'focus':
-                  console.log('Graffiti: switching focus to', termRecord.id);
-                  terminalLib.focusTerminal(termRecord.id);
-                  break;
                 case 'output':
                   terminalLib.loadWithPartialOutput(termRecord.id, termRecord.portion);
+                  focusedTerminal = termRecord.focusedTerminal;
                   break;
               }
             }
           }
         }
+        terminalLib.focusTerminal(focusedTerminal);        
       },
 
       updateSpeaking: (index) => {
@@ -4915,13 +4914,6 @@ define([
 
       handleTerminalEvents: (event) => {
         switch (event.type) {
-          case 'focus':
-            state.storeTerminalState([{
-              type: 'focus',
-              id: event.data.id,
-            }]);
-            state.storeHistoryRecord('terminals');
-            break;
           case 'output':
             if (state.getActivity() === 'recording') {
               // If we are recording, we need to record latest terminal output for replay
@@ -4930,6 +4922,7 @@ define([
                 type: 'output',
                 id: event.data.id,
                 portion: event.data.portion,
+                focusedTerminal: terminalLib.getFocusedTerminal(),
               }]);
               state.storeHistoryRecord('terminals');
             }
