@@ -22,10 +22,10 @@ define ([
       const term = new terminalLib({ 
         scrollback: 10000, 
         theme: { 
-          // foreground:'white',
-          // background: '#444',
-          foreground: 'black',
-          background: '#eee',
+          foreground:'white',
+          background: '#222',
+          // foreground: 'black',
+          // background: '#eee',
           selection: '#fff',
           cursor:'#f73', 
           cursorAccent: '#f22' 
@@ -147,6 +147,10 @@ define ([
           const cellDOM = target.parents('.cell');
           const cellId = cellDOM.attr('graffiti-cell-id');
           terminals.refreshTerminalCell(cellId);
+        });
+
+        renderArea.find('.graffiti-terminal-container').bind('mousewheel', (e) => {
+          console.log('xterm mousewheel',e);
         });
 
         const newTerminal = terminals._makeTerminal(elem[0], cellId, wsUrl, sizeObj);
@@ -277,7 +281,7 @@ define ([
       const cellId = opts.id;
       const terminal = terminals.terminalsList[cellId];
       terminal.contents = opts.terminalsContents[cellId];
-      console.log('loadWithPartialOutput', opts);
+      //console.log('loadWithPartialOutput', opts);
       if (terminal !== undefined) {
         if (!opts.incremental || opts.firstRecord || terminal.lastPosition === undefined) {
           terminal.term.reset();
@@ -286,7 +290,7 @@ define ([
           terminal.lastPosition = opts.position;
         } else {
           const newPortion = terminal.contents.substr(terminal.lastPosition, opts.position - terminal.lastPosition);
-          console.log('writing newPortion', newPortion);
+          //console.log('writing newPortion', newPortion);
           terminal.term.write(newPortion);
           terminal.lastPosition = opts.position;
         }
@@ -353,6 +357,10 @@ define ([
         contents[cellId] = terminal.contents;
       }
       return contents;
+    },
+
+    isTerminalCell: (cellId) => {
+      return (terminals.terminalsList[cellId] !== undefined);
     },
 
     runTerminalCommand: (terminalId, command, addCR) => {

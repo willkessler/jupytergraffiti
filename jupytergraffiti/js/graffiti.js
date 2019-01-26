@@ -238,11 +238,18 @@ define([
                                       '</div>');
           //const header = $('#header');
           outerControlPanel.appendTo($('body'));
-          const graffitiCursor = $('<i id="graffiti-cursor" name="cursor" class="graffiti-cursor"><img src="jupytergraffiti/css/transparent_bullseye2.png"></i>');
+          const graffitiCursor = $('<div id="graffiti-cursor" name="cursor" class="graffiti-cursor">' +
+                                   '  <div id="graffiti-cursor-normal-cells">' +
+                                   '     <img src="jupytergraffiti/css/transparent_bullseye2.png">' +
+                                   '  </div>' +
+                                   '  <div id="graffiti-cursor-terminal-cells"></div>' +
+                                   '</div>');
           graffitiCursor.appendTo(header);
         }
 
-        graffiti.graffitiCursor = $('#graffiti-cursor');
+        graffiti.graffitiCursorShell = $('#graffiti-cursor');
+        graffiti.graffitiNormalCursor = $('#graffiti-cursor-normal-cells');
+        graffiti.graffitiTerminalCursor = $('#graffiti-cursor-terminal-cells');
         graffiti.outerControlPanel = $('#graffiti-outer-control-panel');
         graffiti.outerControlPanel.hide();
         graffiti.controlPanelsShell = $('#graffiti-control-panels-shell');
@@ -1621,12 +1628,28 @@ define([
       },
 
       dimGraffitiCursor: () => {
-        graffiti.graffitiCursor.css({opacity:0.1});
+        graffiti.graffitiCursorShell.css({opacity:0.1});
       },
 
       undimGraffitiCursor: () => {
-        graffiti.graffitiCursor.show().css({opacity:1.0});
+        graffiti.graffitiCursorShell.show().css({opacity:1.0});
       },
+
+      activateTerminalGraffitiCursor: () => {
+        if (graffiti.graffitiNormalCursor.is(':visible')) {
+          console.log('activate terminal cursor');
+          graffiti.graffitiTerminalCursor.show();
+          graffiti.graffitiNormalCursor.hide();
+        }
+      },
+
+      activateNormalGraffitiCursor: () => {
+        if (graffiti.graffitiTerminalCursor.is(':visible')) {
+          console.log('activate normal cursor');
+          graffiti.graffitiNormalCursor.show();
+          graffiti.graffitiTerminalCursor.hide();
+        }
+      },      
 
       drawingScreenHandler: (e) => {
         let drawingActivity = state.getDrawingStateField('drawingActivity');
@@ -4515,7 +4538,13 @@ define([
             //console.log('Showing cursor:', offsetPosition, lastPosition);
             graffiti.undimGraffitiCursor();
             const offsetPositionPx = { left: offsetPosition.x + 'px', top: offsetPosition.y + 'px'};
-            graffiti.graffitiCursor.css(offsetPositionPx);
+            graffiti.graffitiCursorShell.css(offsetPositionPx);
+            const hoverCellId = record.cellId;
+            if (terminalLib.isTerminalCell(hoverCellId)) {
+              graffiti.activateTerminalGraffitiCursor();
+            } else {
+              graffiti.activateNormalGraffitiCursor();
+            }
           }            
           state.setLastRecordedCursorPosition(offsetPosition);
         }
@@ -4979,7 +5008,7 @@ define([
       cancelPlaybackFinish: (cancelAnimation) => {
         graffiti.resetStickerCanvases();
         graffiti.cancelRapidPlay();
-        graffiti.graffitiCursor.hide();
+        graffiti.graffitiCursorShell.hide();
         graffiti.clearCanvases('all');
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTooltips(); 
