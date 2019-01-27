@@ -3596,26 +3596,26 @@ var Terminal = (function (_super) {
         }
     };
     Terminal.prototype.scroll = function (isWrapped) {
-        var newLine = this.blankLine(undefined, isWrapped);
-        var topRow = this.buffer.ybase + this.buffer.scrollTop;
-        var bottomRow = this.buffer.ybase + this.buffer.scrollBottom;
-        if (this.buffer.scrollTop === 0) {
-            var willBufferBeTrimmed = this.buffer.lines.length === this.buffer.lines.maxLength;
-            if (bottomRow === this.buffer.lines.length - 1) {
-                this.buffer.lines.push(newLine);
-            }
-            else {
-                this.buffer.lines.splice(bottomRow + 1, 0, newLine);
-            }
-            if (!willBufferBeTrimmed) {
-                this.buffer.ybase++;
-                if (!this.userScrolling) {
-                    this.buffer.ydisp++;
-                }
-            }
-            else {
-                if (this.userScrolling) {
-                    this.buffer.ydisp = Math.max(this.buffer.ydisp - 1, 0);
+      var newLine = this.blankLine(undefined, isWrapped);
+      var topRow = this.buffer.ybase + this.buffer.scrollTop;
+      var bottomRow = this.buffer.ybase + this.buffer.scrollBottom;
+      if (this.buffer.scrollTop === 0) {
+        var willBufferBeTrimmed = this.buffer.lines.length === this.buffer.lines.maxLength;
+        if (bottomRow === this.buffer.lines.length - 1) {
+          this.buffer.lines.push(newLine);
+        }
+        else {
+          this.buffer.lines.splice(bottomRow + 1, 0, newLine);
+        }
+        if (!willBufferBeTrimmed) {
+          this.buffer.ybase++;
+          if (!this.userScrolling) {
+            this.buffer.ydisp++;
+          }
+        }
+        else {
+          if (this.userScrolling) {
+            this.buffer.ydisp = Math.max(this.buffer.ydisp - 1, 0);
                 }
             }
         }

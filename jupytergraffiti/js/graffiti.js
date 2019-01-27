@@ -169,7 +169,9 @@ define([
       },
 
       clearJupyterMenuHint: () => {
-        graffiti.jupyterMenuHint.hide();
+        if (graffiti.jupyterMenuHint !== undefined) {
+          graffiti.jupyterMenuHint.hide();
+        }
       },
 
       startPanelDragging: (e) => {
@@ -2972,7 +2974,7 @@ define([
               const tooltipCommands = graffiti.extractTooltipCommands(recording.markdown);
 
               if (recording.playOnClick) {
-                //console.log('binding target for click', highlightElem);
+                console.log('Graffiti: binding target for click', highlightElem);
                 highlightElem.off('click').click((e) => {
                   state.clearTipTimeout();
                   e.stopPropagation(); // for reasons unknown event still propogates to the codemirror editing area undeneath...
@@ -4204,6 +4206,7 @@ define([
         graffiti.selectIntersectingGraffitiRange();
         state.deleteTrackingArrays();
         state.clearDisplayedTipInfo();
+        terminalLib.saveOrRestoreTerminalOutputs('restore');
         graffiti.changeActivity('idle');
       },
 
@@ -4256,7 +4259,6 @@ define([
             graffiti.stopRecordingCore(true);
             state.unblockRecording();
             graffiti.clearJupyterMenuHint();
-            terminalLib.saveOrRestoreTerminalOutputs('restore');
             console.log('Graffiti: Stopped recording.');
           } else {
 
@@ -5188,14 +5190,14 @@ define([
       },
 
       playMovieViaUserClick: () => {
-        //console.log('click in tip');
+        console.log('Graffiti: playMovieViaUserClick starts.');
         graffiti.cancelPlayback({cancelAnimation:false});
         const playableMovie = state.getPlayableMovie('tip');
         if (playableMovie === undefined) {
           console.log('Graffiti: no playable movie known.');
           return;
         }
-        //console.log('playableMovie', playableMovie);
+        console.log('playableMovie', playableMovie);
         if (state.getDontRestoreCellContentsAfterPlayback()) {
           // If this movie is set to NOT restore cell contents, give the user a chance to opt-out of playback.
           const dialogContent = localizer.getString('REPLACE_CONFIRM_BODY_1');
@@ -5267,6 +5269,40 @@ define([
           return;
         }
 
+        console.log('playableMovie:', playableMovie);
+        const recording = state.getManifestSingleRecording(playableMovie.recordingCellId, playableMovie.recordingKey);
+        // If we are in cellExecuteChoice state, we don't want to run a movie at all, we just want to wire a button to the graffiti associated with this movie.
+        const executionSourceChoiceId = state.getExecutionSourceChoiceId();
+        if (executionSourceChoiceId !== undefined) {
+          const targetGraffitiId = utils.composeGraffitiId(playableMovie.recordingCellId, playableMovie.recordingKey);
+          const executionSourceChoiceCell = utils.findCellByCellId(executionSourceChoiceId);
+          utils.setCellGraffitiConfigEntry(executionSourceChoiceCell, 'executeCellViaGraffiti', targetGraffitiId ); // needs to be set by the content author
+          state.clearExecutionSourceChoiceId();
+          graffiti.cleanupAfterLoadAndPlayDidNotPlay();
+          graffiti.setJupyterMenuHint(localizer.getString('CELL_EXECUTE_CHOICE_SET'));
+        } else {
+          // Execute any "save code cell contents to files" directives
+          graffiti.executeSaveToFileDirectives(recording);
+          if (recording.terminalCommand !== undefined) {
+            const terminalCommand = recording.terminalCommand;
+            terminalLib.runTerminalCommand(terminalCommand.terminalId, terminalCommand.command, true);
+            if (state.getActivity() !== 'recording') {
+              graffiti.cleanupAfterLoadAndPlayDidNotPlay(); // clean up *unless* we are recording; then we should just let things keep going.
+            }
+            
+            state.updateUsageStats({
+              type: 'terminalCommand',
+              data: {
+                cellId:        playableMovie.recordingCellId,
+                recordingKey:  playableMovie.recordingKey,
+                command:       recording.terminalCommand,
+              }
+            });
+            return; // we are done if we ran a terminal command, don't bother to load any movies for playback.
+          }
+        }
+
+
         // next line seems to be extraneous and buggy because we create a race condition with the control panel. however what happens if a movie cannot be loaded?
         // graffiti.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
 
@@ -5274,57 +5310,28 @@ define([
         graffiti.setJupyterMenuHint(localizer.getString('LOADING_PLEASE_WAIT'));
         storage.loadMovie(playableMovie.recordingCellId, playableMovie.recordingKey, playableMovie.activeTakeId).then( () => {
           console.log('Graffiti: Movie loaded for cellId, recordingKey:', playableMovie.recordingCellId, playableMovie.recordingKey);
-          // big hack
-          const recording = state.getManifestSingleRecording(playableMovie.recordingCellId, playableMovie.recordingKey);
+
           state.setNarratorInfo('name', recording.narratorName);
           state.setNarratorInfo('picture', recording.narratorPicture);
           if (playableMovie.cellType === 'markdown') {
             playableMovie.cell.render(); // always render a markdown cell first before playing a movie on a graffiti inside it
           }
-          // If we are in cellExecuteChoice state, we don't want to run this movie at all, we just want to do that wiring for the author.
-          const executionSourceChoiceId = state.getExecutionSourceChoiceId();
-          if (executionSourceChoiceId !== undefined) {
-            const targetGraffitiId = utils.composeGraffitiId(playableMovie.recordingCellId, playableMovie.recordingKey);
-            const executionSourceChoiceCell = utils.findCellByCellId(executionSourceChoiceId);
-            utils.setCellGraffitiConfigEntry(executionSourceChoiceCell, 'executeCellViaGraffiti', targetGraffitiId ); // needs to be set by the content author
-            state.clearExecutionSourceChoiceId();
-            graffiti.cleanupAfterLoadAndPlayDidNotPlay();
-            graffiti.setJupyterMenuHint(localizer.getString('CELL_EXECUTE_CHOICE_SET'));
-          } else {
-            // Execute any "save code cell contents to files" directives
-            graffiti.executeSaveToFileDirectives(recording);
-            if (recording.terminalCommand !== undefined) {
-              const terminalCommand = recording.terminalCommand;
-              terminalLib.runTerminalCommand(terminalCommand.terminalId, terminalCommand.command, true);
-              graffiti.cleanupAfterLoadAndPlayDidNotPlay();
-              
-              state.updateUsageStats({
-                type: 'terminalCommand',
-                data: {
-                  cellId:        playableMovie.recordingCellId,
-                  recordingKey:  playableMovie.recordingKey,
-                  command:       recording.terminalCommand,
-                }
-              });            
-            } else {
-              state.updateUsageStats({
-                type: 'setup',
-                data: {
-                  cellId:        playableMovie.recordingCellId,
-                  recordingKey:  playableMovie.recordingKey,
-                  activeTakeId:  playableMovie.activeTakeId,
-                }
-              });            
-              state.updateUsageStats({
-                type:'play',
-                data: {
-                  actions: ['resetCurrentPlayTime', 'incrementPlayCount']
-                }
-              });
-              graffiti.togglePlayback();
+          state.updateUsageStats({
+            type: 'setup',
+            data: {
+              cellId:        playableMovie.recordingCellId,
+              recordingKey:  playableMovie.recordingKey,
+              activeTakeId:  playableMovie.activeTakeId,
             }
-            graffiti.hideTip();
-          }
+          });            
+          state.updateUsageStats({
+            type:'play',
+            data: {
+              actions: ['resetCurrentPlayTime', 'incrementPlayCount']
+            }
+          });
+          graffiti.togglePlayback();
+          graffiti.hideTip();
         }).catch( (ex) => {
           graffiti.changeActivity('idle');
           dialog.modal({
@@ -5339,8 +5346,8 @@ define([
               }
             }
           });
-
           console.log('Graffiti: could not load movie:', ex);
+          graffiti.cleanupAfterLoadAndPlayDidNotPlay();
         });
 
       },

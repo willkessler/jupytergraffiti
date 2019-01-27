@@ -7,10 +7,11 @@
 // "xterm.js-css": "https://unpkg.com/xterm@~3.1.0/dist/xterm.css"
 
 define ([
+  'base/js/utils',
   '/nbextensions/graffiti_extension/js/utils.js',
   '/nbextensions/graffiti_extension/js/xterm/xterm.js',
   '/nbextensions/graffiti_extension/js/xterm/addons/fit/fit.js',
-], (utils, terminalLib, fit) => {
+], (jupyterUtils, utils, terminalLib, fit) => {
   const terminals = {
 
     focusedTerminal: undefined,
@@ -59,6 +60,10 @@ define ([
         term.on('blur', () => { 
           // console.log('terminal defocused'); 
           terminals.focusedTerminal = undefined;
+        });
+
+        term.on('refresh', (data) => {
+          console.log('Graffiti: terminal refresh:', term);
         });
 
         term.open(element);
@@ -130,7 +135,6 @@ define ([
         renderArea.html('<div class="graffiti-terminal-container" id="' + terminalContainerId + '" class="container" style="width:100%;height:' + terminalHeight + 'px;"></div>' +
                         '<div class="graffiti-terminal-links">' +
                         ' <div class="graffiti-terminal-go-notebook-dir">Jump to Notebook\'s Dir</div>' +
-                        ' <div class="graffiti-terminal-refresh">Refresh</div>' +
                         ' <div class="graffiti-terminal-reset">Reset</div>' +
                         '</div>').show();
         const wsUrl = location.protocol.replace('http', 'ws') + '//' + location.host + '/terminals/websocket/' + config.terminalId;
@@ -142,15 +146,9 @@ define ([
           const cellId = cellDOM.attr('graffiti-cell-id');
           terminals.resetTerminalCell(cellId);
         });
-        renderArea.find('.graffiti-terminal-refresh').click((e) => {
-          const target = $(e.target);
-          const cellDOM = target.parents('.cell');
-          const cellId = cellDOM.attr('graffiti-cell-id');
-          terminals.refreshTerminalCell(cellId);
-        });
 
         renderArea.find('.graffiti-terminal-container').bind('mousewheel', (e) => {
-          console.log('xterm mousewheel',e);
+          //console.log('xterm mousewheel',e.originalEvent.wheelDeltaY); // looks like values about 10 move one line...
         });
 
         const newTerminal = terminals._makeTerminal(elem[0], cellId, wsUrl, sizeObj);
@@ -216,9 +214,25 @@ define ([
 
     resetTerminalCell: (cellId) => {
       if (terminals.terminalsList[cellId] !== undefined) {
-        // Create a new terminal id so we'll connect to a fresh socket.
-        delete(terminals.terminalsList[cellId]);
+        const fetchParams = { method: 'delete', credentials: 'include',  };
         const cell = utils.findCellByCellId(cellId);
+        const graffitiConfig = utils.getCellGraffitiConfig(cell);
+        if (graffitiConfig !== undefined) {
+          const deleteAPIEndpoint = location.origin + '/api/terminals/' + graffitiConfig.terminalId;
+          const settings = { 
+            // liberally cribbed from jupyter's codebase,
+            // https://github.com/jupyter/notebook/blob/b8b66332e2023e83d2ee04f83d8814f567e01a4e/notebook/static/tree/js/terminallist.js#L110
+            processData : false,
+            type : "DELETE",
+            dataType : "json",
+            success : function () {
+              console.log('Graffiti: successful terminal delete.');
+            },
+            error : utils.log_ajax_error,
+          };
+          jupyterUtils.ajax(deleteAPIEndpoint, settings);
+        }
+        delete(terminals.terminalsList[cellId]);
         terminals.createTerminalInCell(cell, utils.generateUniqueId() );
         utils.saveNotebook();
       }
