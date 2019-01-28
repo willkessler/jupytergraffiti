@@ -44,9 +44,9 @@ define ([
         //  console.log('keypress data:', data);
         // });
         
-        term.on('scroll', (data) => {
+        //term.on('scroll', (data) => {
           //console.log('term scroll:', data);
-        });
+        //});
 
         // term.on('selection', (data) => {
         //   console.log('term selection:', term.getSelection());
@@ -63,7 +63,19 @@ define ([
         });
 
         term.on('refresh', (data) => {
-          console.log('Graffiti: terminal refresh:', term);
+          const checkYdisp = term.buffer.ydisp;
+          if (term.storedYdisp !== undefined) {
+            if (term.storedYdisp != checkYdisp) {
+              const scrollDelta = checkYdisp - term.storedYdisp;
+              terminals.eventsCallback({ 
+                id: term.id,
+                type: 'refresh',
+                scrollDelta: scrollDelta,
+              });
+            }
+          }
+          term.storedYdisp = term.buffer.ydisp;
+          //console.log('Graffiti: terminal refresh:', term.storedYdisp);
         });
 
         term.open(element);
@@ -82,6 +94,7 @@ define ([
               termObject.contents += newChars;
               terminals.eventsCallback({ 
                 id: term.id,
+                type: 'output',
                 position: termObject.contents.length,
                 focusedTerminal: terminals.focusedTerminal,
                 firstRecord: false,
@@ -327,6 +340,14 @@ define ([
       }
     },
 
+    scrollTerminal: (opts) => {
+      const termRecord = terminals.terminalsList[opts.id];
+      if (termRecord !== undefined) {
+        const term = termRecord.term;
+        term.scrollLines(opts.scrollDelta,true);
+      }
+    },
+      
     restoreTerminalOutput: (cellId) => {
       const terminal = terminals.terminalsList[cellId];
       if (terminal !== undefined) {

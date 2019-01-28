@@ -55,7 +55,7 @@ define([
       const executorCell = storage.createExecutorCell();
       const currentKernelName = Jupyter.notebook.kernel.name;
       const writeMagic = ((currentKernelName.indexOf(storage.cplusplusKernel) === 0) ? '%%file' : '%%writefile');
-      const chunkSize = ((currentKernelName.indexOf(storage.cplusplusKernel) === 0) ? 5000 : 100000);
+      const chunkSize = ((currentKernelName.indexOf(storage.cplusplusKernel) === 0) ? 10000 : 100000);
       // tr -d '\n' < checker.txt > checker2.txt
       const contentLength = contents.length;
       let chunkPtr = 0, chunk, appendFlag, cmd;

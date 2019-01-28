@@ -1448,8 +1448,9 @@ define([
           graffiti.setupBackgroundEvents();
         }, 500); // this timeout avoids too-early rendering of hidden recorder controls
 
+        graffiti.refreshGraffitiTooltipsDebounced = _.debounce(graffiti.refreshGraffitiTooltips, 100, false);
         graffiti.refreshAllGraffitiHighlights();
-        graffiti.refreshGraffitiTooltips();
+        graffiti.refreshGraffitiTooltipsDebounced();
         graffiti.setupControlPanels();
         graffiti.updateControlPanels();
         graffiti.setupDrawingScreen();
@@ -1639,7 +1640,7 @@ define([
 
       activateTerminalGraffitiCursor: () => {
         if (graffiti.graffitiNormalCursor.is(':visible')) {
-          console.log('activate terminal cursor');
+          //console.log('activate terminal cursor');
           graffiti.graffitiTerminalCursor.show();
           graffiti.graffitiNormalCursor.hide();
         }
@@ -1647,7 +1648,7 @@ define([
 
       activateNormalGraffitiCursor: () => {
         if (graffiti.graffitiTerminalCursor.is(':visible')) {
-          console.log('activate normal cursor');
+          //console.log('activate normal cursor');
           graffiti.graffitiNormalCursor.show();
           graffiti.graffitiTerminalCursor.hide();
         }
@@ -2930,214 +2931,210 @@ define([
         //state.clearPlayableMovie('tip');
       },
 
-      refreshGraffitiTooltips: () => {
-        const tips = $('.graffiti-highlight');
-        //console.log('tips:', tips);
-        //console.log('refreshGraffitiTooltips: binding mousenter/mouseleave');
-        tips.unbind('mouseenter mouseleave');
-        if (state.getActivity() !== 'recording') {
-          tips.bind('mouseenter mouseleave', (e) => {
-            const activity = state.getActivity();
-            if (activity === 'recording') {
-              return; // do not show tooltips while recording
-            }
-            //console.log('Graffiti: mousenter/mouseleave:', e.type);
-            let highlightElem = $(e.target);
-            if (!highlightElem.hasClass('graffiti-highlight')) {
-              highlightElem = highlightElem.parents('.graffiti-highlight');
-            }
-            const highlightElemRect = highlightElem[0].getBoundingClientRect();
-            const highlightElemMaxDimension = Math.max(highlightElemRect.width, highlightElemRect.height);
-            const highlightElemMaxDimensionSquared = highlightElemMaxDimension * highlightElemMaxDimension;
-            const idMatch = highlightElem.attr('class').match(/graffiti-(id_.[^\-]+)-(id_[^\s]+)/);
-            if (idMatch !== null) {
-              const cellId = idMatch[1];
-              const recordingKey = idMatch[2];
-              const hoverCell = utils.findCellByCellId(cellId);
-              const hoverCellElement = hoverCell.element[0];
-              const hoverCellElementPosition = $(hoverCellElement).position();
-              const hoverCellType = hoverCell.cell_type;
-              let outerInputElement;
-              if (hoverCellType === 'markdown') {
-                outerInputElement = $(hoverCellElement).find('.inner_cell');
-              } else {
-                outerInputElement = $(hoverCellElement).find('.CodeMirror-lines');
-              }
-              const recording = state.getManifestSingleRecording(cellId, recordingKey);
-              const activeTakeId = recording.activeTakeId;
-              //console.log('refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
-              if (recording.hasMovie) {
-                //console.log('Graffiti: refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
-                state.setPlayableMovie('tip', cellId, recordingKey);
-              }                
-              state.setHidePlayerAfterPlayback(false); // default for any recording is not to hide player
-              const tooltipCommands = graffiti.extractTooltipCommands(recording.markdown);
+      refreshGraffitiTooltipsCore: (e) => {
+        console.log('Graffiti: handling mousenter/mouseleave:', e.type);
+        const activity = state.getActivity();
+        let highlightElem = $(e.target);
+        if (!highlightElem.hasClass('graffiti-highlight')) {
+          highlightElem = highlightElem.parents('.graffiti-highlight');
+        }
+        const highlightElemRect = highlightElem[0].getBoundingClientRect();
+        const highlightElemMaxDimension = Math.max(highlightElemRect.width, highlightElemRect.height);
+        const highlightElemMaxDimensionSquared = highlightElemMaxDimension * highlightElemMaxDimension;
+        const idMatch = highlightElem.attr('class').match(/graffiti-(id_.[^\-]+)-(id_[^\s]+)/);
+        if (idMatch !== null) {
+          const cellId = idMatch[1];
+          const recordingKey = idMatch[2];
+          const hoverCell = utils.findCellByCellId(cellId);
+          const hoverCellElement = hoverCell.element[0];
+          const hoverCellElementPosition = $(hoverCellElement).position();
+          const hoverCellType = hoverCell.cell_type;
+          let outerInputElement;
+          if (hoverCellType === 'markdown') {
+            outerInputElement = $(hoverCellElement).find('.inner_cell');
+          } else {
+            outerInputElement = $(hoverCellElement).find('.CodeMirror-lines');
+          }
+          const recording = state.getManifestSingleRecording(cellId, recordingKey);
+          const activeTakeId = recording.activeTakeId;
+          //console.log('refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
+          if (recording.hasMovie) {
+            //console.log('Graffiti: refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
+            state.setPlayableMovie('tip', cellId, recordingKey);
+          }                
+          state.setHidePlayerAfterPlayback(false); // default for any recording is not to hide player
+          const tooltipCommands = graffiti.extractTooltipCommands(recording.markdown);
 
-              if (recording.playOnClick) {
-                console.log('Graffiti: binding target for click', highlightElem);
-                highlightElem.off('click').click((e) => {
+          if (recording.playOnClick) {
+            console.log('Graffiti: binding target for click', highlightElem);
+            highlightElem.off('click').click((e) => {
+              state.clearTipTimeout();
+              e.stopPropagation(); // for reasons unknown event still propogates to the codemirror editing area undeneath...
+
+              if (state.getActivity() === 'recordingPending') {
+                graffiti.toggleRecording(); // we want clicks on playOnClick to be ignored if a recording is pending.
+              } else {
+                graffiti.playMovieViaUserClick();
+              }
+              return false;
+            });
+          }
+
+          if ((recording.hideTooltip) || (recording.terminalCommand !== undefined) || activity === 'recording') {
+            console.log('Graffiti: recording is set to hide tip or recording is set to run a terminal command, or recording so we do not display tips');
+            return;
+          }
+
+          let existingTip = graffiti.notebookContainer.find('.graffiti-tip');
+          if (e.type === 'mouseleave') {
+            state.setTipTimeout(() => { graffiti.hideTip(); }, 500);
+          } else {
+            let currentPointerPosition = state.getPointerPosition();
+            // Only show tip if cursor rests on hover for a 1/2 second
+            state.setTipTimeout(() => {
+              //console.log('tip interval');
+              const newPointerPosition = state.getPointerPosition();
+              const cursorDistanceSquared = (newPointerPosition.x - currentPointerPosition.x) * (newPointerPosition.x - currentPointerPosition.x) +
+                                                 (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
+
+              //console.log('comparing currentPointerPosition, newPointerPosition:', currentPointerPosition,
+              //newPointerPosition, cursorDistanceSquared);
+              // Only show tip if cursor isn't flying over the item at high speeds
+              if (cursorDistanceSquared > highlightElemMaxDimensionSquared) {
+                currentPointerPosition = state.getPointerPosition();
+              } else {
+                let contentMarkdown = '';
+                //console.log('markId:', markId, 'recordings:', hoverCell.metadata.recordings);
+                let headlineMarkdown = '';
+                if (tooltipCommands !== undefined) {
+                  headlineMarkdown = '<div class="headline">' +
+                                     ' <div>' + tooltipCommands.captionPic + '</div>' +
+                                     ' <div>' + tooltipCommands.caption + '</div>' +
+                                                   (tooltipCommands.captionVideo !== undefined ?
+                                                    ' <div class="graffiti-video">' + tooltipCommands.captionVideo + '</div>' : '' ) +
+                                     '</div>';
+                }
+                contentMarkdown = utils.renderMarkdown(recording.markdown)
+                // if no tooltip is defined, show a default message
+                if ((contentMarkdown.length === 0) && (recording.hidePlayButton)) {
+                  contentMarkdown = utils.renderMarkdown('_' + localizer.getString('TOOLTIP_HINT') + '_');
+                }
+                let tooltipContents = headlineMarkdown + '<div class="parts">' + '<div class="info">' + contentMarkdown + '</div>';
+                if ((recording.hasMovie) && (!recording.hidePlayButton)) {
+                  graffiti.tooltipButtonLabel = (((tooltipCommands !== undefined) && (tooltipCommands.buttonName !== undefined)) ? 
+                                                 tooltipCommands.buttonName : 'Play Movie');
+                  tooltipContents +=
+                    '   <div class="movie"><button class="btn btn-default btn-small" id="graffiti-movie-play-btn">' + 
+                    graffiti.tooltipButtonLabel + '</button></div>';
+                }
+                tooltipContents += '</div>';
+
+                if (existingTip.length === 0) {
+                  existingTip = $('<div class="graffiti-tip" id="graffiti-tip">' + tooltipContents + '</div>')
+                    .prependTo(graffiti.notebookContainer);
+                  existingTip.bind('mouseenter mouseleave', (e) => {
+                    // console.log(e.type === 'mouseenter' ? 'entering tooltip' : 'leaving tooltip');
+                    if (e.type === 'mouseenter') {
+                      state.clearTipTimeout();
+                    } else {
+                      //console.log('hiding tip');
+                      graffiti.hideTip();
+                    }
+                  });
+                } else {
+                  // Don't replace the tip if the contents are identical to what we had on the last interval.
+                  const currentTipInfo = state.getDisplayedTipInfo();
+                  let doUpdate = true;
+                  if (currentTipInfo !== undefined) {
+                    if ((currentTipInfo.cellId === cellId) && (currentTipInfo.recordingKey === recordingKey)) {
+                      doUpdate = false;
+                    }
+                  }
+                  if (doUpdate || true) { // hack
+                    //console.log('replacing tooltip contents ');
+                    existingTip.find('#graffiti-movie-play-btn').unbind('click');
+                    existingTip.html(tooltipContents);
+                    state.setDisplayedTipInfo(cellId,recordingKey);
+                  } else {
+                    if (graffiti.tooltipButtonLabel !== undefined) {
+                      $('#graffiti-movie-play-btn').html(graffiti.tooltipButtonLabel);
+                    }
+                  }
+                  $('#graffiti-movie-play-btn').prop('disabled',false);
+                }
+
+                // Set up the call back for the play button on the tooltip that will actually play the movie.
+                existingTip.find('#graffiti-movie-play-btn').unbind('click').click((e) => {
                   state.clearTipTimeout();
                   e.stopPropagation(); // for reasons unknown event still propogates to the codemirror editing area undeneath...
-
-                  if (state.getActivity() === 'recordingPending') {
-                    graffiti.toggleRecording(); // we want clicks on playOnClick to be ignored if a recording is pending.
-                  } else {
-                    graffiti.playMovieViaUserClick();
-                  }
+                  graffiti.playMovieViaUserClick();
                   return false;
                 });
-              }
-
-              if ((recording.hideTooltip) || (recording.terminalCommand !== undefined)) {
-                console.log('Graffiti: recording is set to hide tip or recording is set to run a terminal command');
-                return;
-              }
-              let existingTip = graffiti.notebookContainer.find('.graffiti-tip');
-              if (e.type === 'mouseleave') {
-                state.setTipTimeout(() => { graffiti.hideTip(); }, 500);
-              } else {
-                let currentPointerPosition = state.getPointerPosition();
-                // Only show tip if cursor rests on hover for a 1/2 second
-                state.setTipTimeout(() => {
-                  //console.log('tip interval');
-                  const newPointerPosition = state.getPointerPosition();
-                  const cursorDistanceSquared = (newPointerPosition.x - currentPointerPosition.x) * (newPointerPosition.x - currentPointerPosition.x) +
-                                               (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
-
-                  //console.log('comparing currentPointerPosition, newPointerPosition:', currentPointerPosition,
-                  //newPointerPosition, cursorDistanceSquared);
-                  // Only show tip if cursor isn't flying over the item at high speeds
-                  if (cursorDistanceSquared > highlightElemMaxDimensionSquared) {
-                    currentPointerPosition = state.getPointerPosition();
+                const outerInputOffset = outerInputElement.offset();
+                const outerInputElementWidth = outerInputElement.width();
+                const highlightElemOffset = highlightElem.offset();
+                const existingTipWidth = existingTip.width();
+                const existingTipHeight = existingTip.height();
+                let tipTop = parseInt(highlightElemOffset.top - outerInputOffset.top) - existingTipHeight - 20;
+                let tipLeft, anchorIsImage = false;
+                if (hoverCellType === 'markdown') {
+                  const anchorImage = highlightElem.find('img');
+                  if (anchorImage.length > 0) {
+                    const anchorElemOffset = anchorImage.offset();
+                    //console.log('anchorElemOffset', anchorElemOffset);
+                    tipLeft = anchorElemOffset.left + anchorImage.width() / 2 - existingTipWidth / 2;
+                    tipTop =  anchorElemOffset.top - outerInputOffset.top + anchorImage.height() / 2 - existingTipHeight / 2;
+                    anchorIsImage = true;
+                    //console.log('image tipLeft, tipTop:', tipLeft, tipTop);
                   } else {
-                    let contentMarkdown = '';
-                    //console.log('markId:', markId, 'recordings:', hoverCell.metadata.recordings);
-                    let headlineMarkdown = '';
-                    if (tooltipCommands !== undefined) {
-                      headlineMarkdown = '<div class="headline">' +
-                                         ' <div>' + tooltipCommands.captionPic + '</div>' +
-                                         ' <div>' + tooltipCommands.caption + '</div>' +
-                                                 (tooltipCommands.captionVideo !== undefined ?
-                                                  ' <div class="graffiti-video">' + tooltipCommands.captionVideo + '</div>' : '' ) +
-                                         '</div>';
-                    }
-                    contentMarkdown = utils.renderMarkdown(recording.markdown)
-                    // if no tooltip is defined, show a default message
-                    if ((contentMarkdown.length === 0) && (recording.hidePlayButton)) {
-                      contentMarkdown = utils.renderMarkdown('_' + localizer.getString('TOOLTIP_HINT') + '_');
-                    }
-                    let tooltipContents = headlineMarkdown + '<div class="parts">' + '<div class="info">' + contentMarkdown + '</div>';
-                    if ((recording.hasMovie) && (!recording.hidePlayButton)) {
-                      graffiti.tooltipButtonLabel = (((tooltipCommands !== undefined) && (tooltipCommands.buttonName !== undefined)) ? 
-                                                     tooltipCommands.buttonName : 'Play Movie');
-                      tooltipContents +=
-                        '   <div class="movie"><button class="btn btn-default btn-small" id="graffiti-movie-play-btn">' + 
-                        graffiti.tooltipButtonLabel + '</button></div>';
-                    }
-                    tooltipContents += '</div>';
-
-                    if (existingTip.length === 0) {
-                      existingTip = $('<div class="graffiti-tip" id="graffiti-tip">' + tooltipContents + '</div>')
-                        .prependTo(graffiti.notebookContainer);
-                      existingTip.bind('mouseenter mouseleave', (e) => {
-                        // console.log(e.type === 'mouseenter' ? 'entering tooltip' : 'leaving tooltip');
-                        if (e.type === 'mouseenter') {
-                          state.clearTipTimeout();
-                        } else {
-                          //console.log('hiding tip');
-                          graffiti.hideTip();
-                        }
-                      });
-                    } else {
-                      // Don't replace the tip if the contents are identical to what we had on the last interval.
-                      const currentTipInfo = state.getDisplayedTipInfo();
-                      let doUpdate = true;
-                      if (currentTipInfo !== undefined) {
-                        if ((currentTipInfo.cellId === cellId) && (currentTipInfo.recordingKey === recordingKey)) {
-                          doUpdate = false;
-                        }
-                      }
-                      if (doUpdate || true) { // hack
-                        //console.log('replacing tooltip contents ');
-                        existingTip.find('#graffiti-movie-play-btn').unbind('click');
-                        existingTip.html(tooltipContents);
-                        state.setDisplayedTipInfo(cellId,recordingKey);
-                      } else {
-                        if (graffiti.tooltipButtonLabel !== undefined) {
-                          $('#graffiti-movie-play-btn').html(graffiti.tooltipButtonLabel);
-                        }
-                      }
-                      $('#graffiti-movie-play-btn').prop('disabled',false);
-                    }
-
-                    // Set up the call back for the play button on the tooltip that will actually play the movie.
-                    existingTip.find('#graffiti-movie-play-btn').unbind('click').click((e) => {
-                      state.clearTipTimeout();
-                      e.stopPropagation(); // for reasons unknown event still propogates to the codemirror editing area undeneath...
-                      graffiti.playMovieViaUserClick();
-                      return false;
-                    });
-                    const outerInputOffset = outerInputElement.offset();
-                    const outerInputElementWidth = outerInputElement.width();
-                    const highlightElemOffset = highlightElem.offset();
-                    const existingTipWidth = existingTip.width();
-                    const existingTipHeight = existingTip.height();
-                    let tipTop = parseInt(highlightElemOffset.top - outerInputOffset.top) - existingTipHeight - 20;
-                    let tipLeft, anchorIsImage = false;
-                    if (hoverCellType === 'markdown') {
-                      const anchorImage = highlightElem.find('img');
-                      if (anchorImage.length > 0) {
-                        const anchorElemOffset = anchorImage.offset();
-                        //console.log('anchorElemOffset', anchorElemOffset);
-                        tipLeft = anchorElemOffset.left + anchorImage.width() / 2 - existingTipWidth / 2;
-                        tipTop =  anchorElemOffset.top - outerInputOffset.top + anchorImage.height() / 2 - existingTipHeight / 2;
-                        anchorIsImage = true;
-                        //console.log('image tipLeft, tipTop:', tipLeft, tipTop);
-                      } else {
-                        const anchorElem = highlightElem.find('i');
-                        const anchorElemOffset = anchorElem.offset();
-                        const posCandidate1 = outerInputElementWidth - existingTipWidth + outerInputOffset.left - graffiti.notebookContainerPadding;
-                        const posCandidate2 = anchorElemOffset.left;
-                        tipLeft = parseInt(Math.min(posCandidate1, posCandidate2));
-                      }
-                    } else {                    
-                      tipLeft = parseInt(Math.min(outerInputElementWidth - existingTipWidth,
-                                                  Math.max(highlightElemOffset.left, outerInputOffset.left)));
-                    }
-
-                    // Place tip in the best position on the screen.
-                    const tipPosition = { left: tipLeft, top: tipTop };
-                    //console.log('outerInputOffset:', outerInputOffset, 'highlightElemOffset:', highlightElemOffset, 'tipPosition:', tipPosition);
-                    //console.log('1) tipPosition:', tipPosition);
-                    const headerRect = $('#header')[0].getBoundingClientRect();
-                    // If the highlight element is in the upper half of the notebook panel area, flip the tooltip to be below the highlightElem.
-                    const rectDifference = highlightElemRect.top - headerRect.bottom - 20;
-                    if (rectDifference < existingTipHeight && !anchorIsImage) {
-                      tipPosition.top = highlightElemOffset.top - outerInputOffset.top + graffiti.cmLineHeight + graffiti.cmLineFudge;
-                    }
-                    //console.log('2) tipPosition:', tipPosition);
-                    tipPosition.top += hoverCellElementPosition.top;
-                    //console.log('3) tipPosition:', tipPosition);
-
-                    const positionPx = { left: tipPosition.left + 'px', top: tipPosition.top + 'px' };
-                    existingTip.css(positionPx);
-                    existingTip.show();
-
-                    // increase counter of total tips shown this session
-                    state.updateUsageStats({
-                      type:'tip',
-                      data: { 
-                        cellId: cellId,
-                        recordingKey: recordingKey
-                      }
-                    });
-
+                    const anchorElem = highlightElem.find('i');
+                    const anchorElemOffset = anchorElem.offset();
+                    const posCandidate1 = outerInputElementWidth - existingTipWidth + outerInputOffset.left - graffiti.notebookContainerPadding;
+                    const posCandidate2 = anchorElemOffset.left;
+                    tipLeft = parseInt(Math.min(posCandidate1, posCandidate2));
                   }
-                }, 425); // this number is how long user has to hover before we display the tooltip
+                } else {                    
+                  tipLeft = parseInt(Math.min(outerInputElementWidth - existingTipWidth,
+                                              Math.max(highlightElemOffset.left, outerInputOffset.left)));
+                }
+
+                // Place tip in the best position on the screen.
+                const tipPosition = { left: tipLeft, top: tipTop };
+                //console.log('outerInputOffset:', outerInputOffset, 'highlightElemOffset:', highlightElemOffset, 'tipPosition:', tipPosition);
+                //console.log('1) tipPosition:', tipPosition);
+                const headerRect = $('#header')[0].getBoundingClientRect();
+                // If the highlight element is in the upper half of the notebook panel area, flip the tooltip to be below the highlightElem.
+                const rectDifference = highlightElemRect.top - headerRect.bottom - 20;
+                if (rectDifference < existingTipHeight && !anchorIsImage) {
+                  tipPosition.top = highlightElemOffset.top - outerInputOffset.top + graffiti.cmLineHeight + graffiti.cmLineFudge;
+                }
+                //console.log('2) tipPosition:', tipPosition);
+                tipPosition.top += hoverCellElementPosition.top;
+                //console.log('3) tipPosition:', tipPosition);
+
+                const positionPx = { left: tipPosition.left + 'px', top: tipPosition.top + 'px' };
+                existingTip.css(positionPx);
+                existingTip.show();
+
+                // increase counter of total tips shown this session
+                state.updateUsageStats({
+                  type:'tip',
+                  data: { 
+                    cellId: cellId,
+                    recordingKey: recordingKey
+                  }
+                });
+
               }
-            }
-          });
+            }, 425); // this number is how long user has to hover before we display the tooltip
+          }
         }
+      },
+
+      refreshGraffitiTooltips: () => {
+        const tips = $('.graffiti-highlight');
+        //console.trace('refreshGraffitiTooltips: binding mousenter/mouseleave');
+        tips.unbind('mouseenter mouseleave').bind('mouseenter mouseleave', (e) => { graffiti.refreshGraffitiTooltipsCore(e); } );
       },
 
       markSelectedCellForExecution: () => {
@@ -3395,7 +3392,7 @@ define([
         });
 
         graffiti.handleSliderDragDebounced = _.debounce(graffiti.handleSliderDrag, 20, true);
-
+        
         console.log('Graffiti: Background setup complete.');
       },
 
@@ -3645,7 +3642,7 @@ define([
             } else {
               graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
             }
-            graffiti.refreshGraffitiTooltips();
+            graffiti.refreshGraffitiTooltipsDebounced();
             graffiti.refreshAllGraffitiSideMarkers();
             resolve();
           });
@@ -3960,7 +3957,7 @@ define([
 
       updateAllGraffitiDisplays: () => {
         graffiti.refreshAllGraffitiHighlights();
-        graffiti.refreshGraffitiTooltips();
+        graffiti.refreshGraffitiTooltipsDebounced();
       },
 
       //
@@ -4055,7 +4052,7 @@ define([
 
         cm.on('update', (cm, e) => {
           //console.log('**** CM update event ****');
-          graffiti.refreshGraffitiTooltips();
+          graffiti.refreshGraffitiTooltipsDebounced();
         });
 
         cm.on('scroll', (cm, e) => {
@@ -4090,7 +4087,7 @@ define([
           // console.log('cell select event fired, e, cell:',e, cell.cell);
           //console.log('select cell store selections');
           state.storeHistoryRecord('selectCell');
-          graffiti.refreshGraffitiTooltips();
+          graffiti.refreshGraffitiTooltipsDebounced();
           graffiti.updateControlPanels();
         });
 
@@ -4793,11 +4790,19 @@ define([
         if (termRecords !== undefined) {
           const terminalsContents = state.getHistoryTerminalsContents();
           for (let i = 0; i < termRecords.length; ++i) {
-            terminalLib.setTerminalContents($.extend(true, termRecords[i], { 
-              incremental: (state.getActivity() === 'playing'), 
-              terminalsContents: terminalsContents,
-            }));
-            focusedTerminal = termRecords[i].focusedTerminal;
+            switch (termRecords[i].type) {
+              case 'output':
+                terminalLib.setTerminalContents($.extend(true, termRecords[i], { 
+                  incremental: (state.getActivity() === 'playing'), 
+                  terminalsContents: terminalsContents,
+                }));
+                focusedTerminal = termRecords[i].focusedTerminal;
+                break;
+              case 'refresh':
+                console.log('Graffiti: scrolling terminal according to delta.');
+                terminalLib.scrollTerminal(termRecords[i]);
+                break;
+            }
           }
         }
         terminalLib.focusTerminal(focusedTerminal);        
@@ -5197,7 +5202,7 @@ define([
           console.log('Graffiti: no playable movie known.');
           return;
         }
-        console.log('playableMovie', playableMovie);
+        //console.log('playableMovie', playableMovie);
         if (state.getDontRestoreCellContentsAfterPlayback()) {
           // If this movie is set to NOT restore cell contents, give the user a chance to opt-out of playback.
           const dialogContent = localizer.getString('REPLACE_CONFIRM_BODY_1');
@@ -5415,7 +5420,7 @@ define([
           utils.assignCellIds();
           utils.saveNotebook(() => {
             graffiti.refreshAllGraffitiHighlights();
-            graffiti.refreshGraffitiTooltips();
+            graffiti.refreshGraffitiTooltipsDebounced();
           });
         } else {
           graffiti.outerControlPanel.fadeOut(graffiti.panelFadeTime);          
