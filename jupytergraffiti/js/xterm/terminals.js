@@ -53,7 +53,7 @@ define ([
         // });
 
         term.on('focus', () => { 
-          console.log('Graffiti: terminal ' + term.id + ' focused');
+          //console.log('Graffiti: terminal ' + term.id + ' focused');
           terminals.focusedTerminal = term.id;
         });
 
@@ -66,16 +66,15 @@ define ([
           const checkYdisp = term.buffer.ydisp;
           if (term.storedYdisp !== undefined) {
             if (term.storedYdisp != checkYdisp) {
-              const scrollDelta = checkYdisp - term.storedYdisp;
               terminals.eventsCallback({ 
                 id: term.id,
                 type: 'refresh',
-                scrollDelta: scrollDelta,
+                scrollLine: checkYdisp
               });
+              //console.log('Graffiti: terminal refresh delta:', term.storedYdisp, checkYdisp);
             }
           }
           term.storedYdisp = term.buffer.ydisp;
-          //console.log('Graffiti: terminal refresh:', term.storedYdisp);
         });
 
         term.open(element);
@@ -120,7 +119,7 @@ define ([
     // but we restore about 4x the terminal contents so you can scroll back a bit and to account for
     // curses program output and multibyte characters, etc.
     getContentToFillTerminal: (terminal, contents, contentsPointer) => {
-      const portionMultiplier = 4;
+      const portionMultiplier = 8;
       const term = terminal.term;
       const portionLength = (term.rows * term.cols) * portionMultiplier;
       const contentsPortion = contents.substr(0, contentsPointer);
@@ -308,7 +307,7 @@ define ([
       const cellId = opts.id;
       const terminal = terminals.terminalsList[cellId];
       terminal.contents = opts.terminalsContents[cellId];
-      //console.log('loadWithPartialOutput', opts);
+      //console.log('setTerminalContents', opts);
       if (terminal !== undefined) {
         if (!opts.incremental || opts.firstRecord || terminal.lastPosition === undefined) {
           terminal.term.reset();
@@ -344,7 +343,12 @@ define ([
       const termRecord = terminals.terminalsList[opts.id];
       if (termRecord !== undefined) {
         const term = termRecord.term;
-        term.scrollLines(opts.scrollDelta,true);
+        // Basically the same functionality as in scrollToLine, see here:
+        // https://github.com/xtermjs/xterm.js/blob/c908da351b11d718f8dcda7424baee4bd8211681/src/Terminal.ts#L1302
+        const scrollAmount = opts.scrollLine - term.buffer.ydisp;
+        if (scrollAmount !== 0) {
+          term.scrollLines(scrollAmount);
+        }
       }
     },
       

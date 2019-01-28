@@ -2932,7 +2932,7 @@ define([
       },
 
       refreshGraffitiTooltipsCore: (e) => {
-        console.log('Graffiti: handling mousenter/mouseleave:', e.type);
+        //console.log('Graffiti: handling mousenter/mouseleave:', e.type);
         const activity = state.getActivity();
         let highlightElem = $(e.target);
         if (!highlightElem.hasClass('graffiti-highlight')) {
