@@ -7,10 +7,11 @@
 // "xterm.js-css": "https://unpkg.com/xterm@~3.1.0/dist/xterm.css"
 
 define ([
+  'base/js/utils',
   '/nbextensions/graffiti_extension/js/utils.js',
   '/nbextensions/graffiti_extension/js/xterm/xterm.js',
   '/nbextensions/graffiti_extension/js/xterm/addons/fit/fit.js',
-], (utils, terminalLib, fit) => {
+], (jupyterUtils, utils, terminalLib, fit) => {
   const terminals = {
 
     focusedTerminal: undefined,
@@ -22,19 +23,18 @@ define ([
       const term = new terminalLib({ 
         scrollback: 10000, 
         theme: { 
-          // foreground:'white',
-          // background: '#444',
-          foreground: 'black',
-          background: '#eee',
+          foreground:'white',
+          background: '#222',
+          // foreground: 'black',
+          // background: '#eee',
           selection: '#fff',
           cursor:'#f73', 
           cursorAccent: '#f22' 
         }
       });
       term.id = terminalId;
-      // contents: contains all chars in and out of the terminal over the socket
-      // contentsPortion: contains latest subportion of those contents for recorded replay usage
-      let termObject = {socket: ws, term: term, contents: '', contentsPortion: ''};
+      // contents: contains all chars in and out of the terminal over the socket.
+      let termObject = {socket: ws, term: term, contents: ''};
       ws.onopen = function(event) {
         term.on('data', function(data) {
           ws.send(JSON.stringify(['stdin', data]));
@@ -44,22 +44,37 @@ define ([
         //  console.log('keypress data:', data);
         // });
         
-        term.on('scroll', (data) => {
-          console.log('term scroll:', data);
-        });
+        //term.on('scroll', (data) => {
+          //console.log('term scroll:', data);
+        //});
 
         // term.on('selection', (data) => {
         //   console.log('term selection:', term.getSelection());
         // });
 
         term.on('focus', () => { 
-          console.log('Graffiti: terminal ' + term.id + ' focused');
+          //console.log('Graffiti: terminal ' + term.id + ' focused');
           terminals.focusedTerminal = term.id;
         });
 
         term.on('blur', () => { 
           // console.log('terminal defocused'); 
           terminals.focusedTerminal = undefined;
+        });
+
+        term.on('refresh', (data) => {
+          const checkYdisp = term.buffer.ydisp;
+          if (term.storedYdisp !== undefined) {
+            if (term.storedYdisp != checkYdisp) {
+              terminals.eventsCallback({ 
+                id: term.id,
+                type: 'refresh',
+                scrollLine: checkYdisp
+              });
+              //console.log('Graffiti: terminal refresh delta:', term.storedYdisp, checkYdisp);
+            }
+          }
+          term.storedYdisp = term.buffer.ydisp;
         });
 
         term.open(element);
@@ -72,19 +87,18 @@ define ([
           const json_msg = JSON.parse(event.data);
           switch(json_msg[0]) {
             case "stdout":
-              term.write(json_msg[1]);
-              termObject.contents += json_msg[1];
-              termObject.contentsPortion = terminals.getContentsPortion(termObject);
+              const newChars = json_msg[1];
+              term.write(newChars);
+              //console.log('received newCharslength:', newChars.length, newChars);
+              termObject.contents += newChars;
               terminals.eventsCallback({ 
+                id: term.id,
                 type: 'output',
-                data: { 
-                  id: term.id,
-                  new: json_msg[1],
-                  all: termObject.contents,
-                  portion: termObject.contentsPortion,
-                }
+                position: termObject.contents.length,
+                focusedTerminal: terminals.focusedTerminal,
+                firstRecord: false,
               });
-              console.log('termId:', terminalId,'received string of length:', json_msg[1].length, 'from server, contents now has:', termObject.contents);
+              // console.log('termId:', terminalId,'received string of length:', json_msg[1].length, 'from server, contents now has:', termObject.contents);
               break;
             case "disconnect":
               term.write("\r\n\r\n[CLOSED]\r\n");
@@ -100,11 +114,15 @@ define ([
       return terminals.focusedTerminal;
     },
 
-    getContentsPortion: (terminal) => {
-      const portionMultiplier = 4;
+    // Get enough content to fill a terminal sufficiently during scrubbing or just starting playback.
+    // We don't restore the entire contents we may have had for the terminal because it could be huge,
+    // but we restore about 4x the terminal contents so you can scroll back a bit and to account for
+    // curses program output and multibyte characters, etc.
+    getContentToFillTerminal: (terminal, contents, contentsPointer) => {
+      const portionMultiplier = 8;
       const term = terminal.term;
       const portionLength = (term.rows * term.cols) * portionMultiplier;
-      const contentsPortion = terminal.contents.substr(Math.max(0,terminal.contents.length - portionLength));
+      const contentsPortion = contents.substr(0, contentsPointer);
       return contentsPortion;
     },
 
@@ -129,7 +147,7 @@ define ([
         renderArea.html('<div class="graffiti-terminal-container" id="' + terminalContainerId + '" class="container" style="width:100%;height:' + terminalHeight + 'px;"></div>' +
                         '<div class="graffiti-terminal-links">' +
                         ' <div class="graffiti-terminal-go-notebook-dir">Jump to Notebook\'s Dir</div>' +
-                        ' <div class="graffiti-terminal-reset">Reset Terminal</div>' +
+                        ' <div class="graffiti-terminal-reset">Reset</div>' +
                         '</div>').show();
         const wsUrl = location.protocol.replace('http', 'ws') + '//' + location.host + '/terminals/websocket/' + config.terminalId;
         const elem = $('#' + terminalContainerId);
@@ -139,6 +157,10 @@ define ([
           const cellDOM = target.parents('.cell');
           const cellId = cellDOM.attr('graffiti-cell-id');
           terminals.resetTerminalCell(cellId);
+        });
+
+        renderArea.find('.graffiti-terminal-container').bind('mousewheel', (e) => {
+          //console.log('xterm mousewheel',e.originalEvent.wheelDeltaY); // looks like values about 10 move one line...
         });
 
         const newTerminal = terminals._makeTerminal(elem[0], cellId, wsUrl, sizeObj);
@@ -193,15 +215,38 @@ define ([
       }
     },
 
+    refreshTerminalCell: (cellId) => {
+      if (terminals.terminalsList[cellId] !== undefined) {
+        // Create a new terminal id so we'll connect to a fresh socket.
+        const term = terminals.terminalsList[cellId].term;
+        term.refresh(0,100000);
+        term.focus();        
+      }
+    },
+
     resetTerminalCell: (cellId) => {
-      const cell = utils.findCellByCellId(cellId);
-      if (cell.metadata.hasOwnProperty('graffitiConfig')) {
-        if (cell.metadata.graffitiConfig.type === 'terminal') {
-          // Create a new terminal id so we'll connect to a fresh socket.
-          delete(terminals.terminalsList[cellId]);
-          terminals.createTerminalInCell(cell, utils.generateUniqueId() );
-          utils.saveNotebook();
+      if (terminals.terminalsList[cellId] !== undefined) {
+        const fetchParams = { method: 'delete', credentials: 'include',  };
+        const cell = utils.findCellByCellId(cellId);
+        const graffitiConfig = utils.getCellGraffitiConfig(cell);
+        if (graffitiConfig !== undefined) {
+          const deleteAPIEndpoint = location.origin + '/api/terminals/' + graffitiConfig.terminalId;
+          const settings = { 
+            // liberally cribbed from jupyter's codebase,
+            // https://github.com/jupyter/notebook/blob/b8b66332e2023e83d2ee04f83d8814f567e01a4e/notebook/static/tree/js/terminallist.js#L110
+            processData : false,
+            type : "DELETE",
+            dataType : "json",
+            success : function () {
+              console.log('Graffiti: successful terminal delete.');
+            },
+            error : utils.log_ajax_error,
+          };
+          jupyterUtils.ajax(deleteAPIEndpoint, settings);
         }
+        delete(terminals.terminalsList[cellId]);
+        terminals.createTerminalInCell(cell, utils.generateUniqueId() );
+        utils.saveNotebook();
       }
     },
 
@@ -258,12 +303,29 @@ define ([
       }
     },
 
-    loadWithPartialOutput: (cellId, portion) => {
+    setTerminalContents: (opts) => {
+      const cellId = opts.id;
       const terminal = terminals.terminalsList[cellId];
+      terminal.contents = opts.terminalsContents[cellId];
+      //console.log('setTerminalContents', opts);
       if (terminal !== undefined) {
-        terminal.term.reset();
-        terminal.term.write(portion);
-        terminal.contents = portion;
+        if (!opts.incremental || opts.firstRecord || terminal.lastPosition === undefined) {
+          terminal.term.reset();
+          const portion = terminals.getContentToFillTerminal(terminal, terminal.contents, opts.position);
+          terminal.term.write(portion);
+          terminal.lastPosition = opts.position;
+        } else {
+          const newPortion = terminal.contents.substr(terminal.lastPosition, opts.position - terminal.lastPosition);
+          //console.log('writing newPortion', newPortion);
+          terminal.term.write(newPortion);
+          terminal.lastPosition = opts.position;
+        }
+      }
+    },
+
+    clearTerminalsContentsPositions: () => {
+      for (let cellId of Object.keys(terminals.terminalsList)) {
+        terminals.terminalsList[cellId].lastPosition = undefined;
       }
     },
 
@@ -277,6 +339,19 @@ define ([
       }
     },
 
+    scrollTerminal: (opts) => {
+      const termRecord = terminals.terminalsList[opts.id];
+      if (termRecord !== undefined) {
+        const term = termRecord.term;
+        // Basically the same functionality as in scrollToLine, see here:
+        // https://github.com/xtermjs/xterm.js/blob/c908da351b11d718f8dcda7424baee4bd8211681/src/Terminal.ts#L1302
+        const scrollAmount = opts.scrollLine - term.buffer.ydisp;
+        if (scrollAmount !== 0) {
+          term.scrollLines(scrollAmount);
+        }
+      }
+    },
+      
     restoreTerminalOutput: (cellId) => {
       const terminal = terminals.terminalsList[cellId];
       if (terminal !== undefined) {
@@ -300,19 +375,31 @@ define ([
       }
     },
 
-    collectAllTerminalsContents: () => {
-      const contents = [];
-      const focusedTerminal = terminals.getFocusedTerminal();
+    getTerminalsStates: () => {
+      const states = [];
       for (let cellId of Object.keys(terminals.terminalsList)) {
         terminal = terminals.terminalsList[cellId];
-        contents.push({
-          type: 'output',
+        states.push({
           id: cellId,
-          portion: terminal.contentsPortion,
-          focusedTerminal: focusedTerminal,
+          position: terminal.contents.length,
+          focusedTerminal: terminals.focusedTerminal,
+          firstRecord: true, // these records are always the first records used in a recording, so set the flag to reset terminal contents when playback restarted
         });
       }
+      return states;
+    },
+
+    getTerminalsContents: () => {
+      const contents = {};
+      for (let cellId of Object.keys(terminals.terminalsList)) {
+        terminal = terminals.terminalsList[cellId];
+        contents[cellId] = terminal.contents;
+      }
       return contents;
+    },
+
+    isTerminalCell: (cellId) => {
+      return (terminals.terminalsList[cellId] !== undefined);
     },
 
     runTerminalCommand: (terminalId, command, addCR) => {

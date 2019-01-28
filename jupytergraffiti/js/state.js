@@ -78,7 +78,7 @@ define([
       state.shiftKeyIsDown = false;
       state.executionSourceChoiceId = undefined;
       state.terminalState = undefined;
-      state.recordAllTerminalStates = false;
+      state.collectTerminalStates = false;
 
       // Usage statistic gathering for the current session (since last load of the notebook)
       state.usageStats = {
@@ -1046,6 +1046,7 @@ define([
     },
 
     setPlayableMovie: (kind, cellId, recordingKey) => {
+      //console.trace('setPlayableMovie, cellId:', cellId);
       const cell = utils.findCellByCellId(cellId);
       if (cell !== undefined) {
         const recording = state.getManifestSingleRecording(cellId, recordingKey);
@@ -1115,7 +1116,7 @@ define([
       state.playbackCellAdditions = {};
     },
 
-    storeTerminalState: (newState) => {
+    storeTerminalsState: (newState) => {
       state.terminalsState = newState; // state of one or more terminals at any given time
     },
 
@@ -1366,13 +1367,22 @@ define([
     },
 
     createTerminalsRecord: () => {
-      if (state.recordAllTerminalStates) {
-        // Collect contents of all terminals and store them all. This is only done at the beginning of a graffiti to set all terminals to
-        // have whatever contents they had when the recording was begun.
-        state.terminalsState = terminalLib.collectAllTerminalsContents();
-        state.recordAllTerminalStates = false;
+      if (state.collectTerminalStates) {
+        // Collect display positions of all terminals. This is only done at the beginning of a graffiti recording so terminals
+        // display contents they had when the recording was begun.
+        state.terminalsState = terminalLib.getTerminalsStates();
+        state.collectTerminalStates = false;
       }
+
       return { terminals: state.terminalsState };
+    },
+
+    getHistoryTerminalsContents: () => {
+      return state.history.terminalsContents;
+    },
+
+    storeTerminalsContentsInHistory: () => {
+      state.history.terminalsContents = terminalLib.getTerminalsContents();
     },
 
     createSpeakingRecord: () => {
@@ -1565,7 +1575,7 @@ define([
 
       // Set things up to record the state of all known terminals at the start of any recording. This value
       // is used by createTerminalsRecord().
-      state.recordAllTerminalStates = true;
+      state.collectTerminalStates = true;
 
       // Store initial state records at the start of recording.
       state.storeHistoryRecord('pointer',    now);

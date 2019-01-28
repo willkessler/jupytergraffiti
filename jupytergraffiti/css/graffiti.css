@@ -60,6 +60,14 @@
   height:24px;
 }
 
+#graffiti-cursor-terminal-cells {
+  width: 25px;
+  height: 25px;
+  background:orange;
+  opacity:0.75;
+  border-radius:50%;
+}
+
 .graffiti-tip {
   background-color:#fff;
   color:#222;
