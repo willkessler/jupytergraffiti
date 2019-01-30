@@ -1037,7 +1037,7 @@ define([
     },
 
     setPlayableMovie: (kind, cellId, recordingKey) => {
-      //console.trace('setPlayableMovie, cellId:', cellId);
+      //console.log('setPlayableMovie, cellId, recordingKey:', cellId,recordingKey);
       const cell = utils.findCellByCellId(cellId);
       if (cell !== undefined) {
         const recording = state.getManifestSingleRecording(cellId, recordingKey);

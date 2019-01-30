@@ -122,7 +122,9 @@ define ([
       const portionMultiplier = 8;
       const term = terminal.term;
       const portionLength = (term.rows * term.cols) * portionMultiplier;
-      const contentsPortion = contents.substr(0, contentsPointer);
+      const contentsPortion = contents.substr(Math.max(0,contentsPointer - portionLength), contentsPointer);
+      //const contentsPortion = contents.substr(0, contentsPointer);
+      console.log('contentsPointer:', contentsPointer);
       return contentsPortion;
     },
 
