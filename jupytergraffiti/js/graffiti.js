@@ -4845,7 +4845,6 @@ define([
           }
         }
         if (state.shouldUpdateDisplay('terminals', frameIndexes.terminals)) {
-          //console.log(state.history.processed);
           graffiti.updateTerminals(frameIndexes.terminals.index);
         }
         if (state.shouldUpdateDisplay('speaking', frameIndexes.speaking)) {

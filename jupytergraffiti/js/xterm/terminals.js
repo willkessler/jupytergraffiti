@@ -383,6 +383,7 @@ define ([
         terminal = terminals.terminalsList[cellId];
         states.push({
           id: cellId,
+          type: 'output',
           position: terminal.contents.length,
           focusedTerminal: terminals.focusedTerminal,
           firstRecord: true, // these records are always the first records used in a recording, so set the flag to reset terminal contents when playback restarted
