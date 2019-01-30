@@ -122,7 +122,9 @@ define ([
       const portionMultiplier = 8;
       const term = terminal.term;
       const portionLength = (term.rows * term.cols) * portionMultiplier;
-      const contentsPortion = contents.substr(0, contentsPointer);
+      const contentsPortion = contents.substr(Math.max(0,contentsPointer - portionLength), contentsPointer);
+      //const contentsPortion = contents.substr(0, contentsPointer);
+      console.log('contentsPointer:', contentsPointer);
       return contentsPortion;
     },
 
@@ -381,6 +383,7 @@ define ([
         terminal = terminals.terminalsList[cellId];
         states.push({
           id: cellId,
+          type: 'output',
           position: terminal.contents.length,
           focusedTerminal: terminals.focusedTerminal,
           firstRecord: true, // these records are always the first records used in a recording, so set the flag to reset terminal contents when playback restarted

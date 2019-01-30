@@ -44,6 +44,8 @@ define([
         graffiti.highlightMarkText = undefined;
         graffiti.cmLineHeight = 17.0001; // line height of code mirror lines as styled in Jupyter
         graffiti.cmLineFudge = 8; // buffer between lines
+        graffiti.cmLineTipFudge = 6; // buffer between lines for tip display
+        graffiti.tipAboveFudge = 14;
         graffiti.tokenRanges = {};
         graffiti.canvases = { 
           permanent: {}, // these canvases persist drawings throughout the lifespan of the recording
@@ -3052,7 +3054,7 @@ define([
                       doUpdate = false;
                     }
                   }
-                  if (doUpdate || true) { // hack
+                  if (doUpdate) {
                     //console.log('replacing tooltip contents ');
                     existingTip.find('#graffiti-movie-play-btn').unbind('click');
                     existingTip.html(tooltipContents);
@@ -3077,7 +3079,7 @@ define([
                 const highlightElemOffset = highlightElem.offset();
                 const existingTipWidth = existingTip.width();
                 const existingTipHeight = existingTip.height();
-                let tipTop = parseInt(highlightElemOffset.top - outerInputOffset.top) - existingTipHeight - 20;
+                let tipTop = parseInt(highlightElemOffset.top - outerInputOffset.top) - existingTipHeight - graffiti.tipAboveFudge;
                 let tipLeft, anchorIsImage = false;
                 if (hoverCellType === 'markdown') {
                   const anchorImage = highlightElem.find('img');
@@ -3107,8 +3109,8 @@ define([
                 const headerRect = $('#header')[0].getBoundingClientRect();
                 // If the highlight element is in the upper half of the notebook panel area, flip the tooltip to be below the highlightElem.
                 const rectDifference = highlightElemRect.top - headerRect.bottom - 20;
-                if (rectDifference < existingTipHeight && !anchorIsImage) {
-                  tipPosition.top = highlightElemOffset.top - outerInputOffset.top + graffiti.cmLineHeight + graffiti.cmLineFudge;
+                if (rectDifference < existingTipHeight && !anchorIsImage) { // place tip below the line
+                  tipPosition.top = highlightElemOffset.top - outerInputOffset.top + graffiti.cmLineHeight + graffiti.cmLineTipFudge;
                 }
                 //console.log('2) tipPosition:', tipPosition);
                 tipPosition.top += hoverCellElementPosition.top;
@@ -4853,7 +4855,6 @@ define([
           }
         }
         if (state.shouldUpdateDisplay('terminals', frameIndexes.terminals)) {
-          //console.log(state.history.processed);
           graffiti.updateTerminals(frameIndexes.terminals.index);
         }
         if (state.shouldUpdateDisplay('speaking', frameIndexes.speaking)) {
@@ -5285,6 +5286,7 @@ define([
         }
 
         console.log('playableMovie:', playableMovie);
+        const activity = state.getActivity();
         const recording = state.getManifestSingleRecording(playableMovie.recordingCellId, playableMovie.recordingKey);
         // If we are in cellExecuteChoice state, we don't want to run a movie at all, we just want to wire a button to the graffiti associated with this movie.
         const executionSourceChoiceId = state.getExecutionSourceChoiceId();
@@ -5301,7 +5303,7 @@ define([
           if (recording.terminalCommand !== undefined) {
             const terminalCommand = recording.terminalCommand;
             terminalLib.runTerminalCommand(terminalCommand.terminalId, terminalCommand.command, true);
-            if (state.getActivity() !== 'recording') {
+            if (activity !== 'recording') {
               graffiti.cleanupAfterLoadAndPlayDidNotPlay(); // clean up *unless* we are recording; then we should just let things keep going.
             }
             
