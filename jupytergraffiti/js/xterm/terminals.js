@@ -89,11 +89,12 @@ define ([
             case "stdout":
               const newChars = json_msg[1];
               term.write(newChars);
+              term.storedYdisp = term.buffer.ydisp;
               //console.log('received newCharslength:', newChars.length, newChars);
               termObject.contents += newChars;
               terminals.eventsCallback({ 
                 id: term.id,
-                type: 'output',
+                scrollLine: term.storedYdisp,
                 position: termObject.contents.length,
                 focusedTerminal: terminals.focusedTerminal,
                 firstRecord: false,
@@ -124,7 +125,7 @@ define ([
       const portionLength = (term.rows * term.cols) * portionMultiplier;
       const contentsPortion = contents.substr(Math.max(0,contentsPointer - portionLength), contentsPointer);
       //const contentsPortion = contents.substr(0, contentsPointer);
-      console.log('contentsPointer:', contentsPointer);
+      //console.log('contentsPointer:', contentsPointer);
       return contentsPortion;
     },
 
@@ -317,11 +318,15 @@ define ([
           terminal.term.write(portion);
           terminal.lastPosition = opts.position;
         } else {
-          const newPortion = terminal.contents.substr(terminal.lastPosition, opts.position - terminal.lastPosition);
-          //console.log('writing newPortion', newPortion);
-          terminal.term.write(newPortion);
-          terminal.lastPosition = opts.position;
+          if (terminal.lastPosition !== opts.position) {
+            const newPortion = terminal.contents.substr(terminal.lastPosition, opts.position - terminal.lastPosition);
+            //console.log('writing newPortion', newPortion);
+            terminal.term.write(newPortion);
+            terminal.lastPosition = opts.position;
+          }
         }
+        // Scroll to the correct spot if needed
+        terminals.scrollTerminal(opts);
       }
     },
 
@@ -377,16 +382,17 @@ define ([
       }
     },
 
-    getTerminalsStates: () => {
+    getTerminalsStates: (markAsFirstRecord) => {
       const states = [];
       for (let cellId of Object.keys(terminals.terminalsList)) {
         terminal = terminals.terminalsList[cellId];
         states.push({
           id: cellId,
-          type: 'output',
+          scrollLine: terminal.term.buffer.ydisp,
           position: terminal.contents.length,
+          isFocused: (terminals.focusedTerminal === cellId),
           focusedTerminal: terminals.focusedTerminal,
-          firstRecord: true, // these records are always the first records used in a recording, so set the flag to reset terminal contents when playback restarted
+          firstRecord: markAsFirstRecord,
         });
       }
       return states;

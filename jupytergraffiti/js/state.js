@@ -77,7 +77,6 @@ define([
       state.shiftKeyIsDown = false;
       state.executionSourceChoiceId = undefined;
       state.terminalState = undefined;
-      state.collectTerminalStates = false;
 
       // Usage statistic gathering for the current session (since last load of the notebook)
       state.usageStats = {
@@ -1358,14 +1357,11 @@ define([
     },
 
     createTerminalsRecord: () => {
-      if (state.collectTerminalStates) {
-        // Collect display positions of all terminals. This is only done at the beginning of a graffiti recording so terminals
-        // display contents they had when the recording was begun.
-        state.terminalsState = terminalLib.getTerminalsStates();
-        state.collectTerminalStates = false;
-      }
-
-      return { terminals: state.terminalsState };
+      // Collect display positions of all terminals. If no terminals history has been recorded yet then mark these records as the "first records",
+      // which will trigger term.reset() calls during playback.
+      const markAsFirstRecord = state.history.terminals.length === 0;
+      const terminalsState = terminalLib.getTerminalsStates(markAsFirstRecord);
+      return { terminals: terminalsState };
     },
 
     getHistoryTerminalsContents: () => {
@@ -1563,10 +1559,6 @@ define([
 
       // Set up to keep track of the latest record processed during playback (so we don't process a record twice).
       state.resetProcessedArrays();
-
-      // Set things up to record the state of all known terminals at the start of any recording. This value
-      // is used by createTerminalsRecord().
-      state.collectTerminalStates = true;
 
       // Store initial state records at the start of recording.
       state.storeHistoryRecord('pointer',    now);

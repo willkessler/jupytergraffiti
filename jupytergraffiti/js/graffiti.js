@@ -2653,6 +2653,7 @@ define([
         const lastDrawFrameIndex = state.getIndexUpToTime('drawings', targetTime);
         if (lastDrawFrameIndex !== undefined) {
           // First, final last opacity reset before the target time. We will start redrawing drawings from this point forward.
+          let record;
           for (let index = 0; index < lastDrawFrameIndex; ++index) {
             record = state.getHistoryItem('drawings', index);
             graffiti.updateDrawingCore(record);
@@ -2666,6 +2667,7 @@ define([
         }
         const lastDrawFrameIndex = state.getLastFrameIndex('drawings');
         if (lastDrawFrameIndex !== undefined) {
+          let record;
           for (let index = 0; index < lastDrawFrameIndex; ++index) {
             record = state.getHistoryItem('drawings', index);
             graffiti.updateDrawingCore(record);
@@ -4792,18 +4794,12 @@ define([
         if (termRecords !== undefined) {
           const terminalsContents = state.getHistoryTerminalsContents();
           for (let i = 0; i < termRecords.length; ++i) {
-            switch (termRecords[i].type) {
-              case 'output':
-                terminalLib.setTerminalContents($.extend(true, termRecords[i], { 
-                  incremental: (state.getActivity() === 'playing'), 
-                  terminalsContents: terminalsContents,
-                }));
-                focusedTerminal = termRecords[i].focusedTerminal;
-                break;
-              case 'refresh':
-                console.log('Graffiti: scrolling terminal according to delta.');
-                terminalLib.scrollTerminal(termRecords[i]);
-                break;
+            terminalLib.setTerminalContents($.extend(true, termRecords[i], { 
+              incremental: (state.getActivity() === 'playing'), 
+              terminalsContents: terminalsContents,
+            }));
+            if (termRecords[i].isFocused) {
+              focusedTerminal = termRecords[i].id;
             }
           }
         }
