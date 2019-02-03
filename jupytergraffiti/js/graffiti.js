@@ -137,6 +137,13 @@ define([
           terminalLib.createTerminalCellAboveSelectedCell();
           utils.saveNotebook();
         });
+        // Insert the menu item that allows the user to create new terminal suites (codecell + terminal + run button).
+        $('<li id="insert_terminal_suite_above" title="' + localizer.getString('INSERT_TERMINAL_SUITE_ALT_TAG') + '">' +
+          '<a href="#">' + localizer.getString('INSERT_TERMINAL_SUITE') + '</a></li>').appendTo($('#insert_menu'));
+        $('#insert_terminal_suite_above').click(() => { 
+          const suite = graffiti.createTerminalSuiteAboveSelectedCell();
+          utils.saveNotebook();
+        });
         // Insert the menu item that allows the user to mark cells as executing graffitis.
         $('<li id="cell_executes_graffiti" title="' + localizer.getString('CELL_EXECUTES_GRAFFITI_TAG') + '">' +
           '<a href="#">' + localizer.getString('CELL_EXECUTES_GRAFFITI') + '</a></li>').insertAfter($('#change_cell_type #to_code'));
@@ -220,6 +227,92 @@ define([
         graffiti.updateControlPanels();
       },
         
+      // This function is sort of a hack. It creates a new Graffiti to be placed in this cell, wrapping the markdown in it.
+      // It repeats some of the functionality of finishGraffiti() without UX interactions, which is unfortunate. Refactor really needed.
+      createGraffitizedMarkdown: (cell, markdown, tooltipCommands, tooltipDirectives) => {
+        const recordingKey = utils.generateUniqueId();
+        const cellId = utils.getMetadataCellId(cell.metadata);
+        const recordingRecord = $.extend(true, {
+          cellId: cellId,
+          cellType: 'markdown',
+          createDate: utils.getNow(),
+          inProgress: false,
+          tokens: $.extend({}, graffiti.selectedTokens.tokens),
+          range: $.extend({}, graffiti.selectedTokens.range),
+          allTokensString: graffiti.selectedTokens.allTokensString,
+          markdown: tooltipDirectives.join("\n") + "\n",
+          authorId: state.getAuthorId(),
+          authorType: state.getAuthorType(),
+          activeTakeId: undefined, // this will be replaced with an id for the first movie recording made
+          takes: [],
+          hasMovie: true, // this is set to true but the non-existent will be ignored because this will run a terminal command
+        }, tooltipCommands);
+        state.setSingleManifestRecording(cellId, recordingKey, recordingRecord);
+        storage.storeManifest();
+        const spanOpenTag = '<span class="graffiti-highlight graffiti-' + cellId + '-' + recordingKey + '"><i></i>';
+        const graffizedContents = spanOpenTag + markdown + '</span>';
+        return { 
+          recordingKey: recordingKey,
+          markdown: graffizedContents 
+        };
+      },
+
+      createTerminalSuiteAboveSelectedCell: () => {
+        graffiti.setJupyterMenuHint(localizer.getString('INSERT_TERMINAL_SUITE_STATUS'));
+        const terminalSuite = {};
+        const selectedCellIndex = Jupyter.notebook.get_selected_index();
+
+        const codeCell = Jupyter.notebook.insert_cell_above('code', selectedCellIndex);
+        const codeCommentString = utils.getCodeCommentString();
+        codeCell.set_text(codeCommentString + "\n" + codeCommentString + ' ' +
+                          "Paste code here. It will execute the graffiti associated with the button when shift-enter is pressed.\n" +
+                          codeCommentString + "\n");
+        terminalSuite.codeCellId = utils.getMetadataCellId(codeCell.metadata);
+
+        const terminalCell = terminalLib.createTerminalCellAboveSelectedCell(selectedCellIndex + 1);
+        terminalSuite.terminalCellId = terminalCell.term.id; // initially the term id is the same as the cellId of the cell it lives in.
+
+        const buttonCell = Jupyter.notebook.insert_cell_below('markdown', selectedCellIndex + 1);
+        const cm = buttonCell.code_mirror;
+        cm.execCommand('selectAll');
+        const params = { cell: buttonCell, clear: true };
+        graffiti.refreshGraffitiHighlights(params);
+        graffiti.selectedTokens = utils.findSelectionTokens(buttonCell, graffiti.tokenRanges, state);
+
+        tooltipCommands = {
+          autoPlay: 'never',
+          playOnClick: true,
+          hideTooltip: true,
+          hideTooltip: true,
+          narratorName: undefined,
+          narratorPicture: undefined,
+          stickerImageUrl: undefined,
+          saveToFile: [{ cellId: terminalSuite.codeCellId, path: './graffiti_sample.txt' }],
+          terminalCommand: { terminalId: terminalSuite.terminalCellId, command: 'cat ./graffiti_sample.txt' },
+        };
+        const tooltipDirectives = [
+          '%%play_on_click',
+          '%%hide_tooltip',
+          '%%save_to_file' + ' ' + terminalSuite.codeCellId + ' "' + tooltipCommands.saveToFile.path + '"',
+          '%%terminal_command' + ' ' + terminalSuite.terminalCellId + ' "' + tooltipCommands.terminalCommand.command + '"'
+        ];
+        const rawButtonMarkdown = '<button>Run Code</button>';
+        const graffitizedData = graffiti.createGraffitizedMarkdown(buttonCell, rawButtonMarkdown, tooltipCommands, tooltipDirectives);
+        buttonCell.set_text(graffitizedData.markdown);
+        buttonCell.render();
+        terminalSuite.buttonCellId = utils.getMetadataCellId(buttonCell.metadata);
+
+        // Wire up the code cell to execute the button graffiti when shift-enter/ctrl-enter is pressed in it.
+        const targetGraffitiId = utils.composeGraffitiId(terminalSuite.buttonCellId, graffitizedData.recordingKey);
+        utils.setCellGraffitiConfigEntry(codeCell, 'executeCellViaGraffiti', targetGraffitiId);
+
+        graffiti.refreshAllGraffitiHighlights();
+        graffiti.refreshGraffitiTooltips();
+        
+        graffiti.clearJupyterMenuHint();
+        return terminalSuite;      
+      },
+
       setupOneControlPanel: (elemId,elemHtml, callbacks) => {
         if (graffiti.controlPanelIds === undefined) {
           graffiti.controlPanelIds = {};
@@ -1054,10 +1147,14 @@ define([
       updateTakesPanel: (recordingCellId, recordingKey) => {
         const recording = state.getManifestSingleRecording(recordingCellId, recordingKey);
         const activeTakeId = recording.activeTakeId;
+        if ((activeTakeId === undefined) || (recording.takes === undefined)) {
+          return false;
+        }
         //console.log('we got these takes:', recording.takes);
+        let renderedTakes = '';
         const sortedRecs = _.sortBy($.map(recording.takes, (val,key) => { return $.extend(true, {}, val, { key: key }) }), 'createDate')
         //console.log('sorted recs are:', sortedRecs);
-        let recIndex, recIndexZerobased, renderedTakes = '', createDateFormatted, renderedDate, rec, takeClass;
+        let recIndex, recIndexZerobased, createDateFormatted, renderedDate, rec, takeClass;
         for (recIndex = sortedRecs.length; recIndex > 0; --recIndex) {
           recIndexZerobased = recIndex - 1;
           rec = sortedRecs[recIndexZerobased];
@@ -1072,6 +1169,7 @@ define([
                            '</div>';
         }
         $('#graffiti-takes-list').html(renderedTakes);
+        return true;
       },
 
       updateControlPanels: (cm) => {
@@ -1230,8 +1328,13 @@ define([
                   visibleControlPanels.push('graffiti-access-skips');
                   visibleControlPanels.push('graffiti-access-api');
                   visibleControlPanels.push('graffiti-notifier');
-                  visibleControlPanels.push('graffiti-takes-controls');
-                  graffiti.updateTakesPanel(recordingCellId, recordingKey);
+                  if (graffiti.updateTakesPanel(recordingCellId, recordingKey)) {
+                    visibleControlPanels.push('graffiti-takes-controls');
+                    graffiti.setNotifier('<div>' + localizer.getString('YOU_CAN_PLAY_VIA_TOOLTIP') + '</div>');
+                  } else {
+                    graffiti.setNotifier('<div>' + localizer.getString('NO_MOVIE_RECORDED_YET') + '</div>');
+                  }
+
                   //console.log('this recording has a movie');
                   graffiti.controlPanelIds['graffiti-record-controls'].find('#graffiti-begin-recording-btn').hide().parent().
                            find('#graffiti-begin-rerecording-btn').show();
@@ -1250,7 +1353,6 @@ define([
                                          },
                                        ]);
                   */
-                  graffiti.setNotifier('<div>' + localizer.getString('YOU_CAN_PLAY_VIA_TOOLTIP') + '</div>');
                 }
               }
             }
@@ -2970,7 +3072,7 @@ define([
           const tooltipCommands = graffiti.extractTooltipCommands(recording.markdown);
 
           if (recording.playOnClick) {
-            console.log('Graffiti: binding target for click', highlightElem);
+            //console.log('Graffiti: binding target for click', highlightElem);
             highlightElem.off('click').click((e) => {
               state.clearTipTimeout();
               e.stopPropagation(); // for reasons unknown event still propogates to the codemirror editing area undeneath...
@@ -2985,7 +3087,7 @@ define([
           }
 
           if ((recording.hideTooltip) || (recording.terminalCommand !== undefined) || activity === 'recording') {
-            console.log('Graffiti: recording is set to hide tip or recording is set to run a terminal command, or recording so we do not display tips');
+            // console.log('Graffiti: recording is set to hide tip or recording is set to run a terminal command, or recording so we do not display tips');
             return;
           }
 
@@ -3593,7 +3695,6 @@ define([
             recording.stickerImageUrl = tooltipCommands.stickerImageUrl;
             recording.saveToFile = tooltipCommands.saveToFile;
             recording.terminalCommand = tooltipCommands.terminalCommand;
-            console.log('storing tooltip parms like this:', recording);
 
             state.updateUsageStats({
               type:'create',
@@ -3607,7 +3708,7 @@ define([
             
             console.log('Graffiti: finishGraffiti: we got these stats:', state.getUsageStats());
 
-          } else {
+          } else { // Not saving (recording cancelled by user), so make sure we remove this record from the manifest before saving.
             if (recordingCellInfo.newRecording) {
               state.removeManifestEntry(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
             }
@@ -5271,7 +5372,7 @@ define([
           return;
         }
 
-        console.log('playableMovie:', playableMovie);
+        console.log('Graffiti: playableMovie:', playableMovie);
         const activity = state.getActivity();
         const recording = state.getManifestSingleRecording(playableMovie.recordingCellId, playableMovie.recordingKey);
         // If we are in cellExecuteChoice state, we don't want to run a movie at all, we just want to wire a button to the graffiti associated with this movie.

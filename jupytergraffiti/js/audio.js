@@ -85,6 +85,7 @@ define([
         })
         .catch(error => {
           audio.playBeganOK = false;
+          console.log('Graffiti: audio error:', error);
         });
       }
     },
