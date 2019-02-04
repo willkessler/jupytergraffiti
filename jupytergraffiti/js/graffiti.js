@@ -130,6 +130,13 @@ define([
       },
 
       setupTerminalMenus: () => {
+        // Insert the menu item that allows the user to create new standalone graffiti buttons.
+        $('<li id="insert_graffiti_button_above" title="' + localizer.getString('INSERT_GRAFFITI_BUTTON_ALT_TAG') + '">' +
+          '<a href="#">' + localizer.getString('INSERT_GRAFFITI_BUTTON') + '</a></li>').appendTo($('#insert_menu'));
+        $('#insert_graffiti_button_above').click(() => { 
+          const suite = graffiti.createGraffitiButtonAboveSelectedCell();
+          utils.saveNotebook();
+        });
         // Insert the menu item that allows the user to create new terminals.
         $('<li id="insert_terminal_above" title="' + localizer.getString('INSERT_TERMINAL_ALT_TAG') + '">' +
           '<a href="#">' + localizer.getString('INSERT_TERMINAL') + '</a></li>').appendTo($('#insert_menu'));
@@ -257,6 +264,40 @@ define([
         };
       },
 
+      // Create a button with a graffiti that doesn't do anything, but is ready to attach a recording to. This is merely to help
+      // authors who don't know much html create buttons more easily.
+      createGraffitiButtonAboveSelectedCell: () => {
+        const selectedCellIndex = Jupyter.notebook.get_selected_index();
+        const buttonCell = Jupyter.notebook.insert_cell_above('markdown', selectedCellIndex);
+        const cm = buttonCell.code_mirror;
+        cm.execCommand('selectAll');
+        const params = { cell: buttonCell, clear: true };
+        graffiti.refreshGraffitiHighlights(params);
+        graffiti.selectedTokens = utils.findSelectionTokens(buttonCell, graffiti.tokenRanges, state);
+
+        tooltipCommands = {
+          autoPlay: 'never',
+          playOnClick: false,
+          hideTooltip: false,
+          narratorName: undefined,
+          narratorPicture: undefined,
+          stickerImageUrl: undefined,
+        };
+        const tooltipDirectives = [
+          'Edit the markdown cell containing this button in order to customize the Graffiti associated with the button. ' +
+          'The default movie that was created with this button is a *placeholder* and it will not play.',
+        ];
+        const rawButtonMarkdown = '<button>Graffiti Sample Button (edit me)</button>';
+        const graffitizedData = graffiti.createGraffitizedMarkdown(buttonCell, rawButtonMarkdown, tooltipCommands, tooltipDirectives);
+        buttonCell.set_text(graffitizedData.markdown);
+        buttonCell.render();
+
+        graffiti.refreshAllGraffitiHighlights();
+        graffiti.refreshGraffitiTooltips();
+
+        return buttonCell;
+      },
+
       createTerminalSuiteAboveSelectedCell: () => {
         graffiti.setJupyterMenuHint(localizer.getString('INSERT_TERMINAL_SUITE_STATUS'));
         const terminalSuite = {};
@@ -283,7 +324,6 @@ define([
           autoPlay: 'never',
           playOnClick: true,
           hideTooltip: true,
-          hideTooltip: true,
           narratorName: undefined,
           narratorPicture: undefined,
           stickerImageUrl: undefined,
@@ -293,7 +333,7 @@ define([
         const tooltipDirectives = [
           '%%play_on_click',
           '%%hide_tooltip',
-          '%%save_to_file' + ' ' + terminalSuite.codeCellId + ' "' + tooltipCommands.saveToFile.path + '"',
+          '%%save_to_file' + ' ' + terminalSuite.codeCellId + ' "' + tooltipCommands.saveToFile[0].path + '"',
           '%%terminal_command' + ' ' + terminalSuite.terminalCellId + ' "' + tooltipCommands.terminalCommand.command + '"'
         ];
         const rawButtonMarkdown = '<button>Run Code</button>';
