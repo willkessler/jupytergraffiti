@@ -370,6 +370,32 @@ define([
       return currentSpeakingStatus;
     },
 
+    // Set the start and end time of where the first speaking period began and the last speaking period ends and put these into
+    // absolute skip records
+    addSpeakingLimitsSkipRecords: () => {
+      let record;
+      if (state.history.speaking.length >= 2) {
+        const lastRec = state.history.speaking.length - 1;
+        state.setSkipStatus(state.SKIP_STATUS_ABSOLUTE);
+        record = state.createSkipRecord();
+        record.startTime = 0;
+        record.endTime = state.history.speaking[0].startTime - 1;
+        state.history['skip'].push(record);
+
+        state.setSkipStatus(state.SKIP_STATUS_NONE);
+        record = state.createSkipRecord();
+        record.startTime = state.history.speaking[0].startTime;
+        record.endTime = state.history.speaking[lastRec].startTime - 1;
+        state.history['skip'].push(record);
+
+        state.setSkipStatus(state.SKIP_STATUS_ABSOLUTE);
+        record = state.createSkipRecord();
+        record.startTime = state.history.speaking[lastRec].startTime;
+        record.endTime = state.history.duration;
+        state.history['skip'].push(record);
+      }
+    },
+
     setHighlightsRefreshCellId: (cellId) => {
       state.highlightsRefreshCellId = cellId;
     },

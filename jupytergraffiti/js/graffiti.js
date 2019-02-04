@@ -4286,6 +4286,7 @@ define([
         state.storeTerminalsContentsInHistory();
         state.setSpeakingStatus(false); // if we were still speaking, record a history record that will terminate that state during playback.
         state.finalizeHistory();
+        state.addSpeakingLimitsSkipRecords();
         if (useCallback) {
           state.dumpHistory();
         }
@@ -5167,6 +5168,7 @@ define([
           state.setSpeakingStatus(false);
           terminalLib.clearTerminalsContentsPositions();
           state.resetPlayTimes();
+          graffiti.updateSlider(0);
           graffiti.prePlaybackScrolltop = state.getScrollTop();
           graffiti.lastScrollViewId = undefined;
           graffiti.lastDrawIndex = undefined;
@@ -5221,7 +5223,8 @@ define([
                                      () => {
                                        //console.log('Moving playback time ahead.');
                                        const playedSoFar = state.getTimePlayedSoFar();
-                                       if (playedSoFar >= state.getHistoryDuration()) {
+                                       const endOfPlayableTime = state.getHistoryDuration();
+                                       if (playedSoFar >= endOfPlayableTime) {
                                          // reached end of recording naturally, so set up for restart on next press of play button
                                          //console.log('end of recording reached, playedSoFar:', playedSoFar, 'duration', state.getHistoryDuration());
                                          state.setupForReset();
