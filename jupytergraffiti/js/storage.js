@@ -44,7 +44,16 @@ define([
 
     runShellCommand: (cmd) => {
       const executorCell = storage.createExecutorCell();
-      executorCell.set_text('!' + cmd);
+      const currentKernelName = Jupyter.notebook.kernel.name;
+      let fullCommand;
+      if (currentKernelName === utils.rKernel) {
+        // R doesn't support magics so we use internal R system() call.
+        // This needs to escape double quotes eventually... 
+        fullCommand = "system('" + cmd + "', intern=TRUE)";
+      } else {
+        fullCommand = '!' + cmd;
+      }
+      executorCell.set_text(fullCommand);
       executorCell.execute();
     },
 
@@ -53,28 +62,53 @@ define([
       const contents = opts.contents;
       const executorCell = storage.createExecutorCell();
       const currentKernelName = Jupyter.notebook.kernel.name;
-      const writeMagic = ((currentKernelName.indexOf(utils.cplusplusKernel) === 0) ? '%%file' : '%%writefile');
-      const chunkSize = ((currentKernelName.indexOf(utils.cplusplusKernel) === 0) ? 10000 : 100000);
-      // tr -d '\n' < checker.txt > checker2.txt
+      let writeMagic, chunkSize;
+      switch (currentKernelName) {
+        case utils.cplusplusKernel11:
+        case utils.cplusplusKernel14:
+        case utils.cplusplusKernel17:
+          writeMagic = '%%file';
+          chunkSize = 10000;
+          break;
+        case utils.pythonKernel:
+          writeMagic = '%%writefile';
+          chunkSize = 100000;
+          break;
+        case utils.rKernel:
+          break;
+      }
       const contentLength = contents.length;
-      let chunkPtr = 0, chunk, appendFlag, cmd;
+      let chunkPtr = 0, chunk, appendFlag, cmd, rLines = [];
       const pathWithCrs = path + '.cr';
       while (chunkPtr < contentLength) {
         chunk = contents.substr(chunkPtr, chunkSize);
         appendFlag = (chunkPtr === 0 ? ' ' : ' -a ');
-        cmd = writeMagic + appendFlag + pathWithCrs + "\n" + chunk;
-        executorCell.set_text(cmd);
-        executorCell.execute();
+        if (currentKernelName === utils.rKernel) {
+          // We don't write in this loop if using the R Kernel, we just collect and write with a single command, below
+          rLines.push('"' + chunk + '"');
+        } else {
+          cmd = writeMagic + appendFlag + pathWithCrs + "\n" + chunk;
+          executorCell.set_text(cmd);
+          executorCell.execute();
+        }
         chunkPtr += chunkSize;
       }
+
+      if (currentKernelName === utils.rKernel) {
+        // Now write it all out in one fell swoop, cf: https://stackoverflow.com/questions/2470248/write-lines-of-text-to-a-file-in-r
+        cmd = 'writeLines(c(' + rLines.join(',') + '), "' + pathWithCrs + '")';
+        executorCell.set_text(cmd);
+        executorCell.execute();
+      }
+
       if (opts.stripCRs) {
-        executorCell.set_text('!/usr/bin/tr -d "\\n" < ' + pathWithCrs + ' > ' + path); // remove all the CR's produced by the %%writefile appends and write to the final filename
+        cmd = '/usr/bin/tr -d "\\n" < ' + pathWithCrs + ' > ' + path; // remove all the CR's produced by the %%writefile appends and write to the final filename
       } else {
-        executorCell.set_text('!mv ' + pathWithCrs + ' ' + path); // just rename the .cr file with the final file name
+        cmd = 'mv ' + pathWithCrs + ' ' + path; // just rename the .cr file with the final file name
       }        
-      executorCell.execute();
-      executorCell.set_text('!rm ' + pathWithCrs);
-      executorCell.execute();
+      storage.runShellCommand(cmd);
+      cmd = 'rm ' + pathWithCrs;
+      storage.runShellCommand(cmd);
     },
 
     cleanUpExecutorCell: () => {

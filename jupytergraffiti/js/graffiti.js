@@ -78,6 +78,7 @@ define([
         graffiti.minimumStickerSize = 20; // pixels
         graffiti.minimumStickerSizeWithBuffer = graffiti.minimumStickerSize + 10;
         graffiti.previousActiveTakeId = undefined;
+        graffiti.forcedGraffitiTooltipRefresh = false;
 
         if (currentAccessLevel === 'create') {
           storage.ensureNotebookGetsGraffitiId();
@@ -3192,11 +3193,14 @@ define([
                   // Don't replace the tip if the contents are identical to what we had on the last interval.
                   const currentTipInfo = state.getDisplayedTipInfo();
                   let doUpdate = true;
-                  if (currentTipInfo !== undefined) {
-                    if ((currentTipInfo.cellId === cellId) && (currentTipInfo.recordingKey === recordingKey)) {
-                      doUpdate = false;
+                  if (!graffiti.forcedGraffitiTooltipRefresh) {
+                    if (currentTipInfo !== undefined) {
+                      if ((currentTipInfo.cellId === cellId) && (currentTipInfo.recordingKey === recordingKey)) {
+                        doUpdate = false;
+                      }
                     }
                   }
+                  graffiti.forcedGraffitiTooltipRefresh = false;
                   if (doUpdate) {
                     //console.log('replacing tooltip contents ');
                     existingTip.find('#graffiti-movie-play-btn').unbind('click');
@@ -3785,6 +3789,7 @@ define([
             recordingCell.code_mirror.focus();
             if (doSave) {
               graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: false});
+              graffiti.forcedGraffitiTooltipRefresh = true;
             } else {
               graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
             }

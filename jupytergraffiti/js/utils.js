@@ -4,7 +4,11 @@ define([
 
   const utils = {
     cellMaps: {},
-    cplusplusKernel: 'xeus-cling-cpp',
+    cplusplusKernel11: 'xeus-cling-cpp11',
+    cplusplusKernel14: 'xeus-cling-cpp14',
+    cplusplusKernel17: 'xeus-cling-cpp17',
+    pythonKernel: 'python3',
+    rKernel: 'ir',
 
     addCR: (str) => {
       return str + "\n";
@@ -24,7 +28,18 @@ define([
 
     getCodeCommentString: () => {
       const currentKernelName = Jupyter.notebook.kernel.name;
-      const codeCommentString = ((currentKernelName.indexOf(utils.cplusplusKernel) === 0) ? '//' : '#'); // right now we only support C++ and python
+      let codeCommentString;
+      switch (currentKernelName) {
+        case utils.cplusplusKernel11:
+        case utils.cplusplusKernel14:
+        case utils.cplusplusKernel17:
+          codeCommentString = '//';
+          break;
+        case utils.pythonKernel:
+        case utils.rKernel:
+          codeCommentString = '#';
+          break;
+      }
       return codeCommentString;
     },
 
