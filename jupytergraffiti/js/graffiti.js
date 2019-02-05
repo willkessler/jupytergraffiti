@@ -284,8 +284,9 @@ define([
           stickerImageUrl: undefined,
         };
         const tooltipDirectives = [
-          'Edit the markdown cell containing this button in order to customize the Graffiti associated with the button. ' +
-          'The default movie that was created with this button is a *placeholder* and it will not play.',
+          '%%button_name No Movie Here Yet',
+          'Edit this markdown cell to customize the Graffiti for this button, and to record a new movie.<br><br>' +
+          '_(NB: The default movie that was created with this button is a *placeholder* and it will *not* play.)_',
         ];
         const rawButtonMarkdown = '<button>Graffiti Sample Button (edit me)</button>';
         const graffitizedData = graffiti.createGraffitizedMarkdown(buttonCell, rawButtonMarkdown, tooltipCommands, tooltipDirectives);
