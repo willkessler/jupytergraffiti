@@ -1,5 +1,7 @@
 define([
   'base/js/dialog',
+  'base/js/events',
+  'notebook/js/textcell',
   './LZString.js',
   './state.js',
   './utils.js',
@@ -10,7 +12,7 @@ define([
   './selectionSerializer.js',
   './xterm/terminals.js',
   'components/marked/lib/marked'
-], function(dialog, LZString, state, utils, audio, storage, stickerLib, localizer, selectionSerializer, terminalLib, marked) {
+], function(dialog, events, textCell, LZString, state, utils, audio, storage, stickerLib, localizer, selectionSerializer, terminalLib, marked) {
   const Graffiti = (function() {
     const graffiti = {
 
@@ -80,6 +82,7 @@ define([
         graffiti.minimumStickerSizeWithBuffer = graffiti.minimumStickerSize + 10;
         graffiti.previousActiveTakeId = undefined;
         graffiti.forcedGraffitiTooltipRefresh = false;
+        graffiti.MarkdownCell = textCell.MarkdownCell;
 
         if (currentAccessLevel === 'create') {
           storage.ensureNotebookGetsGraffitiId();
@@ -1145,8 +1148,8 @@ define([
                                           event: 'click', 
                                           fn: (e) => { 
                                             console.log('Toggle markdown lock')
-                                            //graffiti.toggleMarkdownLock();
-                                            //utils.saveNotebook();
+                                            graffiti.toggleMarkdownLock();
+                                            utils.saveNotebook();
                                           }
                                         }
                                       ]
@@ -1193,6 +1196,49 @@ define([
            );
          */
 
+      },
+
+      setupMarkdownLocks: () => {
+        const oldUnrender = graffiti.MarkdownCell.prototype.unrender;
+        graffiti.MarkdownCell.prototype.unrender = () => {
+          console.log('Unrender fired.');
+          const cell = Jupyter.notebook.get_selected_cell();
+          if (cell !== undefined) {
+            const cellId = utils.getMetadataCellId(cell.metadata);
+            const markdownLocked = utils.getNotebookGraffitiConfigEntry('markdownLocked');
+            if (markdownLocked === true || terminalLib.isTerminalCell(cellId)) {
+              console.log('Not unrendering markdown cell, since Graffiti lock in place or is terminal cell.');
+            } else {
+              oldUnrender.apply(cell, arguments);
+            }
+          }
+        }
+      },
+
+      toggleMarkdownLock: () => {
+        const markdownLocked = utils.getNotebookGraffitiConfigEntry('markdownLocked');
+        const isLocked = (markdownLocked === true ? true : false);
+        const verb = (isLocked ? 'Unlock' : 'Lock');
+        const bodyText = (isLocked ?
+                          'This will unlock all markdown cells so you can edit them (note: terminal cells are always locked).' :
+                          'This will lock all markdown cells so they can no longer be edited.');
+        dialog.modal({
+          title: verb + ' markdown cells in notebook?',
+          body: bodyText,
+          sanitize:false,
+          buttons: {
+            'OK': {
+              click: (e) => {
+                console.log('Graffiti: You clicked ok, you want to toggle the lock');
+                const markdownLocked = utils.getNotebookGraffitiConfigEntry('markdownLocked');
+                const isLocked = (markdownLocked === true ? true : false);
+                utils.setNotebookGraffitiConfigEntry('markdownLocked', !isLocked);
+                utils.saveNotebook();
+              }
+            },
+            'Cancel': { click: (e) => { console.log('Graffiti: you cancelled:', $(e.target).parent()); } },
+          }
+        });
       },
 
       setSitePanelScrollTop: (scrollTop) => {
@@ -1631,8 +1677,10 @@ define([
         graffiti.setupDrawingScreen();
         graffiti.setupSavingScrim();
         graffiti.playAutoplayGraffiti(); // play any autoplay graffiti if there is one set up
+        graffiti.setupMarkdownLocks();
 
         terminalLib.init(graffiti.handleTerminalsEvents);
+
 
 /*
         let body = '<div>Enter the Graffiti Hub Key to import Graffiti into this notebook.</div>';

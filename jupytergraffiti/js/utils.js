@@ -150,6 +150,19 @@ define([
       return undefined;
     },
 
+    getNotebookGraffitiConfigEntry: (key) => {
+      if (Jupyter.notebook.metadata.hasOwnProperty('graffiti')) {
+        return Jupyter.notebook.metadata['graffiti'][key];
+      }
+      return undefined;
+    },
+
+    setNotebookGraffitiConfigEntry: (key, val) => {
+      if (Jupyter.notebook.metadata.hasOwnProperty('graffiti')) {
+        Jupyter.notebook.metadata['graffiti'][key] = val;
+      }
+    },
+
     refreshCellMaps: () => {
       utils.cellMaps = {
         cells: Jupyter.notebook.get_cells(),
