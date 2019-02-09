@@ -945,15 +945,27 @@ define([
       return buttonWithCursor;
     },
 
+    makeButton: (opts) => {
+      const buttonHtml = '<div class="button-icon" style="width:' + opts.width + 'px;height:' + opts.height + 'px;">' + opts.contents + '</div>';
+      return buttonHtml;
+    },
+
     makeTerminal: (opts) => {
+      const height = parseInt(opts.width * 0.9);
+      const terminalHtml = '<div class="terminal-icon" style="width:' + opts.width + 'px;height:' + height + 'px;">' +
+                           '&gt;_' +
+                           '</div>';
+      return terminalHtml;
+    },
+
+    makeLock: (opts) => {
       return sticker.makeSimplePath(
         $.extend({}, true, opts, {
           strokeWidth: 2,
-          viewBox: [0, 0, 32,20],
-          d: ["M26.69,6H5.31A3.32,3.32,0,0,0,2,9.31V22.69A3.32,3.32,0,0,0,5.31,26H26.69A3.32,3.32,0,0,0,30,22.69V9.31A3.32,3.32,0,0,0,26.69,6ZM14.86,16.8l-5.25,4A1.08,1.08,0,0,1,9,21a1,1,0,0,1-.8-.39,1,1,0,0,1,.19-1.41L12.6,16,8.39,12.8a1,1,0,1,1,1.22-1.6l5.25,4a1,1,0,0,1,0,1.6ZM23,21H16.88a1,1,0,1,1,0-2H23a1,1,0,0,1,0,2Z"],
-          fill:opts.color,
-        })
-      );
+          viewBox: [0, 0, 100, 100],
+          d: ["M77.9,41.2h-0.3v-8.9c0-15-11.7-27.6-26.7-28.1c-15.5-0.5-28.3,12-28.3,27.5c0,1.2,1,2.1,2.1,2.1H33c0.9,0,1.7-0.7,1.7-1.7  c0-8.3,6.4-15.5,14.7-15.9c8.9-0.4,16.2,6.7,16.2,15.4v9.4H34.7h-12h-0.6c-4,0-7.3,3.2-7.3,7.3v40c0,4,3.2,7.2,7.2,7.2h55.8  c4,0,7.3-3.2,7.3-7.3v-40C85.1,44.5,81.9,41.2,77.9,41.2z M22.9,87.7v-7l5.5,7H22.9z M34.7,87.7L22.9,72.6v-2.9h4l14.1,18H34.7z   M47.3,87.7l-14.1-18h6.3l14.1,18H47.3z M60,87.7l-14.1-18h6.3l14.1,18H60z M77.1,87.7h-4.5l-14.1-18h6.3l12.3,15.7V87.7z   M77.1,77.3l-5.9-7.6h5.9V77.3z"],
+          fill: opts.color,
+        }));
     },
 
     makeRunningMan: (fill) => {

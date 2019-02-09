@@ -86,9 +86,9 @@ define([
             'SKIPS_CLEAR_BTN':                   'Remove all skips',
             'TAKES':                             'Takes',
             'SELECT_SOME_TEXT_MARKDOWN' :        'Select some text in this Markdown cell to add or modify Graffiti, or click inside any existing Graffiti text to modify it.',
-            'EDIT_IN_MARKDOWN_CELL' :            'Edit the Markdown cell to add or modify Graffiti in the cell, or insert Graffiti Shells and Buttons (below)',
+            'EDIT_IN_MARKDOWN_CELL' :            'Edit the Markdown cell to add or modify Graffiti in the cell, or use Graffiti Extras (below)',
             'SELECT_SOME_TEXT_PLAIN' :           'Select some text in a cell to create or modify Graffiti, click inside any existing Graffiti text to modify that Graffiti, ' +
-                                                 'or insert Graffiti Shells and Buttons (below)',
+                                                 'or use Graffiti Extras (below)',
             'YOU_CAN_PLAY_VIA_TOOLTIP' :         'You can play this movie any time via its tooltip.',
             'NO_MOVIE_RECORDED_YET' :            'No movie has been recorded for this Graffiti yet.',
             'PLEASE_WAIT_STORING_MOVIE' :        'Please wait, storing this movie...',
@@ -151,6 +151,7 @@ define([
             'CELL_EXECUTES_GRAFFITI':            'Code Cell, Executes Graffiti',
             'CELL_EXECUTE_CHOICE':               'Now click on the element that contains the Graffiti you want this cell to run...',
             'CELL_EXECUTE_CHOICE_SET':           'Your choice has been saved.',
+            'ACTIVATE_LOCK_ALT_TAG':             'Lock/unlock markdown cells',
           }
           break;
         case 'CN':
@@ -204,8 +205,9 @@ define([
             'SKIPS_CLEAR_BTN':                   'Remove all skips',
             'TAKES':                             '版本',
             'SELECT_SOME_TEXT_MARKDOWN' :        '选择文本以创建或者修改 Graffiti，或者点击已有的 Graffiti 进行修改',
-            'EDIT_IN_MARKDOWN_CELL' :            '编辑 Markdown 单元格来添加或者修改 Graffiti ',
-            'SELECT_SOME_TEXT_PLAIN' :           '选择文本以创建或者修改 Graffiti，或者点击已有的 Graffiti 进行修改',
+            'EDIT_IN_MARKDOWN_CELL' :            'Edit the Markdown cell to add or modify Graffiti in the cell, or use Graffiti Extras (below)',
+            'SELECT_SOME_TEXT_PLAIN' :           'Select some text in a cell to create or modify Graffiti, click inside any existing Graffiti text to modify that Graffiti, ' +
+                                                 'or use Graffiti Extras (below)',
             'YOU_CAN_PLAY_VIA_TOOLTIP' :         '你可以通过提示框随时播放此视频',
             'NO_MOVIE_RECORDED_YET' :            'No movie has been recorded for this Graffiti yet.',
             'PLEASE_WAIT_STORING_MOVIE' :        '稍等，视频存储中...',
@@ -268,6 +270,7 @@ define([
             'CELL_EXECUTES_GRAFFITI':            'Code Cell, Executes Graffiti',
             'CELL_EXECUTE_CHOICE':               'Now click on the element that contains the Graffiti you want this cell to run...',
             'CELL_EXECUTE_CHOICE_SET':           'Your choice has been saved.',
+            'ACTIVATE_LOCK_ALT_TAG':              'Lock/unlock markdown cells',
           };
           break;
       }

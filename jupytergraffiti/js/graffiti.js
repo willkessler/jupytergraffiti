@@ -1093,16 +1093,25 @@ define([
         );
         
         graffiti.setupOneControlPanel('graffiti-terminal-builder',
-                                      '<div id="graffiti-terminal-builder-header"><div>Buttons and Shells</div></div>' +
-                                      '<button class="btn btn-default" id="graffiti-insert-btn-cell" title="' + 
-                                      localizer.getString('INSERT_GRAFFITI_BUTTON_CELL_ALT_TAG') + '"></i>&nbsp; <span>' +
-                                      localizer.getString('INSERT_GRAFFITI_BUTTON_CELL') + '&nbsp; </span></button>' +
-                                      '<button class="btn btn-default" id="graffiti-insert-terminal-cell" title="' + 
-                                      localizer.getString('INSERT_GRAFFITI_TERMINAL_ALT_TAG') + '"></i>&nbsp; <span>' +
-                                      localizer.getString('INSERT_GRAFFITI_TERMINAL') + '&nbsp; </span></button>' +
-                                      '<button class="btn btn-default" id="graffiti-insert-terminal-suite" title="' + 
-                                      localizer.getString('INSERT_GRAFFITI_TERMINAL_SUITE_ALT_TAG') + '"></i>&nbsp; <span>' +
-                                      localizer.getString('INSERT_GRAFFITI_TERMINAL_SUITE') + '&nbsp; </span></button>',
+                                      '<div id="graffiti-terminal-builder-header"><div>Extras</div></div>' +
+                                      '<div id="graffiti-terminal-builder-body">' +
+
+                                      '  <div id="graffiti-insert-terminal-cell" title="' + localizer.getString('INSERT_GRAFFITI_TERMINAL_ALT_TAG') + '">' +
+                                      stickerLib.makeTerminal({width:25}) + 
+                                      '  </div>' +
+
+                                      '  <div id="graffiti-insert-btn-cell" title="' + localizer.getString('INSERT_GRAFFITI_BUTTON_CELL_ALT_TAG') + '">' +
+                                      stickerLib.makeButton({width:27, height:22, contents:'Run'}) + 
+                                      '  </div>' +
+
+                                      '  <div id="graffiti-insert-terminal-suite" title="' + localizer.getString('INSERT_GRAFFITI_TERMINAL_SUITE_ALT_TAG') + '">' +
+                                      '    <div>' + stickerLib.makeTerminal({width:25}) + '</div> + ' +
+                                      '    <div>' + stickerLib.makeButton({width:27, height:22, contents:'Run'}) + '</div>' +
+                                      '  </div>' +
+
+                                      '  <div class="graffiti-stickers-button" id="graffiti-toggle-markdown-lock" title="' + 
+                                      localizer.getString('ACTIVATE_LOCK_ALT_TAG') + '">' + stickerLib.makeLock(defaultIconConfiguration) + '</div>' +
+                                      '</div>',
                                       [
                                         { 
                                           ids: ['graffiti-insert-btn-cell'],
@@ -1129,6 +1138,15 @@ define([
                                             console.log('inserting graffiti terminal suite')
                                             const suite = graffiti.createTerminalSuiteAboveSelectedCell();
                                             utils.saveNotebook();
+                                          }
+                                        },
+                                        {
+                                          ids: ['graffiti-toggle-markdown-lock'],
+                                          event: 'click', 
+                                          fn: (e) => { 
+                                            console.log('Toggle markdown lock')
+                                            //graffiti.toggleMarkdownLock();
+                                            //utils.saveNotebook();
                                           }
                                         }
                                       ]
