@@ -275,10 +275,27 @@
   height:20px;
 }
 
+#graffiti-terminal-builder {
+}
+
+#graffiti-terminal-builder {
+  margin-top:10px !important;
+  padding-top:5px;
+  border-top:1px dotted grey;
+}
+
+#graffiti-terminal-builder button,
 #graffiti-access-api-btn,
 #graffiti-access-skips-btn {
   font-size:0.8em;
   padding:2px;
+}
+
+#graffiti-terminal-builder button {
+  display:block;
+  font-size:1.0em !important;
+  margin-top:5px;
+  margin-left:5px;
 }
 
 #graffiti-skips-clear-btn {
@@ -371,6 +388,7 @@
   margin-left:2px;
 }
 
+#graffiti-terminal-builder,
 #graffiti-stickers-controls {
   font-color:#666;
   text-align:left;
@@ -383,6 +401,7 @@
 #graffiti-stickers-shell {
 }
 
+#graffiti-terminal-builder-header,
 #graffiti-stickers-header,
 #graffiti-skips-controls-header {
   text-transform:uppercase;

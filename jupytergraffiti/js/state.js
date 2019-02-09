@@ -64,6 +64,7 @@ define([
       state.skipStatus = 0; // value to show we have activated a skip, and what speed (0 = regular speed/user choice, 1 = fixed compression, 2,3,4 = 2x,3x,4x.
       state.editingSkips = false;
       state.replacingSkips = false;
+      state.currentSkipRecord = 0;
       state.cellStates = {
         contents: {},
         changedCells: {},
@@ -315,6 +316,42 @@ define([
 
     setReplacingSkips: (val) => {
       state.replacingSkips = val;
+    },
+
+    getCurrentSkipRecord: () => {
+      return state.currentSkipRecord;
+    },
+
+    // If the current time is in the current (or next) skip record, return the skip record.
+    timeInSkipRecordRange: (t) => {
+      if (state.currentSkipRecord !== undefined) {
+        const record = state.history.skips[state.currentSkipRecord];
+        if ((record.startTime <= t) && (t < record.endtime)) {
+          return record;
+        }
+      }
+      return undefined;
+    },
+
+    // Set the current or next skip record by scanning from 0 to the time given, looking
+    // for a skip record that either straddles the time given, or is greater than the time
+    // given (next skip record).
+    setCurrentSkipRecord: (t) => {
+      if (t === undefined) {
+        t = state.getTimePlayedSoFar();
+      }
+      let record;
+      state.currentSkipRecord = undefined;
+      for (let i = 0; i < state.history.skips; ++i) {
+        record = state.history.skips[i];
+        if ((record.startTime <= t) && (t < record.endTime)) {
+          state.currentSkipRecord = i;
+          break;
+        } else if (record.startTime > t) {
+          state.currentSkipRecord = i;
+          break;
+        }
+      }
     },
 
     setExecutionSourceChoiceId: (choiceId) => {

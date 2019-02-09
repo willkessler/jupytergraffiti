@@ -60,6 +60,7 @@ define([
         graffiti.panelFadeTime = 350;
         graffiti.windowSizeCheckInterval = 250; // ms
         graffiti.windowSizeChangeTime = undefined;
+        graffiti.skipActivatorKeyCombo = 0;
 
         graffiti.scrollNudgeSmoothIncrements = 6;
         graffiti.scrollNudgeQuickIncrements = 4;
@@ -128,38 +129,6 @@ define([
             }
           }
         }
-      },
-
-      setupTerminalMenus: () => {
-        // Insert the menu item that allows the user to create new standalone graffiti buttons.
-        $('<li id="insert_graffiti_button_above" title="' + localizer.getString('INSERT_GRAFFITI_BUTTON_ALT_TAG') + '">' +
-          '<a href="#">' + localizer.getString('INSERT_GRAFFITI_BUTTON') + '</a></li>').appendTo($('#insert_menu'));
-        $('#insert_graffiti_button_above').click(() => { 
-          const suite = graffiti.createGraffitiButtonAboveSelectedCell();
-          utils.saveNotebook();
-        });
-        // Insert the menu item that allows the user to create new terminals.
-        $('<li id="insert_terminal_above" title="' + localizer.getString('INSERT_TERMINAL_ALT_TAG') + '">' +
-          '<a href="#">' + localizer.getString('INSERT_TERMINAL') + '</a></li>').appendTo($('#insert_menu'));
-        $('#insert_terminal_above').click(() => { 
-          terminalLib.createTerminalCellAboveSelectedCell();
-          utils.saveNotebook();
-        });
-        // Insert the menu item that allows the user to create new terminal suites (codecell + terminal + run button).
-        $('<li id="insert_terminal_suite_above" title="' + localizer.getString('INSERT_TERMINAL_SUITE_ALT_TAG') + '">' +
-          '<a href="#">' + localizer.getString('INSERT_TERMINAL_SUITE') + '</a></li>').appendTo($('#insert_menu'));
-        $('#insert_terminal_suite_above').click(() => { 
-          const suite = graffiti.createTerminalSuiteAboveSelectedCell();
-          utils.saveNotebook();
-        });
-        // Insert the menu item that allows the user to mark cells as executing graffitis.
-        $('<li id="cell_executes_graffiti" title="' + localizer.getString('CELL_EXECUTES_GRAFFITI_TAG') + '">' +
-          '<a href="#">' + localizer.getString('CELL_EXECUTES_GRAFFITI') + '</a></li>').insertAfter($('#change_cell_type #to_code'));
-        $('#cell_executes_graffiti').mouseup((e) => { 
-          console.log('Code executes graffiti');
-          graffiti.markSelectedCellForExecution();
-          e.stopPropagation();
-        });
       },
 
       setNotifier: (notificationMsg, callbacks) => {
@@ -234,7 +203,7 @@ define([
         graffiti.updateSkipsBar();
         graffiti.updateControlPanels();
       },
-        
+      
       // This function is sort of a hack. It creates a new Graffiti to be placed in this cell, wrapping the markdown in it.
       // It repeats some of the functionality of finishGraffiti() without UX interactions, which is unfortunate. Refactor really needed.
       createGraffitizedMarkdown: (cell, markdown, tooltipCommands, tooltipDirectives) => {
@@ -598,11 +567,11 @@ define([
                                       '  </button>' +
                                       '  <div id="graffiti-skip-buttons">' +
                                       '    <button class="btn btn-default btn-rewind" id="graffiti-rewind-btn" title="' + localizer.getString('SKIP_BACK') + ' ' +
-                                      (state.scanningIsOn() ? localizer.getString('TO_PREVIOUS_SENTENCE') : graffiti.rewindAmt + ' ' + localizer.getString('SECONDS') ) + '">' +
+                                       (state.scanningIsOn() ? localizer.getString('TO_PREVIOUS_SENTENCE') : graffiti.rewindAmt + ' ' + localizer.getString('SECONDS') ) + '">' +
                                       '      <i class="fa fa-backward"></i>' +
                                       '    </button>' +
                                       '    <button class="btn btn-default btn-forward" id="graffiti-forward-btn" title="' + localizer.getString('SKIP_FORWARD') + ' ' + 
-                                      (state.scanningIsOn() ? localizer.getString('TO_NEXT_SENTENCE') : graffiti.rewindAmt + ' ' + localizer.getString('SECONDS')) + '">' +
+                                       (state.scanningIsOn() ? localizer.getString('TO_NEXT_SENTENCE') : graffiti.rewindAmt + ' ' + localizer.getString('SECONDS')) + '">' +
                                       '      <i class="fa fa-forward"></i>' +
                                       '    </button>' +
                                       '  </div>' +
@@ -630,8 +599,8 @@ define([
                                       '  </div>' +
                                       '  <div id="graffiti-time-display-playback">00:00</div>' +
                                       '</div>',
-                                        [
-                                          {
+                                      [
+                                        {
                                           ids: ['graffiti-play-btn', 'graffiti-pause-btn'],
                                           event: 'click',
                                           fn: (e) => {
@@ -1123,46 +1092,88 @@ define([
                                       ]
         );
         
-// Will return to this code soon.
-/*
-        const creatorsTitle = 'Graffitis by:'.split('').join('&nbsp;');
-        graffiti.setupOneControlPanel('graffiti-creators-chooser',
-                                      '<div id="graffiti-creators-chooser">' +
-                                      ' <div id="graffiti-creators-chooser-title">' + creatorsTitle + '</div>' +
-                                      ' <div class="graffiti-creator">' +
-                                      '    <div><img src="images/headshots/h1.jpeg"></div>' +
-                                      '    <div>Stacy M.</div>' +
-                                      ' </div>' +
-                                      ' <div class="graffiti-creator">' +
-                                      '    <div><img src="images/headshots/h2.jpeg"></div>' +
-                                      '    <div>Bobby P.</div>' +
-                                      ' </div>' +
-                                      ' <div class="graffiti-creator">' +
-                                      '    <div><img src="images/headshots/h3.jpeg"></div>' +
-                                      '    <div>Akarnam J.</div>' +
-                                      ' </div>' +
-                                      ' <div class="graffiti-creator">' +
-                                      '    <div><img src="images/headshots/h4.jpeg"></div>' +
-                                      '    <div>James R.</div>' +
-                                      ' </div>' +
-                                      ' <div class="graffiti-creator">' +
-                                      '    <div><img src="images/headshots/h5.jpeg"></div>' +
-                                      '    <div>Amanda M.</div>' +
-                                      ' </div>' +
-                                      ' <div class="graffiti-creator">' +
-                                      '    <div><img src="images/headshots/h6.jpeg"></div>' +
-                                      '    <div>Aimee E.</div>' +
-                                      ' </div>' +
-                                      ' <div class="graffiti-creator">' +
-                                      '    <div><img src="images/headshots/h7.jpeg"></div>' +
-                                      '    <div>Lena Y.</div>' +
-                                      ' </div>' +
-                                      ' <div id="graffiti-creators-chooser-show-all">' +
-                                      '  <input type="checkbox" id="chooser-show-all" /><label for="chooser-show-all">&nbsp;Show All Graffitis</label>' +
-                                      ' </div>' +
-                                      '</div>'
+        graffiti.setupOneControlPanel('graffiti-terminal-builder',
+                                      '<div id="graffiti-terminal-builder-header"><div>Buttons and Shells</div></div>' +
+                                      '<button class="btn btn-default" id="graffiti-insert-btn-cell" title="' + 
+                                      localizer.getString('INSERT_GRAFFITI_BUTTON_CELL_ALT_TAG') + '"></i>&nbsp; <span>' +
+                                      localizer.getString('INSERT_GRAFFITI_BUTTON_CELL') + '&nbsp; </span></button>' +
+                                      '<button class="btn btn-default" id="graffiti-insert-terminal-cell" title="' + 
+                                      localizer.getString('INSERT_GRAFFITI_TERMINAL_ALT_TAG') + '"></i>&nbsp; <span>' +
+                                      localizer.getString('INSERT_GRAFFITI_TERMINAL') + '&nbsp; </span></button>' +
+                                      '<button class="btn btn-default" id="graffiti-insert-terminal-suite" title="' + 
+                                      localizer.getString('INSERT_GRAFFITI_TERMINAL_SUITE_ALT_TAG') + '"></i>&nbsp; <span>' +
+                                      localizer.getString('INSERT_GRAFFITI_TERMINAL_SUITE') + '&nbsp; </span></button>',
+                                      [
+                                        { 
+                                          ids: ['graffiti-insert-btn-cell'],
+                                          event: 'click', 
+                                          fn: (e) => { 
+                                            console.log('inserting graffiti button cell')
+                                            const suite = graffiti.createGraffitiButtonAboveSelectedCell();
+                                            utils.saveNotebook();
+                                          }
+                                        },
+                                        {
+                                          ids: ['graffiti-insert-terminal-cell'],
+                                          event: 'click', 
+                                          fn: (e) => { 
+                                            console.log('inserting graffiti terminal cell')
+                                            const suite = terminalLib.createTerminalCellAboveSelectedCell();
+                                            utils.saveNotebook();
+                                          }
+                                        },
+                                        {
+                                          ids: ['graffiti-insert-terminal-suite'],
+                                          event: 'click', 
+                                          fn: (e) => { 
+                                            console.log('inserting graffiti terminal suite')
+                                            const suite = graffiti.createTerminalSuiteAboveSelectedCell();
+                                            utils.saveNotebook();
+                                          }
+                                        }
+                                      ]
         );
-*/
+
+        // Will return to this code soon. It simulates multiple creators (e.g. students) and switching between their different sets of Graffiti.
+        /*
+           const creatorsTitle = 'Graffitis by:'.split('').join('&nbsp;');
+           graffiti.setupOneControlPanel('graffiti-creators-chooser',
+           '<div id="graffiti-creators-chooser">' +
+           ' <div id="graffiti-creators-chooser-title">' + creatorsTitle + '</div>' +
+           ' <div class="graffiti-creator">' +
+           '    <div><img src="images/headshots/h1.jpeg"></div>' +
+           '    <div>Stacy M.</div>' +
+           ' </div>' +
+           ' <div class="graffiti-creator">' +
+           '    <div><img src="images/headshots/h2.jpeg"></div>' +
+           '    <div>Bobby P.</div>' +
+           ' </div>' +
+           ' <div class="graffiti-creator">' +
+           '    <div><img src="images/headshots/h3.jpeg"></div>' +
+           '    <div>Akarnam J.</div>' +
+           ' </div>' +
+           ' <div class="graffiti-creator">' +
+           '    <div><img src="images/headshots/h4.jpeg"></div>' +
+           '    <div>James R.</div>' +
+           ' </div>' +
+           ' <div class="graffiti-creator">' +
+           '    <div><img src="images/headshots/h5.jpeg"></div>' +
+           '    <div>Amanda M.</div>' +
+           ' </div>' +
+           ' <div class="graffiti-creator">' +
+           '    <div><img src="images/headshots/h6.jpeg"></div>' +
+           '    <div>Aimee E.</div>' +
+           ' </div>' +
+           ' <div class="graffiti-creator">' +
+           '    <div><img src="images/headshots/h7.jpeg"></div>' +
+           '    <div>Lena Y.</div>' +
+           ' </div>' +
+           ' <div id="graffiti-creators-chooser-show-all">' +
+           '  <input type="checkbox" id="chooser-show-all" /><label for="chooser-show-all">&nbsp;Show All Graffitis</label>' +
+           ' </div>' +
+           '</div>'
+           );
+         */
 
       },
 
@@ -1330,7 +1341,7 @@ define([
                  (!selectedTokens.isIntersecting)) ||
                 (isMarkdownCell && activeCell.rendered)) {
               //console.log('Graffiti: no tokens present, or no text selected.');
-              visibleControlPanels = ['graffiti-notifier']; // hide all control panels if in view only mode and not play mode
+              visibleControlPanels = ['graffiti-notifier', 'graffiti-terminal-builder']; // hide all control panels if in view only mode and not play mode
               if (isMarkdownCell) {
                 if (!activeCell.rendered) {
                   graffiti.setNotifier('<div>' + localizer.getString('SELECT_SOME_TEXT_MARKDOWN') + '</div>');
@@ -1604,7 +1615,6 @@ define([
         graffiti.playAutoplayGraffiti(); // play any autoplay graffiti if there is one set up
 
         terminalLib.init(graffiti.handleTerminalsEvents);
-        graffiti.setupTerminalMenus();
 
 /*
         let body = '<div>Enter the Graffiti Hub Key to import Graffiti into this notebook.</div>';
@@ -3318,7 +3328,18 @@ define([
         const activity = state.getActivity();
         let stopProp = false;
 
-        // console.log('handleKeydown keyCode:', keyCode, String.fromCharCode(keyCode));
+        //console.log('handleKeydown keyCode:', keyCode, String.fromCharCode(keyCode));
+        if (activity === 'recording' || true) {
+          if (keyCode === 17) { // ctrl key
+            graffiti.skipActivatorKeyCombo |= 1;
+            return true;
+          } else if (keyCode === 18) { // opt/alt key
+            graffiti.skipActivatorKeyCombo |= 2;
+            return true;
+          }
+          graffiti.skipActivatorKeyCombo = 0; // any other keypress during recording cancels the special skip activator key combo check
+        }
+
 
         if (terminalLib.getFocusedTerminal() !== undefined) {
           // Let any focused terminal handle the event. Don't let jupyter or anybody else get it. 
@@ -3435,13 +3456,31 @@ define([
         });
 
         $('body').keyup((e) => {
-          //console.log('keyUp e.which:', e.which);
+          //console.log('keyUp e.which:', e.which, 'activator', graffiti.skipActivatorKeyCombo);
           switch (e.which) {
             case 16:
               //console.log('Graffiti: shiftKeyIsUp');
               state.setShiftKeyIsDown(false);
               state.updateDrawingState([ { change: 'stickerOnGrid', data: false } ]);
               break;
+            case 17:
+              if (graffiti.skipActivatorKeyCombo < 3) {
+                graffiti.skipActivatorKeyCombo = 0;
+              } else {
+                graffiti.skipActivatorKeyCombo |= 4;
+              }
+              break;
+            case 18:
+              if (graffiti.skipActivatorKeyCombo < 3) {
+                graffiti.skipActivatorKeyCombo = 0;
+              } else {
+                graffiti.skipActivatorKeyCombo |= 8;
+              }
+              break;
+          }
+          if (graffiti.skipActivatorKeyCombo === 15) {
+            console.log('Graffiti: You pressed and released the special activator key combo.');
+            graffiti.skipActivatorKeyCombo = 0;
           }
         });
         
