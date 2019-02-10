@@ -870,3 +870,7 @@ http://www.patternify.com/
   color:#888;
   padding:3px;
 }
+
+#graffiti-locked-off {
+  display:none;
+}

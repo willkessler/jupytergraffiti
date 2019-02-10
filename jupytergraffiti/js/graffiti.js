@@ -1095,6 +1095,9 @@ define([
                                       ]
         );
         
+        const lockConfigOn =  $.extend({}, true, defaultIconConfiguration, { color: 'red' });
+        const lockConfigOff = $.extend({}, true, defaultIconConfiguration, { color: 'green' });
+
         graffiti.setupOneControlPanel('graffiti-terminal-builder',
                                       '<div id="graffiti-terminal-builder-header"><div>Extras</div></div>' +
                                       '<div id="graffiti-terminal-builder-body">' +
@@ -1113,7 +1116,10 @@ define([
                                       '  </div>' +
 
                                       '  <div class="graffiti-stickers-button" id="graffiti-toggle-markdown-lock" title="' + 
-                                      localizer.getString('ACTIVATE_LOCK_ALT_TAG') + '">' + stickerLib.makeLock(defaultIconConfiguration) + '</div>' +
+                                      localizer.getString('ACTIVATE_LOCK_ALT_TAG') + '">' +
+                                      '<span id="graffiti-locked-on">' + stickerLib.makeLock(lockConfigOn) + '</span>' +
+                                      '<span id="graffiti-locked-off">' + stickerLib.makeLock(lockConfigOff) + '</span>' +
+                                      '</div>' +
                                       '</div>',
                                       [
                                         { 
@@ -1232,6 +1238,13 @@ define([
                 console.log('Graffiti: You clicked ok, you want to toggle the lock');
                 const markdownLocked = utils.getNotebookGraffitiConfigEntry('markdownLocked');
                 const isLocked = (markdownLocked === true ? true : false);
+                if (isLocked) {
+                  $('#graffiti-locked-off').show();
+                  $('#graffiti-locked-on').hide();
+                } else {
+                  $('#graffiti-locked-off').hide();
+                  $('#graffiti-locked-on').show();
+                }
                 utils.setNotebookGraffitiConfigEntry('markdownLocked', !isLocked);
                 utils.saveNotebook();
               }
