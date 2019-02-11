@@ -152,6 +152,11 @@ define([
             'CELL_EXECUTE_CHOICE':               'Now click on the element that contains the Graffiti you want this cell to run...',
             'CELL_EXECUTE_CHOICE_SET':           'Your choice has been saved.',
             'ACTIVATE_LOCK_ALT_TAG':             'Lock/unlock markdown cells',
+            'LOCK_VERB':                         'Lock',
+            'UNLOCK_VERB':                       'Unlock',
+            'UNLOCK_BODY':                       'This will unlock all markdown cells so you can edit them (note: terminal cells are always locked).',
+            'LOCK_BODY':                         'This will lock all markdown cells so they can no longer be edited.',
+            'LOCK_CONFIRM':                      'markdown cells in notebook?',
           }
           break;
         case 'CN':
@@ -271,6 +276,11 @@ define([
             'CELL_EXECUTE_CHOICE':               'Now click on the element that contains the Graffiti you want this cell to run...',
             'CELL_EXECUTE_CHOICE_SET':           'Your choice has been saved.',
             'ACTIVATE_LOCK_ALT_TAG':              'Lock/unlock markdown cells',
+            'LOCK_VERB':                         'Lock',
+            'UNLOCK_VERB':                       'Unlock',
+            'UNLOCK_BODY':                       'This will unlock all markdown cells so you can edit them (note: terminal cells are always locked).',
+            'LOCK_BODY':                         'This will lock all markdown cells so they can no longer be edited.',
+            'LOCK_CONFIRM':                      'markdown cells in notebook?',
           };
           break;
       }

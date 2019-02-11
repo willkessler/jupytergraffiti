@@ -1224,12 +1224,12 @@ define([
       toggleMarkdownLock: () => {
         const markdownLocked = utils.getNotebookGraffitiConfigEntry('markdownLocked');
         const isLocked = (markdownLocked === true ? true : false);
-        const verb = (isLocked ? 'Unlock' : 'Lock');
+        const verb = (isLocked ? localizer.getString('UNLOCK_VERB') : localizer.getString('LOCK_VERB'));
         const bodyText = (isLocked ?
-                          'This will unlock all markdown cells so you can edit them (note: terminal cells are always locked).' :
-                          'This will lock all markdown cells so they can no longer be edited.');
+                          localizer.getString('UNLOCK_BODY') :
+                          localizer.getString('LOCK_BODY') );
         dialog.modal({
-          title: verb + ' markdown cells in notebook?',
+          title: verb + ' ' + localizer.getString('LOCK_CONFIRM'),
           body: bodyText,
           sanitize:false,
           buttons: {
