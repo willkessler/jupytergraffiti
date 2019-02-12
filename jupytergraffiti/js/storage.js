@@ -28,7 +28,6 @@ define([
   const storage = {
 
     defaultKernel: 'python3',
-    cplusplusKernel: 'xeus-cling-cpp',
     executorCell: undefined,
     movieCompleteCallback: undefined,
 
@@ -54,8 +53,8 @@ define([
       const contents = opts.contents;
       const executorCell = storage.createExecutorCell();
       const currentKernelName = Jupyter.notebook.kernel.name;
-      const writeMagic = ((currentKernelName.indexOf(storage.cplusplusKernel) === 0) ? '%%file' : '%%writefile');
-      const chunkSize = ((currentKernelName.indexOf(storage.cplusplusKernel) === 0) ? 10000 : 100000);
+      const writeMagic = ((currentKernelName.indexOf(utils.cplusplusKernel) === 0) ? '%%file' : '%%writefile');
+      const chunkSize = ((currentKernelName.indexOf(utils.cplusplusKernel) === 0) ? 10000 : 100000);
       // tr -d '\n' < checker.txt > checker2.txt
       const contentLength = contents.length;
       let chunkPtr = 0, chunk, appendFlag, cmd;

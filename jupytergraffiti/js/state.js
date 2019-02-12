@@ -78,7 +78,6 @@ define([
       state.shiftKeyIsDown = false;
       state.executionSourceChoiceId = undefined;
       state.terminalState = undefined;
-      state.collectTerminalStates = false;
 
       // Usage statistic gathering for the current session (since last load of the notebook)
       state.usageStats = {
@@ -378,6 +377,32 @@ define([
         }
       }
       return currentSpeakingStatus;
+    },
+
+    // Set the start and end time of where the first speaking period began and the last speaking period ends and put these into
+    // absolute skip records
+    addSpeakingLimitsSkipRecords: () => {
+      let record;
+      if (state.history.speaking.length >= 2) {
+        const lastRec = state.history.speaking.length - 1;
+        state.setSkipStatus(state.SKIP_STATUS_ABSOLUTE);
+        record = state.createSkipRecord();
+        record.startTime = 0;
+        record.endTime = state.history.speaking[0].startTime - 1;
+        state.history['skip'].push(record);
+
+        state.setSkipStatus(state.SKIP_STATUS_NONE);
+        record = state.createSkipRecord();
+        record.startTime = state.history.speaking[0].startTime;
+        record.endTime = state.history.speaking[lastRec].startTime - 1;
+        state.history['skip'].push(record);
+
+        state.setSkipStatus(state.SKIP_STATUS_ABSOLUTE);
+        record = state.createSkipRecord();
+        record.startTime = state.history.speaking[lastRec].startTime;
+        record.endTime = state.history.duration;
+        state.history['skip'].push(record);
+      }
     },
 
     setHighlightsRefreshCellId: (cellId) => {
@@ -1367,14 +1392,11 @@ define([
     },
 
     createTerminalsRecord: () => {
-      if (state.collectTerminalStates) {
-        // Collect display positions of all terminals. This is only done at the beginning of a graffiti recording so terminals
-        // display contents they had when the recording was begun.
-        state.terminalsState = terminalLib.getTerminalsStates();
-        state.collectTerminalStates = false;
-      }
-
-      return { terminals: state.terminalsState };
+      // Collect display positions of all terminals. If no terminals history has been recorded yet then mark these records as the "first records",
+      // which will trigger term.reset() calls during playback.
+      const markAsFirstRecord = state.history.terminals.length === 0;
+      const terminalsState = terminalLib.getTerminalsStates(markAsFirstRecord);
+      return { terminals: terminalsState };
     },
 
     getHistoryTerminalsContents: () => {
@@ -1572,10 +1594,6 @@ define([
 
       // Set up to keep track of the latest record processed during playback (so we don't process a record twice).
       state.resetProcessedArrays();
-
-      // Set things up to record the state of all known terminals at the start of any recording. This value
-      // is used by createTerminalsRecord().
-      state.collectTerminalStates = true;
 
       // Store initial state records at the start of recording.
       state.storeHistoryRecord('pointer',    now);

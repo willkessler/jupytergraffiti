@@ -4,6 +4,7 @@ define([
 
   const utils = {
     cellMaps: {},
+    cplusplusKernel: 'xeus-cling-cpp',
 
     addCR: (str) => {
       return str + "\n";
@@ -19,6 +20,12 @@ define([
 
     createPermanentStringFromFlag: (flag) => {
       return flag ? 'permanent': 'temporary';
+    },
+
+    getCodeCommentString: () => {
+      const currentKernelName = Jupyter.notebook.kernel.name;
+      const codeCommentString = ((currentKernelName.indexOf(utils.cplusplusKernel) === 0) ? '//' : '#'); // right now we only support C++ and python
+      return codeCommentString;
     },
 
     // These two functions help us translate between what we store in the notebook json itself ('graffitiCellId') and how we use it in the code, just as 'cellId'.
@@ -582,6 +589,9 @@ define([
     // out of the given code mirror instance (since those ranges might have changed since the graffiti was first created).
     getCMTokenRange: (cm, tokens, allTokens) => {
       const startToken = tokens.start;
+      if (startToken === undefined) {
+        return undefined; // couldn't find start token, degenerate case, can only happen if a graffiti has a corrupted startToken.
+      }
       const allTokensLength = allTokens.length;
       let i, tokenCounter = 0, lineTokens, token, firstTokenPosition;
       for (i = 0; i < allTokensLength; ++i) {
