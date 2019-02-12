@@ -275,10 +275,26 @@
   height:20px;
 }
 
+#graffiti-terminal-builder {
+}
+
+#graffiti-terminal-builder {
+  margin-top:10px !important;
+  padding-top:5px;
+  border-top:1px dotted grey;
+}
+
+#graffiti-terminal-builder button,
 #graffiti-access-api-btn,
 #graffiti-access-skips-btn {
   font-size:0.8em;
   padding:2px;
+}
+
+#graffiti-terminal-builder button {
+  font-size:1.0em !important;
+  margin-top:5px;
+  margin-left:5px;
 }
 
 #graffiti-skips-clear-btn {
@@ -371,6 +387,7 @@
   margin-left:2px;
 }
 
+#graffiti-terminal-builder,
 #graffiti-stickers-controls {
   font-color:#666;
   text-align:left;
@@ -383,12 +400,28 @@
 #graffiti-stickers-shell {
 }
 
+#graffiti-terminal-builder-header,
 #graffiti-stickers-header,
 #graffiti-skips-controls-header {
   text-transform:uppercase;
   margin-bottom:2px;
   display:flex;
   cursor:pointer;
+}
+
+#graffiti-terminal-builder-body {
+  display:flex;
+}
+
+#graffiti-terminal-builder-body > div {
+  padding:3px;
+  margin:2px;
+  border:1px dashed grey;
+  cursor:pointer;
+}
+
+#graffiti-terminal-builder-body > div:hover {
+  border:1px solid red;
 }
 
 #graffiti-stickers-header span,
@@ -810,4 +843,34 @@ http://www.patternify.com/
 /* https://github.com/xtermjs/xterm.js/issues/692 */
 .xterm-selection-layer {
   mix-blend-mode: exclusion;
+}
+
+#graffiti-insert-terminal-suite {
+  display:flex;
+}
+
+.terminal-icon {
+  border-radius:2px;
+  background:#000;
+  color:#fff;
+  font-size:0.8em;
+  font-weight:bold;
+  cursor:pointer;
+  padding:2px 0 0 4px;
+  font-size:1.2em;
+}
+
+.button-icon {
+  border-radius:4px;
+  background:#ddd;
+  color:#222;
+  cursor:pointer;
+  border:1px solid #000;
+  font-size:1.0em;
+  color:#888;
+  padding:3px;
+}
+
+#graffiti-locked-off {
+  display:none;
 }
