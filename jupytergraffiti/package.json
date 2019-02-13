@@ -4,7 +4,7 @@
   "description": "Jupyter Graffiti extension",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "node_modules/gulp/bin/gulp.js prebuild && node node_modules/.bin/r.js -o build.js && node_modules/gulp/bin/gulp.js move-styles"
   },
   "author": "Will Kessler",
   "license": "MIT",
