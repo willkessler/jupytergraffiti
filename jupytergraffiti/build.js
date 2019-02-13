@@ -10,6 +10,7 @@
         "notebook/js": "empty:"
     },
     out: "graffiti-dist/extension.js",
+    findNestedDependencies: true,
     // Useful in dev
     optimize: "none",
     onBuildWrite: function (moduleName, path, contents) {
