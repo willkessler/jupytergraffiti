@@ -19,7 +19,7 @@ if (window.Graffiti === undefined) {
       if (!udacityUser.token) {
         udacityUser.setUser();
       } 
-      require(['jupytergraffiti/js/loader.js']);
+      require(['./loader.js']);
       utils.saveNotebook();
     });
 
