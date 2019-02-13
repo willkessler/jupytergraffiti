@@ -21,7 +21,7 @@ define([
         
         utils.loadCss([
           'jupytergraffiti/css/graffiti.css',
-          'jupytergraffiti/css/xterm/xterm.css'
+          'jupytergraffiti/css/xterm.css'
         ]);
 
         const location = document.location;
