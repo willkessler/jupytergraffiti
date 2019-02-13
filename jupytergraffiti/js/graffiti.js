@@ -242,6 +242,9 @@ define([
       createGraffitiButtonAboveSelectedCell: () => {
         const selectedCellIndex = Jupyter.notebook.get_selected_index();
         const buttonCell = Jupyter.notebook.insert_cell_above('markdown', selectedCellIndex);
+        const buttonCellId = utils.getMetadataCellId(buttonCell.metadata);
+        const buttonCellIndex = utils.findCellIndexByCellId(buttonCellId);
+        Jupyter.notebook.select(buttonCellIndex); // critical step, otherwise, the cell will not render correctly
         const cm = buttonCell.code_mirror;
         cm.execCommand('selectAll');
         const params = { cell: buttonCell, clear: true };
@@ -288,6 +291,9 @@ define([
         terminalSuite.terminalCellId = terminalCell.term.id; // initially the term id is the same as the cellId of the cell it lives in.
 
         const buttonCell = Jupyter.notebook.insert_cell_below('markdown', selectedCellIndex + 1);
+        const buttonCellId = utils.getMetadataCellId(buttonCell.metadata);
+        const buttonCellIndex = utils.findCellIndexByCellId(buttonCellId);
+        Jupyter.notebook.select(buttonCellIndex); // critical step, otherwise, the cell will not render correctly
         const cm = buttonCell.code_mirror;
         cm.execCommand('selectAll');
         const params = { cell: buttonCell, clear: true };
@@ -1205,7 +1211,7 @@ define([
       },
 
       setupMarkdownLocks: () => {
-        const oldUnrender = graffiti.MarkdownCell.prototype.unrender;
+        graffiti.oldUnrender = graffiti.MarkdownCell.prototype.unrender;
         graffiti.MarkdownCell.prototype.unrender = () => {
           console.log('Unrender fired.');
           const cell = Jupyter.notebook.get_selected_cell();
@@ -1215,7 +1221,7 @@ define([
             if (markdownLocked === true || terminalLib.isTerminalCell(cellId)) {
               console.log('Not unrendering markdown cell, since Graffiti lock in place or is terminal cell.');
             } else {
-              oldUnrender.apply(cell, arguments);
+              graffiti.oldUnrender.apply(cell, arguments);
             }
           }
         }
@@ -3760,7 +3766,8 @@ define([
       // Edit an existing graffiti, or if we are creating a new one, set up some default values.
       // If creating a new graffiti in markdown text, jump directly to the movie recording phase.
       editGraffiti: () => {
-        let graffitiEditCell, editableText;
+        let editableText;
+
         graffiti.changeActivity('graffiting');
         state.setLastEditActivityTime();
         const isNewGraffiti = !graffiti.selectedTokens.isIntersecting;
@@ -3770,8 +3777,12 @@ define([
         const isMarkdownCell = (recordingRecord.cellType === 'markdown');
         const isCodeCell = (recordingRecord.cellType === 'code');
 
+        const graffitiEditCell = Jupyter.notebook.insert_cell_above('markdown');
+        const editCellIndex = utils.findCellIndexByCellId(utils.getMetadataCellId(graffitiEditCell.metadata));
+        Jupyter.notebook.select(editCellIndex); // cell *must* be selected before unrender() called by set_text() below will actually unrender the cell correctly.
+
+
         if (isNewGraffiti || isCodeCell || (isMarkdownCell && isOldGraffiti)) {
-          graffitiEditCell = Jupyter.notebook.insert_cell_above('markdown');
           utils.setMetadataCellId(graffitiEditCell.metadata,utils.generateUniqueId());
           utils.refreshCellMaps();
           state.setGraffitiEditCellId(utils.getMetadataCellId(graffitiEditCell.metadata));
@@ -3793,8 +3804,7 @@ define([
           editableText = recordingRecord.markdown; 
         }
 
-        graffitiEditCell.set_text(editableText);
-        graffitiEditCell.unrender();
+        graffitiEditCell.set_text(editableText); // set_text does an unrender() call implicitly
 
         if (isCodeCell || isOldGraffiti) { 
           // For code cell graffiti or non-new markdown graffiti, let us edit the tip contents by scrolling to the edit cell
