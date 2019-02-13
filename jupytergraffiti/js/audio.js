@@ -187,6 +187,7 @@ define([
       const audioUrl = window.URL.createObjectURL(e.data);
       // This works so nice and simple. From: http://stackoverflow.com/questions/33755524/how-to-load-audio-completely-before-playing (first answer)
       const audioObj = new Audio (audioUrl);
+      audioObj.autoplay = true;
       audioObj.load();
 
       // Set time of clip for scrubbing: 

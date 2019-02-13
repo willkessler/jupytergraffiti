@@ -21,7 +21,7 @@ define([
         
         utils.loadCss([
           'jupytergraffiti/css/graffiti.css',
-          'jupytergraffiti/css/xterm/xterm.css'
+          'jupytergraffiti/css/xterm.css'
         ]);
 
         const location = document.location;
@@ -62,8 +62,8 @@ define([
         graffiti.panelFadeTime = 350;
         graffiti.windowSizeCheckInterval = 250; // ms
         graffiti.windowSizeChangeTime = undefined;
-        graffiti.ctrlKeyDownTimer = undefined;
-        graffiti.endRecordingByKeyDownTimeout = 2000;
+        graffiti.skipKeyDownTimer = undefined;
+        graffiti.skipKeyCode = 18; // key code of whatever key starts a skip (alt/option)
 
         graffiti.scrollNudgeSmoothIncrements = 6;
         graffiti.scrollNudgeQuickIncrements = 4;
@@ -260,6 +260,9 @@ define([
       createGraffitiButtonAboveSelectedCell: () => {
         const selectedCellIndex = Jupyter.notebook.get_selected_index();
         const buttonCell = Jupyter.notebook.insert_cell_above('markdown', selectedCellIndex);
+        const buttonCellId = utils.getMetadataCellId(buttonCell.metadata);
+        const buttonCellIndex = utils.findCellIndexByCellId(buttonCellId);
+        Jupyter.notebook.select(buttonCellIndex); // critical step, otherwise, the cell will not render correctly
         const cm = buttonCell.code_mirror;
         cm.execCommand('selectAll');
         const params = { cell: buttonCell, clear: true };
@@ -306,6 +309,9 @@ define([
         terminalSuite.terminalCellId = terminalCell.term.id; // initially the term id is the same as the cellId of the cell it lives in.
 
         const buttonCell = Jupyter.notebook.insert_cell_below('markdown', selectedCellIndex + 1);
+        const buttonCellId = utils.getMetadataCellId(buttonCell.metadata);
+        const buttonCellIndex = utils.findCellIndexByCellId(buttonCellId);
+        Jupyter.notebook.select(buttonCellIndex); // critical step, otherwise, the cell will not render correctly
         const cm = buttonCell.code_mirror;
         cm.execCommand('selectAll');
         const params = { cell: buttonCell, clear: true };
@@ -1224,9 +1230,9 @@ define([
       },
 
       setupMarkdownLocks: () => {
-        const oldUnrender = graffiti.MarkdownCell.prototype.unrender;
+        graffiti.oldUnrender = graffiti.MarkdownCell.prototype.unrender;
         graffiti.MarkdownCell.prototype.unrender = () => {
-          //console.log('Unrender fired.');
+          console.log('Unrender fired.');
           const cell = Jupyter.notebook.get_selected_cell();
           if (cell !== undefined) {
             const cellId = utils.getMetadataCellId(cell.metadata);
@@ -1234,7 +1240,9 @@ define([
             if (markdownLocked === true || terminalLib.isTerminalCell(cellId)) {
               console.log('Graffiti: Not unrendering markdown cell, since Graffiti lock in place or is terminal cell.');
             } else {
-              oldUnrender.apply(cell, arguments);
+              console.log('Graffiti: applying old unrender call, cellId', cellId);
+              graffiti.oldUnrender.apply(cell, arguments);
+              window.brokeCell = cell;
             }
           }
         }
@@ -3430,6 +3438,11 @@ define([
         return false;
       },
 
+      clearSkipKeyDownTimer: () => {
+        clearTimeout(graffiti.skipKeyDownTimer);
+        graffiti.skipKeyDownTimer = undefined;
+      },
+
       handleKeydown: (e) => {
         const keyCode = e.which;
         const activity = state.getActivity();
@@ -3437,12 +3450,12 @@ define([
 
         console.log('handleKeydown keyCode:', keyCode, String.fromCharCode(keyCode));
         if (activity === 'recording') {
-          if (keyCode === 17) { // ctrl key
-            graffiti.ctrlKeyDownTimer = setTimeout(() => { 
+          if (keyCode === graffiti.skipKeyCode) {
+            graffiti.skipKeyDownTimer = setTimeout(() => { 
               console.log('Graffiti: ending recording by key press.');
-              graffiti.ctrlKeyDownTimer = undefined;
+              graffiti.skipKeyDownTimer = undefined;
               graffiti.endRecordingByKeyPress();
-            }, graffiti.endRecordingByKeyDownTimeout);
+            }, state.END_RECORDING_KEYDOWN_TIMEOUT);
           }
         }
 
@@ -3509,6 +3522,24 @@ define([
         return true;
       },
 
+      handleKeyup: (e) => {
+        // console.log('keyUp e.which:', e.which);
+        const keyCode = e.which;
+        if ((keyCode === graffiti.skipKeyCode) && (graffiti.skipKeyDownTimer !== undefined)) {
+          graffiti.clearSkipKeyDownTimer();
+          graffiti.toggleRecordingSkip();
+          return true;
+        }
+        return false;
+      },
+
+      // If the control key was down then we want to cancel the timeout on it because a click happened.
+      handleGeneralClick: (e) => {
+        console.log('handled a click');
+        graffiti.clearSkipKeyDownTimer();
+        return false;
+      },
+      
       setupBackgroundEvents: () => {
         // Handle rubber banding scrolling that occurs on short notebooks so cursor doesn't look wrong (possibly, only chrome?).
         console.log('Graffiti: setupBackgroundEvents');
@@ -3540,15 +3571,13 @@ define([
         });
 
         $('body').keyup((e) => {
-          // console.log('keyUp e.which:', e.which);
-          const keyCode = e.which;
-          if ((keyCode === 17) && (graffiti.ctrlKeyDownTimer !== undefined)) {
-            clearTimeout(graffiti.ctrlKeyDownTimer);
-            graffiti.toggleRecordingSkip();
-          }
-
+          return graffiti.handleKeyup(e);
         });
         
+        $('body,.cell').click((e) => {
+          graffiti.handleGeneralClick(e);
+        });
+
         window.onmousemove = (e) => {
           //console.log('cursorPosition:[',e.clientX, e.clientY, ']');
           //console.log('mouse_e:', e.pageX, e.pageY);
@@ -3746,7 +3775,11 @@ define([
       // Edit an existing graffiti, or if we are creating a new one, set up some default values.
       // If creating a new graffiti in markdown text, jump directly to the movie recording phase.
       editGraffiti: () => {
-        let graffitiEditCell, editableText;
+        let editableText;
+        const graffitiEditCell = Jupyter.notebook.insert_cell_above('markdown');
+        const editCellIndex = utils.findCellIndexByCellId(utils.getMetadataCellId(graffitiEditCell.metadata));
+        Jupyter.notebook.select(editCellIndex); // cell *must* be selected before unrender() called by set_text() below will actually unrender the cell correctly.
+
         graffiti.changeActivity('graffiting');
         state.setLastEditActivityTime();
         const isNewGraffiti = !graffiti.selectedTokens.isIntersecting;
@@ -3757,7 +3790,6 @@ define([
         const isCodeCell = (recordingRecord.cellType === 'code');
 
         if (isNewGraffiti || isCodeCell || (isMarkdownCell && isOldGraffiti)) {
-          graffitiEditCell = Jupyter.notebook.insert_cell_above('markdown');
           utils.setMetadataCellId(graffitiEditCell.metadata,utils.generateUniqueId());
           utils.refreshCellMaps();
           state.setGraffitiEditCellId(utils.getMetadataCellId(graffitiEditCell.metadata));
@@ -3780,7 +3812,8 @@ define([
         }
 
         graffitiEditCell.set_text(editableText);
-        graffitiEditCell.unrender();
+        //console.log('editor about to unrender');
+        //graffitiEditCell.unrender();
 
         if (isCodeCell || isOldGraffiti) { 
           // For code cell graffiti or non-new markdown graffiti, let us edit the tip contents by scrolling to the edit cell
@@ -4437,6 +4470,7 @@ define([
         state.setSpeakingStatus(false); // if we were still speaking, record a history record that will terminate that state during playback.
         state.finalizeHistory();
         state.finalizeSkipRecords();
+        state.addCancelTimeSkipRecord();
         if (useCallback) {
           state.dumpHistory();
         }
@@ -4530,6 +4564,7 @@ define([
             terminalLib.saveOrRestoreTerminalOutputs('save');
             state.resetPlayState();
             graffiti.changeActivity('recording');
+            graffiti.clearSkipKeyDownTimer();
             utils.assignCellIds();
             state.initHistory({
               storageCellId: recordingCellInfo.recordingCellId,

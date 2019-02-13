@@ -130,6 +130,8 @@ define([
       state.SKIP_STATUS_4X =        4;
       state.SKIP_STATUS_ABSOLUTE = -1;
 
+      state.END_RECORDING_KEYDOWN_TIMEOUT = 2000;
+
       state.skipStatusColorMap = {};
       state.skipStatusColorMap[state.SKIP_STATUS_NONE] = '5e5';
       state.skipStatusColorMap[state.SKIP_STATUS_COMPRESS] = 'ddd';
@@ -367,35 +369,13 @@ define([
       }
     },
 
-    // Set the start and end time of where the first speaking period began and the last speaking period ends and put these into
-    // absolute skip records
-    addSpeakingLimitsSkipRecords: () => {
-      let record;
-      if (state.history.speaking.length > 0) {
-        const lastSpeakingRec = state.history.speaking.length - 1;
-        const lastSkipRec = state.history.skip.length - 1;
-        state.skipStatus = state.SKIP_STATUS_ABSOLUTE;
-        record = state.createSkipRecord();
-        record.startTime = 0;
-        record.endTime = state.history.speaking[0].startTime - 1;
-        if (state.history['skip'].length > 0) {
-          if (record.endTime >= state.history.skip[0].startTime) {
-            record.endTime = state.history.skip[0].startTime - 1;
-          }
-        }
-        state.history['skip'].unshift(record);
-
-        state.skipStatus = state.SKIP_STATUS_ABSOLUTE;
-        record = state.createSkipRecord();
-        record.startTime = state.history.speaking[lastSpeakingRec].startTime;
-        if (state.history['skip'].length > 0) {
-          if (record.startTime < state.history.skip[lastSkipRec].endTime) {
-            record.startTime = state.history.skip[lastSkipRec].endTime + 1;
-          }
-        }
-        record.endTime = state.history.duration;
-        state.history['skip'].push(record);
-      }
+    // Create an absolute skip record for the very end of the recording for the time it was being cancelled (ctrl-key held down).
+    addCancelTimeSkipRecord: () => {
+      state.skipStatus = state.SKIP_STATUS_ABSOLUTE;
+      const record = state.createSkipRecord();
+      record.startTime = state.history.duration - state.END_RECORDING_KEYDOWN_TIMEOUT;
+      record.endTime = state.history.duration;
+      state.history['skip'].unshift(record);
     },
 
     setExecutionSourceChoiceId: (choiceId) => {
