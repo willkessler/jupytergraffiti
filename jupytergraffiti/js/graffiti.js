@@ -62,7 +62,8 @@ define([
         graffiti.panelFadeTime = 350;
         graffiti.windowSizeCheckInterval = 250; // ms
         graffiti.windowSizeChangeTime = undefined;
-        graffiti.skipActivatorKeyCombo = 0;
+        graffiti.ctrlKeyDownTimer = undefined;
+        graffiti.endRecordingByKeyDownTimeout = 2000;
 
         graffiti.scrollNudgeSmoothIncrements = 6;
         graffiti.scrollNudgeQuickIncrements = 4;
@@ -148,13 +149,15 @@ define([
         graffiti.notificationMsgs[notificationMsg].show();
       },
 
-      setJupyterMenuHint: (hint) => {
+      setJupyterMenuHint: (hint, classOverride) => {
         if (graffiti.jupyterMenuHint === undefined) {
           const jupyterMainToolbar = $('#maintoolbar-container');
-          const menuHintDiv = $('<span id="graffiti-jupyter-menu-hint"></span>');
+          const menuHintDiv = $('<span class="graffiti-jupyter-menu-hint-shell"></span>');
           graffiti.jupyterMenuHint = menuHintDiv.appendTo(jupyterMainToolbar);
         }
-        graffiti.jupyterMenuHint.html(hint).show();
+        const override = (classOverride !== undefined ? classOverride : '');
+        const hintHtml = '<span class="graffiti-jupyter-menu-hint ' + override + '">' + hint + '</span>';
+        graffiti.jupyterMenuHint.html(hintHtml).show();
       },
 
       clearJupyterMenuHint: () => {
@@ -173,6 +176,8 @@ define([
         e.stopPropagation();
       },
       
+      // Skips functionality
+
       updateSkipsBar: () => {
         if (!(state.getEditingSkips())) {
           return;
@@ -187,9 +192,9 @@ define([
         for (let i = 0; i < skipRecords.length; ++i) {
           rec = skipRecords[i];
           endTime = (rec.endTime !== undefined ? rec.endTime : state.getTimePlayedSoFar() );
-          //console.log('updateSkipsBar, endTime:', endTime);
-          skipBarLeft = parseInt((rec.startTime / duration) * barWidth);
+          console.log('updateSkipsBar, rec:',rec, 'endTime:', endTime);
           skipBarWidth = parseInt(((endTime - rec.startTime) / duration) * barWidth);
+          skipBarLeft = parseInt((rec.startTime / duration) * barWidth);
           if (skipBarWidth < 0) {
             skipBarLeft += skipBarWidth;
             skipBarWidth = Math.abs(skipBarWidth);
@@ -207,6 +212,19 @@ define([
         graffiti.updateControlPanels();
       },
       
+      toggleRecordingSkip: () => {
+        if (state.getActivity() !== 'recording') {
+          return;
+        }
+        state.toggleRecordingSkip();
+        if (state.isSkipping()) {
+          graffiti.setJupyterMenuHint(localizer.getString('RECORDING_HINT_2'), 'graffiti-jupyter-menu-alert');
+        } else {
+          graffiti.setJupyterMenuHint(localizer.getString('RECORDING_HINT_1'));
+        }
+        state.storeHistoryRecord('skip');
+      },
+
       // This function is sort of a hack. It creates a new Graffiti to be placed in this cell, wrapping the markdown in it.
       // It repeats some of the functionality of finishGraffiti() without UX interactions, which is unfortunate. Refactor really needed.
       createGraffitizedMarkdown: (cell, markdown, tooltipCommands, tooltipDirectives) => {
@@ -1160,6 +1178,7 @@ define([
                                         }
                                       ]
         );
+        graffiti.refreshMarkdownLock();
 
         // Will return to this code soon. It simulates multiple creators (e.g. students) and switching between their different sets of Graffiti.
         /*
@@ -1207,18 +1226,33 @@ define([
       setupMarkdownLocks: () => {
         const oldUnrender = graffiti.MarkdownCell.prototype.unrender;
         graffiti.MarkdownCell.prototype.unrender = () => {
-          console.log('Unrender fired.');
+          //console.log('Unrender fired.');
           const cell = Jupyter.notebook.get_selected_cell();
           if (cell !== undefined) {
             const cellId = utils.getMetadataCellId(cell.metadata);
             const markdownLocked = utils.getNotebookGraffitiConfigEntry('markdownLocked');
             if (markdownLocked === true || terminalLib.isTerminalCell(cellId)) {
-              console.log('Not unrendering markdown cell, since Graffiti lock in place or is terminal cell.');
+              console.log('Graffiti: Not unrendering markdown cell, since Graffiti lock in place or is terminal cell.');
             } else {
               oldUnrender.apply(cell, arguments);
             }
           }
         }
+      },
+
+      refreshMarkdownLock: (isLocked) => {
+        if (isLocked === undefined) {
+          const markdownLocked = utils.getNotebookGraffitiConfigEntry('markdownLocked');
+          isLocked = (((markdownLocked !== undefined) && (markdownLocked === true)) ? true : false);
+        }
+        if (isLocked) {
+          $('#graffiti-locked-off').hide();
+          $('#graffiti-locked-on').show();
+        } else {
+          $('#graffiti-locked-off').show();
+          $('#graffiti-locked-on').hide();
+        }
+        return(isLocked);
       },
 
       toggleMarkdownLock: () => {
@@ -1237,16 +1271,10 @@ define([
               click: (e) => {
                 console.log('Graffiti: You clicked ok, you want to toggle the lock');
                 const markdownLocked = utils.getNotebookGraffitiConfigEntry('markdownLocked');
-                const isLocked = (markdownLocked === true ? true : false);
-                if (isLocked) {
-                  $('#graffiti-locked-off').show();
-                  $('#graffiti-locked-on').hide();
-                } else {
-                  $('#graffiti-locked-off').hide();
-                  $('#graffiti-locked-on').show();
-                }
+                const isLocked = (((markdownLocked !== undefined) && (markdownLocked === true)) ? true : false);
                 utils.setNotebookGraffitiConfigEntry('markdownLocked', !isLocked);
                 utils.saveNotebook();
+                graffiti.refreshMarkdownLock(!isLocked);
               }
             },
             'Cancel': { click: (e) => { console.log('Graffiti: you cancelled:', $(e.target).parent()); } },
@@ -3407,16 +3435,15 @@ define([
         const activity = state.getActivity();
         let stopProp = false;
 
-        //console.log('handleKeydown keyCode:', keyCode, String.fromCharCode(keyCode));
-        if (activity === 'recording' || true) {
+        console.log('handleKeydown keyCode:', keyCode, String.fromCharCode(keyCode));
+        if (activity === 'recording') {
           if (keyCode === 17) { // ctrl key
-            graffiti.skipActivatorKeyCombo |= 1;
-            return true;
-          } else if (keyCode === 18) { // opt/alt key
-            graffiti.skipActivatorKeyCombo |= 2;
-            return true;
+            graffiti.ctrlKeyDownTimer = setTimeout(() => { 
+              console.log('Graffiti: ending recording by key press.');
+              graffiti.ctrlKeyDownTimer = undefined;
+              graffiti.endRecordingByKeyPress();
+            }, graffiti.endRecordingByKeyDownTimeout);
           }
-          graffiti.skipActivatorKeyCombo = 0; // any other keypress during recording cancels the special skip activator key combo check
         }
 
 
@@ -3457,28 +3484,6 @@ define([
               stopProp = true;
               if ((activity === 'playing') || (activity === 'playbackPaused') || (activity === 'scrubbing')) {
                 graffiti.cancelPlayback({cancelAnimation:true});
-              }
-              break;
-            case 77: // cmd-m key finishes a recording in progress or cancels a pending recording
-              // cf http://jsbin.com/vezof/1/edit?js,output
-              if (e.metaKey) { // may only work on Chrome
-                if (e.ctrlKey) {
-                  console.log('Graffiti: you pressed ctrl ⌘-m');
-                } else {
-                  console.log('Graffiti: you pressed ⌘-m');
-                }
-                stopProp = true;
-                switch (activity) {
-                  case 'recording':
-                    if (e.ctrlKey) {
-                    } else {
-                      graffiti.toggleRecording();
-                    }
-                    break;
-                  case 'recordingPending':
-                    graffiti.changeActivity('idle');
-                    break;
-                }
               }
               break;
             case 16: // shift key
@@ -3535,32 +3540,13 @@ define([
         });
 
         $('body').keyup((e) => {
-          //console.log('keyUp e.which:', e.which, 'activator', graffiti.skipActivatorKeyCombo);
-          switch (e.which) {
-            case 16:
-              //console.log('Graffiti: shiftKeyIsUp');
-              state.setShiftKeyIsDown(false);
-              state.updateDrawingState([ { change: 'stickerOnGrid', data: false } ]);
-              break;
-            case 17:
-              if (graffiti.skipActivatorKeyCombo < 3) {
-                graffiti.skipActivatorKeyCombo = 0;
-              } else {
-                graffiti.skipActivatorKeyCombo |= 4;
-              }
-              break;
-            case 18:
-              if (graffiti.skipActivatorKeyCombo < 3) {
-                graffiti.skipActivatorKeyCombo = 0;
-              } else {
-                graffiti.skipActivatorKeyCombo |= 8;
-              }
-              break;
+          // console.log('keyUp e.which:', e.which);
+          const keyCode = e.which;
+          if ((keyCode === 17) && (graffiti.ctrlKeyDownTimer !== undefined)) {
+            clearTimeout(graffiti.ctrlKeyDownTimer);
+            graffiti.toggleRecordingSkip();
           }
-          if (graffiti.skipActivatorKeyCombo === 15) {
-            console.log('Graffiti: You pressed and released the special activator key combo.');
-            graffiti.skipActivatorKeyCombo = 0;
-          }
+
         });
         
         window.onmousemove = (e) => {
@@ -4450,7 +4436,7 @@ define([
         state.storeTerminalsContentsInHistory();
         state.setSpeakingStatus(false); // if we were still speaking, record a history record that will terminate that state during playback.
         state.finalizeHistory();
-        state.addSpeakingLimitsSkipRecords();
+        state.finalizeSkipRecords();
         if (useCallback) {
           state.dumpHistory();
         }
@@ -4588,6 +4574,15 @@ define([
         }
       },
 
+      endRecordingByKeyPress: () => {
+        const activity = state.getActivity();
+        if (activity === 'recording') {
+          graffiti.toggleRecording();
+        } else if (activity === 'recordingPending') {
+          graffiti.changeActivity('idle');
+          graffiti.clearJupyterMenuHint();
+        }
+      },
 
       changeActivity: (newActivity) => {
         if (state.getActivity() === newActivity) {
@@ -5302,8 +5297,10 @@ define([
         graffiti.cancelPlaybackNoVisualUpdates();
         state.clearAnimationIntervals();
         state.clearNarratorInfo();
+        graffiti.cancelPlaybackFinish(opts.cancelAnimation);
+
+/*
         if (state.getEditingSkips()) {
-          state.finalizeSkipRecords();
           const skippedMovie = state.getPlayableMovie('tip');
           storage.writeOutMovieData(skippedMovie, state.getJSONHistory()).then(() => {
             state.setEditingSkips(false);
@@ -5312,6 +5309,7 @@ define([
         } else {
           graffiti.cancelPlaybackFinish(opts.cancelAnimation);
         }
+*/
       },
 
       startPlayback: () => {
@@ -5399,7 +5397,6 @@ define([
                                          const frameIndexes = state.getHistoryRecordsAtTime(playedSoFar);
                                          graffiti.updateDisplay(frameIndexes);
                                          //console.log('play interval, now=', utils.getNow());
-                                         //
                                        }
                                      },
                                      graffiti.playbackIntervalMs);

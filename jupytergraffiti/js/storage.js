@@ -68,7 +68,7 @@ define([
         case utils.cplusplusKernel14:
         case utils.cplusplusKernel17:
           writeMagic = '%%file';
-          chunkSize = 10000;
+          chunkSize = 7000;
           break;
         case utils.pythonKernel:
           writeMagic = '%%writefile';

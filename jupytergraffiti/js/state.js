@@ -20,7 +20,7 @@ define([
       state.resetOnNextPlay = false;
       state.recordedAudioString = '';
       state.audioStorageCallback = undefined;
-      state.frameArrays = ['view', 'selections', 'contents', 'drawings', 'terminals', 'speaking'];
+      state.frameArrays = ['view', 'selections', 'contents', 'drawings', 'terminals', 'speaking', 'skip'];
       state.scrollTop = undefined;
       state.selectedCellId = undefined;
       state.mute = false;
@@ -61,7 +61,6 @@ define([
       state.cellIdsAddedDuringRecording = {};
       state.userId = undefined;
       state.speakingStatus = false; // true when the graffiti creator is currently speaking (not silent)
-      state.skipStatus = 0; // value to show we have activated a skip, and what speed (0 = regular speed/user choice, 1 = fixed compression, 2,3,4 = 2x,3x,4x.
       state.editingSkips = false;
       state.replacingSkips = false;
       state.currentSkipRecord = 0;
@@ -76,6 +75,7 @@ define([
       state.graffitiEditCellId = undefined;
       state.narratorInfo = {};
       state.shiftKeyIsDown = false;
+      state.shiftKeyWentDown = false;
       state.executionSourceChoiceId = undefined;
       state.terminalState = undefined;
 
@@ -146,6 +146,8 @@ define([
       state.skipStatusCaptions[state.SKIP_STATUS_4X] = '4x speed';
       state.skipStatusCaptions[state.SKIP_STATUS_ABSOLUTE] = 'Skip entire section';
       
+      state.skipStatus = state.SKIP_STATUS_NONE; // value to show we have activated a skip, and what speed (0 = regular speed/user choice, 1 = fixed compression, 2,3,4 = 2x,3x,4x.
+
       utils.refreshCellMaps();
 
     },
@@ -284,21 +286,22 @@ define([
       state.storeHistoryRecord('speaking'); // record speaking status, if we are currently recording
     },
     
+
+    clearHighlightsRefreshableCell: () => {
+      state.highlightsRefreshCellId = undefined;
+    },
+
     getSkipStatus: () => {
       return state.skipStatus;
     },
 
-    setSkipStatus: (skipStatus) => {
-      if (state.skipStatus === skipStatus) {
-        state.skipStatus = state.SKIP_STATUS_NONE;
-      } else {
-        state.skipStatus = skipStatus;
-      }
-      state.storeHistoryRecord('skip'); // record skip status, if we are currently in a skip (time compression)
+    isSkipping: () => {
+      return state.skipStatus === state.SKIP_STATUS_ABSOLUTE;
     },
 
-    clearHighlightsRefreshableCell: () => {
-      state.highlightsRefreshCellId = undefined;
+    setSkipStatus: (skipStatus) => {
+      state.skipStatus = skipStatus;
+      state.storeHistoryRecord('skip'); // record skip status, if we are currently in a skip (time compression)
     },
 
     getEditingSkips: () => {
@@ -316,6 +319,16 @@ define([
 
     setReplacingSkips: (val) => {
       state.replacingSkips = val;
+    },
+
+    toggleRecordingSkip: () => {
+      console.trace('toggleRecordingSkip', state.skipStatus);
+      if (state.skipStatus === state.SKIP_STATUS_NONE) {
+        state.skipStatus = state.SKIP_STATUS_ABSOLUTE;
+      } else {
+        state.skipStatus = state.SKIP_STATUS_NONE;
+      }
+      console.log('after toggleRecordingSkip, status', state.skipStatus);
     },
 
     getCurrentSkipRecord: () => {
@@ -354,6 +367,37 @@ define([
       }
     },
 
+    // Set the start and end time of where the first speaking period began and the last speaking period ends and put these into
+    // absolute skip records
+    addSpeakingLimitsSkipRecords: () => {
+      let record;
+      if (state.history.speaking.length > 0) {
+        const lastSpeakingRec = state.history.speaking.length - 1;
+        const lastSkipRec = state.history.skip.length - 1;
+        state.skipStatus = state.SKIP_STATUS_ABSOLUTE;
+        record = state.createSkipRecord();
+        record.startTime = 0;
+        record.endTime = state.history.speaking[0].startTime - 1;
+        if (state.history['skip'].length > 0) {
+          if (record.endTime >= state.history.skip[0].startTime) {
+            record.endTime = state.history.skip[0].startTime - 1;
+          }
+        }
+        state.history['skip'].unshift(record);
+
+        state.skipStatus = state.SKIP_STATUS_ABSOLUTE;
+        record = state.createSkipRecord();
+        record.startTime = state.history.speaking[lastSpeakingRec].startTime;
+        if (state.history['skip'].length > 0) {
+          if (record.startTime < state.history.skip[lastSkipRec].endTime) {
+            record.startTime = state.history.skip[lastSkipRec].endTime + 1;
+          }
+        }
+        record.endTime = state.history.duration;
+        state.history['skip'].push(record);
+      }
+    },
+
     setExecutionSourceChoiceId: (choiceId) => {
       state.executionSourceChoiceId = choiceId;
     },
@@ -372,6 +416,18 @@ define([
 
     setShiftKeyIsDown: (val) => {
       state.shiftKeyIsDown = val;
+    },
+
+    getShiftKeyWentDown: () => {
+      return state.shiftKeyWentDown;
+    },
+
+    setShiftKeyWentDown: () => {
+      state.shiftKeyWentDown = true;
+    },
+
+    clearShiftKeyWentDown: () => {
+      state.shiftKeyWentDown = false;
     },
 
     getGraffitiEditCellId: () => {
@@ -405,32 +461,6 @@ define([
         }
       }
       return currentSpeakingStatus;
-    },
-
-    // Set the start and end time of where the first speaking period began and the last speaking period ends and put these into
-    // absolute skip records
-    addSpeakingLimitsSkipRecords: () => {
-      let record;
-      if (state.history.speaking.length >= 2) {
-        const lastRec = state.history.speaking.length - 1;
-        state.setSkipStatus(state.SKIP_STATUS_ABSOLUTE);
-        record = state.createSkipRecord();
-        record.startTime = 0;
-        record.endTime = state.history.speaking[0].startTime - 1;
-        state.history['skip'].push(record);
-
-        state.setSkipStatus(state.SKIP_STATUS_NONE);
-        record = state.createSkipRecord();
-        record.startTime = state.history.speaking[0].startTime;
-        record.endTime = state.history.speaking[lastRec].startTime - 1;
-        state.history['skip'].push(record);
-
-        state.setSkipStatus(state.SKIP_STATUS_ABSOLUTE);
-        record = state.createSkipRecord();
-        record.startTime = state.history.speaking[lastRec].startTime;
-        record.endTime = state.history.duration;
-        state.history['skip'].push(record);
-      }
     },
 
     setHighlightsRefreshCellId: (cellId) => {
@@ -1489,6 +1519,9 @@ define([
         case 'speaking':
           record = state.createSpeakingRecord();
           break;
+        case 'skip':
+          record = state.createSkipRecord();
+          break;
       }
       record.startTime = (time !== undefined ? time : state.utils.getNow());
       state.history[type].push(record);
@@ -1578,14 +1611,18 @@ define([
     },
 
     finalizeSkipRecords: () => {
+      // First, remove any records containing SKIP_STATUS_NONE.
       const numRecords = state.history['skip'].length;
       if (numRecords > 0) {
-        const lastRecord = state.history['skip'][numRecords - 1];
-        if (!lastRecord.hasOwnProperty('endTime')) {
-          lastRecord.endTime = state.history.duration - 1;
+        let newRecords = [], rec;
+        for (let i = 0; i < numRecords; ++i) {
+          rec = state.history['skip'][i];
+          if (rec.status !== state.SKIP_STATUS_NONE) {
+            newRecords.push({status: rec.status, startTime: rec.startTime, endTime: rec.endTime});
+          }
         }
+        state.history['skip'] = newRecords;
       }
-      state.setSkipStatus(0);
       state.dumpHistory();
     },
 

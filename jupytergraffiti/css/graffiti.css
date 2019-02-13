@@ -811,13 +811,18 @@ http://www.patternify.com/
   transform:rotate(180deg);
 }
 
-#graffiti-jupyter-menu-hint {
-  padding:2px 6px;
+.graffiti-jupyter-menu-hint {
+  padding:3px 30px;
   margin-left:10px;
   font-style:italic;
   color:#00d;
   background:#bbb;
   border-radius:2px;
+}
+
+.graffiti-jupyter-menu-alert {
+  background: #f44 !important;
+  color: #fff !important;
 }
 
 .graffiti-right-side-marker {
@@ -871,6 +876,17 @@ http://www.patternify.com/
   padding:3px;
 }
 
-#graffiti-locked-off {
+#graffiti-locked-on {
   display:none;
+}
+
+.graffiti-keyboard-sim {
+  padding:2px;
+  font-size:0.8em;
+  font-weight:bold;
+  background:#ddd;
+  color:#222;
+  border-radius:2px;
+  border:1px solid #222;
+  font-style:none;
 }
