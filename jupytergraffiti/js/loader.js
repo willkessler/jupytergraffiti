@@ -1,28 +1,31 @@
-if (window.Graffiti === undefined) {
-  define([
-    './graffiti.js',
-    './utils.js',
-    './storage.js',
+define([], () => {
+  if (window.Graffiti !== undefined) { 
+    console.log('Graffiti already instantiated, not reinitializing');
+    return;
+  }
+
+  require([
+    './graffiti.js', 
+    './utils.js', 
+    './storage.js', 
     './udacityUser.js'
-  ], (Graffiti,utils, storage, udacityUser) => {
+    ], (Graffiti, utils, storage, udacityUser) => {
     console.log('Graffiti loaded:', Graffiti);
     window.Graffiti = Graffiti;
     udacityUser.setUser();
     Graffiti.init();
 
-    Jupyter.notebook.events.on('kernel_reconnecting.Kernel', (e) => { 
+    Jupyter.notebook.events.on('kernel_reconnecting.Kernel', () => {
       console.log('kernel reconnecting');
     });
 
-    Jupyter.notebook.events.on('kernel_ready.Kernel', (e) => { 
+    Jupyter.notebook.events.on('kernel_ready.Kernel', () => {
       console.log('Graffiti: kernel ready, possible kernel restart.', e);
+      if (!udacityUser.token) {
+        udacityUser.setUser();
+      } 
       require(['jupytergraffiti/js/loader.js']);
       utils.saveNotebook();
     });
-
   });
-} else {
-  console.log('Graffiti already instantiated, not reinitializing');
-}
-
-
+});
