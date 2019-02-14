@@ -3776,9 +3776,6 @@ define([
       // If creating a new graffiti in markdown text, jump directly to the movie recording phase.
       editGraffiti: () => {
         let editableText;
-        const graffitiEditCell = Jupyter.notebook.insert_cell_above('markdown');
-        const editCellIndex = utils.findCellIndexByCellId(utils.getMetadataCellId(graffitiEditCell.metadata));
-        Jupyter.notebook.select(editCellIndex); // cell *must* be selected before unrender() called by set_text() below will actually unrender the cell correctly.
 
         graffiti.changeActivity('graffiting');
         state.setLastEditActivityTime();
@@ -3788,6 +3785,9 @@ define([
         const activeCellIndex = Jupyter.notebook.get_selected_index();
         const isMarkdownCell = (recordingRecord.cellType === 'markdown');
         const isCodeCell = (recordingRecord.cellType === 'code');
+        const graffitiEditCell = Jupyter.notebook.insert_cell_above('markdown');
+        const editCellIndex = utils.findCellIndexByCellId(utils.getMetadataCellId(graffitiEditCell.metadata));
+        Jupyter.notebook.select(editCellIndex); // cell *must* be selected before unrender() called by set_text() below will actually unrender the cell correctly.
 
         if (isNewGraffiti || isCodeCell || (isMarkdownCell && isOldGraffiti)) {
           utils.setMetadataCellId(graffitiEditCell.metadata,utils.generateUniqueId());
