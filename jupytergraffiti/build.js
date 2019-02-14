@@ -9,12 +9,12 @@
         "components/marked": "empty:",
         "notebook/js": "empty:"
     },
-    out: "graffiti-dist/extension.js",
+    out: "graffiti-dist/graffiti.js",
     findNestedDependencies: true,
     // Useful in dev
     optimize: "none",
     onBuildWrite: function (moduleName, path, contents) {
         // Requirejs optimizer gives a module name("main") to entrypoint file which doesn't work in Jupyter environment
-        return contents.replace("define('main'", "define('nbextensions/graffiti-dist/extension'");
+        return contents.replace("define('main'", "define('nbextensions/graffiti-dist/graffiti'");
     },
 });

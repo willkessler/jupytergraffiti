@@ -16,7 +16,7 @@ gulp.task("prebuild", () => {
 });
 
 gulp.task("move-styles", () => {
-  return gulp.src(['graffiti-dist/extension.js', './css/*', './fonts/*'])
+  return gulp.src(['graffiti-dist/graffiti.js', './css/*', './fonts/*'])
   .pipe(replace('../fonts', function() {
     return '/nbextensions/graffiti-dist';
   }))
