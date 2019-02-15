@@ -1716,7 +1716,7 @@ define([
             console.log('Graffiti: Now starting movie recording');
             graffiti.toggleRecording();
           }
-          return false;
+          return true;
         });
         audio.setAudioStorageCallback(storage.storeMovie);
         graffiti.addCMEvents();
