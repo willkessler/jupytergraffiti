@@ -5,20 +5,40 @@ define([
   const NEBULA_URL = 'https://nebula.udacity.com';
 
   function getToken() {
-		const executeCallbackObject = (callback) => ({
-		  iopub: {
-		    output: (data) => {
-		      data.content.text ? callback(data.content.text) : null
-		    }
-		  }
-		});
-		return new Promise((resolve, reject) => {
-		  Jupyter.notebook.kernel.execute(
-		    '!curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/keep_alive_token" -H "Metadata-Flavor: Google" -s --fail',
-		    executeCallbackObject(output => resolve(output))
-		  );
-		});
-	}
+    const kernelName = Jupyter.notebook.kernel.name;
+    const executeCallbackObject = (callback) => ({
+      iopub: {
+        output: (data) => {
+          let tokenText = '';
+          if (kernelName === 'ir') {
+            tokenText = data.content.data && data.content.data['text/html'];
+            tokenText = tokenText.replace(/'/g, "");
+          } else {
+            tokenText = data.content.text;
+          }
+          tokenText ? callback(tokenText) : null
+        }
+      }
+    });
+    return new Promise((resolve, reject) => {
+      const gcloudMetadaUrl = 'http://metadata.google.internal/computeMetadata/v1/instance/attributes/keep_alive_token';
+      let bashCommand = '';
+      let execOptions = {}
+      if (kernelName === 'ir') {
+        bashCommand = `system('curl "${gcloudMetadaUrl}" -H "Metadata-Flavor: Google" -s --fail', intern=TRUE)`;
+        execOptions = {
+          silent: false
+        };
+      } else {
+        bashCommand = `!curl "${gcloudMetadaUrl}" -H "Metadata-Flavor: Google" -s --fail`;
+      }
+      Jupyter.notebook.kernel.execute(
+        bashCommand,
+        executeCallbackObject(output => resolve(output)),
+        execOptions
+      );
+    });
+  }
 
   function getUdacityUser(token) {
     return new Promise((resolve, reject) => {
