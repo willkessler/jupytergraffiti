@@ -3246,7 +3246,7 @@ define([
 
           if (recording.playOnClick) {
             //console.log('Graffiti: binding target for click', highlightElem);
-            highlightElem.off('click').click((e) => {
+            highlightElem.off('click dblclick').bind('click dblclick', (e) => {
               state.clearTipTimeout();
               e.stopPropagation(); // for reasons unknown event still propogates to the codemirror editing area undeneath...
 
@@ -4069,7 +4069,7 @@ define([
       editSkips: () => {
         state.setEditingSkips(true);
         state.setReplacingSkips(true);
-        graffiti.loadAndPlayMovie('tip');
+        //graffiti.loadAndPlayMovie('tip');
       },
 
       // Confirm clearing any existing skips.
@@ -4543,7 +4543,7 @@ define([
             // End movie recording.
             //
 
-            console.log('Graffiti: Now starting movie recording');
+            console.log('Graffiti: Now ending movie recording');
             state.blockRecording(); // this is here because a race condition can happen right at the end of recording
             graffiti.setNotifier(localizer.getString('PLEASE_WAIT_STORING_MOVIE'));
             graffiti.showControlPanels(['graffiti-notifier']);
@@ -5363,7 +5363,7 @@ define([
         }
 
         console.log('Graffiti: Starting playback, current activity:', activity);
-        if ((activity === 'idle') || (activity === 'notifying')) {
+        if ((activity === 'idle') || (activity === 'notifying') || (activity === 'playbackPending')) {
           // If just starting to play back, store all cells current contents so we can restore them when you cancel playback.
           // utils.saveNotebook();
           state.setScrollTop(graffiti.sitePanel.scrollTop());
@@ -5392,7 +5392,7 @@ define([
           }
         }
 
-        if ((activity === 'idle') || (activity === 'notifying') || (activity === 'playbackPaused')) {
+        if ((activity === 'idle') || (activity === 'notifying') || (activity === 'playbackPaused') || (activity === 'playbackPending')) {
           graffiti.clearCanvases('all');
         }
 
@@ -5499,7 +5499,13 @@ define([
 
       playMovieViaUserClick: () => {
         console.log('Graffiti: playMovieViaUserClick starts.');
+        const activity = state.getActivity();
+        if (activity === 'playbackPending') {
+          console.log('Graffiti: not playing movie via user click because another movie is pending.');
+          return; // prevent rapid clicks on graffiti where play_to_click is active.
+        }
         graffiti.cancelPlayback({cancelAnimation:false});
+        graffiti.changeActivity('playbackPending');
         const playableMovie = state.getPlayableMovie('tip');
         if (playableMovie === undefined) {
           console.log('Graffiti: no playable movie known.');
