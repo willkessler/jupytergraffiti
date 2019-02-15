@@ -8,9 +8,9 @@
 
 define ([
   'base/js/utils',
-  '/nbextensions/graffiti_extension/js/utils.js',
-  '/nbextensions/graffiti_extension/js/xterm/xterm.js',
-  '/nbextensions/graffiti_extension/js/xterm/addons/fit/fit.js',
+  './utils.js',
+  './xterm/xterm.js',
+  './xterm/addons/fit/fit.js',
 ], (jupyterUtils, utils, terminalLib, fit) => {
   const terminals = {
 

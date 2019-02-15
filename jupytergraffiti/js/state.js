@@ -1,6 +1,6 @@
 define([
   './utils.js',
-  './xterm/terminals.js',
+  './terminals.js',
 ], function (utils, terminalLib) {
   const state = {
     init: () => {

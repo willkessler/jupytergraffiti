@@ -10,7 +10,7 @@ define([
   './sticker.js',
   './localizer.js',
   './selectionSerializer.js',
-  './xterm/terminals.js',
+  './terminals.js',
   'components/marked/lib/marked'
 ], function(dialog, events, textCell, LZString, state, utils, audio, storage, stickerLib, localizer, selectionSerializer, terminalLib, marked) {
   const Graffiti = (function() {
@@ -529,8 +529,14 @@ define([
         );
 
         graffiti.setupOneControlPanel('graffiti-recording-controls', 
-                                      '<button class="btn btn-default" id="btn-end-recording" title="' + localizer.getString('END_RECORDING') + '">' +
-                                      '<i class="fa fa-pause recorder-stop-button"></i>&nbsp;' + localizer.getString('END_RECORDING') + '</button>' +
+                                      '<div id="graffiti-recording-button-help-shell">' +
+                                      '  <div id="graffiti-recording-button-help-pause" class="graffiti-recording-button-help" style="border-right:1px dotted grey">' +
+                                      localizer.getString('RECORDING_HINT_1') +
+                                      '  </div>' +
+                                      '  <div class="graffiti-recording-button-help">' +
+                                      localizer.getString('RECORDING_HINT_2') +
+                                      '  </div>' +
+                                      '</div>' + 
                                       '<div id="graffiti-recording-status">' +
                                       '  <div id="graffiti-recording-flash-icon"></div>' +
                                       '  <div id="graffiti-time-display-recording"></div>' +
@@ -3533,7 +3539,7 @@ define([
         return false;
       },
 
-      // If the control key was down then we want to cancel the timeout on it because a click happened.
+      // If the skip key was down then we want to cancel the timeout it created, because a mouse click happened (e.g. option-select)
       handleGeneralClick: (e) => {
         console.log('handled a click');
         graffiti.clearSkipKeyDownTimer();

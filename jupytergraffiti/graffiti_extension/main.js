@@ -19,7 +19,7 @@ define([
     Jupyter.notebook.events.on('kernel_ready.Kernel', (e) => { 
       console.log('Graffiti: kernel ready, possible kernel restart.', e);
       console.log('Reloading loader.js');
-      require(['jupytergraffiti/js/loader.js']);
+      require(['jupytergraffiti/graffiti_extension/main.js']);
       utils.saveNotebook();
     });
     

@@ -522,6 +522,17 @@
   margin-top:2px;
 }
 
+#graffiti-recording-button-help-shell {
+  display:flex;
+  width:100%;
+}
+
+.graffiti-recording-button-help {
+  padding:10px;
+  margin:5px;
+  width:100%:
+}
+
 #graffiti-notifier-prompt {
   cursor:pointer;
 }
@@ -890,3 +901,4 @@ http://www.patternify.com/
   border:1px solid #222;
   font-style:none;
 }
+
