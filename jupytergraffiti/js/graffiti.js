@@ -11,8 +11,9 @@ define([
   './localizer.js',
   './selectionSerializer.js',
   './terminals.js',
+  './batchRunner.js',
   'components/marked/lib/marked'
-], function(dialog, events, textCell, LZString, state, utils, audio, storage, stickerLib, localizer, selectionSerializer, terminalLib, marked) {
+], function(dialog, events, textCell, LZString, state, utils, audio, storage, stickerLib, localizer, selectionSerializer, terminalLib, batchRunner, marked) {
   const Graffiti = (function() {
     const graffiti = {
 
@@ -1736,6 +1737,8 @@ define([
 
         terminalLib.init(graffiti.handleTerminalsEvents);
 
+        storage.preloadAllMovies();
+        graffiti.checkplay = new Audio('/tree/samples/darth.mp3');
 
 /*
         let body = '<div>Enter the Graffiti Hub Key to import Graffiti into this notebook.</div>';
@@ -4875,7 +4878,7 @@ define([
         // Select whatever cell is currently selected
         if (record.selectedCellId !== undefined) {
           const selectedCellIndex = utils.findCellIndexByCellId(record.selectedCellId); // we should use a map to speed this up
-          //console.log('about to select index:', selectedCellIndex)
+          //console.log('about to select index:', selectedCellIndex, record.selectedCellId)
           Jupyter.notebook.select(selectedCellIndex);
         }
 
@@ -4884,6 +4887,9 @@ define([
           //console.log('pointerUpdate is true, record:', record);
           graffiti.updatePointer(record);
         } else {
+          //if (record.subType === 'selectCell') {
+          //  console.log('record', record);
+          //}
           graffiti.dimGraffitiCursor();
           if (record.selectedCell !== undefined) {
             if ((record.subType === 'focus') || (record.subType === 'selectCell')) {
@@ -5576,6 +5582,32 @@ define([
         utils.saveNotebook();
       },
 
+      startLoadedMovie: (recording, playableMovie) => {
+        console.log('Graffiti: Movie loaded for cellId, recordingKey:', playableMovie.recordingCellId, playableMovie.recordingKey);
+
+        state.setNarratorInfo('name', recording.narratorName);
+        state.setNarratorInfo('picture', recording.narratorPicture);
+        if (playableMovie.cellType === 'markdown') {
+          playableMovie.cell.render(); // always render a markdown cell first before playing a movie on a graffiti inside it
+        }
+        state.updateUsageStats({
+          type: 'setup',
+          data: {
+            cellId:        playableMovie.recordingCellId,
+            recordingKey:  playableMovie.recordingKey,
+            activeTakeId:  playableMovie.activeTakeId,
+          }
+        });            
+        state.updateUsageStats({
+          type:'play',
+          data: {
+            actions: ['resetCurrentPlayTime', 'incrementPlayCount']
+          }
+        });
+        graffiti.togglePlayback();
+        graffiti.hideTip();
+      },
+
       loadAndPlayMovie: (kind) => {
         const playableMovie = state.getPlayableMovie(kind);
         if (playableMovie === undefined) {
@@ -5623,48 +5655,35 @@ define([
 
         $('#graffiti-movie-play-btn').html('<i>' + localizer.getString('LOADING') + '</i>').prop('disabled',true);
         graffiti.setJupyterMenuHint(localizer.getString('LOADING_PLEASE_WAIT'));
-        storage.loadMovie(playableMovie.recordingCellId, playableMovie.recordingKey, playableMovie.activeTakeId).then( () => {
-          console.log('Graffiti: Movie loaded for cellId, recordingKey:', playableMovie.recordingCellId, playableMovie.recordingKey);
-
-          state.setNarratorInfo('name', recording.narratorName);
-          state.setNarratorInfo('picture', recording.narratorPicture);
-          if (playableMovie.cellType === 'markdown') {
-            playableMovie.cell.render(); // always render a markdown cell first before playing a movie on a graffiti inside it
-          }
-          state.updateUsageStats({
-            type: 'setup',
-            data: {
-              cellId:        playableMovie.recordingCellId,
-              recordingKey:  playableMovie.recordingKey,
-              activeTakeId:  playableMovie.activeTakeId,
-            }
-          });            
-          state.updateUsageStats({
-            type:'play',
-            data: {
-              actions: ['resetCurrentPlayTime', 'incrementPlayCount']
-            }
-          });
-          graffiti.togglePlayback();
-          graffiti.hideTip();
-        }).catch( (ex) => {
-          graffiti.changeActivity('idle');
-          dialog.modal({
-            title: localizer.getString('MOVIE_UNAVAILABLE'),
-            body:  localizer.getString('MOVIE_UNAVAILABLE_EXPLANATION'),
-            sanitize:false,
-            buttons: {
-              'OK': {
-                click: (e) => { 
-                  console.log('Graffiti: Missing movie acknowledged.'); 
+        const historyData = state.getFromMovieCache('history', playableMovie);
+        const audioData   = state.getFromMovieCache('audio',   playableMovie);
+        if ((historyData !== undefined) && (audioData !== undefined)) {
+          state.setHistory(historyData);
+          audio.setRecordedAudio(audioData);
+          graffiti.startLoadedMovie(recording, playableMovie);
+        } else {
+          storage.fetchMovie(playableMovie).then( (movieData) => {
+            state.setHistory(movieData.history);
+            audio.setRecordedAudio(movieData.audio);
+            graffiti.startLoadedMovie(recording, playableMovie);
+          }).catch( (ex) => {
+            graffiti.changeActivity('idle');
+            dialog.modal({
+              title: localizer.getString('MOVIE_UNAVAILABLE'),
+              body:  localizer.getString('MOVIE_UNAVAILABLE_EXPLANATION'),
+              sanitize:false,
+              buttons: {
+                'OK': {
+                  click: (e) => { 
+                    console.log('Graffiti: Missing movie acknowledged.'); 
+                  }
                 }
               }
-            }
+            });
+            console.log('Graffiti: could not load movie:', ex);
+            graffiti.cleanupAfterLoadAndPlayDidNotPlay();
           });
-          console.log('Graffiti: could not load movie:', ex);
-          graffiti.cleanupAfterLoadAndPlayDidNotPlay();
-        });
-
+        }
       },
 
       playRecordingById: (recordingCellId, recordingKey) => {

@@ -7,6 +7,10 @@ define([
       console.log('Graffiti: state constructor running.');
       state.history = undefined;
       state.manifest = {};
+      state.movieCache = {
+        history: {},
+        audio: {}
+      };
       state.utils = utils;
       state.accessLevel = 'view'; // one of 'create' or 'view'. If 'create' then we can create new graffitis, otherwise we can only view them
       state.authorId = undefined; // set when we activivateGraffiti or load a manifest
@@ -1848,12 +1852,23 @@ define([
       return undefined;
     },
 
-    storeWholeHistory: (history) => {
+    setHistory: (history) => {
       state.history = $.extend({}, history);
       state.resetPlayState();
       state.resetProcessedArrays();
     },
 
+    getFromMovieCache: (kind, keys) => {
+      const combinedKey = [keys.recordingCellId, keys.recordingKey, keys.activeTakeId].join('_');
+      return state.movieCache[kind][combinedKey];
+    },
+
+    storeToMovieCache: (kind, keys, data) => {
+      const combinedKey = [keys.recordingCellId, keys.recordingKey, keys.activeTakeId].join('_');
+      state.movieCache[kind][combinedKey] = data;
+    },
+
+                   
     getTimeRecordedSoFar: () => {
       return state.utils.getNow() - state.history.recordingStartTime;
     },

@@ -17,13 +17,13 @@ define([
       udacityUser.setUser();
       Graffiti.init();
       
-      Jupyter.notebook.events.on('kernel_ready.Kernel', () => { 
+      Jupyter.notebook.events.on('kernel_ready.Kernel', (e) => { 
         console.log('Graffiti: kernel ready, possible kernel restart.', e);
         console.log('Reloading loader.js');
         if (!udacityUser.token) {
           udacityUser.setUser();
         } 
-        require(['jupytergraffiti/js/loader.js']);
+        require(['/nbextensions/graffiti_extension/main.js']);
         utils.saveNotebook();
       });
     }

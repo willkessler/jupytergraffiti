@@ -19,7 +19,8 @@ define([
         //console.log('getUserMedia supported.');
         navigator.getUserMedia (
           { // constraints - only audio needed for this app
-            audio: true
+            audio: true,
+            mimeType: 'audio/wav',
           },
           // Success callback
           function(stream) {
@@ -125,6 +126,21 @@ define([
       const audioObj = new Audio(labeledAudio);
       audioObj.load();
       audio.storeAudio(audioObj);
+
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioCtx.createBufferSource();
+      const binaryAudioBlob = audio.b64toBlob(b64String);
+      const reader = new FileReader();
+      reader.addEventListener("loadend", function() {
+        const bufferArray = reader.result;
+        audioCtx.decodeAudioData(bufferArray, (buffer) => {
+          source.buffer = buffer;
+          source.connect(audioCtx.destination);
+          source.start(0);
+          console.log('started audio from blob');
+        }, function(e){ console.log("Error with decoding audio data" + e); debugger; });
+      });
+      reader.readAsArrayBuffer(binaryAudioBlob);
     },
 
     setAudioStorageCallback: (cb) => {
@@ -193,6 +209,30 @@ define([
       // http://stackoverflow.com/questions/9563887/setting-html5-audio-position
 
       audio.storeAudio(audioObj);
+    },
+
+    b64toBlob: (b64Data, contentType, sliceSize) => {
+      contentType = contentType || '';
+      sliceSize = sliceSize || 512;
+
+      const byteCharacters = atob(b64Data);
+      const byteArrays = [];
+
+      for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+        const slice = byteCharacters.slice(offset, offset + sliceSize);
+
+        const byteNumbers = new Array(slice.length);
+        for (let i = 0; i < slice.length; i++) {
+          byteNumbers[i] = slice.charCodeAt(i);
+        }
+
+        const byteArray = new Uint8Array(byteNumbers);
+
+        byteArrays.push(byteArray);
+      }
+
+      const blob = new Blob(byteArrays, {type: contentType});
+      return blob;
     },
 
   }

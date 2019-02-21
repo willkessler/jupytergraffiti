@@ -2,8 +2,9 @@ define([
   './state.js',
   './audio.js',
   './utils.js',
+  './batchRunner.js',
   './LZString.js'
-], function (state,audio,utils, LZString) {
+], function (state, audio, utils, batchRunner, LZString) {
 
   //
   // Storage tree is organized like this:
@@ -30,6 +31,7 @@ define([
     defaultKernel: 'python3',
     executorCell: undefined,
     movieCompleteCallback: undefined,
+    preloadBatchSize: 4,
 
     createExecutorCell: () => {
       if (storage.executorCell === undefined) {
@@ -256,12 +258,15 @@ define([
       if (jsonHistory !== undefined) {
         //console.log(jsonHistory);
         const encodedAudio = audio.getRecordedAudio();
+        const keys = {
+          recordingCellId: recordingCellInfo.recordingCellId,
+          recordingKey: recordingCellInfo.recordingKey,
+          activeTakeId: recordingCellInfo.recordingRecord.activeTakeId
+        };
+        state.storeToMovieCache('history', keys, jsonHistory);
+        state.storeToMovieCache('audio', keys, encodedAudio);
         storage.writeOutMovieData(
-          {
-            recordingCellId: recordingCellInfo.recordingCellId,
-            recordingKey: recordingCellInfo.recordingKey,
-            activeTakeId: recordingCellInfo.recordingRecord.activeTakeId
-          },
+          keys,
           jsonHistory, 
           encodedAudio).then(() => {
             storage.completeMovieStorage();
@@ -331,15 +336,15 @@ define([
     },
 
     //
-    // Load a movie.
+    // Fetch a movie and store it into the movies cache in state.
     // Returns a promise.
     //
-    loadMovie: (recordingCellId, recordingKey, activeTakeId) => {
+    fetchMovie: (data) => {
       const notebookRecordingId = Jupyter.notebook.metadata.graffiti.id;
       const graffitiPath = storage.constructGraffitiTakePath( {
-        recordingCellId: recordingCellId,
-        recordingKey: recordingKey,
-        takeId: activeTakeId,
+        recordingCellId: data.recordingCellId,
+        recordingKey: data.recordingKey,
+        takeId: data.activeTakeId,
       });
       const credentials = { credentials: 'include'};
       storage.successfulLoad = false; /* assume we cannot fetch this recording ok */
@@ -356,7 +361,6 @@ define([
           const uncompressedHistory = LZString.decompressFromBase64(base64CompressedHistory);
           //console.log('uncompressedHistory:', uncompressedHistory);
           const parsedHistory = JSON.parse(uncompressedHistory);
-          state.storeWholeHistory(parsedHistory);
           console.log('Graffiti: Loaded previous history:', parsedHistory);
           const audioUrl = graffitiPath + 'audio.txt';
           return fetch(audioUrl, { credentials: 'include' }).then((response) => {
@@ -366,8 +370,10 @@ define([
             return response.text();
           }).then(function(base64CompressedAudio) {
             try {
-              audio.setRecordedAudio(base64CompressedAudio);
+              state.storeToMovieCache('history', data, parsedHistory);
+              state.storeToMovieCache('audio',   data, base64CompressedAudio);
               storage.successfulLoad = true;
+              return ({ history: parsedHistory, audio: base64CompressedAudio });
             } catch(ex) {
               console.log('Graffiti: Could not parse saved audio, ex:', ex);
               return Promise.reject('Could not parse saved audio, ex :' + ex);
@@ -380,6 +386,34 @@ define([
       }).catch((ex) => {
         console.log('Graffiti: Could not fetch history file for history, ex:', ex);
         return Promise.reject('Could not fetch history file');
+      });
+    },
+
+    preloadAllMovies: () => {
+      let allRecords = [], dataRecord, recordingCellId, recordingKeys, recording;
+      const manifest = state.getManifest();
+      for (recordingCellId of Object.keys(manifest)) {
+        recordingKeys = Object.keys(manifest[recordingCellId]);
+        if (recordingKeys.length > 0) {
+          for (recordingKey of recordingKeys) {
+            recording = state.getManifestSingleRecording(recordingCellId, recordingKey);
+            if (recording.activeTakeId !== undefined) {
+              dataRecord = { 
+                recordingCellId: recordingCellId,
+                recordingKey: recordingKey,
+                activeTakeId: recording.activeTakeId
+              }
+              allRecords.push(dataRecord);
+            }
+          }
+        }
+      }
+      const callback = (data) => {
+        console.log('Got data:', data);
+        storage.fetchMovie(data);
+      }
+      batchRunner.start(storage.preloadBatchSize, callback, allRecords).then(() => { 
+        console.log('Graffiti: preloading completed.');
       });
     },
 
