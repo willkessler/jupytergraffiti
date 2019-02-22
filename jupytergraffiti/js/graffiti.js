@@ -5453,6 +5453,7 @@ define([
                                          graffiti.updateTimeDisplay(playedSoFar);
                                          const frameIndexes = state.getHistoryRecordsAtTime(playedSoFar);
                                          graffiti.updateDisplay(frameIndexes);
+                                         state.setCurrentSkipRecord(playedSoFar);
                                          //console.log('play interval, now=', utils.getNow());
                                        }
                                      },

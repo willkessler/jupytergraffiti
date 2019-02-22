@@ -1523,6 +1523,9 @@ define([
       state.history['skip'] = [];
     },
 
+    // This needs to be vastly simplified since we do not allow skip editing any more, only changing their speeds 
+    // once they're set during recording.
+
     storeSkipRecord: (newSkipStatus) => {
       const timeSoFar = state.getTimePlayedSoFar();
       const numRecords = state.history['skip'].length;
