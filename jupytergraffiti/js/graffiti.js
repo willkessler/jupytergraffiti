@@ -4485,7 +4485,6 @@ define([
         state.setSpeakingStatus(false); // if we were still speaking, record a history record that will terminate that state during playback.
         state.finalizeHistory();
         state.finalizeSkipRecords();
-        state.addCancelTimeSkipRecord();
         if (useCallback) {
           state.dumpHistory();
         }
@@ -4543,7 +4542,7 @@ define([
         }
       },
 
-      toggleRecording: () => {
+      toggleRecording: (opts) => {
         const currentActivity = state.getActivity();
         if (currentActivity !== 'playing') {
           if (currentActivity === 'recording') {
@@ -4562,6 +4561,9 @@ define([
             graffiti.stopRecordingCore(true);
             state.unblockRecording();
             graffiti.clearJupyterMenuHint();
+            if (opts !== undefined && opts.endByKeyPress) {
+              state.addCancelTimeSkipRecord();
+            }
             console.log('Graffiti: Stopped recording.');
           } else {
 
@@ -4627,7 +4629,7 @@ define([
       endRecordingByKeyPress: () => {
         const activity = state.getActivity();
         if (activity === 'recording') {
-          graffiti.toggleRecording();
+          graffiti.toggleRecording({endByKeyPress:true});
         } else if (activity === 'recordingPending') {
           graffiti.changeActivity('idle');
           graffiti.clearJupyterMenuHint();
