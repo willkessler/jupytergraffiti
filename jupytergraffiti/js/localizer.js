@@ -106,12 +106,11 @@ define([
             'CLICK_BEGIN_MOVIE_RECORDING' :      'Click anywhere in the notebook to begin recording your movie.',
             'CANCEL_RECORDING_1' :               'Or, <span class="graffiti-notifier-link" id="graffiti-cancel-recording-pending-link">Cancel recording</span>',
             'CANCEL_RECORDING_2' :               'Or, <span class="graffiti-notifier-link" id="graffiti-cancel-recording-link">Cancel recording</span>',
-            'RECORDING_HINT_1' :                 'Tap <span class="graffiti-keyboard-sim">option (alt)</span> key: pause recording. ',
-            'RECORDING_HINT_2' :                 'Hold <span class="graffiti-keyboard-sim">option (alt)</span> key: end recording.',
-            'RECORDING_HINT_3' :                 'Recording is paused. Tap <span class="graffiti-keyboard-sim">option (alt)</span> : resume recording.',
-            'ACTIVITIES_BEING_RECORDED':         'Your activities are being recorded.' + 
-                                                 'Press ⌘-M or click <span class="graffiti-notifier-link" id="graffiti-end-recording-link">End Recording</span> ' +
-                                                 'to end recording.',
+            'RECORDING_HINT_1' :                 '<div class="graffiti-keyboard-sim"><div>option/alt</div><div>key</div></div>',
+            'RECORDING_HINT_2' :                 '<span>Tap</span>: Pause Rec.',
+            'RECORDING_HINT_3' :                 '<span>Hold</span>: End Rec.',
+            'RECORDING_HINT_4' :                 'Recording paused. Tap Option (Alt) key resume.',
+            'ACTIVITIES_BEING_RECORDED':         'Your activities are being recorded. Hold the option key down to end recording.',
             'LOADING':                           'Loading...',
             'LOADING_PLEASE_WAIT':               'Loading Graffiti movie, please wait...',
             'RECORDED_ON':                       'Recorded',

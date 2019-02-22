@@ -134,7 +134,7 @@ define([
       state.SKIP_STATUS_4X =        4;
       state.SKIP_STATUS_ABSOLUTE = -1;
 
-      state.END_RECORDING_KEYDOWN_TIMEOUT = 2000;
+      state.END_RECORDING_KEYDOWN_TIMEOUT = 1200;
 
       state.skipStatusColorMap = {};
       state.skipStatusColorMap[state.SKIP_STATUS_NONE] = '5e5';
@@ -308,6 +308,10 @@ define([
     setSkipStatus: (skipStatus) => {
       state.skipStatus = skipStatus;
       state.storeHistoryRecord('skip'); // record skip status, if we are currently in a skip (time compression)
+    },
+
+    resetSkipStatus: () => {
+      state.skipStatus = state.SKIP_STATUS_NONE;
     },
 
     getEditingSkips: () => {

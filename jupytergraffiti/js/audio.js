@@ -127,6 +127,10 @@ define([
       audioObj.load();
       audio.storeAudio(audioObj);
 
+      // An attempt to get sound to play in safari. Unfortunately chrome is recording using encoding type Opus
+      // which safari does not accept. So we need to additionally convert the recording to mp3 or wav
+      // before safari can play it.
+      /*
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const source = audioCtx.createBufferSource();
       const binaryAudioBlob = audio.b64toBlob(b64String);
@@ -141,6 +145,8 @@ define([
         }, function(e){ console.log("Error with decoding audio data" + e); debugger; });
       });
       reader.readAsArrayBuffer(binaryAudioBlob);
+      */
+
     },
 
     setAudioStorageCallback: (cb) => {

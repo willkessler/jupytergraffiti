@@ -215,13 +215,14 @@ define([
       
       toggleRecordingSkip: () => {
         if (state.getActivity() !== 'recording') {
+          state.resetSkipStatus();
           return;
         }
         state.toggleRecordingSkip();
         if (state.isSkipping()) {
-          graffiti.setJupyterMenuHint(localizer.getString('RECORDING_HINT_2'), 'graffiti-jupyter-menu-alert');
+          graffiti.setJupyterMenuHint(localizer.getString('RECORDING_HINT_4'), 'graffiti-jupyter-menu-alert');
         } else {
-          graffiti.setJupyterMenuHint(localizer.getString('RECORDING_HINT_1'));
+          graffiti.clearJupyterMenuHint();
         }
         state.storeHistoryRecord('skip');
       },
@@ -531,11 +532,12 @@ define([
 
         graffiti.setupOneControlPanel('graffiti-recording-controls', 
                                       '<div id="graffiti-recording-button-help-shell">' +
-                                      '  <div id="graffiti-recording-button-help-pause" class="graffiti-recording-button-help" style="border-right:1px dotted grey">' +
+                                      '  <div id="graffiti-btn-end-recording" class="graffiti-recording-button-help">' +
                                       localizer.getString('RECORDING_HINT_1') +
                                       '  </div>' +
                                       '  <div class="graffiti-recording-button-help">' +
-                                      localizer.getString('RECORDING_HINT_2') +
+                                      '    <div>' + localizer.getString('RECORDING_HINT_2') + '</div>' +
+                                      '    <div>' + localizer.getString('RECORDING_HINT_3') + '</div>' +
                                       '  </div>' +
                                       '</div>' + 
                                       '<div id="graffiti-recording-status">' +
@@ -544,7 +546,7 @@ define([
                                       '</div>',
                                       [
                                         {
-                                          ids: ['btn-end-recording'],
+                                          ids: ['graffiti-btn-end-recording'],
                                           event: 'click',
                                           fn: (e) => {
                                             graffiti.toggleRecording();
@@ -2001,8 +2003,12 @@ define([
                 state.startDrawingFadeClock();
               }
             }
+          } else if (e.type === 'keyup') {
+            console.log('Graffiti: drawingScreen got key:', e);
+            graffiti.handleKeyup(e);
           } else if (e.type === 'keydown') {
             console.log('Graffiti: drawingScreen got key:', e);
+            graffiti.handleKeydown(e);
           }
           e.preventDefault();
           e.stopPropagation();
@@ -3457,7 +3463,7 @@ define([
         const activity = state.getActivity();
         let stopProp = false;
 
-        console.log('handleKeydown keyCode:', keyCode, String.fromCharCode(keyCode));
+        //console.log('handleKeydown keyCode:', keyCode, String.fromCharCode(keyCode));
         if (activity === 'recording') {
           if (keyCode === graffiti.skipKeyCode) {
             graffiti.skipKeyDownTimer = setTimeout(() => { 
@@ -4072,7 +4078,7 @@ define([
       editSkips: () => {
         state.setEditingSkips(true);
         state.setReplacingSkips(true);
-        //graffiti.loadAndPlayMovie('tip');
+        graffiti.loadAndPlayMovie('tip');
       },
 
       // Confirm clearing any existing skips.
@@ -4548,6 +4554,7 @@ define([
 
             console.log('Graffiti: Now ending movie recording');
             state.blockRecording(); // this is here because a race condition can happen right at the end of recording
+            state.resetSkipStatus();
             graffiti.setNotifier(localizer.getString('PLEASE_WAIT_STORING_MOVIE'));
             graffiti.showControlPanels(['graffiti-notifier']);
             graffiti.showSavingScrim();
@@ -4612,7 +4619,6 @@ define([
                                          },
                                          graffiti.recordingIntervalMs);
             
-            graffiti.setJupyterMenuHint(localizer.getString('RECORDING_HINT_1'));
             console.log('Graffiti: Started recording');
           }
         }

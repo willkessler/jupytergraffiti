@@ -497,9 +497,9 @@
 
 #graffiti-time-display-recording,
 #graffiti-time-display-playback {
-  padding: 4px 2px 0px 4px;
+  padding: 2px 2px 0px 2px;
   font-family:monospace;
-  font-size:0.9em;
+  font-size:1.1em;
   cursor:pointer;  
   position:absolute;
 }
@@ -509,6 +509,7 @@
 }
 
 #graffiti-time-display-recording {
+  font-weight:bold;
   color:red;
   height:20px;
   left:28px;
@@ -524,13 +525,38 @@
 
 #graffiti-recording-button-help-shell {
   display:flex;
+  align-items:center;
   width:100%;
+  margin-bottom:-2px;
 }
 
 .graffiti-recording-button-help {
-  padding:10px;
+  padding:0;
   margin:5px;
-  width:100%:
+  display:flex;
+}
+
+.graffiti-recording-button-help span {
+  font-weight:bold;
+  border-bottom:1px dashed black;
+}
+
+
+.graffiti-keyboard-sim {
+  text-align:center;
+  padding:6px 5px;
+  font-size:1em;
+  font-weight:bold;
+  background:#ddd;
+  color:#222;
+  border-radius:6px;
+  border:1px solid #222;
+  font-style:none;
+  cursor:pointer;
+}
+
+.graffiti-keyboard-sim:hover {
+  background:#efefef;
 }
 
 #graffiti-notifier-prompt {
@@ -890,15 +916,3 @@ http://www.patternify.com/
 #graffiti-locked-on {
   display:none;
 }
-
-.graffiti-keyboard-sim {
-  padding:2px;
-  font-size:0.8em;
-  font-weight:bold;
-  background:#ddd;
-  color:#222;
-  border-radius:2px;
-  border:1px solid #222;
-  font-style:none;
-}
-
