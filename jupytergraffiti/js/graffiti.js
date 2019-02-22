@@ -188,6 +188,7 @@ define([
         bar.empty();
         const barWidth = bar.width();
         const barHeight = bar.height();
+        console.log('barWidth:', barWidth);
         let skipBarLeft, skipBarWidth, skipBarColor, skipBarCaption, rec, endTime;
         const duration = state.getHistoryDuration();
         for (let i = 0; i < skipRecords.length; ++i) {
@@ -196,6 +197,7 @@ define([
           console.log('updateSkipsBar, rec:',rec, 'endTime:', endTime);
           skipBarWidth = parseInt(((endTime - rec.startTime) / duration) * barWidth);
           skipBarLeft = parseInt((rec.startTime / duration) * barWidth);
+          console.log('skipBarWidth, skipBarLeft',skipBarWidth, skipBarLeft);
           if (skipBarWidth < 0) {
             skipBarLeft += skipBarWidth;
             skipBarWidth = Math.abs(skipBarWidth);

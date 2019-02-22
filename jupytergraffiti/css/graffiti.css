@@ -263,7 +263,8 @@
 #graffiti-skips-display-bar {
   display:none;
   position:absolute;
-  width:100%;
+  width:74px;
+  left:7px;
   top:-7px;
   height:20px;
   background:#5e5;
