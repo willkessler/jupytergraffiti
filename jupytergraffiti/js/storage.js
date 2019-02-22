@@ -263,8 +263,6 @@ define([
           recordingKey: recordingCellInfo.recordingKey,
           activeTakeId: recordingCellInfo.recordingRecord.activeTakeId
         };
-        state.storeToMovieCache('history', keys, jsonHistory);
-        state.storeToMovieCache('audio', keys, encodedAudio);
         storage.writeOutMovieData(
           keys,
           jsonHistory, 
