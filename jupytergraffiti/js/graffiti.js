@@ -246,7 +246,7 @@ define([
           authorId: state.getAuthorId(),
           authorType: state.getAuthorType(),
           activeTakeId: undefined, // this will be replaced with an id for the first movie recording made
-          takes: [],
+          takes: {},
           hasMovie: true, // this is set to true but the non-existent will be ignored because this will run a terminal command
         }, tooltipCommands);
         state.setSingleManifestRecording(cellId, recordingKey, recordingRecord);
@@ -1327,10 +1327,11 @@ define([
         if ((activeTakeId === undefined) || (recording.takes === undefined)) {
           return false;
         }
+        console.log('updateTakesPanel, recordingCellId, recordingKey, recording', recordingCellId, recordingKey, recording);
         //console.log('we got these takes:', recording.takes);
         let renderedTakes = '';
         const sortedRecs = _.sortBy($.map(recording.takes, (val,key) => { return $.extend(true, {}, val, { key: key }) }), 'createDate')
-        //console.log('sorted recs are:', sortedRecs);
+        //console.log('sorted recs are:', sortedRecs, 'from takes', recording.takes);
         let recIndex, recIndexZerobased, createDateFormatted, renderedDate, rec, takeClass;
         for (recIndex = sortedRecs.length; recIndex > 0; --recIndex) {
           recIndexZerobased = recIndex - 1;
@@ -1498,7 +1499,8 @@ define([
                 //console.log('selectedTokens:', selectedTokens);
                 state.clearPlayableMovie('cursorActivity');
                 if (selectedTokens.hasMovie) {
-                  const recordingCellId = selectedTokens.recordingCellId;
+                  // Give priority to the tag cellId, not the id of the cell where the graffiti is found currently, when tracking down the recording.
+                  const recordingCellId = utils.extractRecordingCellId(selectedTokens);
                   const recordingKey = selectedTokens.recordingKey;
                   state.setPlayableMovie('cursorActivity', recordingCellId, recordingKey);
                   graffiti.recordingAPIKey = utils.composeGraffitiId(recordingCellId, recordingKey);
@@ -1518,18 +1520,18 @@ define([
                   // This "play" link is not reliable because its info is only updated by mousing over tooltips, yet you may be editing
                   // a graffiti that you did not show the tooltip on, making it play the wrong movie. Therefore we instruct users to use the tooltip to play the movie.
                   /*
-                  graffiti.setNotifier('<div>You can <span class="graffiti-notifier-link" id="graffiti-idle-play-link">play</span> this movie any time.</div>',
-                                       [
-                                         {
-                                           ids: ['graffiti-idle-play-link'],
-                                           event: 'click',
-                                           fn: (e) => {
-                                             state.setPlayableMovie('cursorActivity', recordingCellId, recordingKey);
-                                             graffiti.loadAndPlayMovie('cursorActivity');
-                                           }
-                                         },
-                                       ]);
-                  */
+                     graffiti.setNotifier('<div>You can <span class="graffiti-notifier-link" id="graffiti-idle-play-link">play</span> this movie any time.</div>',
+                     [
+                     {
+                     ids: ['graffiti-idle-play-link'],
+                     event: 'click',
+                     fn: (e) => {
+                     state.setPlayableMovie('cursorActivity', recordingCellId, recordingKey);
+                     graffiti.loadAndPlayMovie('cursorActivity');
+                     }
+                     },
+                     ]);
+                   */
                 }
               }
             }
@@ -1725,13 +1727,13 @@ define([
         });
         audio.setAudioStorageCallback(storage.storeMovie);
         graffiti.addCMEvents();
+        graffiti.refreshGraffitiTooltipsDebounced = _.debounce(graffiti.refreshGraffitiTooltips, 100, false);
         setTimeout(() => { 
           graffiti.setupBackgroundEvents();
+          graffiti.refreshAllGraffitiHighlights();
+          graffiti.refreshGraffitiTooltipsDebounced();
         }, 500); // this timeout avoids too-early rendering of hidden recorder controls
 
-        graffiti.refreshGraffitiTooltipsDebounced = _.debounce(graffiti.refreshGraffitiTooltips, 100, false);
-        graffiti.refreshAllGraffitiHighlights();
-        graffiti.refreshGraffitiTooltipsDebounced();
         graffiti.setupControlPanels();
         graffiti.updateControlPanels();
         graffiti.setupDrawingScreen();
@@ -3233,9 +3235,16 @@ define([
         const highlightElemMaxDimensionSquared = highlightElemMaxDimension * highlightElemMaxDimension;
         const idMatch = highlightElem.attr('class').match(/graffiti-(id_.[^\-]+)-(id_[^\s]+)/);
         if (idMatch !== null) {
+          // This is the id of the cell the graffiti was recorded in. the graffiti may have been moved to another cell though, so we need to check
+          // if it's mapped to what the reality of the graffit's current location is.
           const cellId = idMatch[1];
           const recordingKey = idMatch[2];
-          const hoverCell = utils.findCellByCellId(cellId);
+          const viewInfo = state.getViewInfo();
+          if (viewInfo === undefined) {
+            debugger;
+          }
+          const hoverCellId = viewInfo.cellId;
+          const hoverCell = utils.findCellByCellId(hoverCellId);
           const hoverCellElement = hoverCell.element[0];
           const hoverCellElementPosition = $(hoverCellElement).position();
           const hoverCellType = hoverCell.cell_type;
@@ -3249,7 +3258,7 @@ define([
           const activeTakeId = recording.activeTakeId;
           //console.log('refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
           if (recording.hasMovie) {
-            //console.log('Graffiti: refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
+            console.log('Graffiti: refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
             state.setPlayableMovie('tip', cellId, recordingKey);
           }                
           state.setHidePlayerAfterPlayback(false); // default for any recording is not to hide player
@@ -3706,13 +3715,14 @@ define([
 
       storeRecordingInfoInCell: (isOldGraffiti) => {
         let recordingRecord, newRecording, recordingCell, recordingCellId, recordingKey;
+        const selectedTokens = graffiti.selectedTokens;        
         if (isOldGraffiti === undefined) {
-          isOldGraffiti = graffiti.selectedTokens.isIntersecting;
+          isOldGraffiti = selectedTokens.isIntersecting;
         }
         if (isOldGraffiti) { 
           // Prepare to update existing recording
+          recordingCellId = utils.extractRecordingCellId(selectedTokens);
           recordingCell = graffiti.selectedTokens.recordingCell;
-          recordingCellId = graffiti.selectedTokens.recordingCellId;
           recordingKey = graffiti.selectedTokens.recordingKey;
           recordingRecord = state.getManifestSingleRecording(recordingCellId, recordingKey);
           graffiti.previousActiveTakeId = recordingRecord.activeTakeId;
@@ -5526,6 +5536,7 @@ define([
         const playableMovie = state.getPlayableMovie('tip');
         if (playableMovie === undefined) {
           console.log('Graffiti: no playable movie known.');
+          graffiti.changeActivity('idle');          
           return;
         }
         //console.log('playableMovie', playableMovie);
@@ -5598,7 +5609,7 @@ define([
 
         state.setNarratorInfo('name', recording.narratorName);
         state.setNarratorInfo('picture', recording.narratorPicture);
-        if (playableMovie.cellType === 'markdown') {
+        if ((playableMovie.cell !== undefined) && (playableMovie.cellType === 'markdown')) {
           playableMovie.cell.render(); // always render a markdown cell first before playing a movie on a graffiti inside it
         }
         state.updateUsageStats({

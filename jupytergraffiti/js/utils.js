@@ -210,6 +210,13 @@ define([
       return undefined;
     },
     
+    extractRecordingCellId: (selectedTokens) => {
+      return ((selectedTokens.tagCellId !== undefined) && 
+              (selectedTokens.tagCellId !== selectedTokens.recordingCellId) ? 
+              selectedTokens.tagCellId : 
+              selectedTokens.recordingCellId);
+    },
+
     getCellRects: (cell) => {
       const cellElement = $(cell.element[0]);
       const cellRect = cellElement[0].getBoundingClientRect();
@@ -400,6 +407,9 @@ define([
               noTokensPresent: false,
               recordingCell: recordingCell,
               recordingCellId: recordingCellId,
+              // If the graffiti was moved around, then the cell id in its tag won't match the cell where it's found. 
+              // We store this here to detect this situation so we can track down the graffiti recording that used to be in a different cell.
+              tagCellId: tag.recordingCellId, 
               recordingKey: tag.recordingKey, 
               hasMovie: hasMovie,
               allTokensString: tag.innerText,

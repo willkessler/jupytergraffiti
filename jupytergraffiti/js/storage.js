@@ -211,6 +211,7 @@ define([
         // Store the latest take information in the current take for this recording.
         recording.activeTakeId = recordingCellInfo.recordingRecord.activeTakeId;
         if (!recording.hasOwnProperty('takes')) {
+          console.log('resetting takes');
           recording.takes = {};
         }
         recording.takes[recording.activeTakeId] = { 
@@ -219,7 +220,7 @@ define([
         };
       }
       state.setMovieRecordingStarted(false);
-      console.log('Graffiti: completeMovieStorage is saving manifest, current kernel', Jupyter.notebook.kernel.name);
+      console.log('Graffiti: completeMovieStorage is saving manifest for recording:', recording, ', current kernel', Jupyter.notebook.kernel.name);
       storage.storeManifest();
       utils.saveNotebook(() => {
         storage.executeMovieCompleteCallback();
@@ -308,7 +309,7 @@ define([
           //console.log('uncompressed manifest:', uncompressedManifestString);
           const manifestDataParsed = JSON.parse(uncompressedManifestString);
           state.setManifest(manifestDataParsed);
-          console.log('Graffiti Manifest:', manifestDataParsed);
+          console.log('Graffiti Manifest:', manifestDataParsed['id_iermcbu']);
         }
       });
     },
@@ -324,7 +325,7 @@ define([
       const manifestInfo = storage.constructManifestPath();
       const base64CompressedManifest = LZString.compressToBase64(JSON.stringify(manifest));
       const manifestFullFilePath = manifestInfo.path + manifestInfo.file;
-      console.log('Graffiti: Saving manifest to:', manifestFullFilePath);
+      console.log('Graffiti: Saving manifest to:', manifestFullFilePath, manifest);
       
       storage.runShellCommand('mkdir -p ' + manifestInfo.path);
       storage.writeTextToFile({ path: manifestFullFilePath, 

@@ -1080,7 +1080,6 @@ define([
     },
 
     storeViewInfo: (viewInfo) => {
-      // console.log('storeViewInfo, hover cellId:', viewInfo.cellId);
       if (viewInfo.cellId !== undefined) { // may not be set if cursor is btwn cells
         state.viewInfo = $.extend({}, viewInfo);
       }
@@ -1117,20 +1116,19 @@ define([
     },
 
     setPlayableMovie: (kind, cellId, recordingKey) => {
-      //console.log('setPlayableMovie, cellId, recordingKey:', cellId,recordingKey);
       const cell = utils.findCellByCellId(cellId);
-      if (cell !== undefined) {
-        const recording = state.getManifestSingleRecording(cellId, recordingKey);
-        const activeTakeId = recording.activeTakeId;
-        state.playableMovies[kind] = { recordingCellId: cellId, recordingKey: recordingKey, activeTakeId: activeTakeId, cell: cell, cellType: cell.cell_type, };
-        state.setStickerImageCandidateUrl(recording.stickerImageUrl);
-        return recording;
-      }
-      return undefined;
+      const cellType = (cell === undefined ? undefined : cell.cell_type);
+      const recording = state.getManifestSingleRecording(cellId, recordingKey);
+      const activeTakeId = recording.activeTakeId;
+      state.playableMovies[kind] = { recordingCellId: cellId, recordingKey: recordingKey, activeTakeId: activeTakeId, cell: cell, cellType: cellType };
+      state.setStickerImageCandidateUrl(recording.stickerImageUrl);
+
+      //console.trace('setPlayableMovie, kind:', kind, 'cellId:', cellId, 'recordingKey:',recordingKey, 'playableMovies:', state.playableMovies);
+      return recording;
     },
 
     clearPlayableMovie: (kind) => {
-      //console.log('Graffiti: clearing playable movie');
+      //console.trace('Graffiti: clearing playable movie of kind', kind);
       state.playableMovies[kind] = undefined;
     },
 
