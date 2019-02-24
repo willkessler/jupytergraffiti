@@ -142,7 +142,7 @@ define([
           source.connect(audioCtx.destination);
           source.start(0);
           console.log('started audio from blob');
-        }, function(e){ console.log("Error with decoding audio data" + e); debugger; });
+        }, function(e){ console.log("Error with decoding audio data" + e); });
       });
       reader.readAsArrayBuffer(binaryAudioBlob);
       */
