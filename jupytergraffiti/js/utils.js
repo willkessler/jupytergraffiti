@@ -344,13 +344,17 @@ define([
       }
     },
 
-// Legacy
-/*
-    collectTokenStrings: (allTokens, tokens) => {
-      const subTokens = allTokens.slice(tokens.firstTokenOffset, tokens.firstTokenOffset + tokens.extraTokens + 1);
-      return subTokens.reduce( (tokensString, token) => { tokensString + token.string } )
+    // Legacy
+    /*
+       collectTokenStrings: (allTokens, tokens) => {
+       const subTokens = allTokens.slice(tokens.firstTokenOffset, tokens.firstTokenOffset + tokens.extraTokens + 1);
+       return subTokens.reduce( (tokensString, token) => { tokensString + token.string } )
+       },
+     */
+
+    createGraffitiTagRegex: () => {
+      return RegExp('<span class="graffiti-highlight (graffiti-[^"]+)">(.*?)</span>','gm');
     },
-*/
 
     // Find out whether the current selection intersections with any graffiti token ranges, or which tokens are in the selection if not.
     findSelectionTokens: (recordingCell,  tokenRanges, state) => {
@@ -373,7 +377,7 @@ define([
         // If in a markdown cell, the selection "tokens" are simply the selection, but only if the selection is 2 characters or more. We do not try to use
         // code mirror's tokenizer tools within markdown cells as there's other stuff like html in a markdown cell that could be confusing to it.
         const contents = recordingCell.get_text();
-        let tagsRe = RegExp('<span class="graffiti-highlight (graffiti-[^"]+)">(.*?)</span>','gm')
+        let tagsRe = utils.createGraffitiTagRegex();
         let tags = [], match, tag;
         let idMatch;
         while ((match = tagsRe.exec(contents)) !== null) { 

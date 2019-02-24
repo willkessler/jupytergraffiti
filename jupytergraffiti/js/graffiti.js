@@ -263,6 +263,8 @@ define([
       // authors who don't know much html create buttons more easily.
       createGraffitiButtonAboveSelectedCell: () => {
         const selectedCellIndex = Jupyter.notebook.get_selected_index();
+        const selectedCell = Jupyter.notebook.get_selected_cell();
+
         const buttonCell = Jupyter.notebook.insert_cell_above('markdown', selectedCellIndex);
         const buttonCellId = utils.getMetadataCellId(buttonCell.metadata);
         const buttonCellIndex = utils.findCellIndexByCellId(buttonCellId);
@@ -288,13 +290,35 @@ define([
         ];
         const rawButtonMarkdown = '<button>Graffiti Sample Button (edit me)</button>';
         const graffitizedData = graffiti.createGraffitizedMarkdown(buttonCell, rawButtonMarkdown, tooltipCommands, tooltipDirectives);
+
         buttonCell.set_text(graffitizedData.markdown);
         buttonCell.render();
+
+        let finalCell = buttonCell;
+        if (selectedCell.cell_type === 'markdown') {
+          const selectedCellContents = selectedCell.get_text();
+          const tagsRe = utils.createGraffitiTagRegex();
+          match = tagsRe.exec(selectedCellContents);
+          if (match !== null) {
+            // For author's convenience,  move this button to the currently selected cell
+            // (because it had one or more buttons already), 
+            // and delete the cell we added to create the button.
+            const newContents = selectedCellContents + "\n" + graffitizedData.markdown;
+            window.fff = selectedCell;
+            selectedCell.set_text(newContents);
+            Jupyter.notebook.delete_cell(buttonCellIndex);
+            setTimeout(() => {
+              selectedCell.unrender();
+              selectedCell.render();
+            },10); // needing to do this, is really weird. if you don't call this on a timeout, jupyter does not rerender the cell.
+            finalCell = selectedCell;
+          }
+        }
 
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTooltips();
 
-        return buttonCell;
+        return finalCell;
       },
 
       createTerminalSuiteAboveSelectedCell: () => {
@@ -3241,7 +3265,8 @@ define([
           const recordingKey = idMatch[2];
           const viewInfo = state.getViewInfo();
           if (viewInfo === undefined) {
-            debugger;
+            console.log('Graffiti:error, viewInfo not defined in refreshGraffitiTooltipsCore!');
+            return;
           }
           const hoverCellId = viewInfo.cellId;
           const hoverCell = utils.findCellByCellId(hoverCellId);
@@ -3258,7 +3283,7 @@ define([
           const activeTakeId = recording.activeTakeId;
           //console.log('refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
           if (recording.hasMovie) {
-            console.log('Graffiti: refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
+            //console.log('Graffiti: refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
             state.setPlayableMovie('tip', cellId, recordingKey);
           }                
           state.setHidePlayerAfterPlayback(false); // default for any recording is not to hide player
@@ -3839,8 +3864,6 @@ define([
         }
 
         graffitiEditCell.set_text(editableText);
-        //console.log('editor about to unrender');
-        //graffitiEditCell.unrender();
 
         if (isCodeCell || isOldGraffiti) { 
           // For code cell graffiti or non-new markdown graffiti, let us edit the tip contents by scrolling to the edit cell
