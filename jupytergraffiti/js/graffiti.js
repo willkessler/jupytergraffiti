@@ -215,6 +215,11 @@ define([
         graffiti.updateControlPanels();
       },
       
+      stopRecordingSkip: () => {
+        state.resetSkipStatus();
+        $('#graffiti-btn-end-recording').html(localizer.getString('RECORDING_HINT_1'));
+      },
+
       toggleRecordingSkip: () => {
         if (state.getActivity() !== 'recording') {
           state.resetSkipStatus();
@@ -222,9 +227,9 @@ define([
         }
         state.toggleRecordingSkip();
         if (state.isSkipping()) {
-          graffiti.setJupyterMenuHint(localizer.getString('RECORDING_HINT_4'), 'graffiti-jupyter-menu-alert');
+          $('#graffiti-btn-end-recording').html(localizer.getString('RECORDING_HINT_4'));
         } else {
-          graffiti.clearJupyterMenuHint();
+          $('#graffiti-btn-end-recording').html(localizer.getString('RECORDING_HINT_1'));
         }
       },
 
@@ -1557,6 +1562,11 @@ define([
                 }
               }
             }
+            graffiti.showControlPanels(visibleControlPanels);
+            break;
+          case 'playbackPending':
+            graffiti.setNotifier('<div>' + localizer.getString('LOADING') + '</div>');
+            visibleControlPanels = ['graffiti-notifier'];
             graffiti.showControlPanels(visibleControlPanels);
             break;
           case 'playing':
@@ -4110,8 +4120,7 @@ define([
 
       editSkips: () => {
         state.setEditingSkips(true);
-        state.setReplacingSkips(true);
-        graffiti.loadAndPlayMovie('tip');
+        graffiti.loadAndPlayMovie('cursorActivity');
       },
 
       // Confirm clearing any existing skips.
@@ -4533,6 +4542,7 @@ define([
         graffiti.deactivateAllPens();
         graffiti.removeCellsAddedByPlaybackOrRecording();
         graffiti.hideLabelInputBoxes();
+        graffiti.stopRecordingSkip();
         state.restoreCellStates('selections');
         state.restoreLineNumbersStates();
         graffiti.sitePanel.animate({ scrollTop: graffiti.preRecordingScrollTop }, 750);
@@ -4585,7 +4595,6 @@ define([
 
             console.log('Graffiti: Now ending movie recording');
             state.blockRecording(); // this is here because a race condition can happen right at the end of recording
-            state.resetSkipStatus();
             graffiti.setNotifier(localizer.getString('PLEASE_WAIT_STORING_MOVIE'));
             graffiti.showControlPanels(['graffiti-notifier']);
             graffiti.showSavingScrim();
@@ -4596,6 +4605,7 @@ define([
             if (opts !== undefined && opts.endByKeyPress) {
               state.addCancelTimeSkipRecord();
             }
+            state.resetSkipStatus();
             console.log('Graffiti: Stopped recording.');
           } else {
 
@@ -4645,10 +4655,14 @@ define([
             // Flash a red recording bullet while recording is ongoing, every second. 
             state.startAnimationInterval('recordingIndicator',
                                          () => {
-                                           if (state.getTimeRecordedSoFar() % 2000 > 1000) {
-                                             $('#graffiti-recording-flash-icon').css({background:'rgb(245,245,245)'});
-                                           } else {
+                                           if (state.isSkipping()) {
                                              $('#graffiti-recording-flash-icon').css({background:'rgb(255,0,0)'});
+                                           } else {
+                                             if (state.getTimeRecordedSoFar() % 2000 > 1000) {
+                                               $('#graffiti-recording-flash-icon').css({background:'rgb(245,245,245)'});
+                                             } else {
+                                               $('#graffiti-recording-flash-icon').css({background:'rgb(255,0,0)'});
+                                             }
                                            }
                                          },
                                          graffiti.recordingIntervalMs);
@@ -5204,15 +5218,17 @@ define([
 
       // update the timer display for play or recording
       updateTimeDisplay: (playedSoFar) => {
+        let totalTimeDisplay = localizer.getString('IS_SKIPPING');
         const activity = state.getActivity();
-        const playTimeDisplay = utils.formatTime(playedSoFar, { includeMillis: false });
-        const recordingTimeDisplay = utils.formatTime(playedSoFar, { includeMillis: true });
-        const durationDisplay = utils.formatTime(state.getHistoryDuration(), { includeMillis: false });
-        let totalTimeDisplay;
-        if ((activity === 'recording') || state.getEditingSkips()) {
-          totalTimeDisplay = recordingTimeDisplay;
-        } else {
-          totalTimeDisplay = playTimeDisplay + '/' + durationDisplay;
+        if (!state.isSkipping()) {
+          const playTimeDisplay = utils.formatTime(playedSoFar, { includeMillis: false });
+          const recordingTimeDisplay = utils.formatTime(playedSoFar, { includeMillis: true });
+          const durationDisplay = utils.formatTime(state.getHistoryDuration(), { includeMillis: false });
+          if ((activity === 'recording') || state.getEditingSkips()) {
+            totalTimeDisplay = recordingTimeDisplay;
+          } else {
+            totalTimeDisplay = playTimeDisplay + '/' + durationDisplay;
+          }
         }
         const recorderTimeElem = (activity === 'recording' ? $('#graffiti-time-display-recording') : $('#graffiti-time-display-playback'));
         recorderTimeElem.text(totalTimeDisplay);
@@ -5371,6 +5387,7 @@ define([
           }
         });
         state.resetPlayState();
+        state.setEditingSkips(false);
         graffiti.changeActivity('idle');
         if (state.getDontRestoreCellContentsAfterPlayback()) {
           console.log('Graffiti: not restoring cell contents.');

@@ -65,7 +65,6 @@ define([
       state.userId = undefined;
       state.speakingStatus = false; // true when the graffiti creator is currently speaking (not silent)
       state.editingSkips = false;
-      state.replacingSkips = false;
       state.currentSkipRecord = 0;
       state.appliedSkipRecord = undefined;
       state.cellStates = {
@@ -302,12 +301,7 @@ define([
     },
 
     isSkipping: () => {
-      return state.skipStatus === state.SKIP_STATUS_ABSOLUTE;
-    },
-
-    setSkipStatus: (skipStatus) => {
-      state.skipStatus = skipStatus;
-      state.storeHistoryRecord('skip'); // record skip status, if we are currently in a skip (time compression)
+      return state.skipStatus !== state.SKIP_STATUS_NONE;
     },
 
     resetSkipStatus: () => {
@@ -321,14 +315,6 @@ define([
 
     setEditingSkips: (val) => {
       state.editingSkips = val;
-    },
-
-    getReplacingSkips: () => {
-      return state.replacingSkips;
-    },
-
-    setReplacingSkips: (val) => {
-      state.replacingSkips = val;
     },
 
     toggleRecordingSkip: () => {
