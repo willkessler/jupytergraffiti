@@ -11,7 +11,6 @@ define([
         history: {},
         audio: {}
       };
-      state.utils = utils;
       state.accessLevel = 'view'; // one of 'create' or 'view'. If 'create' then we can create new graffitis, otherwise we can only view them
       state.authorId = undefined; // set when we activivateGraffiti or load a manifest
       state.authorType = 'creator';  // currently hardwired to be creator (teacher).
@@ -68,6 +67,7 @@ define([
       state.editingSkips = false;
       state.replacingSkips = false;
       state.currentSkipRecord = 0;
+      state.appliedSkipRecord = undefined;
       state.cellStates = {
         contents: {},
         changedCells: {},
@@ -339,6 +339,7 @@ define([
         state.skipStatus = state.SKIP_STATUS_NONE;
       }
       console.log('after toggleRecordingSkip, status', state.skipStatus);
+      state.storeSkipRecord();
     },
 
     getCurrentSkipRecord: () => {
@@ -348,33 +349,42 @@ define([
     // If the current time is in the current (or next) skip record, return the skip record.
     timeInSkipRecordRange: (t) => {
       if (state.currentSkipRecord !== undefined) {
-        const record = state.history.skips[state.currentSkipRecord];
-        if ((record.startTime <= t) && (t < record.endtime)) {
+        const record = state.history.skip[state.currentSkipRecord];
+        //console.log('timeInSkipRecordRange, checking time t', t, 'against record', record);
+        if ((record.startTime <= t) && (t < record.endTime) && (state.appliedSkipRecord !== state.currentSkipRecord)) {
           return record;
         }
       }
       return undefined;
     },
 
+    setAppliedSkipRecord: () => {
+      state.appliedSkipRecord = state.currentSkipRecord;
+    },
+    
+    clearAppliedSkipRecord: () => {
+      state.appliedSkipRecord = undefined;
+    },
+
     // Set the current or next skip record by scanning from 0 to the time given, looking
     // for a skip record that either straddles the time given, or is greater than the time
     // given (next skip record).
-    setCurrentSkipRecord: (t) => {
-      if (t === undefined) {
-        t = state.getTimePlayedSoFar();
-      }
+    updateCurrentSkipRecord: () => {
+      const t = state.getTimePlayedSoFar();
       let record;
       state.currentSkipRecord = undefined;
-      for (let i = 0; i < state.history.skips; ++i) {
-        record = state.history.skips[i];
-        if ((record.startTime <= t) && (t < record.endTime)) {
-          state.currentSkipRecord = i;
-          break;
-        } else if (record.startTime > t) {
+      for (let i = 0; i < state.history.skip.length; ++i) {
+        record = state.history.skip[i];
+        if (((record.startTime <= t) && (t < record.endTime)) ||
+            (record.startTime > t)) {
           state.currentSkipRecord = i;
           break;
         }
       }
+    },
+
+    createSkipRecord: () => {
+      return { status: state.skipStatus };
     },
 
     // Create an absolute skip record for the very end of the recording for the time it was being cancelled (ctrl-key held down).
@@ -382,8 +392,42 @@ define([
       state.skipStatus = state.SKIP_STATUS_ABSOLUTE;
       const record = state.createSkipRecord();
       record.startTime = state.history.duration - state.END_RECORDING_KEYDOWN_TIMEOUT;
-      record.endTime = state.history.duration;
-      state.history['skip'].unshift(record);
+      record.endTime = state.history.duration - 1;
+      state.history['skip'].push(record);
+
+      console.log('after addCancelTimeSkipRecord, skip history:', state.history['skip']);
+    },
+
+    getSkipsRecords: () => {
+      return state.history['skip'];
+    },
+
+    clearSkipsRecords: () => {
+      state.history['skip'] = [];
+    },
+
+    storeSkipRecord: () => {
+      const newSkipStatus = state.getSkipStatus();
+      const numRecords = state.history['skip'].length;
+      if (numRecords > 0) {
+        if (newSkipStatus === state.SKIP_STATUS_NONE) {
+          // Close off last record created with an end time, if it exists.
+          const lastRecord = state.history['skip'][numRecords - 1];
+          if (!lastRecord.hasOwnProperty('endTime')) {
+            lastRecord.endTime = utils.getNow();
+            console.log('closed off previous record:', lastRecord);
+            if (lastRecord.endTime - lastRecord.startTime < 10) {
+              // Delete this record as it has insignificant time in it, ie user just flipped the button on and off.
+              state.history['skip'].pop();
+            } 
+          }
+        }
+      }
+      if (newSkipStatus !== state.SKIP_STATUS_NONE) {
+        // Only add a new skip record when beginning a skip period.
+        state.storeHistoryRecord('skip');
+      }
+      console.log('after storeSkipRecord, skip history:', state.history['skip']);
     },
 
     setExecutionSourceChoiceId: (choiceId) => {
@@ -1454,10 +1498,6 @@ define([
     createSpeakingRecord: () => {
       return { speaking: state.speakingStatus };
     },
-
-    createSkipRecord: () => {
-      return { status: state.skipStatus };
-    },
     
     storeHistoryRecord: (type, time) => {
       if (state.activity !== 'recording' || state.recordingBlocked)
@@ -1509,114 +1549,12 @@ define([
           record = state.createSkipRecord();
           break;
       }
-      record.startTime = (time !== undefined ? time : state.utils.getNow());
+      record.startTime = (time !== undefined ? time : utils.getNow());
       state.history[type].push(record);
     },
 
-    getSkipsRecords: () => {
-      return state.history['skip'];
-    },
-
-    clearSkipsRecords: () => {
-      state.history['skip'] = [];
-    },
-
-    // This needs to be vastly simplified since we do not allow skip editing any more, only changing their speeds 
-    // once they're set during recording.
-
-    storeSkipRecord: (newSkipStatus) => {
-      const timeSoFar = state.getTimePlayedSoFar();
-      const numRecords = state.history['skip'].length;
-      if (numRecords > 0) {
-        // Close off last record created with an end time, if it exists.
-        const lastRecord = state.history['skip'][numRecords - 1];
-        if (!lastRecord.hasOwnProperty('endTime')) {
-          lastRecord.endTime = parseInt(Math.max(0,timeSoFar - 1));
-          if (lastRecord.endTime < lastRecord.startTime) {
-            // Swap reversed times to allow user to specify skips back-to-front.
-            const tmp = lastRecord.startTime;
-            lastRecord.startTime = lastRecord.endTime;
-            lastRecord.endTime = tmp;
-          }
-          if (lastRecord.endTime - lastRecord.startTime < 10) {
-            // Delete this record as it has insignificant time in it, ie user just flipped the button on and off.
-            state.history['skip'].pop();
-          } else {
-            // Clean up any overlaps in the previous records
-            if (numRecords > 1) {
-              let i = 0, rec, newRecords = [], newRecordsSorted, recCopy;
-              while (i < numRecords - 1) {
-                rec = state.history['skip'][i];
-                recCopy = undefined;
-                if ((rec.startTime < lastRecord.startTime) &&
-                    (rec.endTime > lastRecord.endTime)) {
-                  // if new record is totally inside an existing record, split old record in two.
-                  const rightRec = { status:rec.status,
-                                     startTime:lastRecord.endTime,
-                                     endTime: rec.endTime };
-                  newRecords.push(rightRec);
-                  recCopy = { status:rec.status,
-                              startTime: rec.startTime,
-                              endTime: lastRecord.startTime };
-                } else if ((rec.endTime < lastRecord.startTime) ||
-                           (rec.startTime > lastRecord.endTime)) {
-                  recCopy = $.extend({}, true, rec); // rec is before or after current record
-                } else if ((rec.startTime < lastRecord.startTime) &&
-                           (rec.endTime <= lastRecord.endTime)) {
-                  // this record overlaps the new record at its head so adjust old rec's tail
-                  recCopy = { status: rec.status, 
-                              startTime: rec.startTime,
-                              endtime: lastRecord.startTime };
-                } else if ((rec.startTime >= lastRecord.startTime) &&
-                           (rec.endTime > lastRecord.endTime)) {
-                  // this record overlaps the new record at its tail, so adjust old rec's head
-                  recCopy = { status: rec.status,
-                              startTime: lastRecord.endTime,
-                              endtime: rec.endTime };
-                } // else, completely drop the old record (since it must be inside the new record).
-                if (recCopy !== undefined) {
-                  newRecords.push(recCopy);
-                }
-                i++;
-              }
-              newRecords.push($.extend({}, true, lastRecord));
-              newRecordsSorted = _.sortBy(newRecords, 'startTime');
-              
-              console.log('previous history:', state.history['skip'], 'new history:', newRecords, newRecordsSorted);
-              state.history['skip'] = newRecordsSorted;
-            }
-          } 
-        }
-      }
-      const previousSkipStatus = state.getSkipStatus();
-      state.setSkipStatus(newSkipStatus);
-      if (newSkipStatus !== previousSkipStatus) {
-        // Only add a new skip record for non-zero and new skip statuses.
-        const record = state.createSkipRecord();
-        record.startTime = timeSoFar;
-        state.history['skip'].push(record);
-      }
-      //console.log('storeSkipRecord, skip history:', state.history['skip']);
-    },
-
-    finalizeSkipRecords: () => {
-      // First, remove any records containing SKIP_STATUS_NONE.
-      const numRecords = state.history['skip'].length;
-      if (numRecords > 0) {
-        let newRecords = [], rec;
-        for (let i = 0; i < numRecords; ++i) {
-          rec = state.history['skip'][i];
-          if (rec.status !== state.SKIP_STATUS_NONE) {
-            newRecords.push({status: rec.status, startTime: rec.startTime, endTime: rec.endTime});
-          }
-        }
-        state.history['skip'] = newRecords;
-      }
-      state.dumpHistory();
-    },
-
     initHistory: (initialValues) => {
-      const now = state.utils.getNow();
+      const now = utils.getNow();
       state.history = {
         storageCellId: initialValues.storageCellId,
         recordingStartTime: now,
@@ -1686,7 +1624,7 @@ define([
     },
 
     setHistoryDuration: () => {
-      state.history.duration = state.utils.getNow() - state.history.recordingStartTime;
+      state.history.duration = utils.getNow() - state.history.recordingStartTime;
     },
 
     adjustTimeRecords: (type) => {
@@ -1737,15 +1675,18 @@ define([
     // When recording finishes, normalize all time frames
     normalizeTimeframes: () => {
       const recordingStartTime = state.history.recordingStartTime;
-      const now = state.utils.getNow();
+      const now = utils.getNow();
       for (let arrName of state.frameArrays) {
         let historyArray = state.history[arrName];
         let max = historyArray.length - 1;
         for (let i = 0; i < historyArray.length; ++i) {
-          if ((historyArray.length === 1) || (i === max)) {
-            historyArray[i].endTime = now;
-          } else {
-            historyArray[i].endTime = historyArray[i+1].startTime;
+          // Only set endTime when not set by some other process (e.g. skipRecs set this on their own).
+          if (historyArray[i].endTime === undefined) {
+            if ((historyArray.length === 1) || (i === max)) { 
+              historyArray[i].endTime = now;
+            } else {
+              historyArray[i].endTime = historyArray[i+1].startTime;
+            }
           }
           historyArray[i].startTime = historyArray[i].startTime - recordingStartTime;
           historyArray[i].endTime = historyArray[i].endTime - recordingStartTime;
@@ -1875,7 +1816,7 @@ define([
 
                    
     getTimeRecordedSoFar: () => {
-      return state.utils.getNow() - state.history.recordingStartTime;
+      return utils.getNow() - state.history.recordingStartTime;
     },
 
     // The time played so far is the sum of all the play times at various speeds used so far during this play session, including the (growing) time

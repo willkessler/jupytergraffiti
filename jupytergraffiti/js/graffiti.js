@@ -226,7 +226,6 @@ define([
         } else {
           graffiti.clearJupyterMenuHint();
         }
-        state.storeHistoryRecord('skip');
       },
 
       // This function is sort of a hack. It creates a new Graffiti to be placed in this cell, wrapping the markdown in it.
@@ -4518,7 +4517,6 @@ define([
         state.storeTerminalsContentsInHistory();
         state.setSpeakingStatus(false); // if we were still speaking, record a history record that will terminate that state during playback.
         state.finalizeHistory();
-        state.finalizeSkipRecords();
         if (useCallback) {
           state.dumpHistory();
         }
@@ -5302,6 +5300,35 @@ define([
         }
       },
 
+      // If we are inside a skip record, apply its speed or absolute skip
+      applyCurrentSkipRecord: (t) => {
+        const currentSkipRecord = state.timeInSkipRecordRange(t);
+        let didSkip = false;
+        if (currentSkipRecord !== undefined) {
+          state.setAppliedSkipRecord();
+          const duration = (currentSkipRecord.endTime - currentSkipRecord.startTime + 1);
+          const durationMillis = duration / 1000;
+          switch (currentSkipRecord.status) {
+            case state.SKIP_STATUS_2X:
+              break;
+            case state.SKIP_STATUS_3X:
+              break;
+            case state.SKIP_STATUS_4X:
+              break;
+            case state.SKIP_STATUS_ABSOLUTE:
+              graffiti.jumpPlayback(1, durationMillis);
+              state.updateCurrentSkipRecord();
+              didSkip = true;
+              break;
+            case state.SKIP_STATUS_COMPRESS:
+              break;
+          }
+        } else {
+          state.clearAppliedSkipRecord();
+        }
+        return didSkip;
+      },
+
       pausePlaybackNoVisualUpdates: () => {
         if (state.getActivity() === 'playing') {
           graffiti.changeActivity('playbackPaused');
@@ -5464,7 +5491,7 @@ define([
 
         state.setPlaybackStartTime(utils.getNow() - state.getTimePlayedSoFar());
         state.setPlayStartTimeToNow();
-        state.setCurrentSkipRecord(state.getTimePlayedSoFar());
+        state.updateCurrentSkipRecord();
 
         if (!state.getMute()) {
           audio.startPlayback(state.getTimePlayedSoFar());
@@ -5473,7 +5500,6 @@ define([
         // Set up main playback loop
         state.startAnimationInterval('playback',        
                                      () => {
-                                       //console.log('Moving playback time ahead.');
                                        const playedSoFar = state.getTimePlayedSoFar();
                                        const endOfPlayableTime = state.getHistoryDuration();
                                        if (playedSoFar >= endOfPlayableTime) {
@@ -5482,10 +5508,12 @@ define([
                                          state.setupForReset();
                                          graffiti.togglePlayback();
                                        } else {
-                                         graffiti.updateSlider(playedSoFar);
-                                         graffiti.updateTimeDisplay(playedSoFar);
-                                         const frameIndexes = state.getHistoryRecordsAtTime(playedSoFar);
-                                         graffiti.updateDisplay(frameIndexes);
+                                         if (!graffiti.applyCurrentSkipRecord(playedSoFar)) {
+                                           graffiti.updateSlider(playedSoFar);
+                                           graffiti.updateTimeDisplay(playedSoFar);
+                                           const frameIndexes = state.getHistoryRecordsAtTime(playedSoFar);
+                                           graffiti.updateDisplay(frameIndexes);
+                                         }
                                          //console.log('play interval, now=', utils.getNow());
                                        }
                                      },
