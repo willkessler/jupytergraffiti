@@ -304,7 +304,6 @@ define([
             // (because it had one or more buttons already), 
             // and delete the cell we added to create the button.
             const newContents = selectedCellContents + "\n" + graffitizedData.markdown;
-            window.fff = selectedCell;
             selectedCell.set_text(newContents);
             Jupyter.notebook.delete_cell(buttonCellIndex);
             setTimeout(() => {
@@ -5465,6 +5464,7 @@ define([
 
         state.setPlaybackStartTime(utils.getNow() - state.getTimePlayedSoFar());
         state.setPlayStartTimeToNow();
+        state.setCurrentSkipRecord(state.getTimePlayedSoFar());
 
         if (!state.getMute()) {
           audio.startPlayback(state.getTimePlayedSoFar());
@@ -5486,7 +5486,6 @@ define([
                                          graffiti.updateTimeDisplay(playedSoFar);
                                          const frameIndexes = state.getHistoryRecordsAtTime(playedSoFar);
                                          graffiti.updateDisplay(frameIndexes);
-                                         state.setCurrentSkipRecord(playedSoFar);
                                          //console.log('play interval, now=', utils.getNow());
                                        }
                                      },
