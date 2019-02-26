@@ -97,6 +97,7 @@ define([
           graffiti.updateSetupButton();
 
           if (Jupyter.notebook.metadata.hasOwnProperty('graffiti')) { // do not try to load the manifest if this notebook has not yet been graffiti-ized.
+            graffiti.hideHiddenCells();
             storage.loadManifest(currentAccessLevel).then(() => {
               graffiti.initInteractivity();
             }).catch((ex) => {
@@ -278,16 +279,19 @@ define([
         const params = { cell: buttonCell, clear: true };
         graffiti.refreshGraffitiHighlights(params);
         graffiti.selectedTokens = utils.findSelectionTokens(buttonCell, graffiti.tokenRanges, state);
+        debugger;
 
         tooltipCommands = {
           autoPlay: 'never',
-          playOnClick: false,
-          hideTooltip: false,
+          playOnClick: true,
+          hideTooltip: true,
           narratorName: undefined,
           narratorPicture: undefined,
           stickerImageUrl: undefined,
         };
         const tooltipDirectives = [
+          '%%play_on_click',
+          '%%hide_tooltip',
           '%%button_name No Movie Here Yet',
           'Edit this markdown cell to customize the Graffiti for this button, and to record a new movie.<br><br>' +
           '_(NB: The default movie that was created with this button is a *placeholder* and it will *not* play.)_',
@@ -1159,29 +1163,42 @@ define([
         
         const lockConfigOn =  $.extend({}, true, defaultIconConfiguration, { color: 'red' });
         const lockConfigOff = $.extend({}, true, defaultIconConfiguration, { color: 'green' });
+        const hiddenCellConfiguration = $.extend({}, true, defaultIconConfiguration, { color: '#aaa', fillOpacity: 1.0 });
+
+        // Build the "extras" panel
 
         graffiti.setupOneControlPanel('graffiti-terminal-builder',
                                       '<div id="graffiti-terminal-builder-header"><div>Extras</div></div>' +
                                       '<div id="graffiti-terminal-builder-body">' +
 
-                                      '  <div id="graffiti-insert-terminal-cell" title="' + localizer.getString('INSERT_GRAFFITI_TERMINAL_ALT_TAG') + '">' +
+                                      '  <div>' + 
+                                      '    <div id="graffiti-insert-terminal-cell" title="' + localizer.getString('INSERT_GRAFFITI_TERMINAL_ALT_TAG') + '">' +
                                       stickerLib.makeTerminal({width:25}) + 
-                                      '  </div>' +
+                                      '    </div>' +
 
-                                      '  <div id="graffiti-insert-btn-cell" title="' + localizer.getString('INSERT_GRAFFITI_BUTTON_CELL_ALT_TAG') + '">' +
+                                      '    <div id="graffiti-insert-btn-cell" title="' + localizer.getString('INSERT_GRAFFITI_BUTTON_CELL_ALT_TAG') + '">' +
                                       stickerLib.makeButton({width:27, height:22, contents:'Run'}) + 
-                                      '  </div>' +
+                                      '    </div>' +
 
-                                      '  <div id="graffiti-insert-terminal-suite" title="' + localizer.getString('INSERT_GRAFFITI_TERMINAL_SUITE_ALT_TAG') + '">' +
-                                      '    <div>' + stickerLib.makeTerminal({width:25}) + '</div> + ' +
-                                      '    <div>' + stickerLib.makeButton({width:27, height:22, contents:'Run'}) + '</div>' +
-                                      '  </div>' +
+                                      '    <div id="graffiti-insert-terminal-suite" title="' + localizer.getString('INSERT_GRAFFITI_TERMINAL_SUITE_ALT_TAG') + '">' +
+                                      '      <div>' + stickerLib.makeTerminal({width:25}) + '</div> + ' +
+                                      '      <div>' + stickerLib.makeButton({width:27, height:22, contents:'Run'}) + '</div>' +
+                                      '    </div>' +
 
-                                      '  <div class="graffiti-stickers-button" id="graffiti-toggle-markdown-lock" title="' + 
+                                      '  </div>' +
+                                      '  <div>' + 
+
+                                      '    <div class="graffiti-stickers-button" id="graffiti-set-hidden-cell-button" title="' + 
+                                      localizer.getString('HIDE_SELECTED_CELL') + '">' + stickerLib.makeHidden(hiddenCellConfiguration) +
+                                      '    </div>' +
+
+                                      '    <div class="graffiti-stickers-button" id="graffiti-toggle-markdown-lock" title="' + 
                                       localizer.getString('ACTIVATE_LOCK_ALT_TAG') + '">' +
                                       '<span id="graffiti-locked-on">' + stickerLib.makeLock(lockConfigOn) + '</span>' +
                                       '<span id="graffiti-locked-off">' + stickerLib.makeLock(lockConfigOff) + '</span>' +
-                                      '</div>' +
+                                      '    </div>' +
+
+                                      '  </div>' +
                                       '</div>',
                                       [
                                         { 
@@ -1217,6 +1234,15 @@ define([
                                           fn: (e) => { 
                                             console.log('Toggle markdown lock')
                                             graffiti.toggleMarkdownLock();
+                                            utils.saveNotebook();
+                                          }
+                                        },
+                                        {
+                                          ids: ['graffiti-set-hidden-cell-button'],
+                                          event: 'click', 
+                                          fn: (e) => { 
+                                            console.log('Activate hiding on cell')
+                                            graffiti.activateHidingOnCell();
                                             utils.saveNotebook();
                                           }
                                         }
@@ -1326,6 +1352,13 @@ define([
             'Cancel': { click: (e) => { console.log('Graffiti: you cancelled:', $(e.target).parent()); } },
           }
         });
+      },
+
+      activateHidingOnCell: () => {
+        const selectedCell = Jupyter.notebook.get_selected_cell();
+        if (selectedCell !== undefined) {
+          utils.setCellGraffitiConfigEntry(selectedCell, 'hidden', true);
+        }
       },
 
       setSitePanelScrollTop: (scrollTop) => {
@@ -3737,6 +3770,20 @@ define([
         graffiti.handleSliderDragDebounced = _.debounce(graffiti.handleSliderDrag, 20, true);
         
         console.log('Graffiti: Background setup complete.');
+      },
+
+      hideHiddenCells: () => {
+        const cells = Jupyter.notebook.get_cells();
+        let cell, cellId;
+        for (let i = 0; i < cells.length; ++i) {
+          cell = cells[i];
+          cellId = utils.getMetadataCellId(cell.metadata);
+          const hidden = utils.getCellGraffitiConfigEntry(cell, 'hidden');
+          if (hidden) {
+            console.log('hiding cell:', cellId);
+            $('.cell[graffiti-cell-id="' + cellId + '"]:first').hide();
+          }
+        }
       },
 
       setRecordingTakeId: (recordingRecord) => {

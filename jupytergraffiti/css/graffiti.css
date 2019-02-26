@@ -277,9 +277,6 @@
 }
 
 #graffiti-terminal-builder {
-}
-
-#graffiti-terminal-builder {
   margin-top:10px !important;
   padding-top:5px;
   border-top:1px dotted grey;
@@ -410,18 +407,18 @@
   cursor:pointer;
 }
 
-#graffiti-terminal-builder-body {
+#graffiti-terminal-builder-body > div {
   display:flex;
 }
 
-#graffiti-terminal-builder-body > div {
-  padding:3px;
-  margin:2px;
+#graffiti-terminal-builder-body > div > div {
+  padding:6px;
+  margin:4px;
   border:1px dashed grey;
   cursor:pointer;
 }
 
-#graffiti-terminal-builder-body > div:hover {
+#graffiti-terminal-builder-body > div > div:hover {
   border:1px solid red;
 }
 
