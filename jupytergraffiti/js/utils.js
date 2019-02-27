@@ -14,6 +14,28 @@ define([
       return str + "\n";
     },
 
+    getNotebookDirectory: () => {
+      const fullNotebookPath = Jupyter.notebook.notebook_path;
+      let notebookPath, notebookPathParts;
+      if (fullNotebookPath.indexOf('/') === -1) {
+        notebookPath = fullNotebookPath;
+        if (notebookPath.indexOf('.ipynb') !== -1) {
+          notebookPath = undefined; // at the top level, we don't set a CD command
+        }
+      } else {
+        notebookPathParts = fullNotebookPath.split('/');
+        notebookPath = notebookPathParts.slice(0,notebookPathParts.length - 1).join('/');
+      }
+      return notebookPath;
+    },
+
+    rerenderMarkdownCell: (cell) => {
+      setTimeout(() => {
+        cell.unrender();
+        cell.render();
+      },10); // needing to do this, is really weird. if you don't call this on a timeout, jupyter does not rerender the cell.
+    },
+
     generateUniqueId: () => {
       return 'id_' + Math.random().toString(36).substr(2, 7);
     },

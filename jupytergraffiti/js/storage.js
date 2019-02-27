@@ -35,9 +35,7 @@ define([
 
     createExecutorCell: () => {
       if (storage.executorCell === undefined) {
-        const cells = Jupyter.notebook.get_cells();
-        const numCells = cells.length;
-        storage.executorCell = Jupyter.notebook.insert_cell_below('code', numCells);
+        storage.executorCell = Jupyter.notebook.insert_cell_at_bottom('code');
         state.storePreviousActivity();
         state.setActivity('executing');
       }
@@ -503,6 +501,24 @@ define([
         storage.cleanUpExecutorCell();
         utils.saveNotebook();
       }
+    },
+
+    fetchDataFile: (filePath) => {
+      const nbDir = utils.getNotebookDirectory();
+      let fullPath = '/tree';
+      if (nbDir !== undefined) {
+        fullPath += '/' + nbDir;
+      }
+      fullPath += '/' + filePath;
+      return fetch(fullPath, { credentials: 'include' }).then((response) => {
+        if (!response.ok) {
+          throw Error(response.statusText);
+        }
+        return response.text();
+      }).catch((ex) => {
+        console.log('Graffiti: could not fetch data file at :', filePath);
+        return Promise.reject('Could not fetch data file at :' + filePath);
+      });
     },
 
   }

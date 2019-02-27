@@ -313,10 +313,7 @@ define([
             const newContents = selectedCellContents + "\n" + graffitizedData.markdown;
             selectedCell.set_text(newContents);
             Jupyter.notebook.delete_cell(buttonCellIndex);
-            setTimeout(() => {
-              selectedCell.unrender();
-              selectedCell.render();
-            },10); // needing to do this, is really weird. if you don't call this on a timeout, jupyter does not rerender the cell.
+            utils.rerenderMarkdownCell(selectedCell);
             finalCell = selectedCell;
           }
         }
@@ -3053,6 +3050,7 @@ define([
             hideTooltip: false,
             playOnClick: false,
             saveToFile: undefined, // may be array of save_to_file directives
+            silenceWarnings: false,
           };
           for (let i = 0; i < commandParts.length; ++i) {
             part = $.trim(commandParts[i]);
@@ -3153,9 +3151,13 @@ define([
                   case 'insert_data_from_file':
                     // pass a cell type and a file to read content from.
                     partsRecord.insertDataFromFile = {
-                      type: subPart1, // either "code" or "markdown"
-                      path: subPart2, // relative path to file to insert
+                      cellType: subPart1, // either "code" or "markdown"
+                      filePath: subPart2.replace(/^"/,'').replace(/"$/,''), // relative path to file to insert, remove quotes.
                     };
+                    break;
+                  case 'silence_warnings':
+                    // if this is set, then the warning modal shown if a movie cannot be played (maybe because files are missing) is not displayed.
+                    partsRecord.silenceWarnings = true;
                     break;
                 }
               }
@@ -3992,6 +3994,7 @@ define([
             recording.saveToFile = tooltipCommands.saveToFile;
             recording.terminalCommand = tooltipCommands.terminalCommand;
             recording.insertDataFromFile = tooltipCommands.insertDataFromFile;
+            recording.silenceWarnings = tooltipCommands.silenceWarnings;
 
             state.updateUsageStats({
               type:'create',
@@ -5731,6 +5734,35 @@ define([
         }
       },
 
+      executeInsertDataFromFile: (recording) => {
+        const insertDataFromFile = recording.insertDataFromFile;
+        const filePath = insertDataFromFile.filePath;
+        storage.fetchDataFile(filePath).then((contents) => {
+          const cells = Jupyter.notebook.get_cells();
+          const selectedCellIndex = Jupyter.notebook.get_selected_index();
+          const nextCellIndex = selectedCellIndex + 1;
+          // if not on the last cell, verify that the next cell doesn't already contain the file contents.
+          if (selectedCellIndex < cells.length - 1) {
+            const nextCell = cells[nextCellIndex];
+            const nextCellContents = nextCell.get_text();
+            if (nextCellContents === contents) {
+              // Contents match, so delete the cell instead (it must have been previously inserted)
+              Jupyter.notebook.delete_cell(nextCellIndex);
+              return;
+            }
+          }
+          const cellType = insertDataFromFile.cellType;
+          const newCell = Jupyter.notebook.insert_cell_below((cellType === undefined ? 'markdown' : cellType), selectedCellIndex);
+          newCell.set_text(contents);
+          if (cellType === 'markdown') {
+            utils.rerenderMarkdownCell(newCell);
+          }
+        })
+        .catch((ex) => {
+          console.log('Graffiti: executeInsertDataFromFile is unable to fetch data from path:', filePath);
+        });
+      },
+
       cleanupAfterLoadAndPlayDidNotPlay: () => {
         graffiti.clearJupyterMenuHint();
         graffiti.changeActivity('idle');
@@ -5784,6 +5816,11 @@ define([
           graffiti.cleanupAfterLoadAndPlayDidNotPlay();
           graffiti.setJupyterMenuHint(localizer.getString('CELL_EXECUTE_CHOICE_SET'));
         } else {
+          // Execute any "insert data from file" directives.
+          if (recording.insertDataFromFile !== undefined) {
+            graffiti.executeInsertDataFromFile(recording);
+          }
+
           // Execute any "save code cell contents to files" directives
           graffiti.executeSaveToFileDirectives(recording);
           if (recording.terminalCommand !== undefined) {
@@ -5823,21 +5860,22 @@ define([
             audio.setRecordedAudio(movieData.audio);
             graffiti.startLoadedMovie(recording, playableMovie);
           }).catch( (ex) => {
-            graffiti.changeActivity('idle');
-            dialog.modal({
-              title: localizer.getString('MOVIE_UNAVAILABLE'),
-              body:  localizer.getString('MOVIE_UNAVAILABLE_EXPLANATION'),
-              sanitize:false,
-              buttons: {
-                'OK': {
-                  click: (e) => { 
-                    console.log('Graffiti: Missing movie acknowledged.'); 
+            graffiti.cleanupAfterLoadAndPlayDidNotPlay();
+            if (!(recording.silenceWarnings === true)) {
+              dialog.modal({
+                title: localizer.getString('MOVIE_UNAVAILABLE'),
+                body:  localizer.getString('MOVIE_UNAVAILABLE_EXPLANATION'),
+                sanitize:false,
+                buttons: {
+                  'OK': {
+                    click: (e) => { 
+                      console.log('Graffiti: Missing movie acknowledged.'); 
+                    }
                   }
                 }
-              }
-            });
+              });
+            }
             console.log('Graffiti: could not load movie:', ex);
-            graffiti.cleanupAfterLoadAndPlayDidNotPlay();
           });
         }
       },
