@@ -279,7 +279,6 @@ define([
         const params = { cell: buttonCell, clear: true };
         graffiti.refreshGraffitiHighlights(params);
         graffiti.selectedTokens = utils.findSelectionTokens(buttonCell, graffiti.tokenRanges, state);
-        debugger;
 
         tooltipCommands = {
           autoPlay: 'never',
@@ -3071,6 +3070,7 @@ define([
                   }
                 }
                 const subPart1 = subParts[1];
+                const subPart2 = subParts[2];
                 const subPart1ToEnd = subParts.slice(1).join(' ');
                 switch (subPart0) {
                   case 'comment':
@@ -3146,7 +3146,16 @@ define([
                   case 'terminal_command':
                     // pass a shell command to execute, enclosed by double quotes. The outside quotes will be removed.
                     const command = subParts.slice(2).join(' ').replace(/^"/,'').replace(/"$/,'');
-                    partsRecord.terminalCommand = { terminalId: subPart1, command: command };
+                    partsRecord.terminalCommand = { 
+                      terminalId: subPart1, 
+                      command: command };
+                    break;
+                  case 'insert_data_from_file':
+                    // pass a cell type and a file to read content from.
+                    partsRecord.insertDataFromFile = {
+                      type: subPart1, // either "code" or "markdown"
+                      path: subPart2, // relative path to file to insert
+                    };
                     break;
                 }
               }
@@ -3802,8 +3811,8 @@ define([
         if (isOldGraffiti) { 
           // Prepare to update existing recording
           recordingCellId = utils.extractRecordingCellId(selectedTokens);
-          recordingCell = graffiti.selectedTokens.recordingCell;
-          recordingKey = graffiti.selectedTokens.recordingKey;
+          recordingCell = selectedTokens.recordingCell;
+          recordingKey = selectedTokens.recordingKey;
           recordingRecord = state.getManifestSingleRecording(recordingCellId, recordingKey);
           graffiti.previousActiveTakeId = recordingRecord.activeTakeId;
           graffiti.setRecordingTakeId(recordingRecord);
@@ -3982,6 +3991,7 @@ define([
             recording.stickerImageUrl = tooltipCommands.stickerImageUrl;
             recording.saveToFile = tooltipCommands.saveToFile;
             recording.terminalCommand = tooltipCommands.terminalCommand;
+            recording.insertDataFromFile = tooltipCommands.insertDataFromFile;
 
             state.updateUsageStats({
               type:'create',
@@ -4042,11 +4052,12 @@ define([
         });
       },
 
-      removeGraffitiCore: (recordingCell, recordingKey) => {
-        const recordingCellId = utils.getMetadataCellId(recordingCell.metadata);
-        if (recordingCell.cell_type === 'markdown') {
+      removeGraffitiCore: (recordingCellId, recordingKey) => {
+        const locationCellId = utils.findCellIdByLocationMap(recordingCellId, recordingKey); // find the actual cell where the graffiti is now living.
+        const locationCell = utils.findCellByCellId(locationCellId);
+        if (locationCell.cell_type === 'markdown') {
           // If this Graffiti was in a markdown cell we need to remove the span tags from the markdown source
-          const contents = recordingCell.get_text();
+          const contents = locationCell.get_text();
           const spanRegex = RegExp('<span class="graffiti-highlight graffiti-' + recordingCellId + '-' + recordingKey + '"><i></i>(.*?)</span>','gm')
           let results, foundContents = [];
           while ((results = spanRegex.exec(contents)) !== null) { foundContents.push(results) };
@@ -4055,7 +4066,7 @@ define([
             const sourceContents = '<span class="graffiti-highlight graffiti-' + recordingCellId + '-' + recordingKey + '"><i></i>' + innerContents + '</span>';
             const cleanedContents = contents.replace(sourceContents, innerContents);
             //console.log('cleanedContents of markdown:', cleanedContents);
-            recordingCell.set_text(cleanedContents);
+            locationCell.set_text(cleanedContents);
           }
         }
 
@@ -4079,9 +4090,11 @@ define([
               console.log('Graffiti: Removing recording id:', recordingKey);
               recording = manifest[recordingCellId][recordingKey];
               destructions++;
-              graffiti.removeGraffitiCore(recordingCell, recordingKey);
-              graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
-              graffiti.refreshGraffitiSideMarkers(recordingCell);
+              graffiti.removeGraffitiCore(recordingCellId, recordingKey);
+              if (recordingCell !== undefined) {
+                graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
+                graffiti.refreshGraffitiSideMarkers(recordingCell);
+              }
             }
           }
         }
@@ -4130,19 +4143,22 @@ define([
 
       },
 
-      refreshAfterDeletions: (recordingCell) => {
+      refreshAfterDeletions: (recordingCellId) => {
         graffiti.highlightIntersectingGraffitiRange();
-        graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
-        graffiti.refreshGraffitiSideMarkers(recordingCell);
+        const recordingCell = utils.findCellByCellId(recordingCellId);
+        if (recordingCell !== undefined) {
+          graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
+          graffiti.refreshGraffitiSideMarkers(recordingCell);
+        }
         graffiti.refreshGraffitiTooltips();
         graffiti.updateControlPanels();
       },
 
-      removeGraffiti: (recordingCell, recordingKey) => {
-        graffiti.removeGraffitiCore(recordingCell, recordingKey);
-        if (state.removeManifestEntry(utils.getMetadataCellId(recordingCell.metadata), recordingKey)) {
+      removeGraffiti: (recordingCellId, recordingKey) => {
+        graffiti.removeGraffitiCore(recordingCellId, recordingKey);
+        if (state.removeManifestEntry(recordingCellId, recordingKey)) {
           storage.storeManifest();
-          graffiti.refreshAfterDeletions(recordingCell);
+          graffiti.refreshAfterDeletions(recordingCellId);
         }
       },
 
@@ -4201,7 +4217,7 @@ define([
         const recordingCell = utils.findCellByCellId(parts.recordingCellId);
         if (recordingCell !== undefined) {
           storage.removeUnusedTakes(parts.recordingCellId, parts.recordingKey);
-          graffiti.refreshAfterDeletions(recordingCell);
+          graffiti.refreshAfterDeletions(recordingCellId);
         }
       },
 
@@ -4289,13 +4305,17 @@ define([
       },
 
       removeGraffitiWithPrompt: () => {
-        if (graffiti.selectedTokens.isIntersecting) {
-          const recordingCell = graffiti.selectedTokens.recordingCell;
-          const recordingCellId = utils.getMetadataCellId(recordingCell.metadata);
-          const recordingKey = graffiti.selectedTokens.recordingKey;
+        const selectedTokens = graffiti.selectedTokens;
+        if (selectedTokens.isIntersecting) {
+          const recordingCellId = utils.extractRecordingCellId(selectedTokens);
+          const recordingKey = selectedTokens.recordingKey;
           const recording = state.getManifestSingleRecording(recordingCellId,recordingKey);
+          let graffitizedText = selectedTokens.allTokensString;
+          if (graffitizedText === undefined) {
+            graffitizedText = (recording.allTokensString !== undefined ? recording.allTokensString : recording.markdown );
+          }
           const content = '(Please Note: this cannot be undone.)<br/>' +
-                          '<b>Graffiti\'d text:&nbsp;</b><span class="graffiti-text-display">' + recording.allTokensString + '</span><br/>' +
+                          '<b>Graffiti\'d text:&nbsp;</b><span class="graffiti-text-display">' + graffitizedText + '</span><br/>' +
                           '<b>Graffiti contents:</b>' + utils.renderMarkdown(recording.markdown) + '<br/>';
           
           const confirmModal = dialog.modal({
@@ -4307,7 +4327,7 @@ define([
                 click: (e) => {
                   console.log('Graffiti: you clicked ok, you want to remove graffiti:',
                               $(e.target).parent());
-                  graffiti.removeGraffiti(recordingCell, recordingKey);
+                  graffiti.removeGraffiti(recordingCellId, recordingKey);
 
                 }
               },

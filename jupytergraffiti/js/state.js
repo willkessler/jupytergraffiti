@@ -318,13 +318,13 @@ define([
     },
 
     toggleRecordingSkip: () => {
-      console.trace('toggleRecordingSkip', state.skipStatus);
+      //console.trace('toggleRecordingSkip', state.skipStatus);
       if (state.skipStatus === state.SKIP_STATUS_NONE) {
         state.skipStatus = state.SKIP_STATUS_ABSOLUTE;
       } else {
         state.skipStatus = state.SKIP_STATUS_NONE;
       }
-      console.log('after toggleRecordingSkip, status', state.skipStatus);
+      //console.log('after toggleRecordingSkip, status', state.skipStatus);
       state.storeSkipRecord();
     },
 

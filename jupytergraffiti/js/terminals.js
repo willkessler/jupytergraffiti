@@ -270,7 +270,7 @@ define ([
       if (terminals.renderQueue.length > 0) {
         const rq = terminals.renderQueue.shift();
         const cellId = utils.getMetadataCellId(rq.cell.metadata);
-        console.log('Processing render queue entry:', rq);
+        // console.log('Processing render queue entry:', rq);
         terminals.createTerminalCell(cellId, rq.cell.metadata.graffitiConfig);
         // make sure you can't double click this cell because that would break the terminal
         $(rq.cell.element[0]).unbind('dblclick').bind('dblclick', ((e) => { 

@@ -172,16 +172,20 @@ define([
       }
     },
 
+    // Also note any graffitis present in this cell, if it is a markdown cell, so that we can process their removal correctly if the user 
+    // has moved them from where they were created originally (for instance, graffiti buttons).
     refreshCellMaps: () => {
       utils.cellMaps = {
         cells: Jupyter.notebook.get_cells(),
-        maps: {}
+        maps: {},
+        location: {}, // the id of the cell every graffiti is actually currently located in (may not be the cell where it was created)
       }
-      let cell, cellDOM, cellKeys = Object.keys(utils.cellMaps.cells);
+      let cell, cellId, cellDOM, tagsRe,graffitiId, cellKeys = Object.keys(utils.cellMaps.cells);
       for (let cellIndex = 0; cellIndex < cellKeys.length; ++cellIndex) {
         cell = utils.cellMaps.cells[cellIndex];
-        // supports lookups by cellId
-        utils.cellMaps.maps[utils.getMetadataCellId(cell.metadata)] = cellIndex;
+        cellId = utils.getMetadataCellId(cell.metadata);
+        // Support lookups by cellId.
+        utils.cellMaps.maps[cellId] = cellIndex;
         // Dress up the DOM  cellId so we can track selections in them (pretty much only markdown, selections in code_mirror are done through its API
         if (cell.hasOwnProperty('inner_cell')) {
           cellDOM = $(cell.inner_cell).parents('.cell');
@@ -191,7 +195,28 @@ define([
         if (cellDOM !== undefined) {
           cellDOM.attr({ 'graffiti-cell-id' : utils.getMetadataCellId(cell.metadata)});
         }
+        if (cell.cell_type === 'markdown') {
+          contents = cell.get_text();
+          tagsRe = utils.createGraffitiTagRegex();
+          let match, idMatch;
+          while ((match = tagsRe.exec(contents)) !== null) { 
+            idMatch = match[1].match(/graffiti-(id_.[^\-]+)-(id_[^\s]+)/);
+            graffitiId = idMatch[1] + '_' + idMatch[2];
+            utils.cellMaps.location[graffitiId] = cellId;
+          }        
+        }
+        //console.trace('cellMaps',utils.cellMaps.location);
       }
+    },
+
+    findCellIdByLocationMap: (recordingCellId, recordingKey) => {
+      const graffitiId = recordingCellId + '_' + recordingKey;
+      if (utils.cellMaps.location[graffitiId] !== undefined) {
+        debugger;
+        return utils.cellMaps.location[graffitiId];
+      }
+
+      return undefined;
     },
 
     findCellIndexByCellId: (cellId) => {

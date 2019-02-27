@@ -211,7 +211,6 @@ define([
         // Store the latest take information in the current take for this recording.
         recording.activeTakeId = recordingCellInfo.recordingRecord.activeTakeId;
         if (!recording.hasOwnProperty('takes')) {
-          console.log('resetting takes');
           recording.takes = {};
         }
         recording.takes[recording.activeTakeId] = { 
@@ -347,7 +346,7 @@ define([
       });
       const credentials = { credentials: 'include'};
       storage.successfulLoad = false; /* assume we cannot fetch this recording ok */
-      console.log('Graffiti: storage is loading movie from path:', graffitiPath);
+      //console.log('Graffiti: storage is loading movie from path:', graffitiPath);
       const historyUrl = graffitiPath + 'history.txt';
       return fetch(historyUrl, credentials).then((response) => {
         if (!response.ok) {
@@ -360,7 +359,7 @@ define([
           const uncompressedHistory = LZString.decompressFromBase64(base64CompressedHistory);
           //console.log('uncompressedHistory:', uncompressedHistory);
           const parsedHistory = JSON.parse(uncompressedHistory);
-          console.log('Graffiti: Loaded previous history:', parsedHistory);
+          // console.log('Graffiti: Loaded previous history:', parsedHistory);
           const audioUrl = graffitiPath + 'audio.txt';
           return fetch(audioUrl, { credentials: 'include' }).then((response) => {
             if (!response.ok) {
@@ -408,7 +407,6 @@ define([
         }
       }
       const callback = (data) => {
-        console.log('Got data:', data);
         storage.fetchMovie(data);
       }
       batchRunner.start(storage.preloadBatchSize, callback, allRecords).then(() => { 

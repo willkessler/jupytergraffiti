@@ -6,7 +6,7 @@ define([
 
     // Output function for debugging
     output: (ostr) => {
-      console.log(ostr);
+      //console.log(ostr);
     },
 
     // Main batch parallelization function.
