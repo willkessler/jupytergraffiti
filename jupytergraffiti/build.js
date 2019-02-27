@@ -12,7 +12,11 @@
     out: "graffiti-dist/graffiti.js",
     findNestedDependencies: true,
     // Useful in dev
-    optimize: "none",
+    // optimize: "none",
+    optimize: "uglify2",
+    uglify2: {
+        mangle: false
+    },
     onBuildWrite: function (moduleName, path, contents) {
         // Requirejs optimizer gives a module name("main") to entrypoint file which doesn't work in Jupyter environment
         return contents.replace("define('main'", "define('nbextensions/graffiti-dist/graffiti'");
