@@ -3047,10 +3047,12 @@ define([
             caption: '',
             playback_pic: undefined,
             autoplay: 'never',
+            replayAllCells: false, // by default, we will only replay cells that the author interacted with. 
             hideTooltip: false,
             playOnClick: false,
             saveToFile: undefined, // may be array of save_to_file directives
             silenceWarnings: false,
+            swappingLabels: false,
           };
           for (let i = 0; i < commandParts.length; ++i) {
             part = $.trim(commandParts[i]);
@@ -3154,6 +3156,18 @@ define([
                       cellType: subPart1, // either "code" or "markdown"
                       filePath: subPart2.replace(/^"/,'').replace(/"$/,''), // relative path to file to insert, remove quotes.
                     };
+                    break;
+                  case 'label_swaps':
+                    // Using this directive you can change the displayed text in a graffiti eg. in a graffiti button on a click. Separate
+                    // the values using a pipe (|)
+                    const swaps = subParts.slice(2).join(' ').split('|');
+                    partsRecord.swappingLabels = true;
+                    partsRecord.labelSwaps = swaps;
+                    break;
+                  case 'replay_all_cells':
+                    // When this is set we will replay all cells in the entire notebook regardless of whether you interacted with them in the 
+                    // recording. Default: false
+                    partsRecord.replayAllCells = true;
                     break;
                   case 'silence_warnings':
                     // if this is set, then the warning modal shown if a movie cannot be played (maybe because files are missing) is not displayed.
@@ -3995,6 +4009,9 @@ define([
             recording.terminalCommand = tooltipCommands.terminalCommand;
             recording.insertDataFromFile = tooltipCommands.insertDataFromFile;
             recording.silenceWarnings = tooltipCommands.silenceWarnings;
+            recording.replayAllCells = tooltipCommands.replayAllCells;
+            recording.swappingLabels = tooltipCommands.swappingLabels;
+            recording.labelSwaps = tooltipCommands.labelSwaps;
 
             state.updateUsageStats({
               type:'create',
@@ -5200,15 +5217,17 @@ define([
         for (let cell of cells) {
           if (cell.cell_type === 'code') {
             cellId = utils.getMetadataCellId(cell.metadata);
-            contents = cell.get_text();
-            if (contentsRecord.cellsContent.hasOwnProperty(cellId)) {
-              frameContents = state.extractDataFromContentRecord(contentsRecord.cellsContent[cellId].contentsRecord, cellId);
-              if (frameContents !== undefined && frameContents !== contents) {
-                //console.log('Setting text on cellid:', utils.getMetadataCellId(cell.metadata));
-                cell.set_text(frameContents);
+            if (state.graffitiShouldUpdateCellContents(cellId)) {
+              contents = cell.get_text();
+              if (contentsRecord.cellsContent.hasOwnProperty(cellId)) {
+                frameContents = state.extractDataFromContentRecord(contentsRecord.cellsContent[cellId].contentsRecord, cellId);
+                if (frameContents !== undefined && frameContents !== contents) {
+                  //console.log('Setting text on cellid:', utils.getMetadataCellId(cell.metadata));
+                  cell.set_text(frameContents);
+                }
+                frameOutputs = state.extractDataFromContentRecord(contentsRecord.cellsContent[cellId].outputsRecord, cellId);
+                renderedFrameOutput = renderedFrameOutput || state.restoreCellOutputs(cell, frameOutputs);
               }
-              frameOutputs = state.extractDataFromContentRecord(contentsRecord.cellsContent[cellId].outputsRecord, cellId);
-              renderedFrameOutput = renderedFrameOutput || state.restoreCellOutputs(cell, frameOutputs);
             }
           }
         }
@@ -5760,6 +5779,18 @@ define([
         })
         .catch((ex) => {
           console.log('Graffiti: executeInsertDataFromFile is unable to fetch data from path:', filePath);
+          dialog.modal({
+            title: localizer.getString('FILE_UNAVAILABLE') + ' : ' + filePath,
+            body:  localizer.getString('FILE_UNAVAILABLE_EXPLANATION'),
+            sanitize:false,
+            buttons: {
+              'OK': {
+                click: (e) => { 
+                  console.log('Graffiti: Missing file acknowledged.'); 
+                }
+              }
+            }
+          });
         });
       },
 
@@ -5821,6 +5852,33 @@ define([
             graffiti.executeInsertDataFromFile(recording);
           }
 
+          // Execute a "label swap" directive. This is smart enough to distinguish graffiti buttons from other graffiti.
+          if (recording.swappingLabels === true) {
+            if ((recording.labelSwaps !== undefined) && (recording.labelSwaps.length === 2)) {
+              const recLabel = playableMovie.recordingCellId + '-' + playableMovie.recordingKey;
+              const currentLabelDOM = $('.graffiti-' + recLabel);
+              if (currentLabelDOM.length > 0) {
+                let currentLabel = currentLabelDOM.html();
+                const buttonCheck = currentLabel.match(/(<i><\/i><button>)(.*?)(<\/button)/);
+                if (buttonCheck !== null) {
+                  currentLabel = buttonCheck[2];
+                }
+                if (currentLabel === recording.labelSwaps[0]) {
+                  currentLabel = recording.labelSwaps[1];
+                } else if (currentLabel === recording.labelSwaps[1]) {
+                  currentLabel = recording.labelSwaps[0];
+                }
+                if (buttonCheck !== null) {
+                  const newButton = buttonCheck[1] + currentLabel + buttonCheck[3];
+                  window.wak = currentLabelDOM;                  
+                  currentLabelDOM.html(newButton);
+                } else {
+                  currentLabelDOM.html(currentLabel);
+                }
+              }
+            }
+          }
+
           // Execute any "save code cell contents to files" directives
           graffiti.executeSaveToFileDirectives(recording);
           if (recording.terminalCommand !== undefined) {
@@ -5845,6 +5903,12 @@ define([
 
         // next line seems to be extraneous and buggy because we create a race condition with the control panel. however what happens if a movie cannot be loaded?
         // graffiti.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
+
+        if (recording.replayAllCells === true) {
+          state.setShouldUpdateCellContentsDuringPlayback(true);
+        } else { // if false or undefined, only update cells affected by the recording
+          state.setShouldUpdateCellContentsDuringPlayback(false);
+        }
 
         $('#graffiti-movie-play-btn').html('<i>' + localizer.getString('LOADING') + '</i>').prop('disabled',true);
         graffiti.setJupyterMenuHint(localizer.getString('LOADING_PLEASE_WAIT'));

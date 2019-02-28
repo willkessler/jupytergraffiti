@@ -331,6 +331,31 @@ define([
       storage.cleanUpExecutorCell();
     },
 
+    // Compute the ids of any cells affected during this recording.
+    computeAffectedCells: (history) => {
+      history.affectedCellIds = {};
+      let i, viewRec, drawingRec;
+
+      for (i = 1; i < history.contents.length; ++i) {
+        Object.keys(history.contents[i]).map((key) => { 
+          if (history.contents[i][key].data !== undefined) {
+            history.affectedCellIds[key] = true 
+          }
+        });
+      }
+      history.view.map((viewRec) => {
+        if ((viewRec.subType === 'focus') || (viewRec.subType === 'selectCell') || (viewRec.subType === 'innerScroll')) {
+          history.affectedCellIds[viewRec.cellId] = true;
+        }
+      });
+      history.drawings.map((drawRec) => {
+        history.affectedCellIds[drawRec.cellId] = true;
+      });
+      Object.keys(history.cellAdditions).map((key) => {
+        history.affectedCellIds[key] = true;
+      });
+    },
+
     //
     // Fetch a movie and store it into the movies cache in state.
     // Returns a promise.
@@ -357,6 +382,8 @@ define([
           const uncompressedHistory = LZString.decompressFromBase64(base64CompressedHistory);
           //console.log('uncompressedHistory:', uncompressedHistory);
           const parsedHistory = JSON.parse(uncompressedHistory);
+          // Compute "affected" cells for the history.
+          storage.computeAffectedCells(parsedHistory);
           // console.log('Graffiti: Loaded previous history:', parsedHistory);
           const audioUrl = graffitiPath + 'audio.txt';
           return fetch(audioUrl, { credentials: 'include' }).then((response) => {
@@ -366,6 +393,7 @@ define([
             return response.text();
           }).then(function(base64CompressedAudio) {
             try {
+              console.log('history', parsedHistory);
               state.storeToMovieCache('history', data, parsedHistory);
               state.storeToMovieCache('audio',   data, base64CompressedAudio);
               storage.successfulLoad = true;

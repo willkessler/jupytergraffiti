@@ -234,7 +234,6 @@ define([
     findCellIdByLocationMap: (recordingCellId, recordingKey) => {
       const graffitiId = recordingCellId + '_' + recordingKey;
       if (utils.cellMaps.location[graffitiId] !== undefined) {
-        debugger;
         return utils.cellMaps.location[graffitiId];
       }
 

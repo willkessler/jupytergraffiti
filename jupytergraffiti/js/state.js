@@ -18,6 +18,7 @@ define([
       state.recordingBlocked = false;
       state.activity = 'idle'; // one of "recording", "playing", "idle"
       state.previousActivity = undefined;
+      state.shouldUpdateCellContentsDuringPlayback = false;
       state.pointer = { x : 0, y: 0 };
       state.windowSize = state.getWindowSize();
       state.resetOnNextPlay = false;
@@ -1219,6 +1220,14 @@ define([
       state.terminalsState = newState; // state of one or more terminals at any given time
     },
 
+    getShouldUpdateCellContentsDuringPlayback: () => {
+      return state.shouldUpdateCellContentsDuringPlayback;
+    },
+
+    setShouldUpdateCellContentsDuringPlayback: (val) => {
+      state.shouldUpdateCellContentsDuringPlayback = val;
+    },
+
     // In any history:
     //
     // Each entry in pointer[] is an object with:
@@ -1818,6 +1827,11 @@ define([
         timePlayedSoFar += state.playTimes[type].total * state.playSpeeds[type];
       }
       return timePlayedSoFar;
+    },
+
+    // If the current recording is set to replayAllCells, or this cell is among those affected by the history, return true
+    graffitiShouldUpdateCellContents: (cellId) => {
+      return (state.shouldUpdateCellContentsDuringPlayback || state.history.affectedCellIds.hasOwnProperty(cellId));
     },
 
     storeCellStates: () => {
