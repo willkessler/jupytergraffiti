@@ -4516,8 +4516,7 @@ define([
         graffiti.addCMEventsToCells();
 
         Jupyter.notebook.events.on('select.Cell', (e, cell) => {
-          // console.log('cell select event fired, e, cell:',e, cell.cell);
-          //console.log('select cell store selections');
+          //console.log('cell select event fired, e, cell:',e, cell.cell);
           state.storeHistoryRecord('selectCell');
           graffiti.refreshGraffitiTooltipsDebounced();
           graffiti.updateControlPanels();
@@ -5028,9 +5027,6 @@ define([
           //console.log('pointerUpdate is true, record:', record);
           graffiti.updatePointer(record);
         } else {
-          //if (record.subType === 'selectCell') {
-          //  console.log('record', record);
-          //}
           graffiti.dimGraffitiCursor();
           if (record.selectedCell !== undefined) {
             if ((record.subType === 'focus') || (record.subType === 'selectCell')) {
@@ -5904,6 +5900,7 @@ define([
         // next line seems to be extraneous and buggy because we create a race condition with the control panel. however what happens if a movie cannot be loaded?
         // graffiti.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
 
+        // Default is now to only replay cells involved in the recording (that got focus, selection, were drawn on, etc, but not moused over)
         if (recording.replayAllCells === true) {
           state.setShouldUpdateCellContentsDuringPlayback(true);
         } else { // if false or undefined, only update cells affected by the recording

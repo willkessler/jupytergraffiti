@@ -344,8 +344,12 @@ define([
         });
       }
       history.view.map((viewRec) => {
-        if ((viewRec.subType === 'focus') || (viewRec.subType === 'selectCell') || (viewRec.subType === 'innerScroll')) {
+        if ((viewRec.subType === 'focus') || (viewRec.subType === 'innerScroll')) {
           history.affectedCellIds[viewRec.cellId] = true;
+          console.log('view key 1:', viewRec.cellId, viewRec);
+        } else if (viewRec.subType === 'selectCell') {
+          history.affectedCellIds[viewRec.selectedCellId] = true;
+          console.log('view key 2:', viewRec.selectedCellId, viewRec);
         }
       });
       history.drawings.map((drawRec) => {
