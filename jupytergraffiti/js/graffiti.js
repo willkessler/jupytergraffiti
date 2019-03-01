@@ -5757,10 +5757,12 @@ define([
         const filePath = insertDataFromFile.filePath;
         storage.fetchDataFile(filePath).then((contents) => {
           const cells = Jupyter.notebook.get_cells();
-          const selectedCellIndex = Jupyter.notebook.get_selected_index();
-          const nextCellIndex = selectedCellIndex + 1;
+          const viewInfo = state.getViewInfo();
+          const hoverCellId = viewInfo.cellId;
+          const hoverCellIndex = utils.findCellIndexByCellId(hoverCellId);
+          const nextCellIndex = hoverCellIndex + 1;
           // if not on the last cell, verify that the next cell doesn't already contain the file contents.
-          if (selectedCellIndex < cells.length - 1) {
+          if (hoverCellIndex < cells.length - 1) {
             const nextCell = cells[nextCellIndex];
             const nextCellContents = nextCell.get_text();
             if (nextCellContents === contents) {
@@ -5770,7 +5772,7 @@ define([
             }
           }
           const cellType = insertDataFromFile.cellType;
-          const newCell = Jupyter.notebook.insert_cell_below((cellType === undefined ? 'markdown' : cellType), selectedCellIndex);
+          const newCell = Jupyter.notebook.insert_cell_below((cellType === undefined ? 'markdown' : cellType), hoverCellIndex);
           newCell.set_text(contents);
           newCell.render();
         })
@@ -5798,9 +5800,11 @@ define([
             const viewInfo = state.getViewInfo();
             const hoverCellId = viewInfo.cellId;
             const hoverCell = utils.findCellByCellId(hoverCellId);
+            const hoverCellIndex = utils.findCellIndexByCellId(hoverCellId);
             if (hoverCell.cell_type !== 'markdown') {
               return; // we cannot do label swaps on code cells
             }
+            Jupyter.notebook.select(hoverCellIndex);
             const hoverCellText = hoverCell.get_text();
             const startTag = '<span class="graffiti-highlight graffiti-' + playableMovie.recordingCellId + '-' + playableMovie.recordingKey + '">';
             const startPos = hoverCellText.indexOf(startTag);
