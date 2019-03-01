@@ -5854,6 +5854,7 @@ define([
           // Execute a "label swap" directive. This is smart enough to distinguish graffiti buttons from other graffiti.
           if (recording.swappingLabels === true) {
             if ((recording.labelSwaps !== undefined) && (recording.labelSwaps.length === 2)) {
+              const recordingCell = utils.findCellByCellId(
               const recLabel = playableMovie.recordingCellId + '-' + playableMovie.recordingKey;
               const currentLabelDOM = $('.graffiti-' + recLabel);
               if (currentLabelDOM.length > 0) {

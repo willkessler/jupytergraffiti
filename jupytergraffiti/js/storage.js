@@ -346,10 +346,8 @@ define([
       history.view.map((viewRec) => {
         if ((viewRec.subType === 'focus') || (viewRec.subType === 'innerScroll')) {
           history.affectedCellIds[viewRec.cellId] = true;
-          console.log('view key 1:', viewRec.cellId, viewRec);
         } else if (viewRec.subType === 'selectCell') {
           history.affectedCellIds[viewRec.selectedCellId] = true;
-          console.log('view key 2:', viewRec.selectedCellId, viewRec);
         }
       });
       history.drawings.map((drawRec) => {
@@ -373,7 +371,7 @@ define([
       });
       const credentials = { credentials: 'include'};
       storage.successfulLoad = false; /* assume we cannot fetch this recording ok */
-      //console.log('Graffiti: storage is loading movie from path:', graffitiPath);
+      console.log('Graffiti: storage is loading movie from path:', graffitiPath);
       const historyUrl = graffitiPath + 'history.txt';
       return fetch(historyUrl, credentials).then((response) => {
         if (!response.ok) {
@@ -397,7 +395,7 @@ define([
             return response.text();
           }).then(function(base64CompressedAudio) {
             try {
-              console.log('history', parsedHistory);
+              //console.log('history', parsedHistory);
               state.storeToMovieCache('history', data, parsedHistory);
               state.storeToMovieCache('audio',   data, base64CompressedAudio);
               storage.successfulLoad = true;
@@ -441,6 +439,7 @@ define([
       }
       batchRunner.start(storage.preloadBatchSize, callback, allRecords).then(() => { 
         console.log('Graffiti: preloading completed.');
+        state.refreshCellIdToGraffitiMap();
       });
     },
 

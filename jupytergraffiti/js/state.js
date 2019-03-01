@@ -82,6 +82,7 @@ define([
       state.shiftKeyWentDown = false;
       state.executionSourceChoiceId = undefined;
       state.terminalState = undefined;
+      state.cellIdToGraffitiMap = {}; // maps which graffitis are present in which cells. Used for autosave cells.
 
       // Usage statistic gathering for the current session (since last load of the notebook)
       state.usageStats = {
@@ -202,6 +203,34 @@ define([
         state.manifest[recordingCellId] = {};
       }
       state.manifest[recordingCellId][recordingKey] = recordingData;
+    },
+
+    refreshCellIdToGraffitiMap: () => {
+      state.cellIdToGraffitiMap = {};
+      const manifest = state.getManifest();
+      let recording, recordingCellId, recordingKeys, i, saveToFileEntry, cellId;
+      for (recordingCellId of Object.keys(manifest)) {
+        recordingKeys = Object.keys(manifest[recordingCellId]);
+        for (recordingKey of recordingKeys) {
+          recording = manifest[recordingCellId][recordingKey];
+          if ((recording.saveToFile !== undefined) && (recording.saveToFile.length > 0)) {
+            for (i = 0; i < recording.saveToFile.length; ++i) {
+              saveToFileEntry = recording.saveToFile[i];
+              cellId = saveToFileEntry.cellId;
+              if (state.cellIdToGraffitiMap[cellId] === undefined) {
+                state.cellIdToGraffitiMap[cellId] = [];
+              }
+              state.cellIdToGraffitiMap[cellId].push(saveToFileEntry.path);
+            }
+          }
+        }
+      }
+      console.log('cellIdToGraffitiMap:', state.cellIdToGraffitiMap);
+
+    },
+
+    getCellIdToGraffitiMap: (cellId) => {
+      return state.cellIdToGraffitiMap[cellId];
     },
 
     // compute aggregate stats for this manifest: total number and time of all graffitis, how many cells have graffitis, etc.
