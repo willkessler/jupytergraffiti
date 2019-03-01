@@ -389,12 +389,14 @@ define([
       const t = state.getTimePlayedSoFar();
       let record;
       state.currentSkipRecord = undefined;
-      for (let i = 0; i < state.history.skip.length; ++i) {
-        record = state.history.skip[i];
-        if (((record.startTime <= t) && (t < record.endTime)) ||
-            (record.startTime > t)) {
-          state.currentSkipRecord = i;
-          break;
+      if (state.history.skip !== undefined) {
+        for (let i = 0; i < state.history.skip.length; ++i) {
+          record = state.history.skip[i];
+          if (((record.startTime <= t) && (t < record.endTime)) ||
+              (record.startTime > t)) {
+            state.currentSkipRecord = i;
+            break;
+          }
         }
       }
     },
