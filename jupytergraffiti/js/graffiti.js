@@ -95,9 +95,7 @@ define([
         localizer.init().then(() => { 
           // Set up the button that activates Graffiti on new notebooks and controls visibility of the control panel if the notebook has already been graffiti-ized.
           graffiti.updateSetupButton();
-
           if (Jupyter.notebook.metadata.hasOwnProperty('graffiti')) { // do not try to load the manifest if this notebook has not yet been graffiti-ized.
-            graffiti.hideHiddenCells();
             storage.loadManifest(currentAccessLevel).then(() => {
               graffiti.initInteractivity();
             }).catch((ex) => {
@@ -266,7 +264,7 @@ define([
 
       // Create a button with a graffiti that doesn't do anything, but is ready to attach a recording to. This is merely to help
       // authors who don't know much html create buttons more easily.
-      createGraffitiButtonAboveSelectedCell: () => {
+      createGraffitiButtonAboveSelectedCell: (opts) => {
         const selectedCellIndex = Jupyter.notebook.get_selected_index();
         const selectedCell = Jupyter.notebook.get_selected_cell();
 
@@ -280,7 +278,8 @@ define([
         graffiti.refreshGraffitiHighlights(params);
         graffiti.selectedTokens = utils.findSelectionTokens(buttonCell, graffiti.tokenRanges, state);
 
-        tooltipCommands = {
+        let buttonLabel = 'Graffiti Sample Button (edit me)';
+        let tooltipCommands = {
           autoPlay: 'never',
           playOnClick: true,
           hideTooltip: true,
@@ -288,14 +287,25 @@ define([
           narratorPicture: undefined,
           stickerImageUrl: undefined,
         };
-        const tooltipDirectives = [
+        let tooltipDirectives = [
           '%%play_on_click',
           '%%hide_tooltip',
           '%%button_name No Movie Here Yet',
           'Edit this markdown cell to customize the Graffiti for this button, and to record a new movie.<br><br>' +
           '_(NB: The default movie that was created with this button is a *placeholder* and it will *not* play.)_',
         ];
-        const rawButtonMarkdown = '<button>Graffiti Sample Button (edit me)</button>';
+        if (opts !== undefined) {
+          if (opts.tooltipCommands !== undefined) {
+            $.extend(tooltipCommands, opts.tooltipCommands);
+            if (opts.tooltipCommands.hasOwnProperty('labelSwaps')) {
+              buttonLabel = opts.tooltipCommands.labelSwaps[0];
+            }
+          }
+          if (opts.tooltipDirectives !== undefined) {
+            _.uniq($.merge(tooltipDirectives, opts.tooltipDirectives));
+          }
+        }
+        const rawButtonMarkdown = '<button>' + buttonLabel + '</button>';
         const graffitizedData = graffiti.createGraffitizedMarkdown(buttonCell, rawButtonMarkdown, tooltipCommands, tooltipDirectives);
 
         buttonCell.set_text(graffitizedData.markdown);
@@ -349,7 +359,7 @@ define([
         graffiti.refreshGraffitiHighlights(params);
         graffiti.selectedTokens = utils.findSelectionTokens(buttonCell, graffiti.tokenRanges, state);
 
-        tooltipCommands = {
+        const tooltipCommands = {
           autoPlay: 'never',
           playOnClick: true,
           hideTooltip: true,
@@ -1184,8 +1194,8 @@ define([
                                       '  </div>' +
                                       '  <div>' + 
 
-                                      '    <div class="graffiti-stickers-button" id="graffiti-set-hidden-cell-button" title="' + 
-                                      localizer.getString('HIDE_SELECTED_CELL') + '">' + stickerLib.makeHidden(hiddenCellConfiguration) +
+                                      '    <div class="graffiti-stickers-button" id="graffiti-create-showhide-button" title="' + 
+                                      localizer.getString('CREATE_SHOWHIDE_BUTTON') + '">' + stickerLib.makeHidden(hiddenCellConfiguration) +
                                       '    </div>' +
 
                                       '    <div class="graffiti-stickers-button" id="graffiti-toggle-markdown-lock" title="' + 
@@ -1234,11 +1244,26 @@ define([
                                           }
                                         },
                                         {
-                                          ids: ['graffiti-set-hidden-cell-button'],
+                                          ids: ['graffiti-create-showhide-button'],
                                           event: 'click', 
                                           fn: (e) => { 
-                                            console.log('Activate hiding on cell')
-                                            graffiti.activateHidingOnCell();
+                                            console.log('Creating show/hide btn')
+                                            graffiti.createGraffitiButtonAboveSelectedCell({
+                                              tooltipCommands: { 
+                                                insertDataFromFile: {
+                                                  cellType: 'code',
+                                                  filePath: './example.txt',
+                                                },
+                                                swappingLabels: true,
+                                                labelSwaps: ['Show Solution','Hide Solution'],
+                                                silenceWarnings: true
+                                              },
+                                              tooltipDirectives: [
+                                                '%%insert_data_from_file code \'./example.txt\'',
+                                                '%%label_swaps Show|Hide',
+                                                '%%silence_warnings',
+                                              ],
+                                            });
                                             utils.saveNotebook();
                                           }
                                         }
@@ -1348,13 +1373,6 @@ define([
             'Cancel': { click: (e) => { console.log('Graffiti: you cancelled:', $(e.target).parent()); } },
           }
         });
-      },
-
-      activateHidingOnCell: () => {
-        const selectedCell = Jupyter.notebook.get_selected_cell();
-        if (selectedCell !== undefined) {
-          utils.setCellGraffitiConfigEntry(selectedCell, 'hidden', true);
-        }
       },
 
       setSitePanelScrollTop: (scrollTop) => {
@@ -3652,7 +3670,7 @@ define([
 
       // If the skip key was down then we want to cancel the timeout it created, because a mouse click happened (e.g. option-select)
       handleGeneralClick: (e) => {
-        console.log('handled a click');
+        //console.log('handled a click');
         graffiti.clearSkipKeyDownTimer();
         return false;
       },
@@ -3796,20 +3814,6 @@ define([
         graffiti.executeSaveToFileDirectivesDebounced = _.debounce(graffiti.executeSaveToFileDirectives, 750, false);
         
         console.log('Graffiti: Background setup complete.');
-      },
-
-      hideHiddenCells: () => {
-        const cells = Jupyter.notebook.get_cells();
-        let cell, cellId;
-        for (let i = 0; i < cells.length; ++i) {
-          cell = cells[i];
-          cellId = utils.getMetadataCellId(cell.metadata);
-          const hidden = utils.getCellGraffitiConfigEntry(cell, 'hidden');
-          if (hidden) {
-            console.log('hiding cell:', cellId);
-            $('.cell[graffiti-cell-id="' + cellId + '"]:first').hide();
-          }
-        }
       },
 
       setRecordingTakeId: (recordingRecord) => {
@@ -4423,7 +4427,7 @@ define([
         graffiti.CMEvents[utils.getMetadataCellId(cell.metadata)] = true;
         const cm = cell.code_mirror;
         cm.on('focus', (cm, e) => {
-          //console.log('Graffiti: CM focus:' , cm, e);
+          console.log('Graffiti: CM focus:' , cm, e);
           // Check to see if we jumped from another cell to this cell with the arrow keys. If we did and we're recording, we need to
           // create a focus history record because jupyter is not firing the select cell event in those cases.
 
@@ -4518,7 +4522,7 @@ define([
         graffiti.addCMEventsToCells();
 
         Jupyter.notebook.events.on('select.Cell', (e, cell) => {
-          //console.log('cell select event fired, e, cell:',e, cell.cell);
+          console.log('cell select event fired, e, cell:',e, cell.cell);
           state.storeHistoryRecord('selectCell');
           graffiti.refreshGraffitiTooltipsDebounced();
           graffiti.updateControlPanels();
