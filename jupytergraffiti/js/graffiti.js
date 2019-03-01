@@ -1259,7 +1259,7 @@ define([
                                                 silenceWarnings: true
                                               },
                                               tooltipDirectives: [
-                                                '%%insert_data_from_file code \'./example.txt\'',
+                                                '%%insert_data_from_file code ./example.txt',
                                                 '%%label_swaps Show|Hide',
                                                 '%%silence_warnings',
                                               ],
