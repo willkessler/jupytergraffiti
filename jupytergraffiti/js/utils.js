@@ -33,7 +33,7 @@ define([
       setTimeout(() => {
         cell.unrender();
         cell.render();
-      },10); // needing to do this, is really weird. if you don't call this on a timeout, jupyter does not rerender the cell.
+      },1); // needing to do this, is really weird. if you don't call this on a timeout, jupyter does not rerender the cell.
     },
 
     generateUniqueId: () => {

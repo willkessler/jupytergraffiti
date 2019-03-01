@@ -3160,7 +3160,7 @@ define([
                   case 'label_swaps':
                     // Using this directive you can change the displayed text in a graffiti eg. in a graffiti button on a click. Separate
                     // the values using a pipe (|)
-                    const swaps = subParts.slice(2).join(' ').split('|');
+                    const swaps = subParts.slice(1).join(' ').split('|');
                     partsRecord.swappingLabels = true;
                     partsRecord.labelSwaps = swaps;
                     break;
@@ -4024,7 +4024,7 @@ define([
               }
             });
             
-            console.log('Graffiti: finishGraffiti: we got these stats:', state.getUsageStats());
+            console.log('Graffiti: finishGraffiti: we got these stats:', state.getUsageStats(), recording);
 
           } else { // Not saving (recording cancelled by user), so make sure we remove this record from the manifest before saving.
             if (recordingCellInfo.newRecording) {
@@ -5772,9 +5772,7 @@ define([
           const cellType = insertDataFromFile.cellType;
           const newCell = Jupyter.notebook.insert_cell_below((cellType === undefined ? 'markdown' : cellType), selectedCellIndex);
           newCell.set_text(contents);
-          if (cellType === 'markdown') {
-            utils.rerenderMarkdownCell(newCell);
-          }
+          newCell.render();
         })
         .catch((ex) => {
           console.log('Graffiti: executeInsertDataFromFile is unable to fetch data from path:', filePath);
@@ -5793,9 +5791,50 @@ define([
         });
       },
 
+      // Execute any "label swaps" on graffiti clicks.  This is smart enough to distinguish graffiti buttons from other graffiti.
+      executeLabelSwaps: (recording, playableMovie) => {
+        if (recording.swappingLabels === true) {
+          if ((recording.labelSwaps !== undefined) && (recording.labelSwaps.length === 2)) {
+            const viewInfo = state.getViewInfo();
+            const hoverCellId = viewInfo.cellId;
+            const hoverCell = utils.findCellByCellId(hoverCellId);
+            if (hoverCell.cell_type !== 'markdown') {
+              return; // we cannot do label swaps on code cells
+            }
+            const hoverCellText = hoverCell.get_text();
+            const startTag = '<span class="graffiti-highlight graffiti-' + playableMovie.recordingCellId + '-' + playableMovie.recordingKey + '">';
+            const startPos = hoverCellText.indexOf(startTag);
+            if (startPos >= 0) {
+              const endTag = '</span>';
+              endPos = hoverCellText.indexOf(endTag, startPos);
+              const startPastTag = startPos + startTag.length;
+              let currentLabel = hoverCellText.substr(startPastTag, endPos - startPastTag);
+              const buttonMatch = currentLabel.match(/(<i><\/i><button>)(.*?)(<\/button>)/);
+              if (buttonMatch !== null) {
+                currentLabel = buttonMatch[2];
+              }
+              if (currentLabel === recording.labelSwaps[1]) {
+                currentLabel = recording.labelSwaps[0];
+              } else {
+                currentLabel = recording.labelSwaps[1];
+              }
+              const newContents = hoverCellText.substr(0, startPastTag) + 
+                                     (buttonMatch !== null ? buttonMatch[1] : '') +
+                                  currentLabel +
+                                     (buttonMatch !== null ? buttonMatch[3] : '') +
+                                  hoverCellText.substr(endPos);
+              hoverCell.set_text(newContents);
+              hoverCell.render();
+            }
+          }
+        }
+      },
+
       cleanupAfterLoadAndPlayDidNotPlay: () => {
         graffiti.clearJupyterMenuHint();
         graffiti.changeActivity('idle');
+        graffiti.refreshAllGraffitiHighlights();
+        graffiti.refreshGraffitiTooltips(); 
         graffiti.updateControlPanels();
         utils.saveNotebook();
       },
@@ -5851,33 +5890,8 @@ define([
             graffiti.executeInsertDataFromFile(recording);
           }
 
-          // Execute a "label swap" directive. This is smart enough to distinguish graffiti buttons from other graffiti.
-          if (recording.swappingLabels === true) {
-            if ((recording.labelSwaps !== undefined) && (recording.labelSwaps.length === 2)) {
-              //const recordingCell = utils.findCellByCellId(
-              const recLabel = playableMovie.recordingCellId + '-' + playableMovie.recordingKey;
-              const currentLabelDOM = $('.graffiti-' + recLabel);
-              if (currentLabelDOM.length > 0) {
-                let currentLabel = currentLabelDOM.html();
-                const buttonCheck = currentLabel.match(/(<i><\/i><button>)(.*?)(<\/button)/);
-                if (buttonCheck !== null) {
-                  currentLabel = buttonCheck[2];
-                }
-                if (currentLabel === recording.labelSwaps[0]) {
-                  currentLabel = recording.labelSwaps[1];
-                } else if (currentLabel === recording.labelSwaps[1]) {
-                  currentLabel = recording.labelSwaps[0];
-                }
-                if (buttonCheck !== null) {
-                  const newButton = buttonCheck[1] + currentLabel + buttonCheck[3];
-                  window.wak = currentLabelDOM;                  
-                  currentLabelDOM.html(newButton);
-                } else {
-                  currentLabelDOM.html(currentLabel);
-                }
-              }
-            }
-          }
+          // Execute any "label swap" directive.
+          graffiti.executeLabelSwaps(recording, playableMovie);
 
           if (recording.terminalCommand !== undefined) {
             const terminalCommand = recording.terminalCommand;
