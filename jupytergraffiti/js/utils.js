@@ -265,6 +265,18 @@ define([
       return undefined;
     },
     
+    findCellIndexByCodeMirror: (cm) => {
+      for (let cell of utils.cellMaps.cells) {
+        if (cell.code_mirror === cm) {
+          const cellId = utils.getMetadataCellId(cell.metadata);
+          if (cellId !== undefined) {
+            return utils.findCellIndexByCellId(cellId);
+          }
+        }
+      }
+      return undefined;
+    },
+
     extractRecordingCellId: (selectedTokens) => {
       return ((selectedTokens.tagCellId !== undefined) && 
               (selectedTokens.tagCellId !== selectedTokens.recordingCellId) ? 

@@ -3381,10 +3381,11 @@ define([
 
               if (state.getActivity() === 'recordingPending') {
                 graffiti.toggleRecording(); // we want clicks on playOnClick to be ignored if a recording is pending.
+                return true; // let the focus bubble up so the cell is selected before the recording starts.
               } else {
                 graffiti.playMovieViaUserClick();
+                return false;
               }
-              return false;
             });
           }
 
@@ -4430,12 +4431,6 @@ define([
           console.log('Graffiti: CM focus:' , cm, e);
           // Check to see if we jumped from another cell to this cell with the arrow keys. If we did and we're recording, we need to
           // create a focus history record because jupyter is not firing the select cell event in those cases.
-
-          // debugging lack of focus in input text field
-          //          const focusCell = utils.findCellByCodeMirror(cm);
-          //          const focusCellId = utils.getMetadataCellId(focusCell.metadata);
-          //          console.log('focus cellId:', focusCellId);
-
           const activity = state.getActivity();
           if (activity === 'recording') {
             const cellId = utils.getMetadataCellId(cell.metadata);
@@ -4444,6 +4439,9 @@ define([
             }
             state.storeHistoryRecord('focus');
           } else if (activity === 'recordingPending') {
+            // Ensure this cell has focus before recording begins.
+            const focusCellIndex = utils.findCellIndexByCodeMirror(cm);
+            Jupyter.notebook.select(focusCellIndex);
             graffiti.toggleRecording();
           }
           graffiti.updateControlPanels(cm); // this is necessary since a focus change can happen when you arrow advance from one cell to the next cell
@@ -4522,7 +4520,7 @@ define([
         graffiti.addCMEventsToCells();
 
         Jupyter.notebook.events.on('select.Cell', (e, cell) => {
-          console.log('cell select event fired, e, cell:',e, cell.cell);
+          //console.log('cell select event fired, e, cell:',e, cell.cell);
           state.storeHistoryRecord('selectCell');
           graffiti.refreshGraffitiTooltipsDebounced();
           graffiti.updateControlPanels();
@@ -5110,7 +5108,12 @@ define([
           for (cellId of Object.keys(record.cellsSelections)) {
             selectionRecord = record.cellsSelections[cellId];
             selections = selectionRecord.selections;
-            // active = selectionRecord.active;
+            if (selectionRecord.active) {
+              const selectedCellIndex = utils.findCellIndexByCellId(cellId);
+              if (Jupyter.notebook.get_selected_index() !== selectedCellIndex) {
+                Jupyter.notebook.select(selectedCellIndex);
+              }
+            }
             cell = utils.findCellByCellId(cellId);
             if (cell !== undefined) {
               code_mirror = cell.code_mirror;
