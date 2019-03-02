@@ -1317,7 +1317,7 @@ define([
       setupMarkdownLocks: () => {
         graffiti.oldUnrender = graffiti.MarkdownCell.prototype.unrender;
         graffiti.MarkdownCell.prototype.unrender = () => {
-          console.log('Unrender fired.');
+          // console.log('Unrender fired.');
           const cell = Jupyter.notebook.get_selected_cell();
           if (cell !== undefined) {
             const cellId = utils.getMetadataCellId(cell.metadata);
@@ -3318,8 +3318,10 @@ define([
         const highlightRefreshCellId = state.getHighlightsRefreshCellId();
         if (highlightRefreshCellId !== undefined) {
           const highlightRefreshCell = utils.findCellByCellId(highlightRefreshCellId);
-          graffiti.refreshGraffitiHighlights({cell: highlightRefreshCell, clear: true});
-          graffiti.refreshGraffitiSideMarkers(highlightRefreshCell);
+          if (highlightRefreshCell !== undefined) {
+            graffiti.refreshGraffitiHighlights({cell: highlightRefreshCell, clear: true});
+            graffiti.refreshGraffitiSideMarkers(highlightRefreshCell);
+          }
           state.clearHighlightsRefreshableCell();
         }
       },
@@ -3424,9 +3426,11 @@ define([
                                      '</div>';
                 }
                 contentMarkdown = utils.renderMarkdown(recording.markdown)
-                // if no tooltip is defined, show a default message
+                // if no tooltip is defined, show a default message. in this case, entire tip becomes clickable to play any movie this graffiti may have
+                let entireTipClickable = false;
                 if ((contentMarkdown.length === 0) && (recording.hidePlayButton)) {
                   contentMarkdown = utils.renderMarkdown('_' + localizer.getString('TOOLTIP_HINT') + '_');
+                  entireTipClickable = true;
                 }
                 let tooltipContents = headlineMarkdown + '<div class="parts">' + '<div class="info">' + contentMarkdown + '</div>';
                 if ((recording.hasMovie) && (!recording.hidePlayButton)) {
@@ -3476,7 +3480,8 @@ define([
                 }
 
                 // Set up the call back for the play button on the tooltip that will actually play the movie.
-                existingTip.find('#graffiti-movie-play-btn').unbind('click').click((e) => {
+                let bindableTip = (entireTipClickable ? existingTip : existingTip.find('#graffiti-movie-play-btn'));
+                bindableTip.unbind('click').click((e) => {
                   state.clearTipTimeout();
                   e.stopPropagation(); // for reasons unknown event still propogates to the codemirror editing area undeneath...
                   graffiti.playMovieViaUserClick();
@@ -4428,7 +4433,7 @@ define([
         graffiti.CMEvents[utils.getMetadataCellId(cell.metadata)] = true;
         const cm = cell.code_mirror;
         cm.on('focus', (cm, e) => {
-          console.log('Graffiti: CM focus:' , cm, e);
+          // console.log('Graffiti: CM focus:' , cm, e);
           // Check to see if we jumped from another cell to this cell with the arrow keys. If we did and we're recording, we need to
           // create a focus history record because jupyter is not firing the select cell event in those cases.
           const activity = state.getActivity();
@@ -4710,6 +4715,13 @@ define([
               return;
             }
             console.log('Graffiti: Begin recording for cell id:', recordingCellInfo.recordingCellId);
+
+            // Pretend the button was clicked if this recording is attached to a button that inserts data from a file and/or swaps labels.
+            // This is because the instructor probably wants to record against the displayed inserted data.
+            graffiti.executeInsertDataFromFile(recordingCellInfo.recordingData, 
+                                               recordingCellInfo.recordingKey,
+                                               recordingCellInfo.recordingRecord,
+                                               graffiti.executeLabelSwaps);
 
             terminalLib.saveOrRestoreTerminalOutputs('save');
             state.resetPlayState();
@@ -5759,29 +5771,38 @@ define([
       },
 
 
-      executeInsertDataFromFile: (recording) => {
+      executeInsertDataFromFile: (recordingCellId, recordingKey, recording) => {
         const insertDataFromFile = recording.insertDataFromFile;
         const filePath = insertDataFromFile.filePath;
-        storage.fetchDataFile(filePath).then((contents) => {
+        let inserted = false;
+        return storage.fetchDataFile(filePath).then((contents) => {
           const cells = Jupyter.notebook.get_cells();
           const viewInfo = state.getViewInfo();
           const hoverCellId = viewInfo.cellId;
           const hoverCellIndex = utils.findCellIndexByCellId(hoverCellId);
           const nextCellIndex = hoverCellIndex + 1;
-          // if not on the last cell, verify that the next cell doesn't already contain the file contents.
+          // If not on the last cell, verify that the next cell doesn't already contain the file contents.
           if (hoverCellIndex < cells.length - 1) {
             const nextCell = cells[nextCellIndex];
             const nextCellContents = nextCell.get_text();
             if (nextCellContents === contents) {
               // Contents match, so delete the cell instead (it must have been previously inserted)
               Jupyter.notebook.delete_cell(nextCellIndex);
-              return;
+              return Promise.resolve(false);
             }
           }
+
           const cellType = insertDataFromFile.cellType;
           const newCell = Jupyter.notebook.insert_cell_below((cellType === undefined ? 'markdown' : cellType), hoverCellIndex);
+          // Override the randomly created cell id for this inserted cell with a fixed id based on the recording key. This way, any graffiti
+          // recorded for this directive will have a known graffiti cell id to record activity over.  When we start recording a movie
+          // for a graffiti with the insertDataFromFile directive, we should run this function first before beginning the movie recording
+          // so that we have the cell ready to record from.
+          utils.setMetadataCellId(newCell.metadata, recordingKey);
+          utils.refreshCellMaps();
           newCell.set_text(contents);
           newCell.render();
+          return Promise.resolve(true);
         })
         .catch((ex) => {
           console.log('Graffiti: executeInsertDataFromFile is unable to fetch data from path:', filePath);
@@ -5797,11 +5818,12 @@ define([
               }
             }
           });
+          return Promise.reject();
         });
       },
 
       // Execute any "label swaps" on graffiti clicks.  This is smart enough to distinguish graffiti buttons from other graffiti.
-      executeLabelSwaps: (recording, playableMovie) => {
+      executeLabelSwaps: (recording, recordingCellId, recordingKey, insertedData) => {
         if (recording.swappingLabels === true) {
           if ((recording.labelSwaps !== undefined) && (recording.labelSwaps.length === 2)) {
             const viewInfo = state.getViewInfo();
@@ -5813,7 +5835,7 @@ define([
             }
             Jupyter.notebook.select(hoverCellIndex);
             const hoverCellText = hoverCell.get_text();
-            const startTag = '<span class="graffiti-highlight graffiti-' + playableMovie.recordingCellId + '-' + playableMovie.recordingKey + '">';
+            const startTag = '<span class="graffiti-highlight graffiti-' + recordingCellId + '-' + recordingKey + '">';
             const startPos = hoverCellText.indexOf(startTag);
             if (startPos >= 0) {
               const endTag = '</span>';
@@ -5824,9 +5846,8 @@ define([
               if (buttonMatch !== null) {
                 currentLabel = buttonMatch[2];
               }
-              if (currentLabel === recording.labelSwaps[1]) {
-                currentLabel = recording.labelSwaps[0];
-              } else {
+              currentLabel = recording.labelSwaps[0];
+              if (insertedData) {
                 currentLabel = recording.labelSwaps[1];
               }
               const newContents = hoverCellText.substr(0, startPastTag) + 
@@ -5836,9 +5857,11 @@ define([
                                   hoverCellText.substr(endPos);
               hoverCell.set_text(newContents);
               hoverCell.render();
+              graffiti.refreshGraffitiTooltips(); 
             }
           }
         }
+        return Promise.resolve(insertedData);
       },
 
       cleanupAfterLoadAndPlayDidNotPlay: () => {
@@ -5896,14 +5919,6 @@ define([
           graffiti.cleanupAfterLoadAndPlayDidNotPlay();
           graffiti.setJupyterMenuHint(localizer.getString('CELL_EXECUTE_CHOICE_SET'));
         } else {
-          // Execute any "insert data from file" directives.
-          if (recording.insertDataFromFile !== undefined) {
-            graffiti.executeInsertDataFromFile(recording);
-          }
-
-          // Execute any "label swap" directive.
-          graffiti.executeLabelSwaps(recording, playableMovie);
-
           if (recording.terminalCommand !== undefined) {
             const terminalCommand = recording.terminalCommand;
             terminalLib.runTerminalCommand(terminalCommand.terminalId, terminalCommand.command, true);
@@ -5921,50 +5936,72 @@ define([
             });
             return; // we are done if we ran a terminal command, don't bother to load any movies for playback.
           }
-        }
 
+          const fireUpMovie = () => {
+            // next line seems to be extraneous and buggy because we create a race condition with the control panel. however what happens if a movie cannot be loaded?
+            // graffiti.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
 
-        // next line seems to be extraneous and buggy because we create a race condition with the control panel. however what happens if a movie cannot be loaded?
-        // graffiti.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
+            // Default is now to only replay cells involved in the recording (that got focus, selection, were drawn on, etc, but not moused over)
+            if (recording.replayAllCells === true) {
+              state.setShouldUpdateCellContentsDuringPlayback(true);
+            } else { // if false or undefined, only update cells affected by the recording
+              state.setShouldUpdateCellContentsDuringPlayback(false);
+            }
 
-        // Default is now to only replay cells involved in the recording (that got focus, selection, were drawn on, etc, but not moused over)
-        if (recording.replayAllCells === true) {
-          state.setShouldUpdateCellContentsDuringPlayback(true);
-        } else { // if false or undefined, only update cells affected by the recording
-          state.setShouldUpdateCellContentsDuringPlayback(false);
-        }
-
-        $('#graffiti-movie-play-btn').html('<i>' + localizer.getString('LOADING') + '</i>').prop('disabled',true);
-        graffiti.setJupyterMenuHint(localizer.getString('LOADING_PLEASE_WAIT'));
-        const historyData = state.getFromMovieCache('history', playableMovie);
-        const audioData   = state.getFromMovieCache('audio',   playableMovie);
-        if ((historyData !== undefined) && (audioData !== undefined)) {
-          state.setHistory(historyData);
-          audio.setRecordedAudio(audioData);
-          graffiti.startLoadedMovie(recording, playableMovie);
-        } else {
-          storage.fetchMovie(playableMovie).then( (movieData) => {
-            state.setHistory(movieData.history);
-            audio.setRecordedAudio(movieData.audio);
-            graffiti.startLoadedMovie(recording, playableMovie);
-          }).catch( (ex) => {
-            graffiti.cleanupAfterLoadAndPlayDidNotPlay();
-            if (!(recording.silenceWarnings === true)) {
-              dialog.modal({
-                title: localizer.getString('MOVIE_UNAVAILABLE'),
-                body:  localizer.getString('MOVIE_UNAVAILABLE_EXPLANATION'),
-                sanitize:false,
-                buttons: {
-                  'OK': {
-                    click: (e) => { 
-                      console.log('Graffiti: Missing movie acknowledged.'); 
+            $('#graffiti-movie-play-btn').html('<i>' + localizer.getString('LOADING') + '</i>').prop('disabled',true);
+            graffiti.setJupyterMenuHint(localizer.getString('LOADING_PLEASE_WAIT'));
+            const historyData = state.getFromMovieCache('history', playableMovie);
+            const audioData   = state.getFromMovieCache('audio',   playableMovie);
+            if ((historyData !== undefined) && (audioData !== undefined)) {
+              state.setHistory(historyData);
+              audio.setRecordedAudio(audioData);
+              graffiti.startLoadedMovie(recording, playableMovie);
+            } else {
+              storage.fetchMovie(playableMovie).then( (movieData) => {
+                state.setHistory(movieData.history);
+                audio.setRecordedAudio(movieData.audio);
+                graffiti.startLoadedMovie(recording, playableMovie);
+              }).catch( (ex) => {
+                graffiti.cleanupAfterLoadAndPlayDidNotPlay();
+                if (!(recording.silenceWarnings === true)) {
+                  dialog.modal({
+                    title: localizer.getString('MOVIE_UNAVAILABLE'),
+                    body:  localizer.getString('MOVIE_UNAVAILABLE_EXPLANATION'),
+                    sanitize:false,
+                    buttons: {
+                      'OK': {
+                        click: (e) => { 
+                          console.log('Graffiti: Missing movie acknowledged.'); 
+                        }
+                      }
                     }
-                  }
+                  });
                 }
+                console.log('Graffiti: could not load movie:', ex);
               });
             }
-            console.log('Graffiti: could not load movie:', ex);
-          });
+          };
+
+          // Execute any "insert data from file" directives.
+          if (recording.insertDataFromFile !== undefined) {
+            graffiti.executeInsertDataFromFile(playableMovie.recordingCellId, 
+                                               playableMovie.recordingKey,
+                                               recording)
+                    .then((results) => {
+                      return graffiti.executeLabelSwaps(recording, playableMovie.recordingCellId, playableMovie.recordingKey, results);
+                    }).then((results) => {
+                      if (results) {
+                        fireUpMovie(); // do not play a movie unless we actually inserted content with insertDataFromFile.
+                      } else {
+                        graffiti.cleanupAfterLoadAndPlayDidNotPlay();
+                      }
+                    }).catch(() => {
+                      graffiti.cleanupAfterLoadAndPlayDidNotPlay();
+                    });
+          } else {
+            // There are no insertDataFromFile directives, so just start the movie.
+            fireUpMovie();
+          }
         }
       },
 
