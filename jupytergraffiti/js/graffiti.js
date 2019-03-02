@@ -1260,7 +1260,7 @@ define([
                                               },
                                               tooltipDirectives: [
                                                 '%%insert_data_from_file code ./example.txt',
-                                                '%%label_swaps Show|Hide',
+                                                '%%label_swaps Show Solution|Hide Solution',
                                                 '%%silence_warnings',
                                               ],
                                             });
