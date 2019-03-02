@@ -4716,13 +4716,6 @@ define([
             }
             console.log('Graffiti: Begin recording for cell id:', recordingCellInfo.recordingCellId);
 
-            // Pretend the button was clicked if this recording is attached to a button that inserts data from a file and/or swaps labels.
-            // This is because the instructor probably wants to record against the displayed inserted data.
-            graffiti.executeInsertDataFromFile(recordingCellInfo.recordingData, 
-                                               recordingCellInfo.recordingKey,
-                                               recordingCellInfo.recordingRecord,
-                                               graffiti.executeLabelSwaps);
-
             terminalLib.saveOrRestoreTerminalOutputs('save');
             state.resetPlayState();
             graffiti.changeActivity('recording');
