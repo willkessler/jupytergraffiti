@@ -263,7 +263,8 @@
 #graffiti-skips-display-bar {
   display:none;
   position:absolute;
-  width:100%;
+  width:74px;
+  left:7px;
   top:-7px;
   height:20px;
   background:#5e5;
@@ -273,9 +274,6 @@
 .graffiti-skips-display-sub-bar {
   position:absolute;
   height:20px;
-}
-
-#graffiti-terminal-builder {
 }
 
 #graffiti-terminal-builder {
@@ -409,18 +407,18 @@
   cursor:pointer;
 }
 
-#graffiti-terminal-builder-body {
+#graffiti-terminal-builder-body > div {
   display:flex;
 }
 
-#graffiti-terminal-builder-body > div {
-  padding:3px;
-  margin:2px;
+#graffiti-terminal-builder-body > div > div {
+  padding:6px;
+  margin:4px;
   border:1px dashed grey;
   cursor:pointer;
 }
 
-#graffiti-terminal-builder-body > div:hover {
+#graffiti-terminal-builder-body > div > div:hover {
   border:1px solid red;
 }
 
@@ -497,9 +495,9 @@
 
 #graffiti-time-display-recording,
 #graffiti-time-display-playback {
-  padding: 4px 2px 0px 4px;
+  padding: 2px 2px 0px 2px;
   font-family:monospace;
-  font-size:0.9em;
+  font-size:1.1em;
   cursor:pointer;  
   position:absolute;
 }
@@ -509,6 +507,7 @@
 }
 
 #graffiti-time-display-recording {
+  font-weight:bold;
   color:red;
   height:20px;
   left:28px;
@@ -520,6 +519,42 @@
   border-radius:6px;
   background:red;
   margin-top:2px;
+}
+
+#graffiti-recording-button-help-shell {
+  display:flex;
+  align-items:center;
+  width:100%;
+  margin-bottom:-2px;
+}
+
+.graffiti-recording-button-help {
+  padding:0;
+  margin:5px;
+  display:flex;
+}
+
+.graffiti-recording-button-help span {
+  font-weight:bold;
+  border-bottom:1px dashed black;
+}
+
+
+.graffiti-keyboard-sim {
+  text-align:center;
+  padding:6px 5px;
+  font-size:1em;
+  font-weight:bold;
+  background:#ddd;
+  color:#222;
+  border-radius:6px;
+  border:1px solid #222;
+  font-style:none;
+  cursor:pointer;
+}
+
+.graffiti-keyboard-sim:hover {
+  background:#efefef;
 }
 
 #graffiti-notifier-prompt {
@@ -811,13 +846,18 @@ http://www.patternify.com/
   transform:rotate(180deg);
 }
 
-#graffiti-jupyter-menu-hint {
-  padding:2px 6px;
+.graffiti-jupyter-menu-hint {
+  padding:3px 30px;
   margin-left:10px;
   font-style:italic;
   color:#00d;
   background:#bbb;
   border-radius:2px;
+}
+
+.graffiti-jupyter-menu-alert {
+  background: #f44 !important;
+  color: #fff !important;
 }
 
 .graffiti-right-side-marker {
@@ -871,6 +911,6 @@ http://www.patternify.com/
   padding:3px;
 }
 
-#graffiti-locked-off {
+#graffiti-locked-on {
   display:none;
 }

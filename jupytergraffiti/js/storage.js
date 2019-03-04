@@ -2,8 +2,9 @@ define([
   './state.js',
   './audio.js',
   './utils.js',
+  './batchRunner.js',
   './LZString.js'
-], function (state,audio,utils, LZString) {
+], function (state, audio, utils, batchRunner, LZString) {
 
   //
   // Storage tree is organized like this:
@@ -30,12 +31,11 @@ define([
     defaultKernel: 'python3',
     executorCell: undefined,
     movieCompleteCallback: undefined,
+    preloadBatchSize: 4,
 
     createExecutorCell: () => {
       if (storage.executorCell === undefined) {
-        const cells = Jupyter.notebook.get_cells();
-        const numCells = cells.length;
-        storage.executorCell = Jupyter.notebook.insert_cell_below('code', numCells);
+        storage.executorCell = Jupyter.notebook.insert_cell_at_bottom('code');
         state.storePreviousActivity();
         state.setActivity('executing');
       }
@@ -68,7 +68,7 @@ define([
         case utils.cplusplusKernel14:
         case utils.cplusplusKernel17:
           writeMagic = '%%file';
-          chunkSize = 10000;
+          chunkSize = 7000;
           break;
         case utils.pythonKernel:
           writeMagic = '%%writefile';
@@ -217,7 +217,7 @@ define([
         };
       }
       state.setMovieRecordingStarted(false);
-      console.log('Graffiti: completeMovieStorage is saving manifest, current kernel', Jupyter.notebook.kernel.name);
+      console.log('Graffiti: completeMovieStorage is saving manifest for recording:', recording, ', current kernel', Jupyter.notebook.kernel.name);
       storage.storeManifest();
       utils.saveNotebook(() => {
         storage.executeMovieCompleteCallback();
@@ -256,12 +256,13 @@ define([
       if (jsonHistory !== undefined) {
         //console.log(jsonHistory);
         const encodedAudio = audio.getRecordedAudio();
+        const keys = {
+          recordingCellId: recordingCellInfo.recordingCellId,
+          recordingKey: recordingCellInfo.recordingKey,
+          activeTakeId: recordingCellInfo.recordingRecord.activeTakeId
+        };
         storage.writeOutMovieData(
-          {
-            recordingCellId: recordingCellInfo.recordingCellId,
-            recordingKey: recordingCellInfo.recordingKey,
-            activeTakeId: recordingCellInfo.recordingRecord.activeTakeId
-          },
+          keys,
           jsonHistory, 
           encodedAudio).then(() => {
             storage.completeMovieStorage();
@@ -305,7 +306,7 @@ define([
           //console.log('uncompressed manifest:', uncompressedManifestString);
           const manifestDataParsed = JSON.parse(uncompressedManifestString);
           state.setManifest(manifestDataParsed);
-          console.log('Graffiti Manifest:', manifestDataParsed);
+          console.log('Graffiti Manifest:', manifestDataParsed['id_iermcbu']);
         }
       });
     },
@@ -321,7 +322,7 @@ define([
       const manifestInfo = storage.constructManifestPath();
       const base64CompressedManifest = LZString.compressToBase64(JSON.stringify(manifest));
       const manifestFullFilePath = manifestInfo.path + manifestInfo.file;
-      console.log('Graffiti: Saving manifest to:', manifestFullFilePath);
+      console.log('Graffiti: Saving manifest to:', manifestFullFilePath, manifest);
       
       storage.runShellCommand('mkdir -p ' + manifestInfo.path);
       storage.writeTextToFile({ path: manifestFullFilePath, 
@@ -330,16 +331,43 @@ define([
       storage.cleanUpExecutorCell();
     },
 
+    // Compute the ids of any cells affected during this recording.
+    computeAffectedCells: (history) => {
+      history.affectedCellIds = {};
+      let i, viewRec, drawingRec;
+
+      for (i = 1; i < history.contents.length; ++i) {
+        Object.keys(history.contents[i]).map((key) => { 
+          if (history.contents[i][key].data !== undefined) {
+            history.affectedCellIds[key] = true 
+          }
+        });
+      }
+      history.view.map((viewRec) => {
+        if ((viewRec.subType === 'focus') || (viewRec.subType === 'innerScroll')) {
+          history.affectedCellIds[viewRec.cellId] = true;
+        } else if (viewRec.subType === 'selectCell') {
+          history.affectedCellIds[viewRec.selectedCellId] = true;
+        }
+      });
+      history.drawings.map((drawRec) => {
+        history.affectedCellIds[drawRec.cellId] = true;
+      });
+      Object.keys(history.cellAdditions).map((key) => {
+        history.affectedCellIds[key] = true;
+      });
+    },
+
     //
-    // Load a movie.
+    // Fetch a movie and store it into the movies cache in state.
     // Returns a promise.
     //
-    loadMovie: (recordingCellId, recordingKey, activeTakeId) => {
+    fetchMovie: (data) => {
       const notebookRecordingId = Jupyter.notebook.metadata.graffiti.id;
       const graffitiPath = storage.constructGraffitiTakePath( {
-        recordingCellId: recordingCellId,
-        recordingKey: recordingKey,
-        takeId: activeTakeId,
+        recordingCellId: data.recordingCellId,
+        recordingKey: data.recordingKey,
+        takeId: data.activeTakeId,
       });
       const credentials = { credentials: 'include'};
       storage.successfulLoad = false; /* assume we cannot fetch this recording ok */
@@ -356,8 +384,9 @@ define([
           const uncompressedHistory = LZString.decompressFromBase64(base64CompressedHistory);
           //console.log('uncompressedHistory:', uncompressedHistory);
           const parsedHistory = JSON.parse(uncompressedHistory);
-          state.storeWholeHistory(parsedHistory);
-          console.log('Graffiti: Loaded previous history:', parsedHistory);
+          // Compute "affected" cells for the history.
+          storage.computeAffectedCells(parsedHistory);
+          // console.log('Graffiti: Loaded previous history:', parsedHistory);
           const audioUrl = graffitiPath + 'audio.txt';
           return fetch(audioUrl, { credentials: 'include' }).then((response) => {
             if (!response.ok) {
@@ -366,8 +395,11 @@ define([
             return response.text();
           }).then(function(base64CompressedAudio) {
             try {
-              audio.setRecordedAudio(base64CompressedAudio);
+              //console.log('history', parsedHistory);
+              state.storeToMovieCache('history', data, parsedHistory);
+              state.storeToMovieCache('audio',   data, base64CompressedAudio);
               storage.successfulLoad = true;
+              return ({ history: parsedHistory, audio: base64CompressedAudio });
             } catch(ex) {
               console.log('Graffiti: Could not parse saved audio, ex:', ex);
               return Promise.reject('Could not parse saved audio, ex :' + ex);
@@ -380,6 +412,34 @@ define([
       }).catch((ex) => {
         console.log('Graffiti: Could not fetch history file for history, ex:', ex);
         return Promise.reject('Could not fetch history file');
+      });
+    },
+
+    preloadAllMovies: () => {
+      let allRecords = [], dataRecord, recordingCellId, recordingKeys, recording;
+      const manifest = state.getManifest();
+      for (recordingCellId of Object.keys(manifest)) {
+        recordingKeys = Object.keys(manifest[recordingCellId]);
+        if (recordingKeys.length > 0) {
+          for (recordingKey of recordingKeys) {
+            recording = state.getManifestSingleRecording(recordingCellId, recordingKey);
+            if (recording.activeTakeId !== undefined) {
+              dataRecord = { 
+                recordingCellId: recordingCellId,
+                recordingKey: recordingKey,
+                activeTakeId: recording.activeTakeId
+              }
+              allRecords.push(dataRecord);
+            }
+          }
+        }
+      }
+      const callback = (data) => {
+        storage.fetchMovie(data);
+      }
+      batchRunner.start(storage.preloadBatchSize, callback, allRecords).then(() => { 
+        console.log('Graffiti: preloading completed.');
+        state.refreshCellIdToGraffitiMap();
       });
     },
 
@@ -472,6 +532,24 @@ define([
         storage.cleanUpExecutorCell();
         utils.saveNotebook();
       }
+    },
+
+    fetchDataFile: (filePath) => {
+      const nbDir = utils.getNotebookDirectory();
+      let fullPath = '/tree';
+      if (nbDir !== undefined) {
+        fullPath += '/' + nbDir;
+      }
+      fullPath += '/' + filePath;
+      return fetch(fullPath, { credentials: 'include' }).then((response) => {
+        if (!response.ok) {
+          throw Error(response.statusText);
+        }
+        return response.text();
+      }).catch((ex) => {
+        console.log('Graffiti: could not fetch data file at :', filePath);
+        return Promise.reject('Could not fetch data file at :' + filePath);
+      });
     },
 
   }

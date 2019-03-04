@@ -8,9 +8,9 @@
 
 define ([
   'base/js/utils',
-  '../utils.js',
-  './xterm.js',
-  './addons/fit/fit.js',
+  './utils.js',
+  './xterm/xterm.js',
+  './xterm/addons/fit/fit.js',
 ], (jupyterUtils, utils, terminalLib, fit) => {
   const terminals = {
 
@@ -194,20 +194,10 @@ define ([
         terminalId = cellId;
       }
       if (cellId !== undefined) {
-        const fullNotebookPath = Jupyter.notebook.notebook_path;
-        let notebookPath, notebookPathParts;
-        if (fullNotebookPath.indexOf('/') === -1) {
-          notebookPath = fullNotebookPath;
-          if (notebookPath.indexOf('.ipynb') !== -1) {
-            notebookPath = undefined; // at the top level, we don't set a CD command
-          }
-        } else {
-          notebookPathParts = fullNotebookPath.split('/');
-          notebookPath = notebookPathParts.slice(0,notebookPathParts.length - 1).join('/');
-        }
+        const notebookDirectory = utils.getNotebookDirectory();
         const graffitiConfig = {
           type : 'terminal',
-          startingDirectory: notebookPath,
+          startingDirectory: notebookDirectory,
           terminalId: terminalId, // defaults to the graffiti cell id, but can be changed if author wants to display the same terminal twice in one notebook.
           rows: 6, // default is 6 but can be changed in metadata
         };
@@ -270,7 +260,7 @@ define ([
       if (terminals.renderQueue.length > 0) {
         const rq = terminals.renderQueue.shift();
         const cellId = utils.getMetadataCellId(rq.cell.metadata);
-        console.log('Processing render queue entry:', rq);
+        // console.log('Processing render queue entry:', rq);
         terminals.createTerminalCell(cellId, rq.cell.metadata.graffitiConfig);
         // make sure you can't double click this cell because that would break the terminal
         $(rq.cell.element[0]).unbind('dblclick').bind('dblclick', ((e) => { 

@@ -10,6 +10,7 @@ define([
   'js/storage.js',
   'js/udacityUser.js'
 ], (Jupyter, Graffiti, utils, storage, udacityUser) => {
+  console.log('Graffiti loaded:', Graffiti);
   function load_ipython_extension() {
     console.log('Graffiti loaded:', Graffiti);
 
@@ -45,4 +46,5 @@ define([
   return {
     load_ipython_extension: load_ipython_extension
   };
+
 });

@@ -14,6 +14,28 @@ define([
       return str + "\n";
     },
 
+    getNotebookDirectory: () => {
+      const fullNotebookPath = Jupyter.notebook.notebook_path;
+      let notebookPath, notebookPathParts;
+      if (fullNotebookPath.indexOf('/') === -1) {
+        notebookPath = fullNotebookPath;
+        if (notebookPath.indexOf('.ipynb') !== -1) {
+          notebookPath = undefined; // at the top level, we don't set a CD command
+        }
+      } else {
+        notebookPathParts = fullNotebookPath.split('/');
+        notebookPath = notebookPathParts.slice(0,notebookPathParts.length - 1).join('/');
+      }
+      return notebookPath;
+    },
+
+    rerenderMarkdownCell: (cell) => {
+      setTimeout(() => {
+        cell.unrender();
+        cell.render();
+      },1); // needing to do this, is really weird. if you don't call this on a timeout, jupyter does not rerender the cell.
+    },
+
     generateUniqueId: () => {
       return 'id_' + Math.random().toString(36).substr(2, 7);
     },
@@ -150,6 +172,15 @@ define([
       return undefined;
     },
 
+    getCellGraffitiConfigEntry: (cell, key) => {
+      if (cell.metadata.hasOwnProperty('graffitiConfig')) {
+        if (cell.metadata.graffitiConfig.hasOwnProperty(key)) {
+          return cell.metadata.graffitiConfig[key];
+        }
+      }
+      return undefined;
+    },
+
     getNotebookGraffitiConfigEntry: (key) => {
       if (Jupyter.notebook.metadata.hasOwnProperty('graffiti')) {
         return Jupyter.notebook.metadata['graffiti'][key];
@@ -163,16 +194,20 @@ define([
       }
     },
 
+    // Also note any graffitis present in this cell, if it is a markdown cell, so that we can process their removal correctly if the user 
+    // has moved them from where they were created originally (for instance, graffiti buttons).
     refreshCellMaps: () => {
       utils.cellMaps = {
         cells: Jupyter.notebook.get_cells(),
-        maps: {}
+        maps: {},
+        location: {}, // the id of the cell every graffiti is actually currently located in (may not be the cell where it was created)
       }
-      let cell, cellDOM, cellKeys = Object.keys(utils.cellMaps.cells);
+      let cell, cellId, cellDOM, tagsRe,graffitiId, cellKeys = Object.keys(utils.cellMaps.cells);
       for (let cellIndex = 0; cellIndex < cellKeys.length; ++cellIndex) {
         cell = utils.cellMaps.cells[cellIndex];
-        // supports lookups by cellId
-        utils.cellMaps.maps[utils.getMetadataCellId(cell.metadata)] = cellIndex;
+        cellId = utils.getMetadataCellId(cell.metadata);
+        // Support lookups by cellId.
+        utils.cellMaps.maps[cellId] = cellIndex;
         // Dress up the DOM  cellId so we can track selections in them (pretty much only markdown, selections in code_mirror are done through its API
         if (cell.hasOwnProperty('inner_cell')) {
           cellDOM = $(cell.inner_cell).parents('.cell');
@@ -182,7 +217,27 @@ define([
         if (cellDOM !== undefined) {
           cellDOM.attr({ 'graffiti-cell-id' : utils.getMetadataCellId(cell.metadata)});
         }
+        if (cell.cell_type === 'markdown') {
+          contents = cell.get_text();
+          tagsRe = utils.createGraffitiTagRegex();
+          let match, idMatch;
+          while ((match = tagsRe.exec(contents)) !== null) { 
+            idMatch = match[1].match(/graffiti-(id_.[^\-]+)-(id_[^\s]+)/);
+            graffitiId = idMatch[1] + '_' + idMatch[2];
+            utils.cellMaps.location[graffitiId] = cellId;
+          }        
+        }
+        //console.trace('cellMaps',utils.cellMaps.location);
       }
+    },
+
+    findCellIdByLocationMap: (recordingCellId, recordingKey) => {
+      const graffitiId = recordingCellId + '_' + recordingKey;
+      if (utils.cellMaps.location[graffitiId] !== undefined) {
+        return utils.cellMaps.location[graffitiId];
+      }
+
+      return undefined;
     },
 
     findCellIndexByCellId: (cellId) => {
@@ -210,6 +265,25 @@ define([
       return undefined;
     },
     
+    findCellIndexByCodeMirror: (cm) => {
+      for (let cell of utils.cellMaps.cells) {
+        if (cell.code_mirror === cm) {
+          const cellId = utils.getMetadataCellId(cell.metadata);
+          if (cellId !== undefined) {
+            return utils.findCellIndexByCellId(cellId);
+          }
+        }
+      }
+      return undefined;
+    },
+
+    extractRecordingCellId: (selectedTokens) => {
+      return ((selectedTokens.tagCellId !== undefined) && 
+              (selectedTokens.tagCellId !== selectedTokens.recordingCellId) ? 
+              selectedTokens.tagCellId : 
+              selectedTokens.recordingCellId);
+    },
+
     getCellRects: (cell) => {
       const cellElement = $(cell.element[0]);
       const cellRect = cellElement[0].getBoundingClientRect();
@@ -337,13 +411,17 @@ define([
       }
     },
 
-// Legacy
-/*
-    collectTokenStrings: (allTokens, tokens) => {
-      const subTokens = allTokens.slice(tokens.firstTokenOffset, tokens.firstTokenOffset + tokens.extraTokens + 1);
-      return subTokens.reduce( (tokensString, token) => { tokensString + token.string } )
+    // Legacy
+    /*
+       collectTokenStrings: (allTokens, tokens) => {
+       const subTokens = allTokens.slice(tokens.firstTokenOffset, tokens.firstTokenOffset + tokens.extraTokens + 1);
+       return subTokens.reduce( (tokensString, token) => { tokensString + token.string } )
+       },
+     */
+
+    createGraffitiTagRegex: () => {
+      return RegExp('<span class="graffiti-highlight (graffiti-[^"]+)">(.*?)</span>','gm');
     },
-*/
 
     // Find out whether the current selection intersections with any graffiti token ranges, or which tokens are in the selection if not.
     findSelectionTokens: (recordingCell,  tokenRanges, state) => {
@@ -366,7 +444,7 @@ define([
         // If in a markdown cell, the selection "tokens" are simply the selection, but only if the selection is 2 characters or more. We do not try to use
         // code mirror's tokenizer tools within markdown cells as there's other stuff like html in a markdown cell that could be confusing to it.
         const contents = recordingCell.get_text();
-        let tagsRe = RegExp('<span class="graffiti-highlight (graffiti-[^"]+)">(.*?)</span>','gm')
+        let tagsRe = utils.createGraffitiTagRegex();
         let tags = [], match, tag;
         let idMatch;
         while ((match = tagsRe.exec(contents)) !== null) { 
@@ -400,6 +478,9 @@ define([
               noTokensPresent: false,
               recordingCell: recordingCell,
               recordingCellId: recordingCellId,
+              // If the graffiti was moved around, then the cell id in its tag won't match the cell where it's found. 
+              // We store this here to detect this situation so we can track down the graffiti recording that used to be in a different cell.
+              tagCellId: tag.recordingCellId, 
               recordingKey: tag.recordingKey, 
               hasMovie: hasMovie,
               allTokensString: tag.innerText,

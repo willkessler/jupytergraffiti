@@ -1,13 +1,16 @@
 define([
   './utils.js',
-  './xterm/terminals.js',
+  './terminals.js',
 ], function (utils, terminalLib) {
   const state = {
     init: () => {
       console.log('Graffiti: state constructor running.');
       state.history = undefined;
       state.manifest = {};
-      state.utils = utils;
+      state.movieCache = {
+        history: {},
+        audio: {}
+      };
       state.accessLevel = 'view'; // one of 'create' or 'view'. If 'create' then we can create new graffitis, otherwise we can only view them
       state.authorId = undefined; // set when we activivateGraffiti or load a manifest
       state.authorType = 'creator';  // currently hardwired to be creator (teacher).
@@ -15,12 +18,13 @@ define([
       state.recordingBlocked = false;
       state.activity = 'idle'; // one of "recording", "playing", "idle"
       state.previousActivity = undefined;
+      state.shouldUpdateCellContentsDuringPlayback = false;
       state.pointer = { x : 0, y: 0 };
       state.windowSize = state.getWindowSize();
       state.resetOnNextPlay = false;
       state.recordedAudioString = '';
       state.audioStorageCallback = undefined;
-      state.frameArrays = ['view', 'selections', 'contents', 'drawings', 'terminals', 'speaking'];
+      state.frameArrays = ['view', 'selections', 'contents', 'drawings', 'terminals', 'speaking', 'skip'];
       state.scrollTop = undefined;
       state.selectedCellId = undefined;
       state.mute = false;
@@ -62,10 +66,9 @@ define([
       state.userId = undefined;
       state.workspace = {};
       state.speakingStatus = false; // true when the graffiti creator is currently speaking (not silent)
-      state.skipStatus = 0; // value to show we have activated a skip, and what speed (0 = regular speed/user choice, 1 = fixed compression, 2,3,4 = 2x,3x,4x.
       state.editingSkips = false;
-      state.replacingSkips = false;
       state.currentSkipRecord = 0;
+      state.appliedSkipRecord = undefined;
       state.cellStates = {
         contents: {},
         changedCells: {},
@@ -77,8 +80,10 @@ define([
       state.graffitiEditCellId = undefined;
       state.narratorInfo = {};
       state.shiftKeyIsDown = false;
+      state.shiftKeyWentDown = false;
       state.executionSourceChoiceId = undefined;
       state.terminalState = undefined;
+      state.cellIdToGraffitiMap = {}; // maps which graffitis are present in which cells. Used for autosave cells.
 
       // Usage statistic gathering for the current session (since last load of the notebook)
       state.usageStats = {
@@ -131,6 +136,8 @@ define([
       state.SKIP_STATUS_4X =        4;
       state.SKIP_STATUS_ABSOLUTE = -1;
 
+      state.END_RECORDING_KEYDOWN_TIMEOUT = 1200;
+
       state.skipStatusColorMap = {};
       state.skipStatusColorMap[state.SKIP_STATUS_NONE] = '5e5';
       state.skipStatusColorMap[state.SKIP_STATUS_COMPRESS] = 'ddd';
@@ -147,6 +154,8 @@ define([
       state.skipStatusCaptions[state.SKIP_STATUS_4X] = '4x speed';
       state.skipStatusCaptions[state.SKIP_STATUS_ABSOLUTE] = 'Skip entire section';
       
+      state.skipStatus = state.SKIP_STATUS_NONE; // value to show we have activated a skip, and what speed (0 = regular speed/user choice, 1 = fixed compression, 2,3,4 = 2x,3x,4x.
+
       utils.refreshCellMaps();
 
     },
@@ -195,6 +204,34 @@ define([
         state.manifest[recordingCellId] = {};
       }
       state.manifest[recordingCellId][recordingKey] = recordingData;
+    },
+
+    refreshCellIdToGraffitiMap: () => {
+      state.cellIdToGraffitiMap = {};
+      const manifest = state.getManifest();
+      let recording, recordingCellId, recordingKeys, i, saveToFileEntry, cellId;
+      for (recordingCellId of Object.keys(manifest)) {
+        recordingKeys = Object.keys(manifest[recordingCellId]);
+        for (recordingKey of recordingKeys) {
+          recording = manifest[recordingCellId][recordingKey];
+          if ((recording.saveToFile !== undefined) && (recording.saveToFile.length > 0)) {
+            for (i = 0; i < recording.saveToFile.length; ++i) {
+              saveToFileEntry = recording.saveToFile[i];
+              cellId = saveToFileEntry.cellId;
+              if (state.cellIdToGraffitiMap[cellId] === undefined) {
+                state.cellIdToGraffitiMap[cellId] = [];
+              }
+              state.cellIdToGraffitiMap[cellId].push(saveToFileEntry.path);
+            }
+          }
+        }
+      }
+      console.log('cellIdToGraffitiMap:', state.cellIdToGraffitiMap);
+
+    },
+
+    getCellIdToGraffitiMap: (cellId) => {
+      return state.cellIdToGraffitiMap[cellId];
     },
 
     // compute aggregate stats for this manifest: total number and time of all graffitis, how many cells have graffitis, etc.
@@ -293,21 +330,21 @@ define([
       state.storeHistoryRecord('speaking'); // record speaking status, if we are currently recording
     },
     
+
+    clearHighlightsRefreshableCell: () => {
+      state.highlightsRefreshCellId = undefined;
+    },
+
     getSkipStatus: () => {
       return state.skipStatus;
     },
 
-    setSkipStatus: (skipStatus) => {
-      if (state.skipStatus === skipStatus) {
-        state.skipStatus = state.SKIP_STATUS_NONE;
-      } else {
-        state.skipStatus = skipStatus;
-      }
-      state.storeHistoryRecord('skip'); // record skip status, if we are currently in a skip (time compression)
+    isSkipping: () => {
+      return state.skipStatus !== state.SKIP_STATUS_NONE;
     },
 
-    clearHighlightsRefreshableCell: () => {
-      state.highlightsRefreshCellId = undefined;
+    resetSkipStatus: () => {
+      state.skipStatus = state.SKIP_STATUS_NONE;
     },
 
     getEditingSkips: () => {
@@ -319,12 +356,15 @@ define([
       state.editingSkips = val;
     },
 
-    getReplacingSkips: () => {
-      return state.replacingSkips;
-    },
-
-    setReplacingSkips: (val) => {
-      state.replacingSkips = val;
+    toggleRecordingSkip: () => {
+      //console.trace('toggleRecordingSkip', state.skipStatus);
+      if (state.skipStatus === state.SKIP_STATUS_NONE) {
+        state.skipStatus = state.SKIP_STATUS_ABSOLUTE;
+      } else {
+        state.skipStatus = state.SKIP_STATUS_NONE;
+      }
+      //console.log('after toggleRecordingSkip, status', state.skipStatus);
+      state.storeSkipRecord();
     },
 
     getCurrentSkipRecord: () => {
@@ -334,33 +374,87 @@ define([
     // If the current time is in the current (or next) skip record, return the skip record.
     timeInSkipRecordRange: (t) => {
       if (state.currentSkipRecord !== undefined) {
-        const record = state.history.skips[state.currentSkipRecord];
-        if ((record.startTime <= t) && (t < record.endtime)) {
+        const record = state.history.skip[state.currentSkipRecord];
+        //console.log('timeInSkipRecordRange, checking time t', t, 'against record', record);
+        if ((record.startTime <= t) && (t < record.endTime) && (state.appliedSkipRecord !== state.currentSkipRecord)) {
           return record;
         }
       }
       return undefined;
     },
 
+    setAppliedSkipRecord: () => {
+      state.appliedSkipRecord = state.currentSkipRecord;
+    },
+    
+    clearAppliedSkipRecord: () => {
+      state.appliedSkipRecord = undefined;
+    },
+
     // Set the current or next skip record by scanning from 0 to the time given, looking
     // for a skip record that either straddles the time given, or is greater than the time
     // given (next skip record).
-    setCurrentSkipRecord: (t) => {
-      if (t === undefined) {
-        t = state.getTimePlayedSoFar();
-      }
+    updateCurrentSkipRecord: () => {
+      const t = state.getTimePlayedSoFar();
       let record;
       state.currentSkipRecord = undefined;
-      for (let i = 0; i < state.history.skips; ++i) {
-        record = state.history.skips[i];
-        if ((record.startTime <= t) && (t < record.endTime)) {
-          state.currentSkipRecord = i;
-          break;
-        } else if (record.startTime > t) {
-          state.currentSkipRecord = i;
-          break;
+      if (state.history.skip !== undefined) {
+        for (let i = 0; i < state.history.skip.length; ++i) {
+          record = state.history.skip[i];
+          if (((record.startTime <= t) && (t < record.endTime)) ||
+              (record.startTime > t)) {
+            state.currentSkipRecord = i;
+            break;
+          }
         }
       }
+    },
+
+    createSkipRecord: () => {
+      return { status: state.skipStatus };
+    },
+
+    // Create an absolute skip record for the very end of the recording for the time it was being cancelled (ctrl-key held down).
+    addCancelTimeSkipRecord: () => {
+      state.skipStatus = state.SKIP_STATUS_ABSOLUTE;
+      const record = state.createSkipRecord();
+      record.startTime = state.history.duration - state.END_RECORDING_KEYDOWN_TIMEOUT;
+      record.endTime = state.history.duration - 1;
+      state.history['skip'].push(record);
+
+      console.log('after addCancelTimeSkipRecord, skip history:', state.history['skip']);
+    },
+
+    getSkipsRecords: () => {
+      return state.history['skip'];
+    },
+
+    clearSkipsRecords: () => {
+      state.history['skip'] = [];
+    },
+
+    storeSkipRecord: () => {
+      const newSkipStatus = state.getSkipStatus();
+      const numRecords = state.history['skip'].length;
+      if (numRecords > 0) {
+        if (newSkipStatus === state.SKIP_STATUS_NONE) {
+          // Close off last record created with an end time, if it exists.
+          const lastRecord = state.history['skip'][numRecords - 1];
+          if (!lastRecord.hasOwnProperty('endTime')) {
+            lastRecord.endTime = utils.getNow();
+            console.log('closed off previous record:', lastRecord);
+            if (lastRecord.endTime - lastRecord.startTime < 10) {
+              // Delete this record as it has insignificant time in it, ie user just flipped the button on and off.
+              state.history['skip'].pop();
+            } 
+          }
+        }
+      }
+      if (newSkipStatus !== state.SKIP_STATUS_NONE) {
+        // Only add a new skip record when beginning a skip period.
+        state.storeHistoryRecord('skip');
+      }
+      console.log('after storeSkipRecord, skip history:', state.history['skip']);
     },
 
     setExecutionSourceChoiceId: (choiceId) => {
@@ -381,6 +475,18 @@ define([
 
     setShiftKeyIsDown: (val) => {
       state.shiftKeyIsDown = val;
+    },
+
+    getShiftKeyWentDown: () => {
+      return state.shiftKeyWentDown;
+    },
+
+    setShiftKeyWentDown: () => {
+      state.shiftKeyWentDown = true;
+    },
+
+    clearShiftKeyWentDown: () => {
+      state.shiftKeyWentDown = false;
     },
 
     getGraffitiEditCellId: () => {
@@ -414,32 +520,6 @@ define([
         }
       }
       return currentSpeakingStatus;
-    },
-
-    // Set the start and end time of where the first speaking period began and the last speaking period ends and put these into
-    // absolute skip records
-    addSpeakingLimitsSkipRecords: () => {
-      let record;
-      if (state.history.speaking.length >= 2) {
-        const lastRec = state.history.speaking.length - 1;
-        state.setSkipStatus(state.SKIP_STATUS_ABSOLUTE);
-        record = state.createSkipRecord();
-        record.startTime = 0;
-        record.endTime = state.history.speaking[0].startTime - 1;
-        state.history['skip'].push(record);
-
-        state.setSkipStatus(state.SKIP_STATUS_NONE);
-        record = state.createSkipRecord();
-        record.startTime = state.history.speaking[0].startTime;
-        record.endTime = state.history.speaking[lastRec].startTime - 1;
-        state.history['skip'].push(record);
-
-        state.setSkipStatus(state.SKIP_STATUS_ABSOLUTE);
-        record = state.createSkipRecord();
-        record.startTime = state.history.speaking[lastRec].startTime;
-        record.endTime = state.history.duration;
-        state.history['skip'].push(record);
-      }
     },
 
     setHighlightsRefreshCellId: (cellId) => {
@@ -1071,7 +1151,6 @@ define([
     },
 
     storeViewInfo: (viewInfo) => {
-      // console.log('storeViewInfo, hover cellId:', viewInfo.cellId);
       if (viewInfo.cellId !== undefined) { // may not be set if cursor is btwn cells
         state.viewInfo = $.extend({}, viewInfo);
       }
@@ -1108,20 +1187,19 @@ define([
     },
 
     setPlayableMovie: (kind, cellId, recordingKey) => {
-      //console.log('setPlayableMovie, cellId, recordingKey:', cellId,recordingKey);
       const cell = utils.findCellByCellId(cellId);
-      if (cell !== undefined) {
-        const recording = state.getManifestSingleRecording(cellId, recordingKey);
-        const activeTakeId = recording.activeTakeId;
-        state.playableMovies[kind] = { recordingCellId: cellId, recordingKey: recordingKey, activeTakeId: activeTakeId, cell: cell, cellType: cell.cell_type, };
-        state.setStickerImageCandidateUrl(recording.stickerImageUrl);
-        return recording;
-      }
-      return undefined;
+      const cellType = (cell === undefined ? undefined : cell.cell_type);
+      const recording = state.getManifestSingleRecording(cellId, recordingKey);
+      const activeTakeId = recording.activeTakeId;
+      state.playableMovies[kind] = { recordingCellId: cellId, recordingKey: recordingKey, activeTakeId: activeTakeId, cell: cell, cellType: cellType };
+      state.setStickerImageCandidateUrl(recording.stickerImageUrl);
+
+      //console.trace('setPlayableMovie, kind:', kind, 'cellId:', cellId, 'recordingKey:',recordingKey, 'playableMovies:', state.playableMovies);
+      return recording;
     },
 
     clearPlayableMovie: (kind) => {
-      //console.log('Graffiti: clearing playable movie');
+      //console.trace('Graffiti: clearing playable movie of kind', kind);
       state.playableMovies[kind] = undefined;
     },
 
@@ -1180,6 +1258,14 @@ define([
 
     storeTerminalsState: (newState) => {
       state.terminalsState = newState; // state of one or more terminals at any given time
+    },
+
+    getShouldUpdateCellContentsDuringPlayback: () => {
+      return state.shouldUpdateCellContentsDuringPlayback;
+    },
+
+    setShouldUpdateCellContentsDuringPlayback: (val) => {
+      state.shouldUpdateCellContentsDuringPlayback = val;
     },
 
     // In any history:
@@ -1447,10 +1533,6 @@ define([
     createSpeakingRecord: () => {
       return { speaking: state.speakingStatus };
     },
-
-    createSkipRecord: () => {
-      return { status: state.skipStatus };
-    },
     
     storeHistoryRecord: (type, time) => {
       if (state.activity !== 'recording' || state.recordingBlocked)
@@ -1498,108 +1580,16 @@ define([
         case 'speaking':
           record = state.createSpeakingRecord();
           break;
+        case 'skip':
+          record = state.createSkipRecord();
+          break;
       }
-      record.startTime = (time !== undefined ? time : state.utils.getNow());
+      record.startTime = (time !== undefined ? time : utils.getNow());
       state.history[type].push(record);
     },
 
-    getSkipsRecords: () => {
-      return state.history['skip'];
-    },
-
-    clearSkipsRecords: () => {
-      state.history['skip'] = [];
-    },
-
-    storeSkipRecord: (newSkipStatus) => {
-      const timeSoFar = state.getTimePlayedSoFar();
-      const numRecords = state.history['skip'].length;
-      if (numRecords > 0) {
-        // Close off last record created with an end time, if it exists.
-        const lastRecord = state.history['skip'][numRecords - 1];
-        if (!lastRecord.hasOwnProperty('endTime')) {
-          lastRecord.endTime = parseInt(Math.max(0,timeSoFar - 1));
-          if (lastRecord.endTime < lastRecord.startTime) {
-            // Swap reversed times to allow user to specify skips back-to-front.
-            const tmp = lastRecord.startTime;
-            lastRecord.startTime = lastRecord.endTime;
-            lastRecord.endTime = tmp;
-          }
-          if (lastRecord.endTime - lastRecord.startTime < 10) {
-            // Delete this record as it has insignificant time in it, ie user just flipped the button on and off.
-            state.history['skip'].pop();
-          } else {
-            // Clean up any overlaps in the previous records
-            if (numRecords > 1) {
-              let i = 0, rec, newRecords = [], newRecordsSorted, recCopy;
-              while (i < numRecords - 1) {
-                rec = state.history['skip'][i];
-                recCopy = undefined;
-                if ((rec.startTime < lastRecord.startTime) &&
-                    (rec.endTime > lastRecord.endTime)) {
-                  // if new record is totally inside an existing record, split old record in two.
-                  const rightRec = { status:rec.status,
-                                     startTime:lastRecord.endTime,
-                                     endTime: rec.endTime };
-                  newRecords.push(rightRec);
-                  recCopy = { status:rec.status,
-                              startTime: rec.startTime,
-                              endTime: lastRecord.startTime };
-                } else if ((rec.endTime < lastRecord.startTime) ||
-                           (rec.startTime > lastRecord.endTime)) {
-                  recCopy = $.extend({}, true, rec); // rec is before or after current record
-                } else if ((rec.startTime < lastRecord.startTime) &&
-                           (rec.endTime <= lastRecord.endTime)) {
-                  // this record overlaps the new record at its head so adjust old rec's tail
-                  recCopy = { status: rec.status, 
-                              startTime: rec.startTime,
-                              endtime: lastRecord.startTime };
-                } else if ((rec.startTime >= lastRecord.startTime) &&
-                           (rec.endTime > lastRecord.endTime)) {
-                  // this record overlaps the new record at its tail, so adjust old rec's head
-                  recCopy = { status: rec.status,
-                              startTime: lastRecord.endTime,
-                              endtime: rec.endTime };
-                } // else, completely drop the old record (since it must be inside the new record).
-                if (recCopy !== undefined) {
-                  newRecords.push(recCopy);
-                }
-                i++;
-              }
-              newRecords.push($.extend({}, true, lastRecord));
-              newRecordsSorted = _.sortBy(newRecords, 'startTime');
-              
-              console.log('previous history:', state.history['skip'], 'new history:', newRecords, newRecordsSorted);
-              state.history['skip'] = newRecordsSorted;
-            }
-          } 
-        }
-      }
-      const previousSkipStatus = state.getSkipStatus();
-      state.setSkipStatus(newSkipStatus);
-      if (newSkipStatus !== previousSkipStatus) {
-        // Only add a new skip record for non-zero and new skip statuses.
-        const record = state.createSkipRecord();
-        record.startTime = timeSoFar;
-        state.history['skip'].push(record);
-      }
-      //console.log('storeSkipRecord, skip history:', state.history['skip']);
-    },
-
-    finalizeSkipRecords: () => {
-      const numRecords = state.history['skip'].length;
-      if (numRecords > 0) {
-        const lastRecord = state.history['skip'][numRecords - 1];
-        if (!lastRecord.hasOwnProperty('endTime')) {
-          lastRecord.endTime = state.history.duration - 1;
-        }
-      }
-      state.setSkipStatus(0);
-      state.dumpHistory();
-    },
-
     initHistory: (initialValues) => {
-      const now = state.utils.getNow();
+      const now = utils.getNow();
       state.history = {
         storageCellId: initialValues.storageCellId,
         recordingStartTime: now,
@@ -1669,7 +1659,7 @@ define([
     },
 
     setHistoryDuration: () => {
-      state.history.duration = state.utils.getNow() - state.history.recordingStartTime;
+      state.history.duration = utils.getNow() - state.history.recordingStartTime;
     },
 
     adjustTimeRecords: (type) => {
@@ -1720,15 +1710,18 @@ define([
     // When recording finishes, normalize all time frames
     normalizeTimeframes: () => {
       const recordingStartTime = state.history.recordingStartTime;
-      const now = state.utils.getNow();
+      const now = utils.getNow();
       for (let arrName of state.frameArrays) {
         let historyArray = state.history[arrName];
         let max = historyArray.length - 1;
         for (let i = 0; i < historyArray.length; ++i) {
-          if ((historyArray.length === 1) || (i === max)) {
-            historyArray[i].endTime = now;
-          } else {
-            historyArray[i].endTime = historyArray[i+1].startTime;
+          // Only set endTime when not set by some other process (e.g. skipRecs set this on their own).
+          if (historyArray[i].endTime === undefined) {
+            if ((historyArray.length === 1) || (i === max)) { 
+              historyArray[i].endTime = now;
+            } else {
+              historyArray[i].endTime = historyArray[i+1].startTime;
+            }
           }
           historyArray[i].startTime = historyArray[i].startTime - recordingStartTime;
           historyArray[i].endTime = historyArray[i].endTime - recordingStartTime;
@@ -1840,14 +1833,25 @@ define([
       return undefined;
     },
 
-    storeWholeHistory: (history) => {
+    setHistory: (history) => {
       state.history = $.extend({}, history);
       state.resetPlayState();
       state.resetProcessedArrays();
     },
 
+    getFromMovieCache: (kind, keys) => {
+      const combinedKey = [keys.recordingCellId, keys.recordingKey, keys.activeTakeId].join('_');
+      return state.movieCache[kind][combinedKey];
+    },
+
+    storeToMovieCache: (kind, keys, data) => {
+      const combinedKey = [keys.recordingCellId, keys.recordingKey, keys.activeTakeId].join('_');
+      state.movieCache[kind][combinedKey] = data;
+    },
+
+                   
     getTimeRecordedSoFar: () => {
-      return state.utils.getNow() - state.history.recordingStartTime;
+      return utils.getNow() - state.history.recordingStartTime;
     },
 
     // The time played so far is the sum of all the play times at various speeds used so far during this play session, including the (growing) time
@@ -1863,6 +1867,11 @@ define([
         timePlayedSoFar += state.playTimes[type].total * state.playSpeeds[type];
       }
       return timePlayedSoFar;
+    },
+
+    // If the current recording is set to replayAllCells, or this cell is among those affected by the history, return true
+    graffitiShouldUpdateCellContents: (cellId) => {
+      return (state.shouldUpdateCellContentsDuringPlayback || state.history.affectedCellIds.hasOwnProperty(cellId));
     },
 
     storeCellStates: () => {
