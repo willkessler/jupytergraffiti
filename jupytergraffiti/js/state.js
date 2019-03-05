@@ -31,10 +31,9 @@ define([
       state.compressedPlayTimeDuration = 0.25 * 1000; // millis. make compressed time "really fast". It won't really compress down to this few seconds though, JS is too slow.
       state.playSpeeds = { 
         'regular' : 1.0,       // playback rate at speed it was originally recorded
-        'rapid'   : 2.0,       // playback rate when watching entire recording fast
-        'compressed': 2.0,     // default playback rate when time is compressed down to the compressedPlayTimeDuration. Default here is arbitrary
-        'scanInactive' : 1.0,  // playback rate while watching non-silence (speaking) in the recording
-        'scanActive' : 3.0     // playback rate while watching silence (no speaking) in the recording
+        'rapid'   : 2.0,       // playback rate when watching entire recording fast, either a multiplier of real-time, or a "compressed time" multiplier
+        'scanInactive' : 1.0,  // playback rate while watching non-silence (speaking) in the recording (defunct)
+        'scanActive' : 3.0     // playback rate while watching silence (no speaking) in the recordin (defunct)
       };
       state.currentPlaySpeed = 'regular';
       state.rapidScanActive = false; // whether rapidscan is activate at this moment (it's activated during silent moments so we play faster)
@@ -67,7 +66,6 @@ define([
       state.cellIdsAddedDuringRecording = {};
       state.userId = undefined;
       state.speakingStatus = false; // true when the graffiti creator is currently speaking (not silent)
-      state.editingSkips = false;
       state.currentSkipRecord = 0;
       state.appliedSkipRecord = undefined;
       state.cellStates = {
@@ -75,7 +73,6 @@ define([
         changedCells: {},
         selections: {}
       };
-      state.madeChangesDuringSkipRecord = false;
       state.animationIntervalIds = {};
       state.playbackCellAdditions = {};
       state.highlightsRefreshCellId = undefined;
@@ -131,43 +128,16 @@ define([
         opacity: state.maxDrawingOpacity
       };
 
-      state.SKIP_STATUS_NONE =        0;
-      state.SKIP_STATUS_COMPRESSED =  1;
-      state.SKIP_STATUS_2X =          2;
-      state.SKIP_STATUS_3X =          3;
-      state.SKIP_STATUS_4X =          4;
-      state.SKIP_STATUS_ABSOLUTE =   -1;
+      state.skipping = false; // true if we are currently recording a skip
+      state.skipFactor = 1.0;
+      state.SKIP_TYPE_RAPID = 1;
+      state.SKIP_TYPE_ABSOLUTE = 2;
+      state.SKIP_TYPE_COMPRESSED = 3;
 
-      state.END_RECORDING_KEYDOWN_TIMEOUT = 1200;
-
-      state.skipStatusColorMap = {};
-      state.skipStatusColorMap[state.SKIP_STATUS_NONE] = '5e5';
-      state.skipStatusColorMap[state.SKIP_STATUS_COMPRESSED] = 'ddd';
-      state.skipStatusColorMap[state.SKIP_STATUS_2X] = '500';
-      state.skipStatusColorMap[state.SKIP_STATUS_3X] = 'a00';
-      state.skipStatusColorMap[state.SKIP_STATUS_4X] = 'f00';
-      state.skipStatusColorMap[state.SKIP_STATUS_ABSOLUTE] = '000';
-
-      state.skipStatusCaptions = {};
-      state.skipStatusCaptions[state.SKIP_STATUS_NONE] = 'Regular speed';
-      state.skipStatusCaptions[state.SKIP_STATUS_COMPRESSED] = 'Compress to fixed duration';
-      state.skipStatusCaptions[state.SKIP_STATUS_2X] = '2x speed';
-      state.skipStatusCaptions[state.SKIP_STATUS_3X] = '3x speed';
-      state.skipStatusCaptions[state.SKIP_STATUS_4X] = '4x speed';
-      state.skipStatusCaptions[state.SKIP_STATUS_ABSOLUTE] = 'Skip entire section';
-      
-      state.skipStatus = state.SKIP_STATUS_NONE; // value to show we have activated a skip, and what speed (0 = regular speed/user choice, 1 = fixed compression, 2,3,4 = 2x,3x,4x.
+      state.END_RECORDING_KEYDOWN_TIMEOUT = 1200;      
 
       utils.refreshCellMaps();
 
-    },
-
-    getSkipStatusColor: (status) => {
-      return state.skipStatusColorMap[status];
-    },
-
-    getSkipStatusCaption: (status) => {
-      return state.skipStatusCaptions[status];
     },
 
     getManifest: () => {
@@ -329,49 +299,20 @@ define([
       state.highlightsRefreshCellId = undefined;
     },
 
-    getSkipStatus: () => {
-      return state.skipStatus;
-    },
-
     isSkipping: () => {
-      return state.skipStatus !== state.SKIP_STATUS_NONE;
+      return state.skipping;
     },
 
-    resetSkipStatus: () => {
-      state.skipStatus = state.SKIP_STATUS_NONE;
+    startSkipping: () => {
+      state.skipping = true;
     },
 
-    getEditingSkips: () => {
-      //return true;
-      return state.editingSkips;
+    stopSkipping: () => {
+      state.skipping = false;
     },
 
-    setEditingSkips: (val) => {
-      state.editingSkips = val;
-    },
-
-    getMadeChangesDuringSkipRecord: () => {
-      return state.madeChangesDuringSkipRecord;
-    },
-
-    setMadeChangesDuringSkipRecord: () => {
-      if ((state.activity === 'recording') && (state.isSkipping())) {
-        state.madeChangesDuringSkipRecord = true;
-      }
-    },
-
-    resetMadeChangesDuringSkipRecord: () => {
-      state.madeChangesDuringSkipRecord = false;
-    },
-
-    toggleRecordingSkip: () => {
-      //console.trace('toggleRecordingSkip', state.skipStatus);
-      if (state.skipStatus === state.SKIP_STATUS_NONE) {
-        state.skipStatus = state.SKIP_STATUS_ABSOLUTE;
-      } else {
-        state.skipStatus = state.SKIP_STATUS_NONE;
-      }
-      //console.log('after toggleRecordingSkip, status', state.skipStatus);
+    toggleSkipping: () => {
+      state.skipping = !state.skipping;
       state.storeSkipRecord();
     },
 
@@ -399,6 +340,14 @@ define([
       state.appliedSkipRecord = undefined;
     },
 
+    getSkipFactor: (skipFactor) => {
+      return state.skipFactor;
+    },
+
+    setSkipFactor: (skipFactor) => {
+      state.skipFactor = skipFactor;
+    },
+
     // Set the current or next skip record by scanning from 0 to the time given, looking
     // for a skip record that either straddles the time given, or is greater than the time
     // given (next skip record).
@@ -419,12 +368,12 @@ define([
     },
 
     createSkipRecord: () => {
-      return { status: state.skipStatus };
+      return {}; // there is no data needed in a skip record, just the fact that it exists and has a start and end time is sufficient.
     },
 
     // Create an absolute skip record for the very end of the recording for the time it was being cancelled (ctrl-key held down).
     addCancelTimeSkipRecord: () => {
-      state.skipStatus = state.SKIP_STATUS_ABSOLUTE;
+      state.skipping = true;
       const record = state.createSkipRecord();
       record.startTime = state.history.duration - state.END_RECORDING_KEYDOWN_TIMEOUT;
       record.endTime = state.history.duration - 1;
@@ -442,17 +391,12 @@ define([
     },
 
     storeSkipRecord: () => {
-      const newSkipStatus = state.getSkipStatus();
       const numRecords = state.history['skip'].length;
-      if (numRecords > 0) {
-        if (newSkipStatus === state.SKIP_STATUS_NONE) {
+      if (!state.skipping) {
+        if (numRecords > 0) {
           // Close off last record created with an end time, if it exists.
           const lastRecord = state.history['skip'][numRecords - 1];
           if (!lastRecord.hasOwnProperty('endTime')) {
-            if (!state.getMadeChangesDuringSkipRecord()) {
-              lastRecord.status = state.SKIP_STATUS_ABSOLUTE; // switch to an absolute skip if the author did not do any interaction during the skipping time.
-            }
-            state.resetMadeChangesDuringSkipRecord();
             lastRecord.endTime = utils.getNow();
             console.log('closed off previous record:', lastRecord);
             if (lastRecord.endTime - lastRecord.startTime < 10) {
@@ -461,8 +405,7 @@ define([
             } 
           }
         }
-      }
-      if (newSkipStatus !== state.SKIP_STATUS_NONE) {
+      } else {
         // Only add a new skip record when beginning a skip period.
         state.storeHistoryRecord('skip');
       }
@@ -718,7 +661,7 @@ define([
 
     setCompressedTimePlayRate: (duration) => {
       const accelerationFactor = duration / state.compressedPlayTimeDuration;
-      state.playSpeeds['compressed'] = accelerationFactor;
+      state.playSpeeds['rapid'] = accelerationFactor;
     },
 
     setPlayStartTimeToNow: () => {
@@ -1556,7 +1499,6 @@ define([
         return;
 
       let record;
-      let madeChangesWhileSkipping = false;
       // Note: we override the type to throw together pointer moves, scroll innerScroll, and focus in one history record type
       switch (type) {
         case 'pointer':
@@ -1581,27 +1523,19 @@ define([
           break;
         case 'drawings':
           record = state.createDrawingRecord({stickering:false});
-          madeChangesWhileSkipping = true;
           break;
         case 'stickers':
           record = state.createDrawingRecord({stickering:true});
           type = 'drawings'; // we store sticker records as arrays within drawing records.
-          madeChangesWhileSkipping = true;
           break;
         case 'selections':
           record = state.createSelectionsRecord();
           break;
         case 'contents':
           record = state.createContentsRecord(true);
-          madeChangesWhileSkipping = true;
           break;
         case 'terminals':
           record = state.createTerminalsRecord();
-          const latestTerminalsState = state.terminalsState;
-          madeChangesWhileSkipping = true;
-          if ((latestTerminalsState !== undefined) && (latestTerminalsState[0].type !== undefined) && (latestTerminalsState[0].type === 'refresh')) {
-            madeChangesWhileSkipping = false; // if all you did was scroll a terminal around, this doesn't constitute a change we record while skipping
-          }
           break;
         case 'speaking':
           record = state.createSpeakingRecord();
@@ -1612,9 +1546,6 @@ define([
       }
       record.startTime = (time !== undefined ? time : utils.getNow());
       state.history[type].push(record);
-      if (madeChangesWhileSkipping) { // certain history record types indicate that we should compress time during a current skip period, not absolutely skip it
-        state.setMadeChangesDuringSkipRecord();
-      }
     },
 
     initHistory: (initialValues) => {

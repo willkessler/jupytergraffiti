@@ -177,54 +177,12 @@ define([
       },
       
       // Skips functionality
-
-      updateSkipsBar: () => {
-        if (!(state.getEditingSkips())) {
-          return;
-        }
-        const skipRecords = state.getSkipsRecords();
-        const bar = $('#graffiti-skips-display-bar');
-        bar.empty();
-        const barWidth = bar.width();
-        const barHeight = bar.height();
-        console.log('barWidth:', barWidth);
-        let skipBarLeft, skipBarWidth, skipBarColor, skipBarCaption, rec, endTime;
-        const duration = state.getHistoryDuration();
-        for (let i = 0; i < skipRecords.length; ++i) {
-          rec = skipRecords[i];
-          endTime = (rec.endTime !== undefined ? rec.endTime : state.getTimePlayedSoFar() );
-          console.log('updateSkipsBar, rec:',rec, 'endTime:', endTime);
-          skipBarWidth = parseInt(((endTime - rec.startTime) / duration) * barWidth);
-          skipBarLeft = parseInt((rec.startTime / duration) * barWidth);
-          console.log('skipBarWidth, skipBarLeft',skipBarWidth, skipBarLeft);
-          if (skipBarWidth < 0) {
-            skipBarLeft += skipBarWidth;
-            skipBarWidth = Math.abs(skipBarWidth);
-          }
-          skipBarColor = state.getSkipStatusColor(rec.status);
-          skipBarCaption = state.getSkipStatusCaption(rec.status);
-          $('<div class="graffiti-skips-display-sub-bar" style="width:' + skipBarWidth + 'px;left:' + skipBarLeft + 'px;background:#' + skipBarColor + '"' +
-            'title="' + skipBarCaption + '"></div>').appendTo(bar);
-        }
-      },
-
-      storeSkipRecord: (newStatus) => {
-        state.storeSkipRecord(newStatus);
-        graffiti.updateSkipsBar();
-        graffiti.updateControlPanels();
-      },
-      
-      stopRecordingSkip: () => {
-        state.resetSkipStatus();
-        $('#graffiti-btn-end-recording').html(localizer.getString('RECORDING_HINT_1'));
-      },
-
       toggleRecordingSkip: () => {
         if (state.getActivity() !== 'recording') {
-          state.resetSkipStatus();
+          state.stopSkipping();
           return;
         }
-        state.toggleRecordingSkip();
+        state.toggleSkipping();
         if (state.isSkipping()) {
           $('#graffiti-btn-end-recording').html(localizer.getString('RECORDING_HINT_4'));
         } else {
@@ -671,7 +629,6 @@ define([
                                       '</div>' +
                                       '<div id="graffiti-scrub-controls">' +
                                       '  <div id="graffiti-playback-range">' +
-                                      '    <div id="graffiti-skips-display-bar"></div>' +
                                       '    <input type="range" min="0" max="1000" value="0" id="graffiti-recorder-range"></input>' +
                                       '  </div>' +
                                       '  <div id="graffiti-time-display-playback">00:00</div>' +
@@ -693,7 +650,7 @@ define([
                                             if (($(e.target).attr('id') === 'graffiti-rewind-btn') || ($(e.target).hasClass('fa-backward'))) {
                                               direction = -1;
                                             }
-                                            graffiti.jumpPlayback(direction, (state.getEditingSkips() ? graffiti.rewindSkipEditAmt : graffiti.rewindAmt));
+                                            graffiti.jumpPlayback(direction, graffiti.rewindAmt);
                                           }
                                         },
                                         {
@@ -1048,112 +1005,6 @@ define([
                                       ]
         );                                        
 
-
-        graffiti.setupOneControlPanel('graffiti-access-skips',
-                                      '<button class="btn btn-default" id="graffiti-access-skips-btn" title="' + 
-                                      localizer.getString('SKIPS_API') + '"></i>&nbsp; <span>' +
-                                      localizer.getString('SKIPS_API') + '&nbsp; </span></button>',
-                                      [
-                                        { 
-                                          ids: ['graffiti-access-skips-btn'],
-                                          event: 'click', 
-                                          fn: (e) => { 
-                                            graffiti.editSkips();
-                                          }
-                                        }
-                                      ]
-        );
-
-        const compressTimeOnIcon = stickerLib.makeCompressTimeIcon('black');
-        const compressTimeOffIcon = stickerLib.makeCompressTimeIcon('white');
-        const absoluteSkipOnIcon = stickerLib.makeScan('black');
-        const absoluteSkipOffIcon = stickerLib.makeScan('white');
-        //const clearSkipsIcon = stickerLib.makeNoEntryIcon('red');
-        const clearSkipsIcon = stickerLib.makeTrashIcon('black');
-
-        graffiti.setupOneControlPanel('graffiti-skips-controls',
-                                      '<div id="graffiti-skips-controls">' +
-                                      '  <div id="graffiti-skips-controls-header"><span>' + localizer.getString('SKIPS_HEADER') + '</span></div>' +
-
-                                      '  <div id="graffiti-skips-controls-body">' +
-                                      '    <button class="btn btn-default graffiti-skips-on-btn" id="graffiti-skips-2x-on-btn" title="' +
-                                      localizer.getString('SKIPS_2X_BTN') + '">2x</button>' +
-                                      '    <button class="btn btn-default graffiti-skips-off-btn" id="graffiti-skips-2x-off-btn" title="' +
-                                      localizer.getString('SKIPS_2X_BTN') + '">2x</button>' +
-
-                                      '    <button class="btn btn-default graffiti-skips-on-btn" id="graffiti-skips-3x-on-btn" title="' +
-                                      localizer.getString('SKIPS_3X_BTN') + '">3x</button>' +
-                                      '    <button class="btn btn-default graffiti-skips-off-btn" id="graffiti-skips-3x-off-btn" title="' +
-                                      localizer.getString('SKIPS_3X_BTN') + '">3x</button>' +
-
-                                      '    <button class="btn btn-default graffiti-skips-on-btn" id="graffiti-skips-4x-on-btn" title="' +
-                                      localizer.getString('SKIPS_4X_BTN') + '">4x</button>' +
-                                      '    <button class="btn btn-default graffiti-skips-off-btn" id="graffiti-skips-4x-off-btn" title="' +
-                                      localizer.getString('SKIPS_4X_BTN') + '">4x</button>' +
-
-                                      '    <button class="btn btn-default graffiti-skips-on-btn" id="graffiti-skips-compress-on-btn" title="' +
-                                      localizer.getString('SKIPS_COMPRESS_BTN') + '">' + compressTimeOnIcon + '</button>' +
-                                      '    <button class="btn btn-default graffiti-skips-off-btn" id="graffiti-skips-compress-off-btn" title="' +
-                                      localizer.getString('SKIPS_COMPRESS_BTN') + '">' + compressTimeOffIcon + '</button>' +
-
-                                      '    <button class="btn btn-default graffiti-skips-on-btn" id="graffiti-skips-absolute-on-btn" title="' +
-                                      localizer.getString('SKIPS_ABSOLUTE_BTN') + '">' + absoluteSkipOnIcon + '</button>' +
-                                      '    <button class="btn btn-default graffiti-skips-off-btn" id="graffiti-skips-absolute-off-btn" title="' +
-                                      localizer.getString('SKIPS_ABSOLUTE_BTN') + '">' + absoluteSkipOffIcon + '</button>' +
-
-
-                                      '    <button class="btn btn-default" id="graffiti-skips-clear-btn" title="' +
-                                      localizer.getString('SKIPS_CLEAR_BTN') + '">' + clearSkipsIcon + '</button>' +
-                                      
-                                      '  </div>' +
-                                      '</div>',
-                                      [
-                                        { 
-                                          ids: ['graffiti-skips-2x-on-btn','graffiti-skips-2x-off-btn'],
-                                          event: 'click', 
-                                          fn: (e) => { 
-                                            graffiti.storeSkipRecord(state.SKIP_STATUS_2X);
-                                          }
-                                        },
-                                        { 
-                                          ids: ['graffiti-skips-3x-on-btn', 'graffiti-skips-3x-off-btn'],
-                                          event: 'click', 
-                                          fn: (e) => { 
-                                            graffiti.storeSkipRecord(state.SKIP_STATUS_3X);
-                                          }
-                                        },
-                                        { 
-                                          ids: ['graffiti-skips-4x-on-btn', 'graffiti-skips-4x-off-btn'],
-                                          event: 'click', 
-                                          fn: (e) => { 
-                                            graffiti.storeSkipRecord(state.SKIP_STATUS_4X);
-                                          }
-                                        },
-                                        { 
-                                          ids: ['graffiti-skips-compress-on-btn', 'graffiti-skips-compress-off-btn'], // compress time to 2s
-                                          event: 'click', 
-                                          fn: (e) => { 
-                                            graffiti.storeSkipRecord(state.SKIP_STATUS_COMPRESS);
-                                          }
-                                        },
-                                        { 
-                                          ids: ['graffiti-skips-absolute-on-btn','graffiti-skips-absolute-off-btn'], // absolutely skip over a section
-                                          event: 'click', 
-                                          fn: (e) => { 
-                                            graffiti.storeSkipRecord(state.SKIP_STATUS_ABSOLUTE);
-                                          }
-                                        },
-                                        { 
-                                          ids: ['graffiti-skips-clear-btn'], // clear all skips
-                                          event: 'click', 
-                                          fn: (e) => { 
-                                            graffiti.clearAllSkipsWithConfirm();
-                                          }
-                                        }
-
-                                      ]
-        );
-
         graffiti.setupOneControlPanel('graffiti-access-api',
                                       '<button class="btn btn-default" id="graffiti-access-api-btn" title="' + localizer.getString('SAMPLE_API') + '"></i>&nbsp; <span>' +
                                       localizer.getString('SAMPLE_API') + '</span></button>',
@@ -1490,29 +1341,6 @@ define([
             break;
         }
 
-        if (state.getEditingSkips()) {
-          graffiti.controlPanelIds['graffiti-skips-controls'].find('.graffiti-skips-off-btn').hide().parent().find('.graffiti-skips-on-btn').show();
-          const skipStatus = state.getSkipStatus();
-          //console.log('skipStatus:', skipStatus);
-          switch (skipStatus) {
-            case state.SKIP_STATUS_COMPRESS:
-              graffiti.controlPanelIds['graffiti-skips-controls'].find('#graffiti-skips-compress-off-btn').show().parent().find('#graffiti-skips-compress-on-btn').hide();
-              break;
-            case state.SKIP_STATUS_2X:
-              graffiti.controlPanelIds['graffiti-skips-controls'].find('#graffiti-skips-2x-off-btn').show().parent().find('#graffiti-skips-2x-on-btn').hide();
-              break;
-            case state.SKIP_STATUS_3X:
-              graffiti.controlPanelIds['graffiti-skips-controls'].find('#graffiti-skips-3x-off-btn').show().parent().find('#graffiti-skips-3x-on-btn').hide();
-              break;
-            case state.SKIP_STATUS_4X:
-              graffiti.controlPanelIds['graffiti-skips-controls'].find('#graffiti-skips-4x-off-btn').show().parent().find('#graffiti-skips-4x-on-btn').hide();
-              break;
-            case state.SKIP_STATUS_ABSOLUTE:
-              graffiti.controlPanelIds['graffiti-skips-controls'].find('#graffiti-skips-absolute-off-btn').show().parent().find('#graffiti-skips-absolute-on-btn').hide();
-              break;
-          }              
-        }
-
         let visibleControlPanels;
         switch (activity) {
           case 'idle':
@@ -1580,7 +1408,6 @@ define([
                   const recordingKey = selectedTokens.recordingKey;
                   state.setPlayableMovie('cursorActivity', recordingCellId, recordingKey);
                   graffiti.recordingAPIKey = utils.composeGraffitiId(recordingCellId, recordingKey);
-                  visibleControlPanels.push('graffiti-access-skips');
                   visibleControlPanels.push('graffiti-access-api');
                   visibleControlPanels.push('graffiti-notifier');
                   if (graffiti.updateTakesPanel(recordingCellId, recordingKey)) {
@@ -1633,11 +1460,6 @@ define([
               }              
             }
             visibleControlPanels = ['graffiti-playback-controls'];
-            $('#graffiti-skips-display-bar').hide();
-            if (state.getEditingSkips()) {
-              visibleControlPanels.push('graffiti-skips-controls');
-              $('#graffiti-skips-display-bar').show();
-            }
             graffiti.showControlPanels(visibleControlPanels);
             graffiti.setNotifier('<div>' + localizer.getString('PAUSE_TO_INTERACT') + '</div>' +
                                  '<div>' + localizer.getString('CANCEL_MOVIE_PLAYBACK_1') + '</div>',
@@ -1661,11 +1483,6 @@ define([
           case 'playbackPaused':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-pause-btn').hide().parent().find('#graffiti-play-btn').show();
             visibleControlPanels = ['graffiti-playback-controls'];
-            $('#graffiti-skips-display-bar').hide();
-            if (state.getEditingSkips()) {
-              visibleControlPanels.push('graffiti-skips-controls');
-              $('#graffiti-skips-display-bar').show();
-            }
             graffiti.showControlPanels(visibleControlPanels);
             if (state.getSetupForReset()) {
               graffiti.setNotifier('<div>' + localizer.getString('PLAY_MOVIE_AGAIN') + '</div>' +
@@ -3070,6 +2887,7 @@ define([
             replayAllCells: false, // by default, we will only replay cells that the author interacted with. 
             hideTooltip: false,
             playOnClick: false,
+            skipSpeedMultiplier: 1.0, // regular speed normally
             saveToFile: undefined, // may be array of save_to_file directives
             silenceWarnings: false,
             swappingLabels: false,
@@ -3153,6 +2971,10 @@ define([
                   case 'custom_sticker':
                     // Path to an image or svg that will be a custom sticker.
                     partsRecord.stickerImageUrl = subPart1;
+                    break;
+                  case 'skip_speed_multiplier':
+                    // One of: 0 (absolute jumps), 2x/3x etc (double speed during skips, triple etc), or 2c/3c (compress skips to 2s or 3s or less, etc)
+                    partsRecord.skipSpeedMultiplier = subPart1;
                     break;
                   case 'save_to_file':
                     // Param 1: id of cell to save; param 2: path of file to save cell contents to. You can have more than one of these in a tooltip
@@ -4016,12 +3838,15 @@ define([
               recording.autoplay = 'once';
               recording.playedOnce = false;
             }
+
+            // These next lines should be reduce to a single $.extend() call...
             recording.playOnClick = tooltipCommands.playOnClick;
             recording.hideTooltip = tooltipCommands.hideTooltip;
             recording.hidePlayButton = tooltipCommands.hidePlayButton
             recording.narratorName = tooltipCommands.narratorName;
             recording.narratorPicture = tooltipCommands.narratorPicture;
             recording.stickerImageUrl = tooltipCommands.stickerImageUrl;
+            recording.skipSpeedMultiplier = tooltipCommands.skipSpeedMultiplier;
             recording.saveToFile = tooltipCommands.saveToFile;
             recording.terminalCommand = tooltipCommands.terminalCommand;
             recording.insertDataFromFile = tooltipCommands.insertDataFromFile;
@@ -4216,37 +4041,6 @@ define([
           }
         });
 
-      },
-
-      editSkips: () => {
-        state.setEditingSkips(true);
-        graffiti.loadAndPlayMovie('cursorActivity');
-      },
-
-      // Confirm clearing any existing skips.
-      clearAllSkipsWithConfirm: () => {
-        const btn1 = localizer.getString('SKIPS_DIALOG_CONFIRM_1');
-        const btn2 = localizer.getString('SKIPS_DIALOG_CANCEL');
-        let btns = {};
-        btns[btn1] = {
-          click: (e) => {
-            console.log('Graffiti: You clicked ok, you want clear all skips.');
-            state.clearSkipsRecords();
-            graffiti.updateSkipsBar();
-          }
-        };
-        btns[btn2] = {
-          click: (e) => { 
-            console.log('Graffiti: you cancelled:', $(e.target).parent()); 
-          }
-        };
-
-        dialog.modal({
-          title: localizer.getString('SKIPS_DIALOG_TITLE'),
-          body: localizer.getString('SKIPS_DIALOG_BODY'),
-          sanitize:false,
-          buttons: btns
-        });
       },
 
       removeUnusedTakes: (recordingFullId) => {
@@ -4643,7 +4437,6 @@ define([
         graffiti.deactivateAllPens();
         graffiti.removeCellsAddedByPlaybackOrRecording();
         graffiti.hideLabelInputBoxes();
-        graffiti.stopRecordingSkip();
         state.restoreCellStates('selections');
         state.restoreLineNumbersStates();
         graffiti.sitePanel.animate({ scrollTop: graffiti.preRecordingScrollTop }, 750);
@@ -4706,7 +4499,7 @@ define([
             if (opts !== undefined && opts.endByKeyPress) {
               state.addCancelTimeSkipRecord();
             }
-            state.resetSkipStatus();
+            state.stopSkipping();
             console.log('Graffiti: Stopped recording.');
           } else {
 
@@ -5331,7 +5124,7 @@ define([
           const playTimeDisplay = utils.formatTime(playedSoFar, { includeMillis: false });
           const recordingTimeDisplay = utils.formatTime(playedSoFar, { includeMillis: true });
           const durationDisplay = utils.formatTime(state.getHistoryDuration(), { includeMillis: false });
-          if ((activity === 'recording') || state.getEditingSkips()) {
+          if (activity === 'recording') {
             totalTimeDisplay = recordingTimeDisplay;
           } else {
             totalTimeDisplay = playTimeDisplay + '/' + durationDisplay;
@@ -5385,7 +5178,6 @@ define([
         graffiti.updateDisplay(frameIndexes);
         graffiti.updateSlider(t);
         graffiti.updateTimeDisplay(t);
-        graffiti.updateSkipsBar();
         graffiti.redrawAllDrawings(t);
         if (previousPlayState === 'playing') {
           graffiti.startPlayback();
@@ -5409,7 +5201,6 @@ define([
         graffiti.wipeAllStickerDomCanvases();
         graffiti.updateDisplay(frameIndexes); // can replay scroll diffs, and in playback use cumulative scroll diff
         graffiti.updateTimeDisplay(t);
-        graffiti.updateSkipsBar();
         graffiti.redrawAllDrawings(t);
         graffiti.applyRawCalculatedScrollTop(frameIndexes.view.index);
       },
@@ -5430,23 +5221,22 @@ define([
         const currentActivity = state.getActivity();
         if (currentSkipRecord !== undefined) {
           state.setAppliedSkipRecord();
-          const duration = (currentSkipRecord.endTime - currentSkipRecord.startTime + 1);
-          const durationMillis = duration / 1000;
-          switch (currentSkipRecord.status) {
-            case state.SKIP_STATUS_2X:
+          const skipFactor = state.getSkipFactor();
+          switch (skipFactor.type) {
+            case state.SKIP_TYPE_RAPID:
+              state.setCurrentSpeedFactor(skipFactor.factor);
+              state.setCurrentPlaySpeed('rapid');
               break;
-            case state.SKIP_STATUS_3X:
-              break;
-            case state.SKIP_STATUS_4X:
-              break;
-            case state.SKIP_STATUS_ABSOLUTE:
+            case state.SKIP_TYPE_ABSOLUTE:
               graffiti.jumpPlayback(1, durationMillis);
               state.updateCurrentSkipRecord();
               didSkip = true;
               break;
-            case state.SKIP_STATUS_COMPRESSED:
+            case state.SKIP_TYPE_COMPRESSED:
+              const duration = (currentSkipRecord.endTime - currentSkipRecord.startTime + 1);
+              const durationMillis = duration / 1000;
               state.setCompressedTimePlayRate(duration);
-              state.setCurrentPlaySpeed('compressed');
+              state.setCurrentPlaySpeed('rapid');
               didSkip = true;
               break;
           }
@@ -5500,7 +5290,6 @@ define([
           }
         });
         state.resetPlayState();
-        state.setEditingSkips(false);
         graffiti.changeActivity('idle');
         if (state.getDontRestoreCellContentsAfterPlayback()) {
           console.log('Graffiti: not restoring cell contents.');
@@ -5545,17 +5334,6 @@ define([
         state.clearNarratorInfo();
         graffiti.cancelPlaybackFinish(opts.cancelAnimation);
 
-/*
-        if (state.getEditingSkips()) {
-          const skippedMovie = state.getPlayableMovie('tip');
-          storage.writeOutMovieData(skippedMovie, state.getJSONHistory()).then(() => {
-            state.setEditingSkips(false);
-            graffiti.cancelPlaybackFinish(opts.cancelAnimation);
-          });
-        } else {
-          graffiti.cancelPlaybackFinish(opts.cancelAnimation);
-        }
-*/
       },
 
       startPlayback: () => {
@@ -5591,9 +5369,6 @@ define([
             state.setStickerImageUrl(stickerImageCandidateUrl);
           } else {
             state.setStickerImageUrl(undefined);
-          }
-          if (state.getEditingSkips()) {
-            graffiti.updateSkipsBar();
           }
         }
 
@@ -5655,7 +5430,7 @@ define([
         if (activity !== 'recording') {
           if (activity === 'playing') {
             state.clearAnimationIntervals();
-            if (state.getHidePlayerAfterPlayback() && state.getSetupForReset() && (!state.getEditingSkips())) {
+            if (state.getHidePlayerAfterPlayback() && state.getSetupForReset()) {
               graffiti.cancelPlayback({ cancelAnimation: true});
             } else {
               graffiti.pausePlayback();
@@ -5890,6 +5665,7 @@ define([
 
         state.setNarratorInfo('name', recording.narratorName);
         state.setNarratorInfo('picture', recording.narratorPicture);
+        state.setSkipFactor(recording.skipSpeedMultiplier);
         if ((playableMovie.cell !== undefined) && (playableMovie.cellType === 'markdown')) {
           playableMovie.cell.render(); // always render a markdown cell first before playing a movie on a graffiti inside it
         }

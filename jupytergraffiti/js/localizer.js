@@ -111,8 +111,8 @@ define([
             'RECORDING_HINT_1' :                 '<div class="graffiti-keyboard-sim"><div>option/alt</div><div>key</div></div>',
             'RECORDING_HINT_2' :                 '<span>Tap</span>: Pause Rec.',
             'RECORDING_HINT_3' :                 '<span>Hold</span>: End Rec.',
-            'RECORDING_HINT_4' :                 '<div class="graffiti-keyboard-sim" style="color:red;"><div>Paused</div><div>(option/alt resumes)</div></div>',
-            'IS_SKIPPING' :                      '(Not recording)',
+            'RECORDING_HINT_4' :                 '<div class="graffiti-keyboard-sim" style="color:red;"><div>Skipping</div><div>(option/alt to resume)</div></div>',
+            'IS_SKIPPING' :                      '--:--',
             'ACTIVITIES_BEING_RECORDED':         'Your activities are being recorded. Hold the option key down to end recording.',
             'LOADING':                           'Loading...',
             'LOADING_PLEASE_WAIT':               'Loading Graffiti movie, please wait...',
@@ -239,8 +239,8 @@ define([
             'RECORDING_HINT_1' :                 '<div class="graffiti-keyboard-sim"><div>option/alt</div><div>key</div></div>',
             'RECORDING_HINT_2' :                 '<span>Tap</span>: Pause Rec.',
             'RECORDING_HINT_3' :                 '<span>Hold</span>: End Rec.',
-            'RECORDING_HINT_4' :                 '<div class="graffiti-keyboard-sim" style="color:red;"><div>Paused</div><div>(option/alt resumes)</div></div>',
-            'IS_SKIPPING' :                      '(Not recording now)',
+            'RECORDING_HINT_4' :                 '<div class="graffiti-keyboard-sim" style="color:red;"><div>Skipping</div><div>(option/alt to resume)</div></div>',
+            'IS_SKIPPING' :                      '--:--',
             'ACTIVITIES_BEING_RECORDED':         '录屏进行中' +
                                                  '按键 ⌘-M 或者点击<span class="graffiti-notifier-link" id="graffiti-end-recording-link">结束录屏</span> ' +
                                                  '以终止录制',
