@@ -28,9 +28,11 @@ define([
       state.scrollTop = undefined;
       state.selectedCellId = undefined;
       state.mute = false;
+      state.compressedPlayTimeDuration = 0.25 * 1000; // millis. make compressed time "really fast". It won't really compress down to this few seconds though, JS is too slow.
       state.playSpeeds = { 
         'regular' : 1.0,       // playback rate at speed it was originally recorded
         'rapid'   : 2.0,       // playback rate when watching entire recording fast
+        'compressed': 2.0,     // default playback rate when time is compressed down to the compressedPlayTimeDuration. Default here is arbitrary
         'scanInactive' : 1.0,  // playback rate while watching non-silence (speaking) in the recording
         'scanActive' : 3.0     // playback rate while watching silence (no speaking) in the recording
       };
@@ -73,6 +75,7 @@ define([
         changedCells: {},
         selections: {}
       };
+      state.madeChangesDuringSkipRecord = false;
       state.animationIntervalIds = {};
       state.playbackCellAdditions = {};
       state.highlightsRefreshCellId = undefined;
@@ -128,18 +131,18 @@ define([
         opacity: state.maxDrawingOpacity
       };
 
-      state.SKIP_STATUS_NONE =      0;
-      state.SKIP_STATUS_COMPRESS =  1;
-      state.SKIP_STATUS_2X =        2;
-      state.SKIP_STATUS_3X =        3;
-      state.SKIP_STATUS_4X =        4;
-      state.SKIP_STATUS_ABSOLUTE = -1;
+      state.SKIP_STATUS_NONE =        0;
+      state.SKIP_STATUS_COMPRESSED =  1;
+      state.SKIP_STATUS_2X =          2;
+      state.SKIP_STATUS_3X =          3;
+      state.SKIP_STATUS_4X =          4;
+      state.SKIP_STATUS_ABSOLUTE =   -1;
 
       state.END_RECORDING_KEYDOWN_TIMEOUT = 1200;
 
       state.skipStatusColorMap = {};
       state.skipStatusColorMap[state.SKIP_STATUS_NONE] = '5e5';
-      state.skipStatusColorMap[state.SKIP_STATUS_COMPRESS] = 'ddd';
+      state.skipStatusColorMap[state.SKIP_STATUS_COMPRESSED] = 'ddd';
       state.skipStatusColorMap[state.SKIP_STATUS_2X] = '500';
       state.skipStatusColorMap[state.SKIP_STATUS_3X] = 'a00';
       state.skipStatusColorMap[state.SKIP_STATUS_4X] = 'f00';
@@ -147,7 +150,7 @@ define([
 
       state.skipStatusCaptions = {};
       state.skipStatusCaptions[state.SKIP_STATUS_NONE] = 'Regular speed';
-      state.skipStatusCaptions[state.SKIP_STATUS_COMPRESS] = 'Compress to fixed duration';
+      state.skipStatusCaptions[state.SKIP_STATUS_COMPRESSED] = 'Compress to fixed duration';
       state.skipStatusCaptions[state.SKIP_STATUS_2X] = '2x speed';
       state.skipStatusCaptions[state.SKIP_STATUS_3X] = '3x speed';
       state.skipStatusCaptions[state.SKIP_STATUS_4X] = '4x speed';
@@ -225,7 +228,7 @@ define([
           }
         }
       }
-      console.log('cellIdToGraffitiMap:', state.cellIdToGraffitiMap);
+      // console.log('cellIdToGraffitiMap:', state.cellIdToGraffitiMap);
 
     },
 
@@ -347,10 +350,24 @@ define([
       state.editingSkips = val;
     },
 
+    getMadeChangesDuringSkipRecord: () => {
+      return state.madeChangesDuringSkipRecord;
+    },
+
+    setMadeChangesDuringSkipRecord: () => {
+      if ((state.activity === 'recording') && (state.isSkipping())) {
+        state.madeChangesDuringSkipRecord = true;
+      }
+    },
+
+    resetMadeChangesDuringSkipRecord: () => {
+      state.madeChangesDuringSkipRecord = false;
+    },
+
     toggleRecordingSkip: () => {
       //console.trace('toggleRecordingSkip', state.skipStatus);
       if (state.skipStatus === state.SKIP_STATUS_NONE) {
-        state.skipStatus = state.SKIP_STATUS_ABSOLUTE;
+        state.skipStatus = state.SKIP_STATUS_COMPRESSED;
       } else {
         state.skipStatus = state.SKIP_STATUS_NONE;
       }
@@ -432,6 +449,10 @@ define([
           // Close off last record created with an end time, if it exists.
           const lastRecord = state.history['skip'][numRecords - 1];
           if (!lastRecord.hasOwnProperty('endTime')) {
+            if (!state.getMadeChangesDuringSkipRecord()) {
+              lastRecord.status = state.SKIP_STATUS_ABSOLUTE; // switch to an absolute skip if the author did not do any interaction during the skipping time.
+            }
+            state.resetMadeChangesDuringSkipRecord();
             lastRecord.endTime = utils.getNow();
             console.log('closed off previous record:', lastRecord);
             if (lastRecord.endTime - lastRecord.startTime < 10) {
@@ -693,6 +714,11 @@ define([
 
     getPlayRateScalar: () => {
       return state.playSpeeds[state.currentPlaySpeed];
+    },
+
+    setCompressedTimePlayRate: (duration) => {
+      const accelerationFactor = duration / state.compressedPlayTimeDuration;
+      state.playSpeeds['compressed'] = accelerationFactor;
     },
 
     setPlayStartTimeToNow: () => {
@@ -1530,6 +1556,7 @@ define([
         return;
 
       let record;
+      let madeChangesWhileSkipping = false;
       // Note: we override the type to throw together pointer moves, scroll innerScroll, and focus in one history record type
       switch (type) {
         case 'pointer':
@@ -1554,19 +1581,27 @@ define([
           break;
         case 'drawings':
           record = state.createDrawingRecord({stickering:false});
+          madeChangesWhileSkipping = true;
           break;
         case 'stickers':
           record = state.createDrawingRecord({stickering:true});
           type = 'drawings'; // we store sticker records as arrays within drawing records.
+          madeChangesWhileSkipping = true;
           break;
         case 'selections':
           record = state.createSelectionsRecord();
           break;
         case 'contents':
           record = state.createContentsRecord(true);
+          madeChangesWhileSkipping = true;
           break;
         case 'terminals':
           record = state.createTerminalsRecord();
+          const latestTerminalsState = state.terminalsState;
+          madeChangesWhileSkipping = true;
+          if ((latestTerminalsState !== undefined) && (latestTerminalsState[0].type !== undefined) && (latestTerminalsState[0].type === 'refresh')) {
+            madeChangesWhileSkipping = false; // if all you did was scroll a terminal around, this doesn't constitute a change we record while skipping
+          }
           break;
         case 'speaking':
           record = state.createSpeakingRecord();
@@ -1577,6 +1612,9 @@ define([
       }
       record.startTime = (time !== undefined ? time : utils.getNow());
       state.history[type].push(record);
+      if (madeChangesWhileSkipping) { // certain history record types indicate that we should compress time during a current skip period, not absolutely skip it
+        state.setMadeChangesDuringSkipRecord();
+      }
     },
 
     initHistory: (initialValues) => {

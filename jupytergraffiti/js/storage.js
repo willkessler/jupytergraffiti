@@ -306,7 +306,7 @@ define([
           //console.log('uncompressed manifest:', uncompressedManifestString);
           const manifestDataParsed = JSON.parse(uncompressedManifestString);
           state.setManifest(manifestDataParsed);
-          console.log('Graffiti Manifest:', manifestDataParsed['id_iermcbu']);
+          //console.log('Graffiti Manifest:', manifestDataParsed['id_iermcbu']);
         }
       });
     },

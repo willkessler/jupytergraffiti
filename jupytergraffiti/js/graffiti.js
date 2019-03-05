@@ -286,11 +286,13 @@ define([
           narratorName: undefined,
           narratorPicture: undefined,
           stickerImageUrl: undefined,
+          silenceWarnings: true,
         };
         let tooltipDirectives = [
           '%%play_on_click',
           '%%hide_tooltip',
           '%%button_name No Movie Here Yet',
+          '%%silence_warnings',
           'Edit this markdown cell to customize the Graffiti for this button, and to record a new movie.<br><br>' +
           '_(NB: The default movie that was created with this button is a *placeholder* and it will *not* play.)_',
         ];
@@ -1823,7 +1825,6 @@ define([
         terminalLib.init(graffiti.handleTerminalsEvents);
 
         storage.preloadAllMovies();
-        graffiti.checkplay = new Audio('/tree/samples/darth.mp3');
 
 /*
         let body = '<div>Enter the Graffiti Hub Key to import Graffiti into this notebook.</div>';
@@ -2334,6 +2335,7 @@ define([
           ctx: ctx,
           cellRect: cellRect
         };
+        // console.log('canvases:', graffiti.canvases);
         return cellRect;
       },
       
@@ -3334,7 +3336,7 @@ define([
       },
 
       refreshGraffitiTooltipsCore: (e) => {
-        //console.log('Graffiti: handling mousenter/mouseleave:', e.type);
+        // console.log('Graffiti: handling mousenter/mouseleave/mousemove:', e.type);
         const activity = state.getActivity();
         let highlightElem = $(e.target);
         if (!highlightElem.hasClass('graffiti-highlight')) {
@@ -3351,11 +3353,15 @@ define([
           const recordingKey = idMatch[2];
           const viewInfo = state.getViewInfo();
           if (viewInfo === undefined) {
-            console.log('Graffiti:error, viewInfo not defined in refreshGraffitiTooltipsCore!');
+            console.log('Graffiti: warning, viewInfo not defined in refreshGraffitiTooltipsCore!');
             return;
           }
           const hoverCellId = viewInfo.cellId;
           const hoverCell = utils.findCellByCellId(hoverCellId);
+          if (hoverCell === undefined) {
+            console.log('Graffiti: warning, could not find hoverCell for hoverCellId:', hoverCellId);
+            return;
+          }
           const hoverCellElement = hoverCell.element[0];
           const hoverCellElementPosition = $(hoverCellElement).position();
           const hoverCellType = hoverCell.cell_type;
@@ -3551,7 +3557,7 @@ define([
       refreshGraffitiTooltips: () => {
         const tips = $('.graffiti-highlight');
         //console.trace('refreshGraffitiTooltips: binding mousenter/mouseleave');
-        tips.unbind('mouseenter mouseleave').bind('mouseenter mouseleave', (e) => { graffiti.refreshGraffitiTooltipsCore(e); } );
+        tips.unbind('mousemove').bind('mousemove', (e) => { graffiti.refreshGraffitiTooltipsCore(e); } );
       },
 
       markSelectedCellForExecution: () => {
@@ -3715,7 +3721,7 @@ define([
           return graffiti.handleKeyup(e);
         });
         
-        $('body,.cell').click((e) => {
+        $('body, .cell').click((e) => {
           graffiti.handleGeneralClick(e);
         });
 
@@ -3751,7 +3757,7 @@ define([
           }
 
           graffiti.updateControlPanelPosition();
-          return true;
+          return true; // let this event bubble
         };
 
         // If we were playing a recording when they hit reload, we need to cancel it, restore, and save before we continue. 
@@ -4958,8 +4964,9 @@ define([
             $('.graffiti-canvas-type-temporary').css({opacity: record.opacity });
             break;
           case 'wipe':
-            graffiti.clearCanvases('temporary');            
+            console.log('Graffiti: wiping temporary sticker canvas');
             graffiti.wipeTemporaryStickerDomCanvases();
+            graffiti.clearCanvases('temporary');            
             break;
         }
       },
@@ -5289,6 +5296,7 @@ define([
 
       updateDisplay: (frameIndexes) => {
         const currentScrollTop = graffiti.sitePanel.scrollTop();
+        const activity = state.getActivity();
         if (state.shouldUpdateDisplay('contents', frameIndexes.contents)) {
           graffiti.updateContents(frameIndexes.contents.index, currentScrollTop);
         }
@@ -5296,7 +5304,7 @@ define([
           graffiti.updateSelections(frameIndexes.selections.index, currentScrollTop);
         }
         if (state.shouldUpdateDisplay('drawings', frameIndexes.drawings)) {
-          if (state.getActivity() !== 'scrubbing') {
+          if (activity !== 'scrubbing') {
             // console.log('calling updateDrawings from updateDisplay');
             graffiti.updateDrawings(frameIndexes.drawings);
           }
@@ -5409,7 +5417,7 @@ define([
       handleTerminalsEvents: (event) => {
         if (state.getActivity() === 'recording') {
           // If we are recording, we need to record latest terminal output for replay
-          //console.log('Terminal output event:', event.data.portion);
+          // console.log('Terminal event:', event);
           state.storeTerminalsState([event]);
           state.storeHistoryRecord('terminals');
         }
@@ -5419,6 +5427,7 @@ define([
       applyCurrentSkipRecord: (t) => {
         const currentSkipRecord = state.timeInSkipRecordRange(t);
         let didSkip = false;
+        const currentActivity = state.getActivity();
         if (currentSkipRecord !== undefined) {
           state.setAppliedSkipRecord();
           const duration = (currentSkipRecord.endTime - currentSkipRecord.startTime + 1);
@@ -5435,11 +5444,16 @@ define([
               state.updateCurrentSkipRecord();
               didSkip = true;
               break;
-            case state.SKIP_STATUS_COMPRESS:
+            case state.SKIP_STATUS_COMPRESSED:
+              state.setCompressedTimePlayRate(duration);
+              state.setCurrentPlaySpeed('compressed');
+              didSkip = true;
               break;
           }
         } else {
           state.clearAppliedSkipRecord();
+          // now stop any acceleration from a skip
+          state.setCurrentPlaySpeed('regular');
         }
         return didSkip;
       },
@@ -5754,6 +5768,7 @@ define([
             // Loop over all directives and save all files.
             for (i = 0; i < cellIdToGraffitiMap.length; ++i) {
               saveToFilePath = cellIdToGraffitiMap[i];
+              console.log('writing fileContents to saveToFilePath', saveToFilePath, fileContents);
               storage.writeTextToFile({ path: saveToFilePath,
                                         contents: fileContents,
                                         stripCRs: false });
@@ -5850,7 +5865,10 @@ define([
                                   hoverCellText.substr(endPos);
               hoverCell.set_text(newContents);
               hoverCell.render();
-              graffiti.refreshGraffitiTooltips(); 
+              setTimeout(() => {
+                graffiti.refreshAllGraffitiHighlights();
+                graffiti.refreshGraffitiTooltips(); 
+              }, 100);
             }
           }
         }
@@ -5860,6 +5878,7 @@ define([
       cleanupAfterLoadAndPlayDidNotPlay: () => {
         graffiti.clearJupyterMenuHint();
         graffiti.changeActivity('idle');
+        state.setDontRestoreCellContentsAfterPlayback(false);
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTooltips(); 
         graffiti.updateControlPanels();
