@@ -367,7 +367,7 @@ define([
     toggleRecordingSkip: () => {
       //console.trace('toggleRecordingSkip', state.skipStatus);
       if (state.skipStatus === state.SKIP_STATUS_NONE) {
-        state.skipStatus = state.SKIP_STATUS_COMPRESSED;
+        state.skipStatus = state.SKIP_STATUS_ABSOLUTE;
       } else {
         state.skipStatus = state.SKIP_STATUS_NONE;
       }
