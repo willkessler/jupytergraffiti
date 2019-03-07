@@ -348,6 +348,8 @@ define([
         graffiti.refreshGraffitiTooltips();
         
         graffiti.clearJupyterMenuHint();
+        state.refreshCellIdToGraffitiMap();
+
         return terminalSuite;      
       },
 
@@ -801,7 +803,7 @@ define([
                                           event: 'click',
                                           fn: (e) => {
                                             const permanence = ($('#graffiti-temporary-ink-control').is(':checked') ? 'temporary' : 'permanent');
-                                            console.log('You set temporary ink to:', permanence);
+                                            console.log('Graffiti: You set temporary ink to:', permanence);
                                             state.updateDrawingState([ { change: 'permanence', data: permanence } ]);
                                             // Turn on the pen/highlighter if you switch temporary ink status and it's not already on, unless stickering
                                             const activePenType = state.getDrawingPenAttribute('type');
@@ -815,7 +817,7 @@ define([
                                           event: 'click',
                                           fn: (e) => {
                                             const dashedLine = ($('#graffiti-dashed-line-control').is(':checked') ? 'dashed' : 'solid');
-                                            console.log('You set dashed line to:', dashedLine);
+                                            console.log('Graffiti: You set dashed line to:', dashedLine);
                                             state.updateDrawingState([ { change: 'dash', data: dashedLine } ]);
                                             // Turn on the pen/highlighter if you switch dashed line status and not stickering
                                             const activePenType = state.getDrawingPenAttribute('type');
@@ -974,7 +976,7 @@ define([
                                               stickerId = $(e.target).parents('.graffiti-stickers-button').attr('id');
                                             }
                                             const cleanStickerId = stickerId.replace('graffiti-sticker-','');
-                                            console.log('Sticker chosen:', cleanStickerId);
+                                            console.log('Graffiti: Sticker chosen:', cleanStickerId);
                                             graffiti.toggleGraffitiSticker(cleanStickerId);
                                           }
                                         },
@@ -1063,7 +1065,7 @@ define([
                                           ids: ['graffiti-insert-btn-cell'],
                                           event: 'click', 
                                           fn: (e) => { 
-                                            console.log('inserting graffiti button cell')
+                                            console.log('Graffiti: Inserting graffiti button cell')
                                             const suite = graffiti.createGraffitiButtonAboveSelectedCell();
                                             utils.saveNotebook();
                                           }
@@ -1072,7 +1074,7 @@ define([
                                           ids: ['graffiti-insert-terminal-cell'],
                                           event: 'click', 
                                           fn: (e) => { 
-                                            console.log('inserting graffiti terminal cell')
+                                            console.log('Graffiti: inserting graffiti terminal cell')
                                             const suite = terminalLib.createTerminalCellAboveSelectedCell();
                                             utils.saveNotebook();
                                           }
@@ -1081,7 +1083,7 @@ define([
                                           ids: ['graffiti-insert-terminal-suite'],
                                           event: 'click', 
                                           fn: (e) => { 
-                                            console.log('inserting graffiti terminal suite')
+                                            console.log('Graffiti: inserting graffiti terminal suite')
                                             const suite = graffiti.createTerminalSuiteAboveSelectedCell();
                                             utils.saveNotebook();
                                           }
@@ -3914,6 +3916,8 @@ define([
             }
             graffiti.refreshGraffitiTooltipsDebounced();
             graffiti.refreshAllGraffitiSideMarkers();
+            utils.refreshCellMaps();
+            state.refreshCellIdToGraffitiMap();
             resolve();
           });
         });
@@ -4514,7 +4518,7 @@ define([
             //
 
             const recordingCellInfo = state.getRecordingCellInfo();
-            if (recordingCellInfo == undefined) {
+            if (recordingCellInfo === undefined) {
               // Error condition, cannot start recording without an active cell
               console.log('Graffiti: Cannot begin recording, no cell chosen to store recording.');
               return;
@@ -5078,11 +5082,11 @@ define([
         //console.log('Processing speaking record', index, record);
         if (state.scanningIsOn()) {
           if (record.speaking) {
-            console.log('Begun speaking.');
+            // console.log('Graffiti: Begun speaking.');
             state.setCurrentPlaySpeed('scanInactive');
             state.setSpeakingStatus(true);
           } else {
-            console.log('Stopped speaking.');
+            // console.log('Graffiti: Stopped speaking.');
             state.setCurrentPlaySpeed('scanActive');
             state.setSpeakingStatus(false);
           }
@@ -5353,7 +5357,7 @@ define([
         const activity = state.getActivity();
         // Prevent playing while playing already. Not sure how this occurs so trapping for it here
         if (activity === 'playing') {
-          console.trace('Cannot start playing because already playing.');
+          console.log('Graffiti: Cannot start playing because already playing.');
           return;
         }
 
@@ -5495,19 +5499,37 @@ define([
       playMovieViaUserClick: () => {
         console.log('Graffiti: playMovieViaUserClick starts.');
         const activity = state.getActivity();
-        if (activity === 'playbackPending') {
+        const playableMovie = state.getPlayableMovie('tip');
+        console.log('Graffiti: playableMovie', playableMovie);
+        if (playableMovie === undefined) {
+          console.log('Graffiti: no playable movie known.');
+          if (activity !== 'recording') {
+            graffiti.changeActivity('idle');
+          }
+          return;
+        }
+
+        if (activity === 'recording') {
+          // Allow the first part of a graffiti to fire during recording (not the movie), so that terminal commands and show/hide buttons
+          // can be used during recordings.
+          // Prevent running the same graffiti you're recording for, however.
+          const recordingCellInfo = state.getRecordingCellInfo();
+          if (recordingCellInfo !== undefined) {
+            if ((recordingCellInfo.recordingCellId == playableMovie.recordingCellId) &&
+                (recordingCellInfo.recordingKey == playableMovie.recordingKey)) {
+              console.log('Graffiti: not running this graffiti during recording because it is the same one you are recording for:', recordingCellInfo);
+              return;
+            }
+          }
+          graffiti.loadAndPlayMovie('tip');
+          return;
+        } else if (activity === 'playbackPending') {
           console.log('Graffiti: not playing movie via user click because another movie is pending.');
           return; // prevent rapid clicks on graffiti where play_to_click is active.
         }
+        // Cancel any ongoing playback
         graffiti.cancelPlayback({cancelAnimation:false});
         graffiti.changeActivity('playbackPending');
-        const playableMovie = state.getPlayableMovie('tip');
-        if (playableMovie === undefined) {
-          console.log('Graffiti: no playable movie known.');
-          graffiti.changeActivity('idle');          
-          return;
-        }
-        //console.log('playableMovie', playableMovie);
         if (state.getDontRestoreCellContentsAfterPlayback()) {
           // If this movie is set to NOT restore cell contents, give the user a chance to opt-out of playback.
           const dialogContent = localizer.getString('REPLACE_CONFIRM_BODY_1');
@@ -5706,8 +5728,12 @@ define([
         const activity = state.getActivity();
         const recording = state.getManifestSingleRecording(playableMovie.recordingCellId, playableMovie.recordingKey);
         const fireUpMovie = () => {
-          // next line seems to be extraneous and buggy because we create a race condition with the control panel. however what happens if a movie cannot be loaded?
-          // graffiti.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
+          if (activity === 'recording') {
+            return;
+            // Don't start any movie if in the middle of a recording session. Bailing early means that we can fire up
+            // graffiti that have movies without starting the movie, so that we can run terminal commands and show/hide+insertDataFromfile
+            // rigs while recording.
+          }
 
           // Default is now to only replay cells involved in the recording (that got focus, selection, were drawn on, etc, but not moused over)
           if (recording.replayAllCells === true) {

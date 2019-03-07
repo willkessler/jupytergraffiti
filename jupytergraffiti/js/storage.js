@@ -371,7 +371,7 @@ define([
       });
       const credentials = { credentials: 'include'};
       storage.successfulLoad = false; /* assume we cannot fetch this recording ok */
-      console.log('Graffiti: storage is loading movie from path:', graffitiPath);
+      // console.log('Graffiti: storage is loading movie from path:', graffitiPath);
       const historyUrl = graffitiPath + 'history.txt';
       return fetch(historyUrl, credentials).then((response) => {
         if (!response.ok) {
@@ -410,7 +410,7 @@ define([
           return Promise.reject('Could not parse previous history, ex :' + ex);
         }
       }).catch((ex) => {
-        console.log('Graffiti: Could not fetch history file for history, ex:', ex);
+        console.log('Graffiti: Could not fetch history file for history at',historyUrl);
         return Promise.reject('Could not fetch history file');
       });
     },
@@ -436,7 +436,7 @@ define([
       }
       const callback = (data) => {
         storage.fetchMovie(data).catch((err) => {
-          console.log('Could not fetch movie:', data);
+          console.log('Graffiti: Could not fetch movie:', data);
         });
       }
       batchRunner.start(storage.preloadBatchSize, callback, allRecords).then(() => { 

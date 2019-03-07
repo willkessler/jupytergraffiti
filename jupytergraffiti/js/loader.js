@@ -11,7 +11,7 @@ if (window.Graffiti === undefined) {
     Graffiti.init();
 
     Jupyter.notebook.events.on('kernel_reconnecting.Kernel', (e) => { 
-      console.log('kernel reconnecting');
+      console.log('Graffiti: kernel reconnecting');
     });
 
     Jupyter.notebook.events.on('kernel_ready.Kernel', (e) => { 

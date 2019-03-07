@@ -401,11 +401,11 @@ define([
           cm = cell.code_mirror;
           selections = cm.listSelections();
           if (selections.length > 0) {
-            console.log('Clearing selections before: selections:', selections);
+            console.log('Graffiti: Clearing selections before: selections:', selections);
             for (let j = 0; j < selections.length; ++j) {
               selections[j].head = $.extend({}, selections[j].anchor);
             }
-            console.log('Clearing selections after: selections:', selections);
+            console.log('Graffiti: Clearing selections after: selections:', selections);
             cm.setSelections(selections);
           }
         }

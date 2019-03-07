@@ -204,7 +204,7 @@ define([
           }
         }
       }
-      // console.log('cellIdToGraffitiMap:', state.cellIdToGraffitiMap);
+      console.log('Graffiti: cellIdToGraffitiMap:', state.cellIdToGraffitiMap);
 
     },
 
@@ -399,7 +399,7 @@ define([
       record.endTime = state.history.duration - 1;
       state.history['skip'].push(record);
 
-      console.log('after addCancelTimeSkipRecord, skip history:', state.history['skip']);
+      console.log('Graffiti: after addCancelTimeSkipRecord, skip history:', state.history['skip']);
     },
 
     getSkipsRecords: () => {
@@ -418,7 +418,7 @@ define([
           const lastRecord = state.history['skip'][numRecords - 1];
           if (!lastRecord.hasOwnProperty('endTime')) {
             lastRecord.endTime = utils.getNow();
-            console.log('closed off previous record:', lastRecord);
+            console.log('Graffiti: closed off previous record:', lastRecord);
             if (lastRecord.endTime - lastRecord.startTime < 10) {
               // Delete this record as it has insignificant time in it, ie user just flipped the button on and off.
               state.history['skip'].pop();
@@ -682,7 +682,7 @@ define([
     setCompressedTimePlayRate: (duration, timeTarget) => {
       const accelerationFactor = duration / timeTarget;
       state.setPlayRate('compressed', accelerationFactor);
-      console.log('duration, timeTarget, accelerationFactor:', duration,timeTarget, accelerationFactor);
+      // console.log('duration, timeTarget, accelerationFactor:', duration,timeTarget, accelerationFactor);
     },
 
     setPlayStartTimeToNow: () => {
@@ -1264,10 +1264,10 @@ define([
     //   hash of all cell contents by id
 
     dumpHistory: () => {
-      console.log('Dumping JSON history');
-      console.log("=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-");
-      console.log(state.history);
-      console.log("=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-");
+      console.log('Graffiti: Dumping JSON history');
+      console.log("Graffiti: =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-");
+      console.log('Graffiti:', state.history);
+      console.log("Graffiti: =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-");
     },
 
     createViewRecord: (subType) => {
