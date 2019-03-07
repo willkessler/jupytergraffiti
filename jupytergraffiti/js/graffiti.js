@@ -5578,52 +5578,46 @@ define([
       executeInsertDataFromFile: (recordingCellId, recordingKey, recording) => {
         const insertDataFromFile = recording.insertDataFromFile;
         const filePath = insertDataFromFile.filePath;
-        let inserted = false;
-        return storage.fetchDataFile(filePath).then((contents) => {
-          const cells = Jupyter.notebook.get_cells();
-          const viewInfo = state.getViewInfo();
-          const hoverCellId = viewInfo.cellId;
-          const hoverCellIndex = utils.findCellIndexByCellId(hoverCellId);
-          const nextCellIndex = hoverCellIndex + 1;
-          // If not on the last cell, verify that the next cell doesn't already contain the file contents.
-          if (hoverCellIndex < cells.length - 1) {
-            const nextCell = cells[nextCellIndex];
-            const nextCellContents = nextCell.get_text();
-            if (nextCellContents === contents) {
-              // Contents match, so delete the cell instead (it must have been previously inserted)
-              Jupyter.notebook.delete_cell(nextCellIndex);
-              return Promise.resolve(false);
-            }
-          }
-
-          const cellType = insertDataFromFile.cellType;
-          const newCell = Jupyter.notebook.insert_cell_below((cellType === undefined ? 'markdown' : cellType), hoverCellIndex);
-          // Override the randomly created cell id for this inserted cell with a fixed id based on the recording key. This way, any graffiti
-          // recorded for this directive will have a known graffiti cell id to record activity over.  When we start recording a movie
-          // for a graffiti with the insertDataFromFile directive, we should run this function first before beginning the movie recording
-          // so that we have the cell ready to record from.
-          utils.setMetadataCellId(newCell.metadata, recordingKey);
-          utils.refreshCellMaps();
-          newCell.set_text(contents);
-          newCell.render();
-          return Promise.resolve(true);
-        })
-        .catch((ex) => {
-          console.log('Graffiti: executeInsertDataFromFile is unable to fetch data from path:', filePath);
-          dialog.modal({
-            title: localizer.getString('FILE_UNAVAILABLE') + ' : ' + filePath,
-            body:  localizer.getString('FILE_UNAVAILABLE_EXPLANATION'),
-            sanitize:false,
-            buttons: {
-              'OK': {
-                click: (e) => { 
-                  console.log('Graffiti: Missing file acknowledged.'); 
+        // Note that we re-use the recording key here. See note below about why.
+        const existingCellId = recordingKey;
+        const existingCell = utils.findCellByCellId(existingCellId);
+        if (existingCell === undefined) {
+          return storage.fetchDataFile(filePath).then((contents) => {
+            const viewInfo = state.getViewInfo();
+            const cellType = insertDataFromFile.cellType;
+            const newCell = Jupyter.notebook.insert_cell_below((cellType === undefined ? 'markdown' : cellType), viewInfo.cellIndex);
+            // Override the randomly created cell id for this inserted cell with a fixed id based on the recording key. This way, any graffiti
+            // recorded for this directive will have a known graffiti cell id to record activity over.  When we start recording a movie
+            // for a graffiti with the insertDataFromFile directive, we should run this function first before beginning the movie recording
+            // so that we have the cell ready to record from.
+            utils.setMetadataCellId(newCell.metadata, existingCellId);
+            utils.refreshCellMaps();
+            newCell.set_text(contents);
+            newCell.render();
+            return Promise.resolve(true);
+          }).catch((ex) => {
+            console.log('Graffiti: executeInsertDataFromFile is unable to fetch data from path:', filePath);
+            dialog.modal({
+              title: localizer.getString('FILE_UNAVAILABLE') + ' : ' + filePath,
+              body:  localizer.getString('FILE_UNAVAILABLE_EXPLANATION'),
+              sanitize:false,
+              buttons: {
+                'OK': {
+                  click: (e) => { 
+                    console.log('Graffiti: Missing file acknowledged.'); 
+                  }
                 }
               }
-            }
+            });
+            return Promise.reject();
           });
-          return Promise.reject();
-        });
+        } else {
+          const existingCellIndex = utils.findCellIndexByCellId(existingCellId);
+          if (existingCellIndex !== undefined) {
+            Jupyter.notebook.delete_cell(existingCellIndex);
+            return Promise.resolve(false); // false indicates we did not insert a new cell
+          }
+        }
       },
 
       // Execute any "label swaps" on graffiti clicks.  This is smart enough to distinguish graffiti buttons from other graffiti.
@@ -5632,8 +5626,8 @@ define([
           if ((recording.labelSwaps !== undefined) && (recording.labelSwaps.length === 2)) {
             const viewInfo = state.getViewInfo();
             const hoverCellId = viewInfo.cellId;
+            const hoverCellIndex = viewInfo.cellIndex;
             const hoverCell = utils.findCellByCellId(hoverCellId);
-            const hoverCellIndex = utils.findCellIndexByCellId(hoverCellId);
             if (hoverCell.cell_type !== 'markdown') {
               return Promise.reject(); // we cannot do label swaps on code cells
             }
@@ -5800,13 +5794,15 @@ define([
                                                recording)
                     .then((results) => {
                       return graffiti.executeLabelSwaps(recording, playableMovie.recordingCellId, playableMovie.recordingKey, results);
-                    }).then((results) => {
+                    })
+                    .then((results) => {
                       if (results) {
                         fireUpMovie(); // do not play a movie unless we actually inserted content with insertDataFromFile.
                       } else {
                         graffiti.cleanupAfterLoadAndPlayDidNotPlay();
                       }
                     }).catch(() => {
+                      console.log('Graffiti: could not run executeInsertDataFromFile.');
                       graffiti.cleanupAfterLoadAndPlayDidNotPlay();
                     });
           } else {

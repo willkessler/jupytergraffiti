@@ -351,6 +351,7 @@ define([
           const innerScroll = { left: innerScrollInfo.left, top: innerScrollInfo.top };
           return {
             cellId: utils.getMetadataCellId(cell.metadata), // The id of cell that the pointer is hovering over right now
+            cellIndex: cellIndex,
             innerCellRect: innerCellRect,
             innerScroll: innerScroll,
             lineNumbersVisible: lineNumbersVisible,
