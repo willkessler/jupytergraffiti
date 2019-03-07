@@ -82,7 +82,6 @@ define([
       state.narratorInfo = {};
       state.shiftKeyIsDown = false;
       state.shiftKeyWentDown = false;
-      state.executionSourceChoiceId = undefined;
       state.terminalState = undefined;
       state.cellIdToGraffitiMap = {}; // maps which graffitis are present in which cells. Used for autosave cells.
 
@@ -431,18 +430,6 @@ define([
         state.storeHistoryRecord('skip');
       }
       console.log('after storeSkipRecord, skip history:', state.history['skip']);
-    },
-
-    setExecutionSourceChoiceId: (choiceId) => {
-      state.executionSourceChoiceId = choiceId;
-    },
-
-    clearExecutionSourceChoiceId: () => {
-      state.executionSourceChoiceId = undefined;
-    },
-
-    getExecutionSourceChoiceId: () => {
-      return state.executionSourceChoiceId;
     },
 
     getShiftKeyIsDown: () => {
