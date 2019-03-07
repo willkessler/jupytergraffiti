@@ -348,9 +348,9 @@ define([
         graffiti.refreshGraffitiTooltips();
         
         graffiti.clearJupyterMenuHint();
-        state.refreshCellIdToGraffitiMap();
         // Save the contents of the code cell to its file even before any edits have happened, so any terminal commands in the button will find any
         // file being referred to.
+        state.refreshCellIdToGraffitiMap();
         graffiti.executeSaveToFileDirectives(terminalSuite.codeCellId);
         return terminalSuite;      
       },
@@ -1641,6 +1641,10 @@ define([
         graffiti.setupSavingScrim();
         graffiti.playAutoplayGraffiti(); // play any autoplay graffiti if there is one set up
         graffiti.setupMarkdownLocks();
+
+        state.refreshCellIdToGraffitiMap();
+        graffiti.executeSaveToFileDirectivesDebounced = _.debounce(graffiti.executeSaveToFileDirectives, 750, false);
+        graffiti.executeAllSaveToFileDirectives(); // autosave any cells that are set up with saveToFile directives pointed at them
 
         terminalLib.init(graffiti.handleTerminalsEvents);
 
@@ -3654,7 +3658,6 @@ define([
         });
 
         graffiti.handleSliderDragDebounced = _.debounce(graffiti.handleSliderDrag, 20, true);
-        graffiti.executeSaveToFileDirectivesDebounced = _.debounce(graffiti.executeSaveToFileDirectives, 750, false);
         
         console.log('Graffiti: Background setup complete.');
       },
@@ -5590,6 +5593,15 @@ define([
         }
       },
 
+      executeAllSaveToFileDirectives: () => {
+        const cells = Jupyter.notebook.get_cells();
+        for (let cell of cells) {
+          if (cell.cell_type === 'code') {
+            const cellId = utils.getMetadataCellId(cell.metadata);
+            graffiti.executeSaveToFileDirectives(cellId);
+          }
+        }        
+      },
 
       executeInsertDataFromFile: (recordingCellId, recordingKey, recording) => {
         //console.trace('executeInsertDataFromFile');
