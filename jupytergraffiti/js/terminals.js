@@ -173,7 +173,7 @@ define ([
         elem.bind('click', () => { newTerminal.term.focus(); });
 
         const notebookDirectory = utils.getNotebookDirectory();
-        console.log('notebookDirectory:', notebookDirectory);
+        console.log('Graffiti: notebookDirectory:', notebookDirectory);
         if (notebookDirectory !== undefined) {
           // in theory we could check to see if we're already in the directory we are supposed to be in using basename:
           // https://stackoverflow.com/questions/23162299/how-to-get-the-last-part-of-dirname-in-bash

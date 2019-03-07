@@ -349,7 +349,9 @@ define([
         
         graffiti.clearJupyterMenuHint();
         state.refreshCellIdToGraffitiMap();
-
+        // Save the contents of the code cell to its file even before any edits have happened, so any terminal commands in the button will find any
+        // file being referred to.
+        graffiti.executeSaveToFileDirectives(terminalSuite.codeCellId);
         return terminalSuite;      
       },
 
