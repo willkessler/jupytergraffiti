@@ -310,6 +310,10 @@ define([
       return state.skipping;
     },
 
+    isLastSkipRecord: () => {
+      return ((state.currentSkipRecord !== undefined) && (state.history.skip !== undefined) && (state.currentSkipRecord === state.history.skip.length - 1));
+    },
+
     startSkipping: () => {
       state.skipping = true;
     },
@@ -352,10 +356,17 @@ define([
     },
 
     setSkipInfo: (info) => {
-      state.skipInfo = {
-        type:   info.type,
-        factor: info.factor,
-      };
+      if (info === undefined) {
+        state.skipInfo = {
+          type: state.skipTypes['absolute'],
+          factor: 0,
+        };
+      } else {
+        state.skipInfo = {
+          type:   info.type,
+          factor: info.factor,
+        };
+      }
     },
 
     // Set the current or next skip record by scanning from 0 to the time given, looking

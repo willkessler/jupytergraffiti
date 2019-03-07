@@ -1253,7 +1253,7 @@ define([
         if ((activeTakeId === undefined) || (recording.takes === undefined)) {
           return false;
         }
-        console.log('updateTakesPanel, recordingCellId, recordingKey, recording', recordingCellId, recordingKey, recording);
+        //console.log('updateTakesPanel, recordingCellId, recordingKey, recording', recordingCellId, recordingKey, recording);
         //console.log('we got these takes:', recording.takes);
         let renderedTakes = '';
         const sortedRecs = _.sortBy($.map(recording.takes, (val,key) => { return $.extend(true, {}, val, { key: key }) }), 'createDate')
@@ -5238,6 +5238,10 @@ define([
           state.setAppliedSkipRecord();
           const duration = (currentSkipRecord.endTime - currentSkipRecord.startTime + 1);
           const durationMillis = duration / 1000;
+          if (state.isLastSkipRecord()) {
+            console.log('Graffiti: doing last skip as absolute');
+            skipInfo.type = state.skipTypes['absolute']; // last skip is overridden to always be absolute.
+          }
           switch (skipInfo.type) {
             case state.skipTypes['rapid']:
               state.setPlayRate('rapid', skipInfo.factor);
@@ -5560,7 +5564,7 @@ define([
             // Loop over all directives and save all files.
             for (i = 0; i < cellIdToGraffitiMap.length; ++i) {
               saveToFilePath = cellIdToGraffitiMap[i];
-              console.log('writing fileContents to saveToFilePath', saveToFilePath);
+              console.log('Graffiti: Writing fileContents to saveToFilePath', saveToFilePath);
               storage.writeTextToFile({ path: saveToFilePath,
                                         contents: fileContents,
                                         stripCRs: false });
