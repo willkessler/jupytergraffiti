@@ -435,7 +435,9 @@ define([
         }
       }
       const callback = (data) => {
-        storage.fetchMovie(data);
+        storage.fetchMovie(data).catch((err) => {
+          console.log('Could not fetch movie:', data);
+        });
       }
       batchRunner.start(storage.preloadBatchSize, callback, allRecords).then(() => { 
         console.log('Graffiti: preloading completed.');

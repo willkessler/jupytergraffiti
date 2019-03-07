@@ -250,7 +250,6 @@ define([
           '%%play_on_click',
           '%%hide_tooltip',
           '%%button_name No Movie Here Yet',
-          '%%silence_warnings',
           'Edit this markdown cell to customize the Graffiti for this button, and to record a new movie.<br><br>' +
           '_(NB: The default movie that was created with this button is a *placeholder* and it will *not* play.)_',
         ];
@@ -1807,6 +1806,7 @@ define([
             }
           } else {
             state.setCurrentPlaySpeed('rapid');
+            state.storeUserChoicePlaySpeed('rapid');
           }
           audio.updateAudioPlaybackRate();
           graffiti.updateControlPanels();
@@ -2887,7 +2887,10 @@ define([
             replayAllCells: false, // by default, we will only replay cells that the author interacted with. 
             hideTooltip: false,
             playOnClick: false,
-            skipSpeedMultiplier: 1.0, // regular speed normally
+            skipInfo: {
+              type: state.skipTypes['absolute'],
+              factor: 0,
+            },
             saveToFile: undefined, // may be array of save_to_file directives
             silenceWarnings: false,
             swappingLabels: false,
@@ -2972,9 +2975,19 @@ define([
                     // Path to an image or svg that will be a custom sticker.
                     partsRecord.stickerImageUrl = subPart1;
                     break;
-                  case 'skip_speed_multiplier':
+                  case 'skip_speed':
                     // One of: 0 (absolute jumps), 2x/3x etc (double speed during skips, triple etc), or 2c/3c (compress skips to 2s or 3s or less, etc)
-                    partsRecord.skipSpeedMultiplier = subPart1;
+                    const skipParts = subPart1.match(/(.*?)([cx]{0,1}$)/);
+                    if (skipParts !== null) {
+                      partsRecord.skipInfo = {
+                        factor: skipParts[1],
+                      };
+                      if (skipParts[1] === '0') {
+                        partsRecord.skipInfo.type = state.skipTypes['absolute'];
+                      } else {
+                        partsRecord.skipInfo.type = (skipParts[2] === 'c' ? state.skipTypes['compressed'] : state.skipTypes['rapid']);
+                      }
+                    }
                     break;
                   case 'save_to_file':
                     // Param 1: id of cell to save; param 2: path of file to save cell contents to. You can have more than one of these in a tooltip
@@ -3157,10 +3170,9 @@ define([
         //state.clearPlayableMovie('tip');
       },
 
-      refreshGraffitiTooltipsCore: (e) => {
-        // console.log('Graffiti: handling mousenter/mouseleave/mousemove:', e.type);
+      refreshGraffitiTooltipsCore: (highlightElem, eventType) => {
+        // console.log('Graffiti: handling mousenter/mouseleave/mousemove:', eventType);
         const activity = state.getActivity();
-        let highlightElem = $(e.target);
         if (!highlightElem.hasClass('graffiti-highlight')) {
           highlightElem = highlightElem.parents('.graffiti-highlight');
         }
@@ -3225,7 +3237,7 @@ define([
           }
 
           let existingTip = graffiti.notebookContainer.find('.graffiti-tip');
-          if (e.type === 'mouseleave') {
+          if (eventType === 'mouseleave') {
             state.setTipTimeout(() => { graffiti.hideTip(); }, 500);
           } else {
             let currentPointerPosition = state.getPointerPosition();
@@ -3234,7 +3246,7 @@ define([
               //console.log('tip interval');
               const newPointerPosition = state.getPointerPosition();
               const cursorDistanceSquared = (newPointerPosition.x - currentPointerPosition.x) * (newPointerPosition.x - currentPointerPosition.x) +
-                                                 (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
+                                            (newPointerPosition.y - currentPointerPosition.y) * (newPointerPosition.y - currentPointerPosition.y);
 
               //console.log('comparing currentPointerPosition, newPointerPosition:', currentPointerPosition,
               //newPointerPosition, cursorDistanceSquared);
@@ -3274,8 +3286,8 @@ define([
                   existingTip = $('<div class="graffiti-tip" id="graffiti-tip">' + tooltipContents + '</div>')
                     .prependTo(graffiti.notebookContainer);
                   existingTip.bind('mouseenter mouseleave', (e) => {
-                    // console.log(e.type === 'mouseenter' ? 'entering tooltip' : 'leaving tooltip');
-                    if (e.type === 'mouseenter') {
+                    // console.log(eventType === 'mouseenter' ? 'entering tooltip' : 'leaving tooltip');
+                    if (eventType === 'mouseenter') {
                       state.clearTipTimeout();
                     } else {
                       //console.log('hiding tip');
@@ -3307,7 +3319,8 @@ define([
                   $('#graffiti-movie-play-btn').prop('disabled',false);
                 }
 
-                // Set up the call back for the play button on the tooltip that will actually play the movie.
+                // Set up the call back for the play button on the tooltip that will actually play the movie
+                // (or the entire tip, when the entire tip is clickable)
                 let bindableTip = (entireTipClickable ? existingTip : existingTip.find('#graffiti-movie-play-btn'));
                 bindableTip.unbind('click').click((e) => {
                   state.clearTipTimeout();
@@ -3379,7 +3392,7 @@ define([
       refreshGraffitiTooltips: () => {
         const tips = $('.graffiti-highlight');
         //console.trace('refreshGraffitiTooltips: binding mousenter/mouseleave');
-        tips.unbind('mousemove').bind('mousemove', (e) => { graffiti.refreshGraffitiTooltipsCore(e); } );
+        tips.unbind('mousemove').bind('mousemove', (e) => { graffiti.refreshGraffitiTooltipsCore($(e.target), e.type); } );
       },
 
       markSelectedCellForExecution: () => {
@@ -3846,7 +3859,7 @@ define([
             recording.narratorName = tooltipCommands.narratorName;
             recording.narratorPicture = tooltipCommands.narratorPicture;
             recording.stickerImageUrl = tooltipCommands.stickerImageUrl;
-            recording.skipSpeedMultiplier = tooltipCommands.skipSpeedMultiplier;
+            recording.skipInfo = $.extend({}, tooltipCommands.skipInfo);
             recording.saveToFile = tooltipCommands.saveToFile;
             recording.terminalCommand = tooltipCommands.terminalCommand;
             recording.insertDataFromFile = tooltipCommands.insertDataFromFile;
@@ -4272,11 +4285,12 @@ define([
         cm.on('change', (cm, changeObj) => {
           //console.log('change activity:', changeObj);
           const affectedCell = utils.findCellByCodeMirror(cm);
+          const affectedCellId = utils.getMetadataCellId(affectedCell.metadata);
           if (affectedCell !== undefined) {
-            state.storeCellIdAffectedByActivity(utils.getMetadataCellId(affectedCell.metadata));
+            state.storeCellIdAffectedByActivity(affectedCellId);
             state.storeHistoryRecord('contents');
+            graffiti.executeSaveToFileDirectivesDebounced(affectedCellId); // if any graffiti call for this cell to be persisted to file(s), then do it now
             if (state.getActivity() === 'idle') {
-              graffiti.executeSaveToFileDirectivesDebounced(affectedCell); // if any graffiti call for this cell to be persisted to file(s), then do it now
               state.setHighlightsRefreshCellId(utils.getMetadataCellId(affectedCell.metadata));
               setTimeout(graffiti.updateRefreshableCell, 250); // set up to refresh side markers shortly after changes
             }
@@ -5220,30 +5234,32 @@ define([
         let didSkip = false;
         const currentActivity = state.getActivity();
         if (currentSkipRecord !== undefined) {
+          const skipInfo = state.getSkipInfo();
           state.setAppliedSkipRecord();
-          const skipFactor = state.getSkipFactor();
-          switch (skipFactor.type) {
-            case state.SKIP_TYPE_RAPID:
-              state.setCurrentSpeedFactor(skipFactor.factor);
+          const duration = (currentSkipRecord.endTime - currentSkipRecord.startTime + 1);
+          const durationMillis = duration / 1000;
+          switch (skipInfo.type) {
+            case state.skipTypes['rapid']:
+              state.setPlayRate('rapid', skipInfo.factor);
               state.setCurrentPlaySpeed('rapid');
               break;
-            case state.SKIP_TYPE_ABSOLUTE:
+            case state.skipTypes['absolute']:
               graffiti.jumpPlayback(1, durationMillis);
               state.updateCurrentSkipRecord();
               didSkip = true;
               break;
-            case state.SKIP_TYPE_COMPRESSED:
-              const duration = (currentSkipRecord.endTime - currentSkipRecord.startTime + 1);
-              const durationMillis = duration / 1000;
-              state.setCompressedTimePlayRate(duration);
-              state.setCurrentPlaySpeed('rapid');
+            case state.skipTypes['compressed']:
+              // This is the time we're going to try to compress time into (assume user gave us seconds, not millis)
+              const compressedTimeTarget = Math.min(duration, skipInfo.factor * 1000); 
+              state.setCompressedTimePlayRate(duration, compressedTimeTarget);
+              state.setCurrentPlaySpeed('compressed');
               didSkip = true;
               break;
           }
         } else {
           state.clearAppliedSkipRecord();
-          // now stop any acceleration from a skip
-          state.setCurrentPlaySpeed('regular');
+          // Now stop any acceleration from a skip, and return to whatever speed the user was viewing with before the skip started.
+          state.setCurrentPlaySpeed(state.getUserChoicePlaySpeed());
         }
         return didSkip;
       },
@@ -5351,6 +5367,7 @@ define([
           // utils.saveNotebook();
           state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.setCurrentPlaySpeed('regular');
+          state.storeUserChoicePlaySpeed('regular');
           state.setSpeakingStatus(false);
           terminalLib.clearTerminalsContentsPositions();
           state.resetPlayTimes();
@@ -5532,18 +5549,18 @@ define([
         }
       },
 
-      executeSaveToFileDirectives: (cell) => {
-        const cellId = utils.getMetadataCellId(cell.metadata);
+      executeSaveToFileDirectives: (cellId) => {
         if (cellId !== undefined) {
-          console.log('Graffiti: executing saveToFile directives for cell id:', cellId);
           const cellIdToGraffitiMap = state.getCellIdToGraffitiMap(cellId);
           if (cellIdToGraffitiMap !== undefined) {
+            console.log('Graffiti: executing saveToFile directives for cell id:', cellId);
+            const cell = utils.findCellByCellId(cellId);
             const fileContents = cell.get_text();
             let saveToFilePath, i;
             // Loop over all directives and save all files.
             for (i = 0; i < cellIdToGraffitiMap.length; ++i) {
               saveToFilePath = cellIdToGraffitiMap[i];
-              console.log('writing fileContents to saveToFilePath', saveToFilePath, fileContents);
+              console.log('writing fileContents to saveToFilePath', saveToFilePath);
               storage.writeTextToFile({ path: saveToFilePath,
                                         contents: fileContents,
                                         stripCRs: false });
@@ -5614,11 +5631,12 @@ define([
             const hoverCell = utils.findCellByCellId(hoverCellId);
             const hoverCellIndex = utils.findCellIndexByCellId(hoverCellId);
             if (hoverCell.cell_type !== 'markdown') {
-              return; // we cannot do label swaps on code cells
+              return Promise.reject(); // we cannot do label swaps on code cells
             }
             Jupyter.notebook.select(hoverCellIndex);
             const hoverCellText = hoverCell.get_text();
-            const startTag = '<span class="graffiti-highlight graffiti-' + recordingCellId + '-' + recordingKey + '">';
+            const tagClass = 'graffiti-' + recordingCellId + '-' + recordingKey;
+            const startTag = '<span class="graffiti-highlight ' + tagClass + '">';
             const startPos = hoverCellText.indexOf(startTag);
             if (startPos >= 0) {
               const endTag = '</span>';
@@ -5640,10 +5658,10 @@ define([
                                   hoverCellText.substr(endPos);
               hoverCell.set_text(newContents);
               hoverCell.render();
-              setTimeout(() => {
-                graffiti.refreshAllGraffitiHighlights();
-                graffiti.refreshGraffitiTooltips(); 
-              }, 100);
+              graffiti.refreshAllGraffitiHighlights();
+              const hoverCellElement = hoverCell.element[0];
+              const swappedButtonDOM = $(hoverCellElement).find('.' + tagClass);
+              graffiti.refreshGraffitiTooltipsCore(swappedButtonDOM, 'mouseenter'); // simulate a mouseenter event so that the new button gets bound
             }
           }
         }
@@ -5665,7 +5683,7 @@ define([
 
         state.setNarratorInfo('name', recording.narratorName);
         state.setNarratorInfo('picture', recording.narratorPicture);
-        state.setSkipFactor(recording.skipSpeedMultiplier);
+        state.setSkipInfo(recording.skipInfo);
         if ((playableMovie.cell !== undefined) && (playableMovie.cellType === 'markdown')) {
           playableMovie.cell.render(); // always render a markdown cell first before playing a movie on a graffiti inside it
         }
@@ -5707,24 +5725,6 @@ define([
           graffiti.cleanupAfterLoadAndPlayDidNotPlay();
           graffiti.setJupyterMenuHint(localizer.getString('CELL_EXECUTE_CHOICE_SET'));
         } else {
-          if (recording.terminalCommand !== undefined) {
-            const terminalCommand = recording.terminalCommand;
-            terminalLib.runTerminalCommand(terminalCommand.terminalId, terminalCommand.command, true);
-            if (activity !== 'recording') {
-              graffiti.cleanupAfterLoadAndPlayDidNotPlay(); // clean up *unless* we are recording; then we should just let things keep going.
-            }
-            
-            state.updateUsageStats({
-              type: 'terminalCommand',
-              data: {
-                cellId:        playableMovie.recordingCellId,
-                recordingKey:  playableMovie.recordingKey,
-                command:       recording.terminalCommand,
-              }
-            });
-            return; // we are done if we ran a terminal command, don't bother to load any movies for playback.
-          }
-
           const fireUpMovie = () => {
             // next line seems to be extraneous and buggy because we create a race condition with the control panel. however what happens if a movie cannot be loaded?
             // graffiti.cancelPlayback({cancelAnimation:false}); // cancel any ongoing movie playback b/c user is switching to a different movie
@@ -5769,6 +5769,25 @@ define([
               });
             }
           };
+
+
+          if (recording.terminalCommand !== undefined) {
+            const terminalCommand = recording.terminalCommand;
+            terminalLib.runTerminalCommand(terminalCommand.terminalId, terminalCommand.command, true);
+            if (activity !== 'recording') {
+              graffiti.cleanupAfterLoadAndPlayDidNotPlay(); // clean up *unless* we are recording; then we should just let things keep going.
+            }
+            
+            state.updateUsageStats({
+              type: 'terminalCommand',
+              data: {
+                cellId:        playableMovie.recordingCellId,
+                recordingKey:  playableMovie.recordingKey,
+                command:       recording.terminalCommand,
+              }
+            });
+            return; // we are done if we ran a terminal command, don't bother to load any movies for playback.
+          }
 
           // Execute any "insert data from file" directives.
           if (recording.insertDataFromFile !== undefined) {

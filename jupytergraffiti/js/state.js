@@ -32,10 +32,12 @@ define([
       state.playSpeeds = { 
         'regular' : 1.0,       // playback rate at speed it was originally recorded
         'rapid'   : 2.0,       // playback rate when watching entire recording fast, either a multiplier of real-time, or a "compressed time" multiplier
+        'compressed' : 1.0,    // this is not a play rate, but a target time to compress skips into
         'scanInactive' : 1.0,  // playback rate while watching non-silence (speaking) in the recording (defunct)
         'scanActive' : 3.0     // playback rate while watching silence (no speaking) in the recordin (defunct)
       };
       state.currentPlaySpeed = 'regular';
+      state.userChoicePlaySpeed = 'regular';
       state.rapidScanActive = false; // whether rapidscan is activate at this moment (it's activated during silent moments so we play faster)
       state.recordedCursorPosition = { x: -1000, y: -1000 };
       state.viewInfo = undefined;
@@ -129,10 +131,15 @@ define([
       };
 
       state.skipping = false; // true if we are currently recording a skip
-      state.skipFactor = 1.0;
-      state.SKIP_TYPE_RAPID = 1;
-      state.SKIP_TYPE_ABSOLUTE = 2;
-      state.SKIP_TYPE_COMPRESSED = 3;
+      state.skipTypes = {
+        rapid: 1,
+        absolute: 2,
+        compressed: 3
+      };
+      state.skipInfo = {
+        type: state.skipTypes.absolute,
+        factor: 0
+      };
 
       state.END_RECORDING_KEYDOWN_TIMEOUT = 1200;      
 
@@ -340,12 +347,15 @@ define([
       state.appliedSkipRecord = undefined;
     },
 
-    getSkipFactor: (skipFactor) => {
-      return state.skipFactor;
+    getSkipInfo: () => {
+      return state.skipInfo;
     },
 
-    setSkipFactor: (skipFactor) => {
-      state.skipFactor = skipFactor;
+    setSkipInfo: (info) => {
+      state.skipInfo = {
+        type:   info.type,
+        factor: info.factor,
+      };
     },
 
     // Set the current or next skip record by scanning from 0 to the time given, looking
@@ -655,13 +665,26 @@ define([
       //console.log('currentPlaySpeed:', state.currentPlaySpeed, 'playTimes', state.playTimes);
     },
 
+    getUserChoicePlaySpeed: () => {
+      return state.userChoicePlaySpeed;
+    },
+
+    storeUserChoicePlaySpeed: (userChoicePlaySpeed) => {
+      state.userChoicePlaySpeed = userChoicePlaySpeed;
+    },
+
     getPlayRateScalar: () => {
       return state.playSpeeds[state.currentPlaySpeed];
     },
 
-    setCompressedTimePlayRate: (duration) => {
-      const accelerationFactor = duration / state.compressedPlayTimeDuration;
-      state.playSpeeds['rapid'] = accelerationFactor;
+    setPlayRate: (kind, newPlayRate) => {
+      state.playSpeeds[kind] = newPlayRate;      
+    },
+
+    setCompressedTimePlayRate: (duration, timeTarget) => {
+      const accelerationFactor = duration / timeTarget;
+      state.setPlayRate('compressed', accelerationFactor);
+      console.log('duration, timeTarget, accelerationFactor:', duration,timeTarget, accelerationFactor);
     },
 
     setPlayStartTimeToNow: () => {
