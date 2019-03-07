@@ -5590,6 +5590,7 @@ define([
 
 
       executeInsertDataFromFile: (recordingCellId, recordingKey, recording) => {
+        //console.trace('executeInsertDataFromFile');
         const insertDataFromFile = recording.insertDataFromFile;
         const filePath = insertDataFromFile.filePath;
         // Note that we re-use the recording key here. See note below about why.
@@ -5687,7 +5688,6 @@ define([
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTooltips(); 
         graffiti.updateControlPanels();
-        utils.saveNotebook();
       },
 
       startLoadedMovie: (recording, playableMovie) => {

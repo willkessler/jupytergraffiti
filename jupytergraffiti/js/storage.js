@@ -121,6 +121,7 @@ define([
         }
         storage.executorCell = undefined;
         state.restorePreviousActivity();
+        utils.saveNotebook();
       }        
     },
 

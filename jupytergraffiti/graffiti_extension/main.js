@@ -34,7 +34,7 @@ define([
       console.log('Graffiti: Notebook is already fully loaded.');
       initExtension();
     } else {
-      Jupyter.notebook.events.on('notebook_loaded.Notebook', () => {
+      Jupyter.notebook.events.on('notebook_loaded.Notebook', (e) => {
         console.log('Graffiti: Notebook is loaded.');
         initExtension();
       })
