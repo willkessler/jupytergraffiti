@@ -309,8 +309,9 @@ define([
       state.storeHistoryRecord('speaking'); // record speaking status, if we are currently recording
     },
     
-    resetSkipStatus: () => {
-      state.skipStatus = state.SKIP_STATUS_NONE;
+
+    clearHighlightsRefreshableCell: () => {
+      state.highlightsRefreshCellId = undefined;
     },
 
     isSkipping: () => {
@@ -393,11 +394,6 @@ define([
           }
         }
       }
-      if (newSkipStatus !== state.SKIP_STATUS_NONE) {
-        // Only add a new skip record when beginning a skip period.
-        state.storeHistoryRecord('skip');
-      }
-      console.log('after storeSkipRecord, skip history:', state.history['skip']);
     },
 
     createSkipRecord: () => {
