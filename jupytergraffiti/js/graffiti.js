@@ -5070,10 +5070,12 @@ define([
             }
           }
         }
-        graffiti.setSitePanelScrollTop(currentScrollTop); // restore scrollTop because changing selections messes with it
         if (renderedFrameOutput) {
           graffiti.resizeCanvases();
           graffiti.redrawAllDrawings();
+          setTimeout(() => {
+            graffiti.setSitePanelScrollTop(currentScrollTop); // for some reason we have to restore scrollTop on timeout because CM's setValue() fn seems async.
+          }, 25);
         }
       },
 
