@@ -16,9 +16,12 @@ define ([
   const terminals = {
 
     focusedTerminal: undefined,
+    singleCDCommand: false,
+    CDCommandCount : 0,
     terminalsList: {},
 
     _makeTerminal: (element, terminalId, wsUrl, sizeObj) => {
+      console.log('makeTerminal,wsUrl:', wsUrl);
       const ws = new WebSocket(wsUrl);
       terminalLib.applyAddon(fit);
       const term = new terminalLib({ 
@@ -177,8 +180,11 @@ define ([
         if (notebookDirectory !== undefined) {
           // in theory we could check to see if we're already in the directory we are supposed to be in using basename:
           // https://stackoverflow.com/questions/23162299/how-to-get-the-last-part-of-dirname-in-bash
-          const cdCommand = "" + 'if test -d ' + notebookDirectory + '; then cd ' + notebookDirectory + "; fi\n";
-          newTerminal.term.send(cdCommand);
+          const cdCommand = "" + 'if test -d ' + notebookDirectory + '; then cd ' + notebookDirectory + "; fi && clear\n";
+          if (!terminals.singleCDCommand || (terminals.singleCDCommand && terminals.CDCommandCount < 1)) {
+            newTerminal.term.send(cdCommand);
+            terminals.CDCommandCount++;
+          }
           renderArea.find('.graffiti-terminal-go-notebook-dir').click((e) => {
             newTerminal.term.send(cdCommand);
           });
@@ -265,7 +271,7 @@ define ([
         const rq = terminals.renderQueue.shift();
         const cellId = utils.getMetadataCellId(rq.cell.metadata);
         // console.log('Processing render queue entry:', rq);
-        terminals.createTerminalCell(cellId, rq.cell.metadata.graffitiConfig);
+        terminals.createTerminalCell(cellId, rq.config);
         // make sure you can't double click this cell because that would break the terminal
         $(rq.cell.element[0]).unbind('dblclick').bind('dblclick', ((e) => { 
           e.stopPropagation();
@@ -285,7 +291,13 @@ define ([
         if (cell.cell_type === 'markdown') {
           if (cell.metadata.hasOwnProperty('graffitiConfig')) {
             if (cell.metadata.graffitiConfig.type === 'terminal') {
-              terminals.renderQueue.push({cell: cell, config: cell.metadata.graffitiConfig });
+              let config = $.extend({}, cell.metadata.graffitiConfig);
+              if ((utils.getNotebookGraffitiConfigEntry('singleTerminal') !== undefined) &&
+                  (utils.getNotebookGraffitiConfigEntry('singleTerminal') == "true")) {
+                config.terminalId = utils.getNotebookGraffitiConfigEntry('id');
+                terminals.singleCDCommand = true;
+              }
+              terminals.renderQueue.push({cell: cell, config: config });
             }
           }
         }
