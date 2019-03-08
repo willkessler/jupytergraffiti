@@ -121,6 +121,7 @@ define([
         }
         storage.executorCell = undefined;
         state.restorePreviousActivity();
+        utils.saveNotebook();
       }        
     },
 
@@ -306,7 +307,7 @@ define([
           //console.log('uncompressed manifest:', uncompressedManifestString);
           const manifestDataParsed = JSON.parse(uncompressedManifestString);
           state.setManifest(manifestDataParsed);
-          console.log('Graffiti Manifest:', manifestDataParsed['id_iermcbu']);
+          //console.log('Graffiti Manifest:', manifestDataParsed['id_iermcbu']);
         }
       });
     },
@@ -371,7 +372,7 @@ define([
       });
       const credentials = { credentials: 'include'};
       storage.successfulLoad = false; /* assume we cannot fetch this recording ok */
-      console.log('Graffiti: storage is loading movie from path:', graffitiPath);
+      // console.log('Graffiti: storage is loading movie from path:', graffitiPath);
       const historyUrl = graffitiPath + 'history.txt';
       return fetch(historyUrl, credentials).then((response) => {
         if (!response.ok) {
@@ -410,7 +411,7 @@ define([
           return Promise.reject('Could not parse previous history, ex :' + ex);
         }
       }).catch((ex) => {
-        console.log('Graffiti: Could not fetch history file for history, ex:', ex);
+        console.log('Graffiti: Could not fetch history file for history at',historyUrl);
         return Promise.reject('Could not fetch history file');
       });
     },
@@ -435,7 +436,9 @@ define([
         }
       }
       const callback = (data) => {
-        storage.fetchMovie(data);
+        storage.fetchMovie(data).catch((err) => {
+          console.log('Graffiti: Could not fetch movie:', data);
+        });
       }
       batchRunner.start(storage.preloadBatchSize, callback, allRecords).then(() => { 
         console.log('Graffiti: preloading completed.');

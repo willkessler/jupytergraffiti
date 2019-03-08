@@ -32,11 +32,11 @@ define([
             hark.init(stream, { threshold:-65 });
             hark.on('speaking', () => { 
               state.setSpeakingStatus(true);
-              console.log('speaking started');
+              // console.log('Graffiti: speaking started');
             });
             hark.on('stopped_speaking', () => { 
               state.setSpeakingStatus(false);
-              console.log('speaking ended');
+              // console.log('Graffiti: speaking ended');
             });
             //hark.on('volume_change', (currentVolume, threshold) => { console.log('volume change,', currentVolume, threshold) });
             

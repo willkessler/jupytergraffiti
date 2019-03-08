@@ -12,16 +12,14 @@ define([
 ], (Jupyter, Graffiti, utils, storage, udacityUser) => {
   console.log('Graffiti loaded:', Graffiti);
   function load_ipython_extension() {
-    console.log('Graffiti loaded:', Graffiti);
-
     const initExtension = () => {
       window.Graffiti = Graffiti;
       udacityUser.setUser();
       Graffiti.init();
-  
+      
       Jupyter.notebook.events.on('kernel_ready.Kernel', (e) => { 
         console.log('Graffiti: kernel ready, possible kernel restart.', e);
-        console.log('Reloading loader.js');
+        console.log('Graffiti: Reloading loader.js');
         if (!udacityUser.token) {
           udacityUser.setUser();
         } 

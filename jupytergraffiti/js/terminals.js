@@ -9,9 +9,10 @@
 define ([
   'base/js/utils',
   './utils.js',
+  './localizer.js',
   './xterm/xterm.js',
   './xterm/addons/fit/fit.js',
-], (jupyterUtils, utils, terminalLib, fit) => {
+], (jupyterUtils, utils, localizer, terminalLib, fit) => {
   const terminals = {
 
     focusedTerminal: undefined,
@@ -149,8 +150,8 @@ define ([
 
         renderArea.html('<div class="graffiti-terminal-container" id="' + terminalContainerId + '" class="container" style="width:100%;height:' + terminalHeight + 'px;"></div>' +
                         '<div class="graffiti-terminal-links">' +
-                        ' <div class="graffiti-terminal-go-notebook-dir">Jump to Notebook\'s Dir</div>' +
-                        ' <div class="graffiti-terminal-reset">Reset</div>' +
+                        ' <div class="graffiti-terminal-go-notebook-dir">' + localizer.getString('JUMP_TO_NOTEBOOK_DIR') + '</div>' +
+                        ' <div class="graffiti-terminal-reset">' + localizer.getString('RESET_TERMINAL') + '</div>' +
                         '</div>').show();
         const wsUrl = location.protocol.replace('http', 'ws') + '//' + location.host + '/terminals/websocket/' + config.terminalId;
         const elem = $('#' + terminalContainerId);
@@ -171,10 +172,13 @@ define ([
 
         elem.bind('click', () => { newTerminal.term.focus(); });
 
-        if (config.startingDirectory !== undefined) {
+        const notebookDirectory = utils.getNotebookDirectory();
+        console.log('Graffiti: notebookDirectory:', notebookDirectory);
+        if (notebookDirectory !== undefined) {
           // in theory we could check to see if we're already in the directory we are supposed to be in using basename:
           // https://stackoverflow.com/questions/23162299/how-to-get-the-last-part-of-dirname-in-bash
-          const cdCommand = "" + 'cd ' + config.startingDirectory + "\n";
+          const cdCommand = "" + 'if test -d ' + notebookDirectory + '; then cd ' + notebookDirectory + "; fi\n";
+          newTerminal.term.send(cdCommand);
           renderArea.find('.graffiti-terminal-go-notebook-dir').click((e) => {
             newTerminal.term.send(cdCommand);
           });

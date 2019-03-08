@@ -28,13 +28,16 @@ define([
       state.scrollTop = undefined;
       state.selectedCellId = undefined;
       state.mute = false;
+      state.compressedPlayTimeDuration = 0.25 * 1000; // millis. make compressed time "really fast". It won't really compress down to this few seconds though, JS is too slow.
       state.playSpeeds = { 
         'regular' : 1.0,       // playback rate at speed it was originally recorded
-        'rapid'   : 2.0,       // playback rate when watching entire recording fast
-        'scanInactive' : 1.0,  // playback rate while watching non-silence (speaking) in the recording
-        'scanActive' : 3.0     // playback rate while watching silence (no speaking) in the recording
+        'rapid'   : 2.0,       // playback rate when watching entire recording fast, either a multiplier of real-time, or a "compressed time" multiplier
+        'compressed' : 1.0,    // this is not a play rate, but a target time to compress skips into
+        'scanInactive' : 1.0,  // playback rate while watching non-silence (speaking) in the recording (defunct)
+        'scanActive' : 3.0     // playback rate while watching silence (no speaking) in the recordin (defunct)
       };
       state.currentPlaySpeed = 'regular';
+      state.userChoicePlaySpeed = 'regular';
       state.rapidScanActive = false; // whether rapidscan is activate at this moment (it's activated during silent moments so we play faster)
       state.recordedCursorPosition = { x: -1000, y: -1000 };
       state.viewInfo = undefined;
@@ -66,7 +69,6 @@ define([
       state.userId = undefined;
       state.workspace = {};
       state.speakingStatus = false; // true when the graffiti creator is currently speaking (not silent)
-      state.editingSkips = false;
       state.currentSkipRecord = 0;
       state.appliedSkipRecord = undefined;
       state.cellStates = {
@@ -81,7 +83,6 @@ define([
       state.narratorInfo = {};
       state.shiftKeyIsDown = false;
       state.shiftKeyWentDown = false;
-      state.executionSourceChoiceId = undefined;
       state.terminalState = undefined;
       state.cellIdToGraffitiMap = {}; // maps which graffitis are present in which cells. Used for autosave cells.
 
@@ -129,43 +130,21 @@ define([
         opacity: state.maxDrawingOpacity
       };
 
-      state.SKIP_STATUS_NONE =      0;
-      state.SKIP_STATUS_COMPRESS =  1;
-      state.SKIP_STATUS_2X =        2;
-      state.SKIP_STATUS_3X =        3;
-      state.SKIP_STATUS_4X =        4;
-      state.SKIP_STATUS_ABSOLUTE = -1;
+      state.skipping = false; // true if we are currently recording a skip
+      state.skipTypes = {
+        rapid: 1,
+        absolute: 2,
+        compressed: 3
+      };
+      state.skipInfo = {
+        type: state.skipTypes.absolute,
+        factor: 0
+      };
 
-      state.END_RECORDING_KEYDOWN_TIMEOUT = 1200;
-
-      state.skipStatusColorMap = {};
-      state.skipStatusColorMap[state.SKIP_STATUS_NONE] = '5e5';
-      state.skipStatusColorMap[state.SKIP_STATUS_COMPRESS] = 'ddd';
-      state.skipStatusColorMap[state.SKIP_STATUS_2X] = '500';
-      state.skipStatusColorMap[state.SKIP_STATUS_3X] = 'a00';
-      state.skipStatusColorMap[state.SKIP_STATUS_4X] = 'f00';
-      state.skipStatusColorMap[state.SKIP_STATUS_ABSOLUTE] = '000';
-
-      state.skipStatusCaptions = {};
-      state.skipStatusCaptions[state.SKIP_STATUS_NONE] = 'Regular speed';
-      state.skipStatusCaptions[state.SKIP_STATUS_COMPRESS] = 'Compress to fixed duration';
-      state.skipStatusCaptions[state.SKIP_STATUS_2X] = '2x speed';
-      state.skipStatusCaptions[state.SKIP_STATUS_3X] = '3x speed';
-      state.skipStatusCaptions[state.SKIP_STATUS_4X] = '4x speed';
-      state.skipStatusCaptions[state.SKIP_STATUS_ABSOLUTE] = 'Skip entire section';
-      
-      state.skipStatus = state.SKIP_STATUS_NONE; // value to show we have activated a skip, and what speed (0 = regular speed/user choice, 1 = fixed compression, 2,3,4 = 2x,3x,4x.
+      state.END_RECORDING_KEYDOWN_TIMEOUT = 1200;      
 
       utils.refreshCellMaps();
 
-    },
-
-    getSkipStatusColor: (status) => {
-      return state.skipStatusColorMap[status];
-    },
-
-    getSkipStatusCaption: (status) => {
-      return state.skipStatusCaptions[status];
     },
 
     getManifest: () => {
@@ -226,7 +205,7 @@ define([
           }
         }
       }
-      console.log('cellIdToGraffitiMap:', state.cellIdToGraffitiMap);
+      console.log('Graffiti: cellIdToGraffitiMap:', state.cellIdToGraffitiMap);
 
     },
 
@@ -330,40 +309,28 @@ define([
       state.storeHistoryRecord('speaking'); // record speaking status, if we are currently recording
     },
     
-
-    clearHighlightsRefreshableCell: () => {
-      state.highlightsRefreshCellId = undefined;
-    },
-
-    getSkipStatus: () => {
-      return state.skipStatus;
-    },
-
-    isSkipping: () => {
-      return state.skipStatus !== state.SKIP_STATUS_NONE;
-    },
-
     resetSkipStatus: () => {
       state.skipStatus = state.SKIP_STATUS_NONE;
     },
 
-    getEditingSkips: () => {
-      //return true;
-      return state.editingSkips;
+    isSkipping: () => {
+      return state.skipping;
     },
 
-    setEditingSkips: (val) => {
-      state.editingSkips = val;
+    isLastSkipRecord: () => {
+      return ((state.currentSkipRecord !== undefined) && (state.history.skip !== undefined) && (state.currentSkipRecord === state.history.skip.length - 1));
     },
 
-    toggleRecordingSkip: () => {
-      //console.trace('toggleRecordingSkip', state.skipStatus);
-      if (state.skipStatus === state.SKIP_STATUS_NONE) {
-        state.skipStatus = state.SKIP_STATUS_ABSOLUTE;
-      } else {
-        state.skipStatus = state.SKIP_STATUS_NONE;
-      }
-      //console.log('after toggleRecordingSkip, status', state.skipStatus);
+    startSkipping: () => {
+      state.skipping = true;
+    },
+
+    stopSkipping: () => {
+      state.skipping = false;
+    },
+
+    toggleSkipping: () => {
+      state.skipping = !state.skipping;
       state.storeSkipRecord();
     },
 
@@ -391,6 +358,24 @@ define([
       state.appliedSkipRecord = undefined;
     },
 
+    getSkipInfo: () => {
+      return state.skipInfo;
+    },
+
+    setSkipInfo: (info) => {
+      if (info === undefined) {
+        state.skipInfo = {
+          type: state.skipTypes['absolute'],
+          factor: 0,
+        };
+      } else {
+        state.skipInfo = {
+          type:   info.type,
+          factor: info.factor,
+        };
+      }
+    },
+
     // Set the current or next skip record by scanning from 0 to the time given, looking
     // for a skip record that either straddles the time given, or is greater than the time
     // given (next skip record).
@@ -408,21 +393,26 @@ define([
           }
         }
       }
+      if (newSkipStatus !== state.SKIP_STATUS_NONE) {
+        // Only add a new skip record when beginning a skip period.
+        state.storeHistoryRecord('skip');
+      }
+      console.log('after storeSkipRecord, skip history:', state.history['skip']);
     },
 
     createSkipRecord: () => {
-      return { status: state.skipStatus };
+      return {}; // there is no data needed in a skip record, just the fact that it exists and has a start and end time is sufficient.
     },
 
     // Create an absolute skip record for the very end of the recording for the time it was being cancelled (ctrl-key held down).
     addCancelTimeSkipRecord: () => {
-      state.skipStatus = state.SKIP_STATUS_ABSOLUTE;
+      state.skipping = true;
       const record = state.createSkipRecord();
       record.startTime = state.history.duration - state.END_RECORDING_KEYDOWN_TIMEOUT;
       record.endTime = state.history.duration - 1;
       state.history['skip'].push(record);
 
-      console.log('after addCancelTimeSkipRecord, skip history:', state.history['skip']);
+      console.log('Graffiti: after addCancelTimeSkipRecord, skip history:', state.history['skip']);
     },
 
     getSkipsRecords: () => {
@@ -434,39 +424,25 @@ define([
     },
 
     storeSkipRecord: () => {
-      const newSkipStatus = state.getSkipStatus();
       const numRecords = state.history['skip'].length;
-      if (numRecords > 0) {
-        if (newSkipStatus === state.SKIP_STATUS_NONE) {
+      if (!state.skipping) {
+        if (numRecords > 0) {
           // Close off last record created with an end time, if it exists.
           const lastRecord = state.history['skip'][numRecords - 1];
           if (!lastRecord.hasOwnProperty('endTime')) {
             lastRecord.endTime = utils.getNow();
-            console.log('closed off previous record:', lastRecord);
+            console.log('Graffiti: closed off previous record:', lastRecord);
             if (lastRecord.endTime - lastRecord.startTime < 10) {
               // Delete this record as it has insignificant time in it, ie user just flipped the button on and off.
               state.history['skip'].pop();
             } 
           }
         }
-      }
-      if (newSkipStatus !== state.SKIP_STATUS_NONE) {
+      } else {
         // Only add a new skip record when beginning a skip period.
         state.storeHistoryRecord('skip');
       }
       console.log('after storeSkipRecord, skip history:', state.history['skip']);
-    },
-
-    setExecutionSourceChoiceId: (choiceId) => {
-      state.executionSourceChoiceId = choiceId;
-    },
-
-    clearExecutionSourceChoiceId: () => {
-      state.executionSourceChoiceId = undefined;
-    },
-
-    getExecutionSourceChoiceId: () => {
-      return state.executionSourceChoiceId;
     },
 
     getShiftKeyIsDown: () => {
@@ -700,8 +676,26 @@ define([
       //console.log('currentPlaySpeed:', state.currentPlaySpeed, 'playTimes', state.playTimes);
     },
 
+    getUserChoicePlaySpeed: () => {
+      return state.userChoicePlaySpeed;
+    },
+
+    storeUserChoicePlaySpeed: (userChoicePlaySpeed) => {
+      state.userChoicePlaySpeed = userChoicePlaySpeed;
+    },
+
     getPlayRateScalar: () => {
       return state.playSpeeds[state.currentPlaySpeed];
+    },
+
+    setPlayRate: (kind, newPlayRate) => {
+      state.playSpeeds[kind] = newPlayRate;      
+    },
+
+    setCompressedTimePlayRate: (duration, timeTarget) => {
+      const accelerationFactor = duration / timeTarget;
+      state.setPlayRate('compressed', accelerationFactor);
+      // console.log('duration, timeTarget, accelerationFactor:', duration,timeTarget, accelerationFactor);
     },
 
     setPlayStartTimeToNow: () => {
@@ -1283,10 +1277,10 @@ define([
     //   hash of all cell contents by id
 
     dumpHistory: () => {
-      console.log('Dumping JSON history');
-      console.log("=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-");
-      console.log(state.history);
-      console.log("=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-");
+      console.log('Graffiti: Dumping JSON history');
+      console.log("Graffiti: =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-");
+      console.log('Graffiti:', state.history);
+      console.log("Graffiti: =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-");
     },
 
     createViewRecord: (subType) => {

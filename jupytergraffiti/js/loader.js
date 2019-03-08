@@ -15,11 +15,11 @@ define([], () => {
     udacityUser.setUser();
     Graffiti.init();
 
-    Jupyter.notebook.events.on('kernel_reconnecting.Kernel', () => {
-      console.log('kernel reconnecting');
+    Jupyter.notebook.events.on('kernel_reconnecting.Kernel', (e) => { 
+      console.log('Graffiti: kernel reconnecting');
     });
 
-    Jupyter.notebook.events.on('kernel_ready.Kernel', () => {
+    Jupyter.notebook.events.on('kernel_ready.Kernel', (e) => {
       console.log('Graffiti: kernel ready, possible kernel restart.', e);
       if (!udacityUser.token) {
         udacityUser.setUser();
