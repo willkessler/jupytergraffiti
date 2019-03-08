@@ -10,10 +10,11 @@ define([
   './sticker.js',
   './localizer.js',
   './selectionSerializer.js',
+  './udacityUser.js',
   './terminals.js',
   './batchRunner.js',
   'components/marked/lib/marked'
-], function(dialog, events, textCell, LZString, state, utils, audio, storage, stickerLib, localizer, selectionSerializer, terminalLib, batchRunner, marked) {
+], function(dialog, events, textCell, LZString, state, utils, audio, storage, stickerLib, localizer, selectionSerializer, udacityUser, terminalLib, batchRunner, marked) {
   const Graffiti = (function() {
     const graffiti = {
 
@@ -1644,9 +1645,9 @@ define([
 
         state.refreshCellIdToGraffitiMap();
         graffiti.executeSaveToFileDirectivesDebounced = _.debounce(graffiti.executeSaveToFileDirectives, 750, false);
-        graffiti.executeAllSaveToFileDirectives(); // autosave any cells that are set up with saveToFile directives pointed at them
 
         terminalLib.init(graffiti.handleTerminalsEvents);
+        graffiti.executeAllSaveToFileDirectives(); // autosave any cells that are set up with saveToFile directives pointed at them
 
         storage.preloadAllMovies();
 
@@ -3603,7 +3604,19 @@ define([
           if ((activity === 'playing') || (activity === 'playbackPaused') || (activity == 'scrubbing')) {
             graffiti.cancelPlaybackNoVisualUpdates();
           }
+          if (udacityUser.trackUsageStats !== undefined) {
+            udacityUser.trackUsageStats();
+          }
         });
+
+        // To make async calls work on non-chrome browsers
+        // https://stackoverflow.com/a/20322988/4953199
+        window.onunload = (e) => {
+          console.log('Graffiti: on unload');
+          if (udacityUser.trackUsageStats !== undefined) {
+            udacityUser.trackUsageStats();
+          }
+        };
 
         // https://stackoverflow.com/questions/19469881/remove-all-event-listeners-of-specific-type
         window.addEventListener('dblclick', (e) => { 

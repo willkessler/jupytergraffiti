@@ -1,10 +1,15 @@
-if (window.Graffiti === undefined) {
-  define([
+define([], () => {
+  if (window.Graffiti !== undefined) { 
+    console.log('Graffiti already instantiated, not reinitializing');
+    return;
+  }
+
+  require([
     './graffiti.js',
     './utils.js',
     './storage.js',
     './udacityUser.js'
-  ], (Graffiti,utils, storage, udacityUser) => {
+    ], (Graffiti,utils, storage, udacityUser) => {
     console.log('Graffiti loaded:', Graffiti);
     window.Graffiti = Graffiti;
     udacityUser.setUser();

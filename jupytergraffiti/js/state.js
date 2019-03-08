@@ -67,6 +67,7 @@ define([
       state.stickerImageCandidateUrl = undefined;
       state.cellIdsAddedDuringRecording = {};
       state.userId = undefined;
+      state.workspace = {};
       state.speakingStatus = false; // true when the graffiti creator is currently speaking (not silent)
       state.currentSkipRecord = 0;
       state.appliedSkipRecord = undefined;
@@ -289,6 +290,14 @@ define([
 
     setUserId: (userId) => {
       state.userId = userId;
+    },
+
+    getWorkspace: () => {
+      return state.workspace;
+    },
+
+    setWorkspace: (workspace) => {
+      state.workspace = workspace;
     },
 
     getSpeakingStatus: () => {
