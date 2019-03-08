@@ -1646,9 +1646,9 @@ define([
 
         state.refreshCellIdToGraffitiMap();
         graffiti.executeSaveToFileDirectivesDebounced = _.debounce(graffiti.executeSaveToFileDirectives, 750, false);
-        graffiti.executeAllSaveToFileDirectives(); // autosave any cells that are set up with saveToFile directives pointed at them
 
         terminalLib.init(graffiti.handleTerminalsEvents);
+        graffiti.executeAllSaveToFileDirectives(); // autosave any cells that are set up with saveToFile directives pointed at them
 
         storage.preloadAllMovies();
 
@@ -3297,7 +3297,7 @@ define([
                     .prependTo(graffiti.notebookContainer);
                   existingTip.bind('mouseenter mouseleave', (e) => {
                     // console.log(eventType === 'mouseenter' ? 'entering tooltip' : 'leaving tooltip');
-                    if (eventType === 'mouseenter') {
+                    if (e.type === 'mouseenter') {
                       state.clearTipTimeout();
                     } else {
                       //console.log('hiding tip');
@@ -3605,14 +3605,18 @@ define([
           if ((activity === 'playing') || (activity === 'playbackPaused') || (activity == 'scrubbing')) {
             graffiti.cancelPlaybackNoVisualUpdates();
           }
-          udacityUser.trackUsageStats();
+          if (udacityUser.trackUsageStats !== undefined) {
+            udacityUser.trackUsageStats();
+          }
         });
 
         // To make async calls work on non-chrome browsers
         // https://stackoverflow.com/a/20322988/4953199
         window.onunload = (e) => {
           console.log('Graffiti: on unload');
-          udacityUser.trackUsageStats();
+          if (udacityUser.trackUsageStats !== undefined) {
+            udacityUser.trackUsageStats();
+          }
         };
 
         // https://stackoverflow.com/questions/19469881/remove-all-event-listeners-of-specific-type
@@ -4942,6 +4946,7 @@ define([
               const selectedCellIndex = utils.findCellIndexByCellId(cellId);
               if (Jupyter.notebook.get_selected_index() !== selectedCellIndex) {
                 Jupyter.notebook.select(selectedCellIndex);
+                graffiti.setSitePanelScrollTop(currentScrollTop); // restore scrollTop because changing selections messes with it
               }
             }
             cell = utils.findCellByCellId(cellId);
@@ -5245,6 +5250,10 @@ define([
         let didSkip = false;
         const currentActivity = state.getActivity();
         if (currentSkipRecord !== undefined) {
+          if (currentSkipRecord.status !== undefined) {
+            // Return early. these records are old legacy recordings with skip statuses in them. we are ignoring these in favor of specifying skip type in directives.
+            return didSkip;
+          }
           const skipInfo = state.getSkipInfo();
           state.setAppliedSkipRecord();
           const duration = (currentSkipRecord.endTime - currentSkipRecord.startTime + 1);
@@ -5302,7 +5311,6 @@ define([
           return;
 
         graffiti.pausePlaybackNoVisualUpdates();
-
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTooltips();
         state.clearAnimationIntervals();
@@ -5322,6 +5330,10 @@ define([
         });
         state.resetPlayState();
         graffiti.changeActivity('idle');
+
+        // Saving and restoring the scroll top is a bit of hack.
+        const currentScrollTop = graffiti.sitePanel.scrollTop();
+
         if (state.getDontRestoreCellContentsAfterPlayback()) {
           console.log('Graffiti: not restoring cell contents.');
         } else {
@@ -5333,6 +5345,8 @@ define([
         state.setDontRestoreCellContentsAfterPlayback(false); // make sure by default we restore contents.
         terminalLib.saveOrRestoreTerminalOutputs('restore');  // restore any terminals affected by playback
         utils.saveNotebook();
+        graffiti.setSitePanelScrollTop(currentScrollTop); // restore scrollTop because restoring cell contents messes with it
+
         console.log('Graffiti: Got these stats:', state.getUsageStats());
       },
 
