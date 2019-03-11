@@ -4617,6 +4617,10 @@ define([
       // Movie playback code begins
       //
 
+      resetScrollNudge: () => {
+        graffiti.scrollNudge = undefined;
+      },
+
       applyScrollNudge: (position, record, useTrailingVelocity) => {
         //console.log('applyScrollNudge, useTrailingVelocity:', useTrailingVelocity);
         const clientHeight = document.documentElement.clientHeight;
@@ -4733,17 +4737,15 @@ define([
         let newScrollTop = currentScrollTop;
         mappedScrollDiff = graffiti.calculateMappedScrollDiff(record);
         if (graffiti.scrollNudge !== undefined) {
-          //console.log('updateDisplay, nudgeAmount:', graffiti.scrollNudge.amount, 'counter:', graffiti.scrollNudge.counter);
-          if (graffiti.scrollNudge !== undefined) {
-            let scrollNudgeAmount = 0;
-            graffiti.scrollNudge.counter--;
-            if (graffiti.scrollNudge.counter > 0) {
-              scrollNudgeAmount = graffiti.scrollNudge.amount;
-              //console.log('Going to nudge scroll by:', scrollNudgeAmount, 'counter:', graffiti.scrollNudge.counter);
-              newScrollTop = currentScrollTop + scrollNudgeAmount;
-            } else {
-              graffiti.scrollNudge = undefined; // stop nudging
-            }
+          // console.log('updateDisplay, nudgeAmount:', graffiti.scrollNudge.amount, 'counter:', graffiti.scrollNudge.counter);
+          let scrollNudgeAmount = 0;
+          graffiti.scrollNudge.counter--;
+          if (graffiti.scrollNudge.counter > 0) {
+            scrollNudgeAmount = graffiti.scrollNudge.amount;
+            //console.log('Going to nudge scroll by:', scrollNudgeAmount, 'counter:', graffiti.scrollNudge.counter);
+            newScrollTop = currentScrollTop + scrollNudgeAmount;
+          } else {
+            graffiti.resetScrollNudge(); // stop nudging
           }
         }
         // Only apply a user-recorded scroll diff if we haven't applied it already. When this function is called with no parameters, then
@@ -4835,7 +4837,7 @@ define([
         }
       },
 
-      updateView: (viewIndex) => {
+      updateView: (viewIndex, currentScrollTop) => {
         //console.log('updateView, viewIndex:', viewIndex);
         let record = state.getHistoryItem('view', viewIndex);
         record.hoverCell = utils.findCellByCellId(record.cellId);
@@ -4885,12 +4887,15 @@ define([
           }
         }
 
+        graffiti.setSitePanelScrollTop(currentScrollTop); // restore scrollTop because changing selections messes with it
+
         if (record.hoverCell !== undefined) {
           const cm = record.hoverCell.code_mirror;
           // Update innerScroll if required
           cm.scrollTo(record.innerScroll.left, record.innerScroll.top);
           //console.log('updateView is calling doScrollNudging');
           graffiti.doScrollNudging(record, viewIndex);
+          //console.log('after doScrollNudging, we have new scrollTop:', graffiti.sitePanel.scrollTop());
         }
       },
 
@@ -4961,13 +4966,17 @@ define([
 
                 //console.log('nudge check, cellId', cellId, 'code_mirror.state.focused',code_mirror.state.focused);
                 
-                if (code_mirror.state.focused) {
-                  // If we made a selections update this frame, AND we are focused in it,
-                  // make sure that we keep it in view. We need to compute the
-                  // offset position of the *head* of the selection where the action is.
-                  // console.log('setting selections with selections:', selections);
-                  graffiti.applyScrollNudgeAtCell(cell, record, true);
-                }
+                setTimeout(() => {
+                  if (code_mirror.state.focused) {
+                    // If we made a selections update this frame, AND we are focused in it,
+                    // make sure that we keep it in view. We need to compute the
+                    // offset position of the *head* of the selection where the action is.
+                    // NOTE: the setTimeout is needed because codemirror seems to do selections and focus async so we may end
+                    // up applying scrollnudging to the cell too early, ie nudge to a cell that is not visible.
+                    // console.log('setting selections with selections:', selections);
+                    graffiti.applyScrollNudgeAtCell(cell, record, true);
+                  }
+                }, 0);
               }
             }
           }
@@ -5047,7 +5056,8 @@ define([
         }
       },
 
-      // set_text() causes jupyter to scroll to top of cell so we need to restore scrollTop after calling this fn.
+      // set_text() causes jupyter to scroll to top of cell so we need to restore scrollTop after calling this fn, on a timeout, cf 
+      // https://stackoverflow.com/questions/779379/why-is-settimeoutfn-0-sometimes-useful/779785#779785
       updateContents: (index, currentScrollTop) => {
         const contentsRecord = state.getHistoryItem('contents', index);
         const cells = Jupyter.notebook.get_cells();
@@ -5074,8 +5084,9 @@ define([
           graffiti.resizeCanvases();
           graffiti.redrawAllDrawings();
           setTimeout(() => {
-            graffiti.setSitePanelScrollTop(currentScrollTop); // for some reason we have to restore scrollTop on timeout because CM's setValue() fn seems async.
-          }, 25);
+            // For some reason we have to restore scrollTop on timeout because CM's setValue() fn seems to move scrollTop, async.
+            graffiti.setSitePanelScrollTop(currentScrollTop); 
+          }, 100);
         }
       },
 
@@ -5123,9 +5134,11 @@ define([
         const activity = state.getActivity();
         if (state.shouldUpdateDisplay('contents', frameIndexes.contents)) {
           graffiti.updateContents(frameIndexes.contents.index, currentScrollTop);
+          //console.log('update contents:', 'currentScrollTop', currentScrollTop, 'new scrollTop', graffiti.sitePanel.scrollTop());
         }
         if (state.shouldUpdateDisplay('selections', frameIndexes.selections)) {
           graffiti.updateSelections(frameIndexes.selections.index, currentScrollTop);
+          //console.log('update selections:', 'currentScrollTop', currentScrollTop, 'new scrollTop', graffiti.sitePanel.scrollTop());
         }
         if (state.shouldUpdateDisplay('drawings', frameIndexes.drawings)) {
           if (activity !== 'scrubbing') {
@@ -5141,7 +5154,7 @@ define([
           graffiti.updateSpeaking(frameIndexes.speaking.index);
         }
         if (state.shouldUpdateDisplay('view', frameIndexes.view)) {
-          graffiti.updateView(frameIndexes.view.index);
+          graffiti.updateView(frameIndexes.view.index, currentScrollTop);
           //console.log('updated view:', frameIndexes.view.index, 'currentScrollTop', currentScrollTop, 'new scrollTop', graffiti.sitePanel.scrollTop());
         }
 
@@ -5401,6 +5414,7 @@ define([
           state.setSpeakingStatus(false);
           terminalLib.clearTerminalsContentsPositions();
           state.resetPlayTimes();
+          graffiti.resetScrollNudge();
           graffiti.updateSlider(0);
           graffiti.prePlaybackScrolltop = state.getScrollTop();
           graffiti.lastScrollViewId = undefined;
@@ -5557,7 +5571,7 @@ define([
           console.log('Graffiti: not playing movie via user click because another movie is pending.');
           return; // prevent rapid clicks on graffiti where play_to_click is active.
         }
-        // Cancel any ongoing playback
+        // Cancel any ongoing playback, unless this graffiti does not play a movie, e.g. has a terminal Command (right now that's the only case).
         graffiti.cancelPlayback({cancelAnimation:false});
         graffiti.changeActivity('playbackPending');
         if (state.getDontRestoreCellContentsAfterPlayback()) {
