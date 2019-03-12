@@ -428,8 +428,12 @@ define([
                 graffiti.wipeAllStickerDomCanvases();
                 graffiti.redrawAllDrawings();
               }
-              graffiti.updateControlPanelPosition({ left: Math.max(0, Math.min(controlPanelPosition.left, maxLeft)),
-                                                    top: Math.max(0,Math.min(maxTop, controlPanelPosition.top)) });
+              graffiti.placeControlPanel( {
+                position: {
+                  left: Math.max(0, Math.min(controlPanelPosition.left, maxLeft)),
+                  top: Math.max(0,Math.min(maxTop, controlPanelPosition.top)) 
+                }
+              });
               state.setControlPanelDragging(false);
             }
             graffiti.refreshAllGraffitiSideMarkers();
@@ -465,8 +469,28 @@ define([
           strokeWidth:1,
           fillOpacity: 0
         };
-
         const settingsIcon = stickerLib.makeSettingsIcon(iconConfiguration);
+
+        const iconSize = 22;
+        const iconColor = '#666'
+        const iconStrokeWidth = 1;
+        const iconFatStrokeWidth = 2;
+        const iconMargin = 6;
+        const smallIconMargin = 2;
+        const iconDimensions = { x: iconMargin, y:iconMargin, width:iconSize - iconMargin,height:iconSize - iconMargin };
+        const largeIconDimensions = { x: smallIconMargin, y:smallIconMargin, width:iconSize + smallIconMargin,height:iconSize + smallIconMargin };
+        const defaultIconConfiguration = {
+          dimensions: iconDimensions,
+          color:iconColor,
+          iconUsage: true,
+          strokeWidth:iconStrokeWidth,
+          fillOpacity: 0
+        };
+        const solidIconConfiguration = $.extend({}, defaultIconConfiguration, { fillOpacity: 1 });
+        const solidFatIconConfiguration = $.extend({}, true, solidIconConfiguration, { strokeWidth:iconFatStrokeWidth });
+        const largeIconConfiguration = $.extend({}, true, defaultIconConfiguration, { buffer: 1, dimensions:largeIconDimensions });
+        const roundRectConfiguration = $.extend({}, true, largeIconConfiguration, { rx: 6, ry: 6 });
+
 
         graffiti.setupOneControlPanel('graffiti-record-controls', 
                                       '  <button class="btn btn-default" id="graffiti-create-btn" title="' + localizer.getString('CREATE_1') + '">' +
@@ -589,6 +613,14 @@ define([
         
         const runnerOnIcon = stickerLib.makeRunningMan('black');
         const runnerOffIcon = stickerLib.makeRunningMan('white');
+        const exitButtonConfiguration = {
+          dimensions: { x: 4, y: 4, width:12, height:12 },
+          color:'red',
+          iconUsage: false,
+          strokeWidth:1,
+          fillOpacity: 1
+        };
+        const exitButton = stickerLib.makeSimpleX(exitButtonConfiguration);
 
         graffiti.setupOneControlPanel('graffiti-playback-controls', 
                                       '<div id="graffiti-narrator-info">' +
@@ -628,6 +660,11 @@ define([
                                       '   </button>' +
                                       '   <button class="btn btn-default btn-rapidplay-off" id="graffiti-rapidplay-off-btn" title="' +
                                       localizer.getString('REGULAR_SPEED_PLAYBACK') + '">' + runnerOffIcon +
+                                      '   </button>' +
+                                      '  </div>' +
+                                      '  <div id="graffiti-exit-button">' +
+                                      '   <button class="btn btn-default" id="graffiti-exit-playback-btn" title="' +
+                                      localizer.getString('EXIT_PLAYBACK') + '">' + exitButton +
                                       '   </button>' +
                                       '  </div>' +
                                       '</div>' +
@@ -688,6 +725,16 @@ define([
                                           event: 'click',
                                           fn: (e) => {
                                             graffiti.toggleRapidPlay({scan:true});
+                                          }
+                                        },
+                                        {
+                                          ids: ['graffiti-exit-button'],
+                                          event: 'click',
+                                          fn: (e) => {
+                                            const activity = state.getActivity();
+                                            if ((activity === 'playing') || (activity === 'playbackPaused') || (activity === 'scrubbing')) {
+                                              graffiti.cancelPlayback({cancelAnimation:true});
+                                            }
                                           }
                                         },
                                         {
@@ -831,26 +878,6 @@ define([
                                         }
                                       ]
         );
-
-        const iconSize = 22;
-        const iconColor = '#666'
-        const iconStrokeWidth = 1;
-        const iconFatStrokeWidth = 2;
-        const iconMargin = 6;
-        const smallIconMargin = 2;
-        const iconDimensions = { x: iconMargin, y:iconMargin, width:iconSize - iconMargin,height:iconSize - iconMargin };
-        const largeIconDimensions = { x: smallIconMargin, y:smallIconMargin, width:iconSize + smallIconMargin,height:iconSize + smallIconMargin };
-        const defaultIconConfiguration = {
-          dimensions: iconDimensions,
-          color:iconColor,
-          iconUsage: true,
-          strokeWidth:iconStrokeWidth,
-          fillOpacity: 0
-        };
-        const solidIconConfiguration = $.extend({}, defaultIconConfiguration, { fillOpacity: 1 });
-        const solidFatIconConfiguration = $.extend({}, true, solidIconConfiguration, { strokeWidth:iconFatStrokeWidth });
-        const largeIconConfiguration = $.extend({}, true, defaultIconConfiguration, { buffer: 1, dimensions:largeIconDimensions });
-        const roundRectConfiguration = $.extend({}, true, largeIconConfiguration, { rx: 6, ry: 6 });
 
         const rightTriangle = stickerLib.makeRightTriangle(defaultIconConfiguration);
         const isocelesTriangle = stickerLib.makeIsocelesTriangle(defaultIconConfiguration);
@@ -1465,6 +1492,7 @@ define([
             }
             visibleControlPanels = ['graffiti-playback-controls'];
             graffiti.showControlPanels(visibleControlPanels);
+/*
             graffiti.setNotifier('<div>' + localizer.getString('PAUSE_TO_INTERACT') + '</div>' +
                                  '<div>' + localizer.getString('CANCEL_MOVIE_PLAYBACK_1') + '</div>',
                                  [
@@ -1483,6 +1511,7 @@ define([
                                      }
                                    }
                                  ]);
+*/
             break;
           case 'playbackPaused':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-pause-btn').hide().parent().find('#graffiti-play-btn').show();
@@ -1507,6 +1536,7 @@ define([
                                        }
                                      }
                                    ]);
+/*
             } else {
               graffiti.setNotifier('<div>' + localizer.getString('CONTINUE_MOVIE_PLAYBACK') + '</div>' +
                                    '<div>' + localizer.getString('CANCEL_MOVIE_PLAYBACK_3') + '</div>',
@@ -1526,6 +1556,7 @@ define([
                                        }
                                      }
                                    ]);
+*/
             }
             break;
           case 'graffiting':
@@ -1598,23 +1629,34 @@ define([
         graffiti.performWindowResizeCheck();
       },
 
-      updateControlPanelPosition: (hardPosition) => {
-        if (hardPosition !== undefined) {
-          const newPositionPx = { top: hardPosition.top + 'px', left: hardPosition.left + 'px' };
+      placeControlPanel: (opts) => {
+        let position, newPosition;
+        const pointerPosition = state.getPointerPosition();
+        const panelBbox = graffiti.sitePanel[0].getBoundingClientRect();
+        const controlPanelWidth = graffiti.outerControlPanel.width();
+        const controlPanelHeight = graffiti.outerControlPanel.height();
+        const pixelBuffer = 20;
+        if (opts.nearAction !== undefined) {
+          // Position control panel off to the right of the action.
+          position = { 
+            x: pointerPosition.x + panelBbox.width, 
+            y: pointerPosition.y - controlPanelHeight / 2 + pixelBuffer,
+          };  
+        } else if (opts.position !== undefined) {
+          // Hardwire the control panel to a fixed spot
+          position = opts.position;
+        } else if (state.getControlPanelDragging()) {
+          const offset = state.getControlPanelDragOffset();
+          position = { x: pointerPosition.x - offset.left, y: pointerPosition.y - offset.top };
+        }
+        if (position !== undefined) {
+          // Make sure the control panel stays on screen
+          const constrainedLeft = Math.min(panelBbox.right - controlPanelWidth - pixelBuffer, Math.max(0,position.x));
+          //const constrainedTop = Math.min(panelBbox.bottom - controlPanelHeight - pixelBuffer, Math.max(pixelBuffer,position.y));
+          const constrainedTop = Math.min(panelBbox.bottom - controlPanelHeight - pixelBuffer, Math.max(pixelBuffer,position.y));
+          newPosition = { left: constrainedLeft, top: constrainedTop };
+          const newPositionPx = { top: newPosition.top + 'px', left: newPosition.left + 'px' };
           graffiti.outerControlPanel.css(newPositionPx);
-        } else {
-          if (state.getControlPanelDragging()) {
-            const position = state.getPointerPosition();
-            const offset = state.getControlPanelDragOffset();
-            const controlPanelWidth = graffiti.outerControlPanel.width();
-            const controlPanelHeight = graffiti.outerControlPanel.height();
-            const panelBbox = graffiti.sitePanel[0].getBoundingClientRect();
-            const constrainedLeft = Math.min(panelBbox.right - controlPanelWidth - 20, Math.max(0,position.x - offset.left));
-            const constrainedTop = Math.min(panelBbox.bottom - controlPanelHeight - 20, Math.max(0,position.y - offset.top));
-            const newPosition =   { left: constrainedLeft, top: constrainedTop };
-            const newPositionPx = { top: newPosition.top + 'px', left: newPosition.left + 'px' };
-            graffiti.outerControlPanel.css(newPositionPx);
-          }
         }
       },
 
@@ -3592,7 +3634,7 @@ define([
               graffiti.updateDrawingDisplayWhenRecording(previousPointerX, previousPointerY, e.clientX, e.clientY, viewInfo );
           }
 
-          graffiti.updateControlPanelPosition();
+          graffiti.placeControlPanel({});
           return true; // let this event bubble
         };
 
@@ -5416,6 +5458,7 @@ define([
           state.resetPlayTimes();
           graffiti.resetScrollNudge();
           graffiti.updateSlider(0);
+          graffiti.placeControlPanel({nearAction:true});
           graffiti.prePlaybackScrolltop = state.getScrollTop();
           graffiti.lastScrollViewId = undefined;
           graffiti.lastDrawIndex = undefined;

@@ -197,7 +197,7 @@
   text-align:center;
   width:100%;
   margin-top:0px;
-  margin-bottom:8px;
+  margin-bottom:0px;
   font-size:.8em;
   cursor:pointer;
 }
@@ -231,6 +231,19 @@
 #graffiti-playback-buttons #graffiti-play-btn,
 #graffiti-playback-buttons #graffiti-pause-btn {
   width:38px;
+}
+
+#graffiti-playback-buttons #graffiti-exit-button {
+  margin-left:20px;
+  width:38px;
+}
+
+#graffiti-playback-buttons #graffiti-exit-button button {
+  padding:2px;
+}
+
+#graffiti-playback-buttons #graffiti-exit-button button div {
+  position:relative !important;
 }
 
 #graffiti-skip-buttons {
