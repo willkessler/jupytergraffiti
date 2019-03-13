@@ -373,7 +373,7 @@ define([
         if ($('#graffiti-outer-control-panel').length == 0) {
           const outerControlPanel = $('<div id="graffiti-outer-control-panel">' +
                                       '  <div id="graffiti-inner-control-panel">' +
-                                      '    <div class="graffiti-small-dot-pattern" id="graffiti-drag-handle">&nbsp;</div>' +
+                                      '    <div class="graffiti-small-dot-pattern" id="graffiti-drag-handle">&nbsp;&nbsp;</div>' +
                                       '    <div id="graffiti-control-panels-shell"></div>' +
                                       '  </div>' +
                                       '</div>');
@@ -404,9 +404,9 @@ define([
           }
         });
 
-        const logoText = 'Graffiti'.split('').join('&nbsp;&nbsp;&nbsp;&nbsp;');
+        const logoText = 'graffiti';
         graffiti.setupOneControlPanel('graffiti-control-panel-title', 
-                                      '<div>' + stickerLib.makeSmallUdacityIcon({width:20,height:20}) + '</div><div>' + logoText + '</div>');
+                                      '<div>' + stickerLib.makeSmallUdacityIcon({width:20,height:20}) + '</div><div id="graffiti-logo-text">' + logoText + '</div>');
 
         const dragHandle = $('#graffiti-drag-handle,#graffiti-control-panel-title');
         dragHandle.on('mousedown', (e) => {
@@ -429,8 +429,12 @@ define([
                 graffiti.wipeAllStickerDomCanvases();
                 graffiti.redrawAllDrawings();
               }
-              graffiti.updateControlPanelPosition({ left: Math.max(0, Math.min(controlPanelPosition.left, maxLeft)),
-                                                    top: Math.max(0,Math.min(maxTop, controlPanelPosition.top)) });
+              graffiti.placeControlPanel( {
+                position: {
+                  left: Math.max(0, Math.min(controlPanelPosition.left, maxLeft)),
+                  top: Math.max(0,Math.min(maxTop, controlPanelPosition.top)) 
+                }
+              });
               state.setControlPanelDragging(false);
             }
             graffiti.refreshAllGraffitiSideMarkers();
@@ -466,8 +470,28 @@ define([
           strokeWidth:1,
           fillOpacity: 0
         };
-
         const settingsIcon = stickerLib.makeSettingsIcon(iconConfiguration);
+
+        const iconSize = 22;
+        const iconColor = '#666'
+        const iconStrokeWidth = 1;
+        const iconFatStrokeWidth = 2;
+        const iconMargin = 6;
+        const smallIconMargin = 2;
+        const iconDimensions = { x: iconMargin, y:iconMargin, width:iconSize - iconMargin,height:iconSize - iconMargin };
+        const largeIconDimensions = { x: smallIconMargin, y:smallIconMargin, width:iconSize + smallIconMargin,height:iconSize + smallIconMargin };
+        const defaultIconConfiguration = {
+          dimensions: iconDimensions,
+          color:iconColor,
+          iconUsage: true,
+          strokeWidth:iconStrokeWidth,
+          fillOpacity: 0
+        };
+        const solidIconConfiguration = $.extend({}, defaultIconConfiguration, { fillOpacity: 1 });
+        const solidFatIconConfiguration = $.extend({}, true, solidIconConfiguration, { strokeWidth:iconFatStrokeWidth });
+        const largeIconConfiguration = $.extend({}, true, defaultIconConfiguration, { buffer: 1, dimensions:largeIconDimensions });
+        const roundRectConfiguration = $.extend({}, true, largeIconConfiguration, { rx: 6, ry: 6 });
+
 
         graffiti.setupOneControlPanel('graffiti-record-controls', 
                                       '  <button class="btn btn-default" id="graffiti-create-btn" title="' + localizer.getString('CREATE_1') + '">' +
@@ -590,6 +614,14 @@ define([
         
         const runnerOnIcon = stickerLib.makeRunningMan('black');
         const runnerOffIcon = stickerLib.makeRunningMan('white');
+        const exitButtonConfiguration = {
+          dimensions: { x: 4, y: 4, width:12, height:12 },
+          color:"rgb(249, 92, 60)",
+          iconUsage: false,
+          strokeWidth:1,
+          fillOpacity: 1
+        };
+        const exitButton = stickerLib.makeSimpleX(exitButtonConfiguration);
 
         graffiti.setupOneControlPanel('graffiti-playback-controls', 
                                       '<div id="graffiti-narrator-info">' +
@@ -607,7 +639,7 @@ define([
                                       '  </button>' +
                                       '  <div id="graffiti-skip-buttons">' +
                                       '    <button class="btn btn-default btn-rewind" id="graffiti-rewind-btn" title="' + localizer.getString('SKIP_BACK') + ' ' +
-                                       (state.scanningIsOn() ? localizer.getString('TO_PREVIOUS_SENTENCE') : graffiti.rewindAmt + ' ' + localizer.getString('SECONDS') ) + '">' +
+                                       (state.scanningIsOn() ? localizer.getString('TO_PREVIOUS_SENTENCE') : graffiti.rewindAmt + ' ' + localizer.getString('SECONDS')) + '">' +
                                       '      <i class="fa fa-backward"></i>' +
                                       '    </button>' +
                                       '    <button class="btn btn-default btn-forward" id="graffiti-forward-btn" title="' + localizer.getString('SKIP_FORWARD') + ' ' + 
@@ -629,6 +661,11 @@ define([
                                       '   </button>' +
                                       '   <button class="btn btn-default btn-rapidplay-off" id="graffiti-rapidplay-off-btn" title="' +
                                       localizer.getString('REGULAR_SPEED_PLAYBACK') + '">' + runnerOffIcon +
+                                      '   </button>' +
+                                      '  </div>' +
+                                      '  <div id="graffiti-exit-button">' +
+                                      '   <button class="btn btn-default" id="graffiti-exit-playback-btn" title="' +
+                                      localizer.getString('EXIT_PLAYBACK') + '">' + exitButton +
                                       '   </button>' +
                                       '  </div>' +
                                       '</div>' +
@@ -689,6 +726,16 @@ define([
                                           event: 'click',
                                           fn: (e) => {
                                             graffiti.toggleRapidPlay({scan:true});
+                                          }
+                                        },
+                                        {
+                                          ids: ['graffiti-exit-button'],
+                                          event: 'click',
+                                          fn: (e) => {
+                                            const activity = state.getActivity();
+                                            if ((activity === 'playing') || (activity === 'playbackPaused') || (activity === 'scrubbing')) {
+                                              graffiti.cancelPlayback({cancelAnimation:true});
+                                            }
                                           }
                                         },
                                         {
@@ -832,26 +879,6 @@ define([
                                         }
                                       ]
         );
-
-        const iconSize = 22;
-        const iconColor = '#666'
-        const iconStrokeWidth = 1;
-        const iconFatStrokeWidth = 2;
-        const iconMargin = 6;
-        const smallIconMargin = 2;
-        const iconDimensions = { x: iconMargin, y:iconMargin, width:iconSize - iconMargin,height:iconSize - iconMargin };
-        const largeIconDimensions = { x: smallIconMargin, y:smallIconMargin, width:iconSize + smallIconMargin,height:iconSize + smallIconMargin };
-        const defaultIconConfiguration = {
-          dimensions: iconDimensions,
-          color:iconColor,
-          iconUsage: true,
-          strokeWidth:iconStrokeWidth,
-          fillOpacity: 0
-        };
-        const solidIconConfiguration = $.extend({}, defaultIconConfiguration, { fillOpacity: 1 });
-        const solidFatIconConfiguration = $.extend({}, true, solidIconConfiguration, { strokeWidth:iconFatStrokeWidth });
-        const largeIconConfiguration = $.extend({}, true, defaultIconConfiguration, { buffer: 1, dimensions:largeIconDimensions });
-        const roundRectConfiguration = $.extend({}, true, largeIconConfiguration, { rx: 6, ry: 6 });
 
         const rightTriangle = stickerLib.makeRightTriangle(defaultIconConfiguration);
         const isocelesTriangle = stickerLib.makeIsocelesTriangle(defaultIconConfiguration);
@@ -1324,7 +1351,7 @@ define([
           graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-sound-off-btn').hide().parent().find('#graffiti-sound-on-btn').show();
         }
         const currentPlaySpeed = state.getCurrentPlaySpeed();
-        graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rewind-btn').attr({title:localizer.getString('SKIP_BACK') + ' ' + graffiti.rewindAmt + localizer.getString('SECONDS')});
+        graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rewind-btn').attr({title:localizer.getString('SKIP_BACK') + ' ' + graffiti.rewindAmt + ' ' + localizer.getString('SECONDS')});
         graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-forward-btn').attr({title:localizer.getString('SKIP_FORWARD') + ' ' + graffiti.rewindAmt + ' ' + localizer.getString('SECONDS')});
         switch (currentPlaySpeed) {
           case 'scanActive':
@@ -1466,6 +1493,7 @@ define([
             }
             visibleControlPanels = ['graffiti-playback-controls'];
             graffiti.showControlPanels(visibleControlPanels);
+/*
             graffiti.setNotifier('<div>' + localizer.getString('PAUSE_TO_INTERACT') + '</div>' +
                                  '<div>' + localizer.getString('CANCEL_MOVIE_PLAYBACK_1') + '</div>',
                                  [
@@ -1484,6 +1512,7 @@ define([
                                      }
                                    }
                                  ]);
+*/
             break;
           case 'playbackPaused':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-pause-btn').hide().parent().find('#graffiti-play-btn').show();
@@ -1508,6 +1537,7 @@ define([
                                        }
                                      }
                                    ]);
+/*
             } else {
               graffiti.setNotifier('<div>' + localizer.getString('CONTINUE_MOVIE_PLAYBACK') + '</div>' +
                                    '<div>' + localizer.getString('CANCEL_MOVIE_PLAYBACK_3') + '</div>',
@@ -1527,6 +1557,7 @@ define([
                                        }
                                      }
                                    ]);
+*/
             }
             break;
           case 'graffiting':
@@ -1599,23 +1630,37 @@ define([
         graffiti.performWindowResizeCheck();
       },
 
-      updateControlPanelPosition: (hardPosition) => {
-        if (hardPosition !== undefined) {
-          const newPositionPx = { top: hardPosition.top + 'px', left: hardPosition.left + 'px' };
+      placeControlPanel: (opts) => {
+        let position, newPosition;
+        const pointerPosition = state.getPointerPosition();
+        const panelBbox = graffiti.sitePanel[0].getBoundingClientRect();
+        const controlPanelWidth = graffiti.outerControlPanel.width();
+        const controlPanelHeight = graffiti.outerControlPanel.height();
+        const pixelBuffer = 20;
+        if (opts.nearAction !== undefined) {
+          // Position control panel off to the right of the action.
+          position = { 
+            x: pointerPosition.x + panelBbox.width, 
+            y: pointerPosition.y - controlPanelHeight / 2 - pixelBuffer,
+          };  
+        } else if (opts.position !== undefined) {
+          // Hardwire the control panel to a fixed spot
+          position = opts.position;
+        } else if (state.getControlPanelDragging()) {
+          const offset = state.getControlPanelDragOffset();
+          position = { x: pointerPosition.x - offset.left, y: pointerPosition.y - offset.top };
+        }
+        if (position !== undefined) {
+          // Make sure the control panel stays on screen
+          const firstCell = Jupyter.notebook.get_cell(0);
+          const firstElem = firstCell.element[0];
+          const firstElemBbox = firstElem.getBoundingClientRect();
+          const constrainedLeft = Math.min(firstElemBbox.right - controlPanelWidth - pixelBuffer, Math.max(0,position.x));
+          //const constrainedTop = Math.min(panelBbox.bottom - controlPanelHeight - pixelBuffer, Math.max(pixelBuffer,position.y));
+          const constrainedTop = Math.min(panelBbox.bottom - controlPanelHeight - pixelBuffer, Math.max(pixelBuffer,position.y));
+          newPosition = { left: constrainedLeft, top: constrainedTop };
+          const newPositionPx = { top: newPosition.top + 'px', left: newPosition.left + 'px' };
           graffiti.outerControlPanel.css(newPositionPx);
-        } else {
-          if (state.getControlPanelDragging()) {
-            const position = state.getPointerPosition();
-            const offset = state.getControlPanelDragOffset();
-            const controlPanelWidth = graffiti.outerControlPanel.width();
-            const controlPanelHeight = graffiti.outerControlPanel.height();
-            const panelBbox = graffiti.sitePanel[0].getBoundingClientRect();
-            const constrainedLeft = Math.min(panelBbox.right - controlPanelWidth - 20, Math.max(0,position.x - offset.left));
-            const constrainedTop = Math.min(panelBbox.bottom - controlPanelHeight - 20, Math.max(0,position.y - offset.top));
-            const newPosition =   { left: constrainedLeft, top: constrainedTop };
-            const newPositionPx = { top: newPosition.top + 'px', left: newPosition.left + 'px' };
-            graffiti.outerControlPanel.css(newPositionPx);
-          }
         }
       },
 
@@ -3593,7 +3638,7 @@ define([
               graffiti.updateDrawingDisplayWhenRecording(previousPointerX, previousPointerY, e.clientX, e.clientY, viewInfo );
           }
 
-          graffiti.updateControlPanelPosition();
+          graffiti.placeControlPanel({});
           return true; // let this event bubble
         };
 
@@ -4618,6 +4663,10 @@ define([
       // Movie playback code begins
       //
 
+      resetScrollNudge: () => {
+        graffiti.scrollNudge = undefined;
+      },
+
       applyScrollNudge: (position, record, useTrailingVelocity) => {
         //console.log('applyScrollNudge, useTrailingVelocity:', useTrailingVelocity);
         const clientHeight = document.documentElement.clientHeight;
@@ -4734,17 +4783,15 @@ define([
         let newScrollTop = currentScrollTop;
         mappedScrollDiff = graffiti.calculateMappedScrollDiff(record);
         if (graffiti.scrollNudge !== undefined) {
-          //console.log('updateDisplay, nudgeAmount:', graffiti.scrollNudge.amount, 'counter:', graffiti.scrollNudge.counter);
-          if (graffiti.scrollNudge !== undefined) {
-            let scrollNudgeAmount = 0;
-            graffiti.scrollNudge.counter--;
-            if (graffiti.scrollNudge.counter > 0) {
-              scrollNudgeAmount = graffiti.scrollNudge.amount;
-              //console.log('Going to nudge scroll by:', scrollNudgeAmount, 'counter:', graffiti.scrollNudge.counter);
-              newScrollTop = currentScrollTop + scrollNudgeAmount;
-            } else {
-              graffiti.scrollNudge = undefined; // stop nudging
-            }
+          // console.log('updateDisplay, nudgeAmount:', graffiti.scrollNudge.amount, 'counter:', graffiti.scrollNudge.counter);
+          let scrollNudgeAmount = 0;
+          graffiti.scrollNudge.counter--;
+          if (graffiti.scrollNudge.counter > 0) {
+            scrollNudgeAmount = graffiti.scrollNudge.amount;
+            //console.log('Going to nudge scroll by:', scrollNudgeAmount, 'counter:', graffiti.scrollNudge.counter);
+            newScrollTop = currentScrollTop + scrollNudgeAmount;
+          } else {
+            graffiti.resetScrollNudge(); // stop nudging
           }
         }
         // Only apply a user-recorded scroll diff if we haven't applied it already. When this function is called with no parameters, then
@@ -4836,7 +4883,7 @@ define([
         }
       },
 
-      updateView: (viewIndex) => {
+      updateView: (viewIndex, currentScrollTop) => {
         //console.log('updateView, viewIndex:', viewIndex);
         let record = state.getHistoryItem('view', viewIndex);
         record.hoverCell = utils.findCellByCellId(record.cellId);
@@ -4886,20 +4933,21 @@ define([
           }
         }
 
+        graffiti.setSitePanelScrollTop(currentScrollTop); // restore scrollTop because changing selections messes with it
+
         if (record.hoverCell !== undefined) {
           const cm = record.hoverCell.code_mirror;
           // Update innerScroll if required
           cm.scrollTo(record.innerScroll.left, record.innerScroll.top);
           //console.log('updateView is calling doScrollNudging');
           graffiti.doScrollNudging(record, viewIndex);
+          //console.log('after doScrollNudging, we have new scrollTop:', graffiti.sitePanel.scrollTop());
         }
       },
 
       updateCellSelections: (cell,cm, selections) => {
-        const currentScrollTop = graffiti.sitePanel.scrollTop();
         cm.setSelections(selections);
         utils.refreshCodeMirrorSelection(cell);
-        graffiti.setSitePanelScrollTop(currentScrollTop);
       },
 
       updateSelectedCellSelections: (currentScrollTop) => {
@@ -4961,14 +5009,17 @@ define([
                 graffiti.updateCellSelections(cell,code_mirror, selections);
 
                 //console.log('nudge check, cellId', cellId, 'code_mirror.state.focused',code_mirror.state.focused);
-                
-                if (code_mirror.state.focused) {
-                  // If we made a selections update this frame, AND we are focused in it,
-                  // make sure that we keep it in view. We need to compute the
-                  // offset position of the *head* of the selection where the action is.
-                  // console.log('setting selections with selections:', selections);
-                  graffiti.applyScrollNudgeAtCell(cell, record, true);
-                }
+                setTimeout(() => {
+                  if (code_mirror.state.focused) {
+                    // If we made a selections update this frame, AND we are focused in it,
+                    // make sure that we keep it in view. We need to compute the
+                    // offset position of the *head* of the selection where the action is.
+                    // NOTE: the setTimeout is needed because codemirror seems to do selections and focus async so we may end
+                    // up applying scrollnudging to the cell too early, ie nudge to a cell that is not visible.
+                    // console.log('setting selections with selections:', selections);
+                    graffiti.applyScrollNudgeAtCell(cell, record, true);
+                  }
+                }, 0);
               }
             }
           }
@@ -5048,7 +5099,8 @@ define([
         }
       },
 
-      // set_text() causes jupyter to scroll to top of cell so we need to restore scrollTop after calling this fn.
+      // set_text() causes jupyter to scroll to top of cell so we need to restore scrollTop after calling this fn, on a timeout, cf 
+      // https://stackoverflow.com/questions/779379/why-is-settimeoutfn-0-sometimes-useful/779785#779785
       updateContents: (index, currentScrollTop) => {
         const contentsRecord = state.getHistoryItem('contents', index);
         const cells = Jupyter.notebook.get_cells();
@@ -5075,8 +5127,9 @@ define([
           graffiti.resizeCanvases();
           graffiti.redrawAllDrawings();
           setTimeout(() => {
-            graffiti.setSitePanelScrollTop(currentScrollTop); // for some reason we have to restore scrollTop on timeout because CM's setValue() fn seems async.
-          }, 25);
+            // For some reason we have to restore scrollTop on timeout because CM's setValue() fn seems to move scrollTop, async.
+            graffiti.setSitePanelScrollTop(currentScrollTop); 
+          }, 100);
         }
       },
 
@@ -5124,13 +5177,15 @@ define([
         const activity = state.getActivity();
         if (state.shouldUpdateDisplay('contents', frameIndexes.contents)) {
           graffiti.updateContents(frameIndexes.contents.index, currentScrollTop);
+          //console.log('update contents:', 'currentScrollTop', currentScrollTop, 'new scrollTop', graffiti.sitePanel.scrollTop());
         }
         if (state.shouldUpdateDisplay('selections', frameIndexes.selections)) {
           graffiti.updateSelections(frameIndexes.selections.index, currentScrollTop);
+          //console.log('update selections:', 'currentScrollTop', currentScrollTop, 'new scrollTop', graffiti.sitePanel.scrollTop());
         }
         if (state.shouldUpdateDisplay('drawings', frameIndexes.drawings)) {
           if (activity !== 'scrubbing') {
-            // console.log('calling updateDrawings from updateDisplay');
+            //console.log('calling updateDrawings from updateDisplay');
             graffiti.updateDrawings(frameIndexes.drawings);
           }
         }
@@ -5142,8 +5197,8 @@ define([
           graffiti.updateSpeaking(frameIndexes.speaking.index);
         }
         if (state.shouldUpdateDisplay('view', frameIndexes.view)) {
-          graffiti.updateView(frameIndexes.view.index);
-          //console.log('updated view:', frameIndexes.view.index, 'currentScrollTop', currentScrollTop, 'new scrollTop', graffiti.sitePanel.scrollTop());
+          graffiti.updateView(frameIndexes.view.index, currentScrollTop);
+          //console.log('update view:', frameIndexes.view.index, 'currentScrollTop', currentScrollTop, 'new scrollTop', graffiti.sitePanel.scrollTop());
         }
 
       },
@@ -5363,9 +5418,11 @@ define([
         graffiti.highlightIntersectingGraffitiRange();
         graffiti.clearJupyterMenuHint();
 
-        if (cancelAnimation) {
-          graffiti.sitePanel.animate({ scrollTop: graffiti.prePlaybackScrolltop }, 750);
-        }
+        // We are no longer supporting smooth scroll back to starting point when a graffiti finishes.
+        // This is causing too many problems if ppl interact quickly with the notebook after hitting esc.
+        //if (cancelAnimation) {
+        //  graffiti.sitePanel.animate({ scrollTop: graffiti.prePlaybackScrolltop }, 750);
+        //}
       },
 
       cancelPlayback: (opts) => {
@@ -5402,7 +5459,9 @@ define([
           state.setSpeakingStatus(false);
           terminalLib.clearTerminalsContentsPositions();
           state.resetPlayTimes();
+          graffiti.resetScrollNudge();
           graffiti.updateSlider(0);
+          graffiti.placeControlPanel({nearAction:true});
           graffiti.prePlaybackScrolltop = state.getScrollTop();
           graffiti.lastScrollViewId = undefined;
           graffiti.lastDrawIndex = undefined;
@@ -5411,7 +5470,6 @@ define([
           state.clearCellOutputsSent();
           terminalLib.saveOrRestoreTerminalOutputs('save');
           graffiti.scrollNudgeAverages = [];
-          graffiti.setJupyterMenuHint(localizer.getString('PRESS_ESC_TO_END_MOVIE_PLAYBACK'));
           const stickerImageCandidateUrl = state.getStickerImageCandidateUrl();
           if (stickerImageCandidateUrl !== undefined) {
             state.setStickerImageUrl(stickerImageCandidateUrl);
@@ -5557,10 +5615,13 @@ define([
         } else if (activity === 'playbackPending') {
           console.log('Graffiti: not playing movie via user click because another movie is pending.');
           return; // prevent rapid clicks on graffiti where play_to_click is active.
+        } 
+        const recording = state.getManifestSingleRecording(playableMovie.recordingCellId, playableMovie.recordingKey);
+        if (recording.terminalCommand === undefined) {
+          // Cancel any ongoing playback before starting playback, unless this graffiti has a terminal command.
+          graffiti.cancelPlayback({cancelAnimation:false});
+          graffiti.changeActivity('playbackPending');
         }
-        // Cancel any ongoing playback
-        graffiti.cancelPlayback({cancelAnimation:false});
-        graffiti.changeActivity('playbackPending');
         if (state.getDontRestoreCellContentsAfterPlayback()) {
           // If this movie is set to NOT restore cell contents, give the user a chance to opt-out of playback.
           const dialogContent = localizer.getString('REPLACE_CONFIRM_BODY_1');
@@ -5722,12 +5783,15 @@ define([
       },
 
       cleanupAfterLoadAndPlayDidNotPlay: () => {
-        graffiti.clearJupyterMenuHint();
-        graffiti.changeActivity('idle');
-        state.setDontRestoreCellContentsAfterPlayback(false);
-        graffiti.refreshAllGraffitiHighlights();
-        graffiti.refreshGraffitiTooltips(); 
-        graffiti.updateControlPanels();
+        const activity = state.getActivity();
+        if (activity === 'playbackPending') {
+          graffiti.clearJupyterMenuHint();
+          graffiti.changeActivity('idle');
+          state.setDontRestoreCellContentsAfterPlayback(false);
+          graffiti.refreshAllGraffitiHighlights();
+          graffiti.refreshGraffitiTooltips(); 
+          graffiti.updateControlPanels();
+        }
       },
 
       startLoadedMovie: (recording, playableMovie) => {
@@ -5765,6 +5829,7 @@ define([
         }
 
         console.log('Graffiti: playableMovie:', playableMovie);
+
         const activity = state.getActivity();
         const recording = state.getManifestSingleRecording(playableMovie.recordingCellId, playableMovie.recordingKey);
         const fireUpMovie = () => {
@@ -5783,7 +5848,6 @@ define([
           }
 
           $('#graffiti-movie-play-btn').html('<i>' + localizer.getString('LOADING') + '</i>').prop('disabled',true);
-          graffiti.setJupyterMenuHint(localizer.getString('LOADING_PLEASE_WAIT'));
           const historyData = state.getFromMovieCache('history', playableMovie);
           const audioData   = state.getFromMovieCache('audio',   playableMovie);
           if ((historyData !== undefined) && (audioData !== undefined)) {

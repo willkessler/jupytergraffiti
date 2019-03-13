@@ -968,6 +968,18 @@ define([
         }));
     },
 
+    makeSimpleX: (opts) => {
+      return sticker.makeSimplePath(
+        $.extend({}, true, opts, {
+          strokeWidth: 1,
+          viewBox: [0, 0, 100, 100],
+          d: ["M75.1,7.3L50,32.3L24.9,7.3c-1.2-1.2-3.1-1.2-4.2,0L5.8,22.1L33,49.3L5.8,76.5l14.8,14.8c1.2,1.2,3.1,1.2,4.2,0L50,66.3  l25.1,25.1c1.2,1.2,3.1,1.2,4.2,0l14.8-14.8L67,49.3l27.2-27.2L79.3,7.3C78.1,6.1,76.2,6.1,75.1,7.3z"],
+          fill: opts.color,
+        }));
+    },
+
+    
+
     makeHidden: (opts) => {
       return sticker.makeSimplePath(
         $.extend({}, true, opts, {

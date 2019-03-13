@@ -197,13 +197,20 @@
   text-align:center;
   width:100%;
   margin-top:0px;
-  margin-bottom:8px;
+  margin-bottom:0px;
   font-size:.8em;
   cursor:pointer;
 }
 
 #graffiti-control-panel-title div {
   margin-right:5px;
+}
+
+#graffiti-control-panel-title #graffiti-logo-text {
+  transform:scale(1.05,1.25);
+  margin-left:6px;
+  margin-top:-4px;
+  letter-spacing:1.2em;
 }
 
 #graffiti-control-panel-title img {
@@ -231,6 +238,19 @@
 #graffiti-playback-buttons #graffiti-play-btn,
 #graffiti-playback-buttons #graffiti-pause-btn {
   width:38px;
+}
+
+#graffiti-playback-buttons #graffiti-exit-button {
+  margin-left:20px;
+  width:38px;
+}
+
+#graffiti-playback-buttons #graffiti-exit-button button {
+  padding:2px;
+}
+
+#graffiti-playback-buttons #graffiti-exit-button button div {
+  position:relative !important;
 }
 
 #graffiti-skip-buttons {
@@ -497,7 +517,7 @@
 #graffiti-time-display-playback {
   padding: 2px 2px 0px 2px;
   font-family:monospace;
-  font-size:1.1em;
+  font-size:1.0em;
   cursor:pointer;  
   position:absolute;
 }
