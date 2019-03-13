@@ -416,6 +416,7 @@ define([
           //console.log('Graffiti: windowResizeHandler');
           if (opts === undefined || (opts !== undefined && opts.force)) {
             graffiti.resizeCanvases();
+            terminalLib.refitAllTerminals();
             if (graffiti.outerControlPanel.is(':visible')) {
               graffiti.placeControlPanel( { keepInView: true });
               state.setControlPanelDragging(false);

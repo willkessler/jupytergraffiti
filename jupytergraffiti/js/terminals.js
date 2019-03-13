@@ -21,7 +21,7 @@ define ([
     terminalsList: {},
 
     _makeTerminal: (element, terminalId, wsUrl, sizeObj) => {
-      console.log('makeTerminal,wsUrl:', wsUrl);
+      //console.log('makeTerminal,wsUrl:', wsUrl);
       const ws = new WebSocket(wsUrl);
       terminalLib.applyAddon(fit);
       const term = new terminalLib({ 
@@ -38,8 +38,26 @@ define ([
       });
       term.id = terminalId;
       // contents: contains all chars in and out of the terminal over the socket.
-      let termObject = {socket: ws, term: term, contents: ''};
+      let termObject = {
+        socket: ws, 
+        term: term, 
+        contents: '',
+        socketOpen: false,
+        sendQueue: [],
+        send: (data) => {
+          if (termObject.socketOpen) {
+            ws.send(JSON.stringify(['stdin',data]));
+          } else {
+            termObject.sendQueue.push(data);
+          }
+        }
+      };
       ws.onopen = function(event) {
+        termObject.socketOpen = true;
+        for (let data of termObject.sendQueue) {
+          // Send any commands queued up before the socket was ready, down the pipe
+          ws.send(JSON.stringify(['stdin',data])); 
+        }
         term.on('data', function(data) {
           ws.send(JSON.stringify(['stdin', data]));
         });
@@ -67,7 +85,7 @@ define ([
         });
 
         term.on('refresh', (data) => {
-          const checkYdisp = term.buffer.ydisp;
+          const checkYdisp = term._core.buffer.ydisp;
           if (term.storedYdisp !== undefined) {
             if (term.storedYdisp != checkYdisp) {
               terminals.eventsCallback({ 
@@ -78,14 +96,19 @@ define ([
               //console.log('Graffiti: terminal refresh delta:', term.storedYdisp, checkYdisp);
             }
           }
-          term.storedYdisp = term.buffer.ydisp;
+          term.storedYdisp = term._core.buffer.ydisp;
         });
 
         term.open(element);
         term.fit();
-        // send the terminal size to the server.
+        // Send the terminal size to the server.
         ws.send(JSON.stringify(["set_size", term.rows, term.cols,
                                 window.innerHeight, window.innerWidth]));
+        // Also call term.fit() again after 1second, because sometimes xterm hasn't made the width wide enough yet and we fit to one column wide.
+        // In theory, v3.11 of xterm has addressed this bug, but this is in here as a safety mechanism in case that's actually not true.
+        setTimeout(() => {
+          term.fit();
+        }, 1000); 
 
         ws.onmessage = function(event) {
           const json_msg = JSON.parse(event.data);
@@ -93,7 +116,7 @@ define ([
             case "stdout":
               const newChars = json_msg[1];
               term.write(newChars);
-              term.storedYdisp = term.buffer.ydisp;
+              term.storedYdisp = term._core.buffer.ydisp;
               //console.log('received newCharslength:', newChars.length, newChars);
               termObject.contents += newChars;
               terminals.eventsCallback({ 
@@ -176,17 +199,17 @@ define ([
         elem.bind('click', () => { newTerminal.term.focus(); });
 
         const notebookDirectory = utils.getNotebookDirectory();
-        console.log('Graffiti: notebookDirectory:', notebookDirectory);
+        //console.log('Graffiti: notebookDirectory:', notebookDirectory);
         if (notebookDirectory !== undefined) {
           // in theory we could check to see if we're already in the directory we are supposed to be in using basename:
           // https://stackoverflow.com/questions/23162299/how-to-get-the-last-part-of-dirname-in-bash
           const cdCommand = "" + 'if test -d ' + notebookDirectory + '; then cd ' + notebookDirectory + "; fi && clear\n";
           if (!terminals.singleCDCommand || (terminals.singleCDCommand && terminals.CDCommandCount < 1)) {
-            newTerminal.term.send(cdCommand);
+            newTerminal.send(cdCommand);
             terminals.CDCommandCount++;
           }
           renderArea.find('.graffiti-terminal-go-notebook-dir').click((e) => {
-            newTerminal.term.send(cdCommand);
+            newTerminal.send(cdCommand);
           });
         } else {
           renderArea.find('.graffiti-terminal-go-notebook-dir').hide(); // if this link is inactive, just hide it.
@@ -358,7 +381,7 @@ define ([
         const term = termRecord.term;
         // Basically the same functionality as in scrollToLine, see here:
         // https://github.com/xtermjs/xterm.js/blob/c908da351b11d718f8dcda7424baee4bd8211681/src/Terminal.ts#L1302
-        const scrollAmount = opts.scrollLine - term.buffer.ydisp;
+        const scrollAmount = opts.scrollLine - term._core.buffer.ydisp;
         if (scrollAmount !== 0) {
           term.scrollLines(scrollAmount);
         }
@@ -394,7 +417,7 @@ define ([
         terminal = terminals.terminalsList[cellId];
         states.push({
           id: cellId,
-          scrollLine: terminal.term.buffer.ydisp,
+          scrollLine: terminal.term._core.buffer.ydisp,
           position: terminal.contents.length,
           isFocused: (terminals.focusedTerminal === cellId),
           focusedTerminal: terminals.focusedTerminal,
@@ -406,11 +429,23 @@ define ([
 
     getTerminalsContents: () => {
       const contents = {};
+      let terminal;
       for (let cellId of Object.keys(terminals.terminalsList)) {
         terminal = terminals.terminalsList[cellId];
         contents[cellId] = terminal.contents;
       }
       return contents;
+    },
+
+    refitAllTerminals: () => {
+      let terminal;
+      for (let cellId of Object.keys(terminals.terminalsList)) {
+        terminal = terminals.terminalsList[cellId];
+        //console.log('Running fit on term', terminal.term.rows, terminal.term.cols);
+        terminal.socket.send(JSON.stringify(["set_size", terminal.term.rows, terminal.term.cols,
+                                             window.innerHeight, window.innerWidth]));
+        terminal.term.fit();
+      }
     },
 
     isTerminalCell: (cellId) => {
@@ -421,9 +456,9 @@ define ([
       // Inject the terminal command into the target terminal (if found).
       if (terminals.terminalsList[terminalId] !== undefined) {
         const term = terminals.terminalsList[terminalId];
-        term.term.send(command);
+        term.send(command);
         if (addCR) {
-          term.term.send("\n");
+          term.send("\n");
         }
       }
     },
