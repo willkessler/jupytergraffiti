@@ -206,6 +206,13 @@
   margin-right:5px;
 }
 
+#graffiti-control-panel-title #graffiti-logo-text {
+  transform:scale(1.05,1.25);
+  margin-left:6px;
+  margin-top:-4px;
+  letter-spacing:1.2em;
+}
+
 #graffiti-control-panel-title img {
   width:22px;
   padding:0 2px 0 2px;
