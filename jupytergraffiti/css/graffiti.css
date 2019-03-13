@@ -510,7 +510,7 @@
 #graffiti-time-display-playback {
   padding: 2px 2px 0px 2px;
   font-family:monospace;
-  font-size:1.1em;
+  font-size:1.0em;
   cursor:pointer;  
   position:absolute;
 }

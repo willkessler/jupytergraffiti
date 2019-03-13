@@ -615,7 +615,7 @@ define([
         const runnerOffIcon = stickerLib.makeRunningMan('white');
         const exitButtonConfiguration = {
           dimensions: { x: 4, y: 4, width:12, height:12 },
-          color:'red',
+          color:"rgb(249, 92, 60)",
           iconUsage: false,
           strokeWidth:1,
           fillOpacity: 1
@@ -4942,10 +4942,8 @@ define([
       },
 
       updateCellSelections: (cell,cm, selections) => {
-        const currentScrollTop = graffiti.sitePanel.scrollTop();
         cm.setSelections(selections);
         utils.refreshCodeMirrorSelection(cell);
-        graffiti.setSitePanelScrollTop(currentScrollTop);
       },
 
       updateSelectedCellSelections: (currentScrollTop) => {
@@ -5007,7 +5005,6 @@ define([
                 graffiti.updateCellSelections(cell,code_mirror, selections);
 
                 //console.log('nudge check, cellId', cellId, 'code_mirror.state.focused',code_mirror.state.focused);
-                
                 setTimeout(() => {
                   if (code_mirror.state.focused) {
                     // If we made a selections update this frame, AND we are focused in it,
@@ -5184,7 +5181,7 @@ define([
         }
         if (state.shouldUpdateDisplay('drawings', frameIndexes.drawings)) {
           if (activity !== 'scrubbing') {
-            // console.log('calling updateDrawings from updateDisplay');
+            //console.log('calling updateDrawings from updateDisplay');
             graffiti.updateDrawings(frameIndexes.drawings);
           }
         }
@@ -5197,7 +5194,7 @@ define([
         }
         if (state.shouldUpdateDisplay('view', frameIndexes.view)) {
           graffiti.updateView(frameIndexes.view.index, currentScrollTop);
-          //console.log('updated view:', frameIndexes.view.index, 'currentScrollTop', currentScrollTop, 'new scrollTop', graffiti.sitePanel.scrollTop());
+          //console.log('update view:', frameIndexes.view.index, 'currentScrollTop', currentScrollTop, 'new scrollTop', graffiti.sitePanel.scrollTop());
         }
 
       },
@@ -5417,9 +5414,11 @@ define([
         graffiti.highlightIntersectingGraffitiRange();
         graffiti.clearJupyterMenuHint();
 
-        if (cancelAnimation) {
-          graffiti.sitePanel.animate({ scrollTop: graffiti.prePlaybackScrolltop }, 750);
-        }
+        // We are no longer supporting smooth scroll back to starting point when a graffiti finishes.
+        // This is causing too many problems if ppl interact quickly with the notebook after hitting esc.
+        //if (cancelAnimation) {
+        //  graffiti.sitePanel.animate({ scrollTop: graffiti.prePlaybackScrolltop }, 750);
+        //}
       },
 
       cancelPlayback: (opts) => {
@@ -5467,7 +5466,6 @@ define([
           state.clearCellOutputsSent();
           terminalLib.saveOrRestoreTerminalOutputs('save');
           graffiti.scrollNudgeAverages = [];
-          graffiti.setJupyterMenuHint(localizer.getString('PRESS_ESC_TO_END_MOVIE_PLAYBACK'));
           const stickerImageCandidateUrl = state.getStickerImageCandidateUrl();
           if (stickerImageCandidateUrl !== undefined) {
             state.setStickerImageUrl(stickerImageCandidateUrl);
@@ -5821,6 +5819,7 @@ define([
         }
 
         console.log('Graffiti: playableMovie:', playableMovie);
+
         const activity = state.getActivity();
         const recording = state.getManifestSingleRecording(playableMovie.recordingCellId, playableMovie.recordingKey);
         const fireUpMovie = () => {
@@ -5839,7 +5838,6 @@ define([
           }
 
           $('#graffiti-movie-play-btn').html('<i>' + localizer.getString('LOADING') + '</i>').prop('disabled',true);
-          graffiti.setJupyterMenuHint(localizer.getString('LOADING_PLEASE_WAIT'));
           const historyData = state.getFromMovieCache('history', playableMovie);
           const audioData   = state.getFromMovieCache('audio',   playableMovie);
           if ((historyData !== undefined) && (audioData !== undefined)) {
