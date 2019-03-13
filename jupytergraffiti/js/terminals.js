@@ -442,9 +442,9 @@ define ([
       for (let cellId of Object.keys(terminals.terminalsList)) {
         terminal = terminals.terminalsList[cellId];
         //console.log('Running fit on term', terminal.term.rows, terminal.term.cols);
+        terminal.term.fit();
         terminal.socket.send(JSON.stringify(["set_size", terminal.term.rows, terminal.term.cols,
                                              window.innerHeight, window.innerWidth]));
-        terminal.term.fit();
       }
     },
 
