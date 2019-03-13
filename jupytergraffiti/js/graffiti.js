@@ -417,24 +417,14 @@ define([
           if (opts === undefined || (opts !== undefined && opts.force)) {
             graffiti.resizeCanvases();
             if (graffiti.outerControlPanel.is(':visible')) {
-              const windowWidth = $(window).width();
-              const windowHeight = $(window).height();
-              const controlPanelPosition = graffiti.outerControlPanel.position();
-              const maxLeft = windowWidth - graffiti.outerControlPanel.width() - 20;
-              const maxTop = windowHeight - graffiti.outerControlPanel.height() - 20;
-              // need to redraw all current stickers here if playing
+              graffiti.placeControlPanel( { keepInView: true });
+              state.setControlPanelDragging(false);
+              // Need to redraw all current stickers here if playing
               const activity = state.getActivity();
               if ((activity === 'playing') || (activity === 'playbackPaused')) {
                 graffiti.wipeAllStickerDomCanvases();
                 graffiti.redrawAllDrawings();
               }
-              graffiti.placeControlPanel( {
-                position: {
-                  left: Math.max(0, Math.min(controlPanelPosition.left, maxLeft)),
-                  top: Math.max(0,Math.min(maxTop, controlPanelPosition.top)) 
-                }
-              });
-              state.setControlPanelDragging(false);
             }
             graffiti.refreshAllGraffitiSideMarkers();
           }
@@ -447,8 +437,10 @@ define([
         graffiti.notebookContainerWidth = graffiti.notebookContainer.width();
         graffiti.performWindowResizeCheck = () => {
           const newWidth = graffiti.notebookContainer.width();
-          if (newWidth !== graffiti.notebookContainerWidth) {
+          const newHeight = $(window).height();
+          if ((newWidth !== graffiti.notebookContainerWidth) || (newHeight !== graffiti.notebookContainerHeight)) {
             graffiti.notebookContainerWidth = newWidth;
+            graffiti.notebookContainerHeight = newHeight;
             const now = utils.getNow();
             // Sort of simple debounce technique
             if (graffiti.windowSizeChangeTime === undefined) {
@@ -1635,13 +1627,30 @@ define([
         const panelBbox = graffiti.sitePanel[0].getBoundingClientRect();
         const controlPanelWidth = graffiti.outerControlPanel.width();
         const controlPanelHeight = graffiti.outerControlPanel.height();
-        const pixelBuffer = 20;
+        const pixelBuffer = 25;
         if (opts.nearAction !== undefined) {
           // Position control panel off to the right of the action.
           position = { 
             x: pointerPosition.x + panelBbox.width, 
             y: pointerPosition.y - controlPanelHeight / 2 - pixelBuffer,
           };  
+        } else if (opts.keepInView !== undefined) {
+          // Try to keep the control panel in view if cut off.
+          const bbox = graffiti.outerControlPanel[0].getBoundingClientRect();
+          position = { x: bbox.left, y: bbox.top };
+          const windowWidth = $(window).width();
+          const windowHeight = $(window).height();
+          const headerHeight = $('#header').height();
+          if (bbox.left < 0) {
+            position.x = pixelBuffer;
+          } else if (bbox.right > windowWidth) {
+            position.x = windowWidth - (controlPanelWidth + pixelBuffer);
+          }            
+          if (bbox.top < headerHeight) {
+            position.y = headerHeight + pixelBuffer;
+          } else if (bbox.top > windowHeight) {
+            position.y = windowHeight - (controlPanelHeight + pixelBuffer);
+          }
         } else if (opts.position !== undefined) {
           // Hardwire the control panel to a fixed spot
           position = opts.position;
@@ -5475,6 +5484,8 @@ define([
           } else {
             state.setStickerImageUrl(undefined);
           }
+        } else if (activity === 'playbackPaused') {
+          graffiti.hideTip(); // immediately hide any tips when resuming play
         }
 
         if ((activity === 'idle') || (activity === 'notifying') || (activity === 'playbackPaused') || (activity === 'playbackPending')) {
