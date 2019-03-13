@@ -403,9 +403,9 @@ define([
           }
         });
 
-        const logoText = 'Graffiti'.split('').join('&nbsp;&nbsp;&nbsp;&nbsp;');
+        const logoText = 'graffiti';
         graffiti.setupOneControlPanel('graffiti-control-panel-title', 
-                                      '<div>' + stickerLib.makeSmallUdacityIcon({width:20,height:20}) + '</div><div>' + logoText + '</div>');
+                                      '<div>' + stickerLib.makeSmallUdacityIcon({width:20,height:20}) + '</div><div id="graffiti-logo-text">' + logoText + '</div>');
 
         const dragHandle = $('#graffiti-drag-handle,#graffiti-control-panel-title');
         dragHandle.on('mousedown', (e) => {
@@ -1640,7 +1640,7 @@ define([
           // Position control panel off to the right of the action.
           position = { 
             x: pointerPosition.x + panelBbox.width, 
-            y: pointerPosition.y - controlPanelHeight / 2 + pixelBuffer,
+            y: pointerPosition.y - controlPanelHeight / 2 - pixelBuffer,
           };  
         } else if (opts.position !== undefined) {
           // Hardwire the control panel to a fixed spot
