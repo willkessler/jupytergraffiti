@@ -372,7 +372,7 @@ define([
         if ($('#graffiti-outer-control-panel').length == 0) {
           const outerControlPanel = $('<div id="graffiti-outer-control-panel">' +
                                       '  <div id="graffiti-inner-control-panel">' +
-                                      '    <div class="graffiti-small-dot-pattern" id="graffiti-drag-handle">&nbsp;</div>' +
+                                      '    <div class="graffiti-small-dot-pattern" id="graffiti-drag-handle">&nbsp;&nbsp;</div>' +
                                       '    <div id="graffiti-control-panels-shell"></div>' +
                                       '  </div>' +
                                       '</div>');
@@ -638,7 +638,7 @@ define([
                                       '  </button>' +
                                       '  <div id="graffiti-skip-buttons">' +
                                       '    <button class="btn btn-default btn-rewind" id="graffiti-rewind-btn" title="' + localizer.getString('SKIP_BACK') + ' ' +
-                                       (state.scanningIsOn() ? localizer.getString('TO_PREVIOUS_SENTENCE') : graffiti.rewindAmt + ' ' + localizer.getString('SECONDS') ) + '">' +
+                                       (state.scanningIsOn() ? localizer.getString('TO_PREVIOUS_SENTENCE') : graffiti.rewindAmt + ' ' + localizer.getString('SECONDS')) + '">' +
                                       '      <i class="fa fa-backward"></i>' +
                                       '    </button>' +
                                       '    <button class="btn btn-default btn-forward" id="graffiti-forward-btn" title="' + localizer.getString('SKIP_FORWARD') + ' ' + 
@@ -1350,7 +1350,7 @@ define([
           graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-sound-off-btn').hide().parent().find('#graffiti-sound-on-btn').show();
         }
         const currentPlaySpeed = state.getCurrentPlaySpeed();
-        graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rewind-btn').attr({title:localizer.getString('SKIP_BACK') + ' ' + graffiti.rewindAmt + localizer.getString('SECONDS')});
+        graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-rewind-btn').attr({title:localizer.getString('SKIP_BACK') + ' ' + graffiti.rewindAmt + ' ' + localizer.getString('SECONDS')});
         graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-forward-btn').attr({title:localizer.getString('SKIP_FORWARD') + ' ' + graffiti.rewindAmt + ' ' + localizer.getString('SECONDS')});
         switch (currentPlaySpeed) {
           case 'scanActive':
@@ -1651,7 +1651,10 @@ define([
         }
         if (position !== undefined) {
           // Make sure the control panel stays on screen
-          const constrainedLeft = Math.min(panelBbox.right - controlPanelWidth - pixelBuffer, Math.max(0,position.x));
+          const firstCell = Jupyter.notebook.get_cell(0);
+          const firstElem = firstCell.element[0];
+          const firstElemBbox = firstElem.getBoundingClientRect();
+          const constrainedLeft = Math.min(firstElemBbox.right - controlPanelWidth - pixelBuffer, Math.max(0,position.x));
           //const constrainedTop = Math.min(panelBbox.bottom - controlPanelHeight - pixelBuffer, Math.max(pixelBuffer,position.y));
           const constrainedTop = Math.min(panelBbox.bottom - controlPanelHeight - pixelBuffer, Math.max(pixelBuffer,position.y));
           newPosition = { left: constrainedLeft, top: constrainedTop };
@@ -5611,10 +5614,13 @@ define([
         } else if (activity === 'playbackPending') {
           console.log('Graffiti: not playing movie via user click because another movie is pending.');
           return; // prevent rapid clicks on graffiti where play_to_click is active.
+        } 
+        const recording = state.getManifestSingleRecording(playableMovie.recordingCellId, playableMovie.recordingKey);
+        if (recording.terminalCommand === undefined) {
+          // Cancel any ongoing playback before starting playback, unless this graffiti has a terminal command.
+          graffiti.cancelPlayback({cancelAnimation:false});
+          graffiti.changeActivity('playbackPending');
         }
-        // Cancel any ongoing playback, unless this graffiti does not play a movie, e.g. has a terminal Command (right now that's the only case).
-        graffiti.cancelPlayback({cancelAnimation:false});
-        graffiti.changeActivity('playbackPending');
         if (state.getDontRestoreCellContentsAfterPlayback()) {
           // If this movie is set to NOT restore cell contents, give the user a chance to opt-out of playback.
           const dialogContent = localizer.getString('REPLACE_CONFIRM_BODY_1');
@@ -5776,12 +5782,15 @@ define([
       },
 
       cleanupAfterLoadAndPlayDidNotPlay: () => {
-        graffiti.clearJupyterMenuHint();
-        graffiti.changeActivity('idle');
-        state.setDontRestoreCellContentsAfterPlayback(false);
-        graffiti.refreshAllGraffitiHighlights();
-        graffiti.refreshGraffitiTooltips(); 
-        graffiti.updateControlPanels();
+        const activity = state.getActivity();
+        if (activity === 'playbackPending') {
+          graffiti.clearJupyterMenuHint();
+          graffiti.changeActivity('idle');
+          state.setDontRestoreCellContentsAfterPlayback(false);
+          graffiti.refreshAllGraffitiHighlights();
+          graffiti.refreshGraffitiTooltips(); 
+          graffiti.updateControlPanels();
+        }
       },
 
       startLoadedMovie: (recording, playableMovie) => {
