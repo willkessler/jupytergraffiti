@@ -2,9 +2,9 @@
 // Modeled on jupyter's terminado.js, but modified a lot for Graffiti usage.
 //
 // xterm, xterm's css and its fit addon were downloaded and put in the graffiti code base, from here:
-// "xterm.js": "https://unpkg.com/xterm@~3.1.0/dist/xterm.js"
-// "xterm.js-fit": "https://unpkg.com/xterm@~3.1.0/dist/addons/fit/fit.js"
-// "xterm.js-css": "https://unpkg.com/xterm@~3.1.0/dist/xterm.css"
+// "xterm.js": "https://unpkg.com/xterm@~3.11.0/dist/xterm.js"
+// "xterm.js-fit": "https://unpkg.com/xterm@~3.11.0/dist/addons/fit/fit.js"
+// "xterm.js-css": "https://unpkg.com/xterm@~3.11.0/dist/xterm.css"
 
 define ([
   'base/js/utils',
