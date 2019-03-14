@@ -1851,6 +1851,7 @@ define([
       cancelRapidPlay: () => {
         console.log('Graffiti: cancelRapidPlay');
         state.setCurrentPlaySpeed('regular');
+        state.storeUserChoicePlaySpeed('regular');
         audio.updateAudioPlaybackRate();
         graffiti.updateControlPanels();
       },
