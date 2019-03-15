@@ -235,6 +235,7 @@ define ([
           rows: 6, // default is 6 but can be changed in metadata
         };
         utils.assignCellGraffitiConfig(cell, graffitiConfig);
+        utils.selectCellByCellId(cellId);
         cell.set_text('<i>Loading terminal (' + cellId + '), please wait...</i>');
         cell.render();
         return terminals.createTerminalCell(cellId, graffitiConfig);

@@ -1485,72 +1485,11 @@ define([
             }
             visibleControlPanels = ['graffiti-playback-controls'];
             graffiti.showControlPanels(visibleControlPanels);
-/*
-            graffiti.setNotifier('<div>' + localizer.getString('PAUSE_TO_INTERACT') + '</div>' +
-                                 '<div>' + localizer.getString('CANCEL_MOVIE_PLAYBACK_1') + '</div>',
-                                 [
-                                   {
-                                     ids: ['graffiti-pause-link'],
-                                     event: 'click',
-                                     fn: (e) => {
-                                       graffiti.togglePlayback();
-                                     }
-                                   },
-                                   {
-                                     ids: ['graffiti-cancel-playback-link'],
-                                     event: 'click',
-                                     fn: (e) => {
-                                       graffiti.cancelPlayback({cancelAnimation:true});
-                                     }
-                                   }
-                                 ]);
-*/
             break;
           case 'playbackPaused':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-pause-btn').hide().parent().find('#graffiti-play-btn').show();
             visibleControlPanels = ['graffiti-playback-controls'];
             graffiti.showControlPanels(visibleControlPanels);
-            if (state.getSetupForReset()) {
-              graffiti.setNotifier('<div>' + localizer.getString('PLAY_MOVIE_AGAIN') + '</div>' +
-                                   '<div>' + localizer.getString('CANCEL_MOVIE_PLAYBACK_2') + '</div>',
-                                   [
-                                     {
-                                       ids: ['graffiti-restart-play-link'],
-                                       event: 'click',
-                                       fn: (e) => {
-                                         graffiti.togglePlayback();
-                                       }
-                                     },
-                                     {
-                                       ids: ['graffiti-cancel-playback-postreset-link'],
-                                       event: 'click',
-                                       fn: (e) => {
-                                         graffiti.cancelPlayback({cancelAnimation:true});
-                                       }
-                                     }
-                                   ]);
-/*
-            } else {
-              graffiti.setNotifier('<div>' + localizer.getString('CONTINUE_MOVIE_PLAYBACK') + '</div>' +
-                                   '<div>' + localizer.getString('CANCEL_MOVIE_PLAYBACK_3') + '</div>',
-                                   [
-                                     {
-                                       ids: ['graffiti-continue-play-link'],
-                                       event: 'click',
-                                       fn: (e) => {
-                                         graffiti.togglePlayback();
-                                       }
-                                     },
-                                     {
-                                       ids: ['graffiti-cancel-playback-prereset-link'],
-                                       event: 'click',
-                                       fn: (e) => {
-                                         graffiti.cancelPlayback({cancelAnimation:true});
-                                       }
-                                     }
-                                   ]);
-*/
-            }
             break;
           case 'graffiting':
             graffiti.showControlPanels(['graffiti-finish-edit-controls']);
@@ -4008,9 +3947,8 @@ define([
             const innerContents = foundContents[0][1];
             const sourceContents = '<span class="graffiti-highlight graffiti-' + recordingCellId + '-' + recordingKey + '"><i></i>' + innerContents + '</span>';
             const cleanedContents = contents.replace(sourceContents, innerContents);
-            const locationCellIndex = utils.findCellIndexByCellId(locationCellId);
             // For some unknown reason we have to select a cell before calling set_text() on it, for that fn to work.
-            Jupyter.notebook.select(locationCellIndex);
+            utils.selectCellByCellId(locationCellId);
             setTimeout(() => {
               locationCell.set_text(cleanedContents);
               if (currentActivity === 'recording') {
