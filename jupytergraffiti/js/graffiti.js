@@ -1568,8 +1568,7 @@ define([
             break;
           case 'recordingPending':
             graffiti.showControlPanels([]);
-            graffiti.setNotifier('<div>' + localizer.getString('CLICK_BEGIN_MOVIE_RECORDING') + '</div>' +
-                                 '<div>' + localizer.getString('CANCEL_RECORDING_1') + '</div>',
+            graffiti.setNotifier('<div>' + localizer.getString('CLICK_BEGIN_MOVIE_RECORDING') + '</div>',
                                  [
                                    {
                                      ids: ['graffiti-cancel-recording-pending-link'],
@@ -1578,13 +1577,6 @@ define([
                                        graffiti.finishGraffiti(false);
                                      }
                                    },
-                                   {
-                                     ids: ['graffiti-cancel-recording-pending-link'],
-                                     event: 'click',
-                                     fn: (e) => {
-                                       graffiti.cancelPendingRecording();
-                                     }
-                                   }
                                  ]);
             break;
           case 'recording':
@@ -3562,12 +3554,17 @@ define([
       },
 
       handleKeyup: (e) => {
-        // console.log('keyUp e.which:', e.which);
+        //console.log('keyUp e.which:', e.which);
         const keyCode = e.which;
-        if ((keyCode === graffiti.skipKeyCode) && (graffiti.skipKeyDownTimer !== undefined)) {
-          graffiti.clearSkipKeyDownTimer();
-          graffiti.toggleRecordingSkip();
-          return true;
+        if (keyCode === 16) {
+          state.setShiftKeyIsDown(false);
+          state.updateDrawingState([ { change: 'stickerOnGrid', data: false } ]);
+        } else {
+          if ((keyCode === graffiti.skipKeyCode) && (graffiti.skipKeyDownTimer !== undefined)) {
+            graffiti.clearSkipKeyDownTimer();
+            graffiti.toggleRecordingSkip();
+            return true;
+          }
         }
         return false;
       },
@@ -4000,6 +3997,7 @@ define([
       removeGraffitiCore: (recordingCellId, recordingKey) => {
         const locationCellId = utils.findCellIdByLocationMap(recordingCellId, recordingKey); // find the actual cell where the graffiti is now living.
         const locationCell = utils.findCellByCellId(locationCellId);
+        const currentActivity = state.getActivity();
         if (locationCell.cell_type === 'markdown') {
           // If this Graffiti was in a markdown cell we need to remove the span tags from the markdown source
           const contents = locationCell.get_text();
@@ -4010,8 +4008,15 @@ define([
             const innerContents = foundContents[0][1];
             const sourceContents = '<span class="graffiti-highlight graffiti-' + recordingCellId + '-' + recordingKey + '"><i></i>' + innerContents + '</span>';
             const cleanedContents = contents.replace(sourceContents, innerContents);
-            //console.log('cleanedContents of markdown:', cleanedContents);
-            locationCell.set_text(cleanedContents);
+            const locationCellIndex = utils.findCellIndexByCellId(locationCellId);
+            // For some unknown reason we have to select a cell before calling set_text() on it, for that fn to work.
+            Jupyter.notebook.select(locationCellIndex);
+            setTimeout(() => {
+              locationCell.set_text(cleanedContents);
+              if (currentActivity === 'recording') {
+                locationCell.render(); // re-render it if we are recording right now, because set_text will unrender it.
+              }
+            }, 0);
           }
         }
 
@@ -4531,34 +4536,18 @@ define([
         graffiti.changeActivity('idle');
       },
 
-      cancelPendingRecording: () => {
-        const currentActivity = state.getActivity();
-        console.log('Graffiti: canceling recording, current activity:', currentActivity);
-        if (currentActivity === 'recordingPending') {
-          graffiti.changeActivity('idle');
-        }        
-      },
-
       cancelRecording: () => {
         const currentActivity = state.getActivity();
         console.log('Graffiti: canceling recording, current activity:', currentActivity);
         if (currentActivity === 'recording') {
           const recordingCellInfo = state.getRecordingCellInfo();
-          let mustStoreManifest = false;
           if (recordingCellInfo.newRecording) {
-            state.removeManifestEntry(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
-            mustStoreManifest = true;
-          }
-          if (graffiti.previousActiveTakeId !== undefined) {
-            storage.updateSingleManifestRecordingField(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey, 
+            graffiti.removeGraffiti(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
+          } else if (graffiti.previousActiveTakeId !== undefined) {
+            storage.updateSingleManifestRecordingField(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey,
                                                        'activeTakeId', graffiti.previousActiveTakeId);
-            mustStoreManifest = false; // updateSingleManifestRecordingField does manifest store for us.
-          }
-          if (mustStoreManifest) {
-            storage.storeManifest();
           }
           graffiti.stopRecordingCore(false);
-          // utils.saveNotebook( () => { console.log('Graffiti: cancelled recording.') });;
         }
       },
 
@@ -5335,6 +5324,7 @@ define([
               state.setCurrentPlaySpeed('rapid');
               break;
             case state.skipTypes['absolute']:
+              state.setCurrentPlaySpeed('regular'); // during absolute skips set play rate to regular so we don't skip too much
               graffiti.jumpPlayback(1, durationMillis);
               state.updateCurrentSkipRecord();
               didSkip = true;
@@ -5350,7 +5340,8 @@ define([
         } else {
           state.clearAppliedSkipRecord();
           // Now stop any acceleration from a skip, and return to whatever speed the user was viewing with before the skip started.
-          state.setCurrentPlaySpeed(state.getUserChoicePlaySpeed());
+          const userChoicePlaySpeed = state.getUserChoicePlaySpeed();
+          state.setCurrentPlaySpeed(userChoicePlaySpeed);
         }
         return didSkip;
       },
@@ -5863,6 +5854,7 @@ define([
           const historyData = state.getFromMovieCache('history', playableMovie);
           const audioData   = state.getFromMovieCache('audio',   playableMovie);
           if ((historyData !== undefined) && (audioData !== undefined)) {
+            console.log('historyData:', historyData.terminalsContents['id_za35048']);
             state.setHistory(historyData);
             audio.setRecordedAudio(audioData);
             graffiti.startLoadedMovie(recording, playableMovie);

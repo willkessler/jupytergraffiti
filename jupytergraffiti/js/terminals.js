@@ -345,12 +345,37 @@ define ([
           terminal.term.reset();
           const portion = terminals.getContentToFillTerminal(terminal, terminal.contents, opts.position);
           terminal.term.write(portion);
+          console.log('portion:', portion);
           terminal.lastPosition = opts.position;
         } else {
           if (terminal.lastPosition !== opts.position) {
             const newPortion = terminal.contents.substr(terminal.lastPosition, opts.position - terminal.lastPosition);
-            //console.log('writing newPortion', newPortion);
-            terminal.term.write(newPortion);
+            console.log('writing newPortion', newPortion);
+            //            for (let i = 0; i < newPortion.length; ++i) {
+            //              terminal.term.write(newPortion[i]);
+            //            }
+            const weird = 'g++ -std=c++17 ./code/p \
+rinting_ex_2.cpp && ./a.out' + String.fromCharCode(13) + String.fromCharCode(10);
+            console.log('weirdlen:', weird.length);
+            console.log('newPortion len:', newPortion.length);
+            if (newPortion.substr(0,3) === 'g++') {
+              let ascii = [[],[]], i;
+              for (i = 0; i < weird.length; ++i) {
+                ascii[0].push(weird.charCodeAt(i));
+              }
+              for (i = 0; i < newPortion.length; ++i) {
+                ascii[1].push(newPortion.charCodeAt(i));
+              }
+              console.log('ascii:', ascii);
+              for (i = 0; i < weird.length; ++i) {
+                if (weird[i] !== newPortion[i]) {
+                  debugger;
+                }
+              }
+              terminal.term.write(weird);
+            } else {
+              terminal.term.write(newPortion);
+            }
             terminal.lastPosition = opts.position;
           }
         }
