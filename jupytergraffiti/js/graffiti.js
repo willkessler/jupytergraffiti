@@ -726,7 +726,7 @@ define([
                                           fn: (e) => {
                                             const activity = state.getActivity();
                                             if ((activity === 'playing') || (activity === 'playbackPaused') || (activity === 'scrubbing')) {
-                                              graffiti.cancelPlayback({cancelAnimation:true});
+                                              graffiti.cancelPlayback();
                                             }
                                           }
                                         },
@@ -3466,7 +3466,7 @@ define([
             case 27: // escape key CANCELS playback
               stopProp = true;
               if ((activity === 'playing') || (activity === 'playbackPaused') || (activity === 'scrubbing')) {
-                graffiti.cancelPlayback({cancelAnimation:true});
+                graffiti.cancelPlayback();
               }
               break;
             case 16: // shift key
@@ -5346,7 +5346,7 @@ define([
         console.log('Graffiti: Got these stats:', state.getUsageStats());
       },
 
-      cancelPlaybackFinish: (cancelAnimation) => {
+      cancelPlaybackFinish: () => {
         graffiti.resetStickerCanvases();
         graffiti.cancelRapidPlay();
         graffiti.graffitiCursorShell.hide();
@@ -5356,15 +5356,9 @@ define([
         graffiti.updateControlPanels();
         graffiti.highlightIntersectingGraffitiRange();
         graffiti.clearJupyterMenuHint();
-
-        // We are no longer supporting smooth scroll back to starting point when a graffiti finishes.
-        // This is causing too many problems if ppl interact quickly with the notebook after hitting esc.
-        //if (cancelAnimation) {
-        //  graffiti.sitePanel.animate({ scrollTop: graffiti.prePlaybackScrolltop }, 750);
-        //}
       },
 
-      cancelPlayback: (opts) => {
+      cancelPlayback: () => {
         console.log('Graffiti: cancelPlayback called');
         const activity = state.getActivity();
         if ((activity !== 'playing') && (activity !== 'playbackPaused') && (activity !== 'scrubbing')) {
@@ -5375,7 +5369,7 @@ define([
         graffiti.cancelPlaybackNoVisualUpdates();
         state.clearAnimationIntervals();
         state.clearNarratorInfo();
-        graffiti.cancelPlaybackFinish(opts.cancelAnimation);
+        graffiti.cancelPlaybackFinish();
 
       },
 
@@ -5478,7 +5472,7 @@ define([
           if (activity === 'playing') {
             state.clearAnimationIntervals();
             if (state.getHidePlayerAfterPlayback() && state.getSetupForReset()) {
-              graffiti.cancelPlayback({ cancelAnimation: true});
+              graffiti.cancelPlayback();
             } else {
               graffiti.pausePlayback();
               //console.log('total play time:', utils.getNow() - playStartedAt);
@@ -5560,7 +5554,7 @@ define([
         const recording = state.getManifestSingleRecording(playableMovie.recordingCellId, playableMovie.recordingKey);
         if (recording.terminalCommand === undefined) {
           // Cancel any ongoing playback before starting playback, unless this graffiti has a terminal command.
-          graffiti.cancelPlayback({cancelAnimation:false});
+          graffiti.cancelPlayback();
           graffiti.changeActivity('playbackPending');
         }
         if (state.getDontRestoreCellContentsAfterPlayback()) {
@@ -5921,7 +5915,7 @@ define([
 
       changeAccessLevel: (level) => {
         if (level === 'create') {
-          graffiti.cancelPlayback({cancelAnimation:true});
+          graffiti.cancelPlayback();
           graffiti.activateAudio(); // we need to activate audio to create the audio object, even if microphone access was previously granted.
           storage.ensureNotebookGetsGraffitiId();
           storage.ensureNotebookGetsFirstAuthorId();
@@ -6076,7 +6070,7 @@ define([
       state: state, // remove me
       playRecordingById: (recordingFullId) => { graffiti.playRecordingByIdString(recordingFullId) },
       playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => { graffiti.playRecordingByIdWithPrompt(recordingFullId, promptMarkdown) },
-      cancelPlayback: () => { graffiti.cancelPlayback({cancelAnimation:false}) },
+      cancelPlayback: () => { graffiti.cancelPlayback() },
       removeUnusedTakes: (recordingFullId) => { graffiti.removeUnusedTakesWithConfirmation(recordingFullId) },
       removeAllUnusedTakes: () => { graffiti.removeAllUnusedTakesWithConfirmation() },
       removeAllGraffiti:  graffiti.removeAllGraffitisWithConfirmation,
