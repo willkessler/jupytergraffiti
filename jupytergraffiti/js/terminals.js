@@ -235,6 +235,7 @@ define ([
           rows: 6, // default is 6 but can be changed in metadata
         };
         utils.assignCellGraffitiConfig(cell, graffitiConfig);
+        utils.selectCellByCellId(cellId);
         cell.set_text('<i>Loading terminal (' + cellId + '), please wait...</i>');
         cell.render();
         return terminals.createTerminalCell(cellId, graffitiConfig);
@@ -349,8 +350,11 @@ define ([
         } else {
           if (terminal.lastPosition !== opts.position) {
             const newPortion = terminal.contents.substr(terminal.lastPosition, opts.position - terminal.lastPosition);
-            //console.log('writing newPortion', newPortion);
-            terminal.term.write(newPortion);
+            // Replace CR followed by a character NOT a line feed by the non-linefeed char alone. 
+            // Sometimes we've gotten this weird situation with terminal recordings and this causes recorded
+            // text to write over itself on the same line.
+            const newPortionCleaned = newPortion.replace(/([\x0d])([^\x0a])/g, "$2"); 
+            terminal.term.write(newPortionCleaned);
             terminal.lastPosition = opts.position;
           }
         }

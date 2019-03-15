@@ -277,6 +277,13 @@ define([
       return undefined;
     },
 
+    selectCellByCellId: (cellId) => {
+      const cellIndex = utils.findCellIndexByCellId(cellId);
+      if (cellIndex !== undefined) {
+        Jupyter.notebook.select(cellIndex);
+      }
+    },
+
     extractRecordingCellId: (selectedTokens) => {
       return ((selectedTokens.tagCellId !== undefined) && 
               (selectedTokens.tagCellId !== selectedTokens.recordingCellId) ? 
