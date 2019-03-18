@@ -342,14 +342,15 @@ define ([
       const cellId = opts.id;
       const terminal = terminals.terminalsList[cellId];
       terminal.contents = opts.terminalsContents[cellId];
-      //console.log('setTerminalContents', opts);
       if (terminal !== undefined) {
+        let didScroll = false;
         if (!opts.incremental || opts.firstRecord || terminal.lastPosition === undefined) {
           terminal.term.reset();
           const portion = terminals.getContentToFillTerminal(terminal, terminal.contents, opts.position);
           terminal.term.write(portion);
           terminal.lastPosition = opts.position;
         } else {
+          //console.log('setTerminalContents, opts:', opts, 'lastPosition', terminal.lastPosition, 'opts.position', opts.position);
           if (terminal.lastPosition !== opts.position) {
             const newPortion = terminal.contents.substr(terminal.lastPosition, opts.position - terminal.lastPosition);
             // Replace CR followed by a character NOT a line feed by the non-linefeed char alone. 
@@ -358,10 +359,14 @@ define ([
             const newPortionCleaned = newPortion.replace(/([\x0d])([^\x0a])/g, "$2"); 
             terminal.term.write(newPortionCleaned);
             terminal.lastPosition = opts.position;
+            terminal.term.scrollToBottom();
+            didScroll = true;
           }
         }
         // Scroll to the correct spot if needed
-        terminals.scrollTerminal(opts);
+        if (!didScroll) {
+          terminals.scrollTerminal(opts);
+        }
       }
     },
 
@@ -388,6 +393,7 @@ define ([
         // Basically the same functionality as in scrollToLine, see here:
         // https://github.com/xtermjs/xterm.js/blob/c908da351b11d718f8dcda7424baee4bd8211681/src/Terminal.ts#L1302
         const scrollAmount = opts.scrollLine - term._core.buffer.ydisp;
+        //console.log('scrollTerminal: opts.scrollLine', opts.scrollLine, 'ydisp', term._core.buffer.ydisp, 'scrollAmount', scrollAmount);
         if (scrollAmount !== 0) {
           term.scrollLines(scrollAmount);
         }

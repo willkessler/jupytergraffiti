@@ -4894,6 +4894,7 @@ define([
       },
 
       updateCellSelections: (cell,cm, selections, currentScrollTop) => {
+        //console.log('updateCellSelections', selections);
         cm.setSelections(selections);
         graffiti.setSitePanelScrollTop(currentScrollTop); // preserve scrollTop because changing selections messes with it (safety check)
         utils.refreshCodeMirrorSelection(cell);
@@ -4956,11 +4957,11 @@ define([
               // Make sure the recorded selection point does not exceed the size of the current cm's text, 
               // before checking for whether we need to set the selection.
               selections[0].anchor.line = Math.min(numLines - 1, selections[0].anchor.line);
-              lineCheck = code_mirror.getLine(currentSelections[0].anchor.line);
-              selections[0].anchor.ch = Math.min(lineCheck.length - 1, selections[0].anchor.ch);
+              lineCheck = code_mirror.getLine(selections[0].anchor.line);
+              selections[0].anchor.ch = Math.min(lineCheck.length, selections[0].anchor.ch);
               selections[0].head.line = Math.min(numLines - 1, selections[0].head.line);
-              lineCheck = code_mirror.getLine(currentSelections[0].head.line);
-              selections[0].head.ch = Math.min(lineCheck.length - 1, selections[0].head.ch);
+              lineCheck = code_mirror.getLine(selections[0].head.line);
+              selections[0].head.ch = Math.min(lineCheck.length, selections[0].head.ch);
 
               if (!(_.isEqual(selections,currentSelections))) {
                 graffiti.dimGraffitiCursor();
@@ -5856,6 +5857,12 @@ define([
         if (recording.terminalCommand !== undefined) {
           const terminalCommand = recording.terminalCommand;
           terminalLib.runTerminalCommand(terminalCommand.terminalId, terminalCommand.command, true);
+          /*
+          const terminalCell = utils.findCellByCellId(terminalCommand.terminalId);
+          const tBounds = terminalCell.element[0].getBoundingClientRect();
+          const vsize = utils.getViewportSize();
+          */
+
           if (activity !== 'recording') {
             graffiti.cleanupAfterLoadAndPlayDidNotPlay(); // clean up *unless* we are recording; then we should just let things keep going.
           }
