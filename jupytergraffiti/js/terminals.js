@@ -221,18 +221,19 @@ define ([
       }
     },
 
-    createTerminalInCell: (cell, terminalId) => {
+    createTerminalInCell: (cell, terminalId, desiredRows) => {
       const cellId = utils.getMetadataCellId(cell.metadata);
       if (terminalId === undefined) {
         terminalId = cellId;
       }
       if (cellId !== undefined) {
         const notebookDirectory = utils.getNotebookDirectory();
+        const rows = (desiredRows === undefined ? 6 : desiredRows); // default is 6 rows but can be changed by metadata
         const graffitiConfig = {
           type : 'terminal',
           startingDirectory: notebookDirectory,
           terminalId: terminalId, // defaults to the graffiti cell id, but can be changed if author wants to display the same terminal twice in one notebook.
-          rows: 6, // default is 6 but can be changed in metadata
+          rows: rows, 
         };
         utils.assignCellGraffitiConfig(cell, graffitiConfig);
         utils.selectCellByCellId(cellId);
@@ -271,8 +272,9 @@ define ([
           };
           jupyterUtils.ajax(deleteAPIEndpoint, settings);
         }
+        const currentRows = terminals.terminalsList[cellId].term.rows;
         delete(terminals.terminalsList[cellId]);
-        terminals.createTerminalInCell(cell, utils.generateUniqueId() );
+        terminals.createTerminalInCell(cell, utils.generateUniqueId(), currentRows );
         utils.saveNotebook();
       }
     },
