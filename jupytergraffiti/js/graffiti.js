@@ -4893,9 +4893,11 @@ define([
         }
       },
 
-      updateCellSelections: (cell,cm, selections) => {
+      updateCellSelections: (cell,cm, selections, currentScrollTop) => {
         cm.setSelections(selections);
+        graffiti.setSitePanelScrollTop(currentScrollTop); // preserve scrollTop because changing selections messes with it (safety check)
         utils.refreshCodeMirrorSelection(cell);
+        graffiti.setSitePanelScrollTop(currentScrollTop); // preserve scrollTop because changing selections messes with it (safety check)
       },
 
       updateSelectedCellSelections: (currentScrollTop) => {
@@ -4906,7 +4908,7 @@ define([
 
       updateSelections: (index,currentScrollTop) => { 
         const record = state.getHistoryItem('selections', index);
-        let cellId, cell, selectionRecord, selections, code_mirror, currentSelections, active;
+        let cellId, cell, selectionRecord, selections, code_mirror, currentSelections, active, lineCheck;
 
         // If there were text selections in rendered markdown or rendered output during this frame, restore them first if we need to.
         if (record.textSelection !== undefined) {
@@ -4950,11 +4952,20 @@ define([
               code_mirror = cell.code_mirror;
               currentSelections = utils.cleanSelectionRecords(code_mirror.listSelections());
               //console.log('cellId, selections, currentSelections, subType:', cellId, selections, currentSelections, record.subType);
+              const numLines = code_mirror.lineCount();
+              // Make sure the recorded selection point does not exceed the size of the current cm's text, 
+              // before checking for whether we need to set the selection.
+              selections[0].anchor.line = Math.min(numLines - 1, selections[0].anchor.line);
+              lineCheck = code_mirror.getLine(currentSelections[0].anchor.line);
+              selections[0].anchor.ch = Math.min(lineCheck.length - 1, selections[0].anchor.ch);
+              selections[0].head.line = Math.min(numLines - 1, selections[0].head.line);
+              lineCheck = code_mirror.getLine(currentSelections[0].head.line);
+              selections[0].head.ch = Math.min(lineCheck.length - 1, selections[0].head.ch);
 
               if (!(_.isEqual(selections,currentSelections))) {
                 graffiti.dimGraffitiCursor();
 
-                graffiti.updateCellSelections(cell,code_mirror, selections);
+                graffiti.updateCellSelections(cell,code_mirror, selections, currentScrollTop);
 
                 //console.log('nudge check, cellId', cellId, 'code_mirror.state.focused',code_mirror.state.focused);
                 setTimeout(() => {
