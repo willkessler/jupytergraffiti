@@ -3201,9 +3201,14 @@ define([
           } else {
             outerInputElement = $(hoverCellElement).find('.CodeMirror-lines');
           }
+
           const recording = state.getManifestSingleRecording(cellId, recordingKey);
-          const activeTakeId = recording.activeTakeId;
-          //console.log('refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
+          if (recording === undefined)  {
+            debugger;
+            return;
+          }
+
+          //console.console.log();('refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
           if (recording.hasMovie) {
             //console.log('Graffiti: refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
             state.setPlayableMovie('tip', cellId, recordingKey);
@@ -3662,8 +3667,7 @@ define([
           }
         });
 
-        graffiti.handleSliderDragDebounced = _.debounce(graffiti.handleSliderDrag, 20, true);
-        
+        graffiti.handleSliderDragDebounced = _.debounce(graffiti.handleSliderDrag, 20, false);
         console.log('Graffiti: Background setup complete.');
       },
 
@@ -3934,8 +3938,17 @@ define([
       },
 
       removeGraffitiCore: (recordingCellId, recordingKey) => {
+        const recordingCell = utils.findCellByCellId(recordingCellId);
+        let locationCell;
+        if (recordingCell !== undefined) {
+          if (recordingCell.cell_type === 'code') {
+            locationCell = recordingCell; // note the *code* cell where this graffiti is currently present
+          }
+        }
         const locationCellId = utils.findCellIdByLocationMap(recordingCellId, recordingKey); // find the actual cell where the graffiti is now living.
-        const locationCell = utils.findCellByCellId(locationCellId);
+        if (locationCellId !== undefined) {
+          locationCell = utils.findCellByCellId(locationCellId); // find the *markdown* cell where this recording is currently present
+        }
         const currentActivity = state.getActivity();
         if (locationCell.cell_type === 'markdown') {
           // If this Graffiti was in a markdown cell we need to remove the span tags from the markdown source
@@ -3951,9 +3964,7 @@ define([
             utils.selectCellByCellId(locationCellId);
             setTimeout(() => {
               locationCell.set_text(cleanedContents);
-              if (currentActivity === 'recording') {
-                locationCell.render(); // re-render it if we are recording right now, because set_text will unrender it.
-              }
+              locationCell.render(); // re-render the cell because set_text will unrender it.
             }, 0);
           }
         }
@@ -5145,8 +5156,18 @@ define([
         let totalTimeDisplay = localizer.getString('IS_SKIPPING');
         const activity = state.getActivity();
         if (!state.isSkipping()) {
+          let timeSkippedSoFar = state.getSkippedTimeSoFar();
+          if (isNaN(timeSkippedSoFar)) {
+            timeSkippedSoFar = graffiti.lastTimeSkippedSoFar;
+          }
+          graffiti.lastTimeSkippedSoFar = timeSkippedSoFar;
+          //const playTimeDisplay = utils.formatTime(playedSoFar  - timeSkippedSoFar, { includeMillis: false });
           const playTimeDisplay = utils.formatTime(playedSoFar, { includeMillis: false });
-          const recordingTimeDisplay = utils.formatTime(playedSoFar, { includeMillis: true });
+          const recordingTimeDisplay = utils.formatTime(playedSoFar, { includeMillis: true }) ;
+          const totalSkipTimeForRecording = state.getTotalSkipTimeForRecording();
+          //console.log('totalSkipTimeForRecording', totalSkipTimeForRecording);
+          // work in progress
+          //const durationDisplay = utils.formatTime(state.getHistoryDuration() - totalSkipTimeForRecording, { includeMillis: false });
           const durationDisplay = utils.formatTime(state.getHistoryDuration(), { includeMillis: false });
           if (activity === 'recording') {
             totalTimeDisplay = recordingTimeDisplay;
@@ -5187,7 +5208,7 @@ define([
         graffiti.pausePlayback();
         const timeElapsed = state.getTimePlayedSoFar();
         //console.log('jumpPlayback timeElapsed',timeElapsed);
-        let t, frameIndexes;
+        let t;
         if (state.scanningIsOn()) {
           t = state.findSpeakingStartNearestTime(timeElapsed,direction, jumpAmount);
         } else {
@@ -5195,7 +5216,7 @@ define([
         }
         // console.log('Graffiti: t:', t);
         state.resetPlayTimes(t);
-        frameIndexes = state.getHistoryRecordsAtTime(t);
+        const frameIndexes = state.getHistoryRecordsAtTime(t);
         state.clearSetupForReset();
         state.resetProcessedArrays();
         graffiti.wipeAllStickerDomCanvases();
@@ -5203,7 +5224,8 @@ define([
         graffiti.updateSlider(t);
         graffiti.updateTimeDisplay(t);
         graffiti.redrawAllDrawings(t);
-        if (previousPlayState === 'playing') {
+        const isLastSkipRecord = state.isLastSkipRecord();
+        if ((previousPlayState === 'playing') && (!isLastSkipRecord)) {
           graffiti.startPlayback();
         }
         graffiti.updateAllGraffitiDisplays();
@@ -5218,6 +5240,7 @@ define([
         const t = Math.min(state.getHistoryDuration() * timeLocation, state.getHistoryDuration() - 1);
         // Now we need to set the time we are going to start with if we play from here.
         state.resetPlayTimes(t);
+        state.updateCurrentSkipRecord();
         state.clearSetupForReset();
         state.resetProcessedArrays();
         graffiti.undimGraffitiCursor();
@@ -5250,9 +5273,10 @@ define([
           }
           const skipInfo = state.getSkipInfo();
           state.setAppliedSkipRecord();
-          const duration = (currentSkipRecord.endTime - currentSkipRecord.startTime + 1);
+          const isLastSkipRecord = state.isLastSkipRecord();
+          const duration = currentSkipRecord.endTime - currentSkipRecord.startTime + 1;
           const durationMillis = duration / 1000;
-          if (state.isLastSkipRecord()) {
+          if (isLastSkipRecord) {
             console.log('Graffiti: doing last skip as absolute');
             skipInfo.type = state.skipTypes['absolute']; // last skip is overridden to always be absolute.
           }
@@ -5735,6 +5759,7 @@ define([
         state.setNarratorInfo('name', recording.narratorName);
         state.setNarratorInfo('picture', recording.narratorPicture);
         state.setSkipInfo(recording.skipInfo);
+        state.setTotalSkipTimeForRecording();
         if ((playableMovie.cell !== undefined) && (playableMovie.cellType === 'markdown')) {
           playableMovie.cell.render(); // always render a markdown cell first before playing a movie on a graffiti inside it
         }
