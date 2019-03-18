@@ -2319,7 +2319,8 @@ define([
           scalarX = cellRects.innerCellRect.width / denomWidth;
           scalarY = cellRects.innerCellRect.height / denomHeight;
           positionsRaw = { x: record.x, y: record.y };
-          if (!record.inMarkdownCell) {
+          
+          if (!record.inMarkdownCell || record.isOverTerminal) {
             // in code cells, or if pen went down in prompt area, just use positions verbatim
             positions = { start: { x: positionsRaw.x, y: positionsRaw.y } };
           } else {
@@ -3540,12 +3541,19 @@ define([
           return true;
         });
 
+        // Temporarily defeating mousewheel pausing of playback because of all the issues showing up
+        // when graffitized notebooks are in an iframe. Since the iframe doesn't know its extents accurately
+        // visavis the viewport, the user sometimes needs to manually scroll around to keep up with a video
+        // that's playing in an iframe. Mousewheel-pause was defeating this workaround so it's turned off.
+        // 3/18/19
+/*
         graffiti.sitePanel.on('mousewheel', (e) => {
           if (state.getActivity() === 'playing') {
             console.log('Graffiti: pausing playback because of mousewheel scroll.');
             graffiti.pausePlayback();
           }
         });
+*/
 
         $('body').keydown((e) => {
           return graffiti.handleKeydown(e);
@@ -4807,6 +4815,8 @@ define([
 
       updatePointer: (record) => {
         if (record.hoverCell !== undefined) {
+          const hoverCellId = record.cellId;
+          record.isOverTerminal = terminalLib.isTerminalCell(hoverCellId);
           const offsetPositionScaled = graffiti.processPositionsForCellTypeScaling(record, 'cursor');
           const cellRects = utils.getCellRects(record.hoverCell);        
           const offsetPosition = { x: cellRects.cellRect.left + offsetPositionScaled.start.x - graffiti.halfBullseye,
@@ -4821,8 +4831,7 @@ define([
             graffiti.undimGraffitiCursor();
             const offsetPositionPx = { left: offsetPosition.x + 'px', top: offsetPosition.y + 'px'};
             graffiti.graffitiCursorShell.css(offsetPositionPx);
-            const hoverCellId = record.cellId;
-            if (terminalLib.isTerminalCell(hoverCellId)) {
+            if (record.isOverTerminal) {
               graffiti.activateTerminalGraffitiCursor();
             } else {
               graffiti.activateNormalGraffitiCursor();
@@ -5100,11 +5109,13 @@ define([
         let focusedTerminal = undefined;
         if (termRecords !== undefined) {
           const terminalsContents = state.getHistoryTerminalsContents();
+          let madeTerminalChange;
           for (let i = 0; i < termRecords.length; ++i) {
             terminalLib.setTerminalContents($.extend(true, termRecords[i], { 
               incremental: (state.getActivity() === 'playing'), 
               terminalsContents: terminalsContents,
             }));
+
             if (termRecords[i].isFocused) {
               focusedTerminal = termRecords[i].id;
             }
@@ -5858,11 +5869,6 @@ define([
         if (recording.terminalCommand !== undefined) {
           const terminalCommand = recording.terminalCommand;
           terminalLib.runTerminalCommand(terminalCommand.terminalId, terminalCommand.command, true);
-          /*
-          const terminalCell = utils.findCellByCellId(terminalCommand.terminalId);
-          const tBounds = terminalCell.element[0].getBoundingClientRect();
-          const vsize = utils.getViewportSize();
-          */
 
           if (activity !== 'recording') {
             graffiti.cleanupAfterLoadAndPlayDidNotPlay(); // clean up *unless* we are recording; then we should just let things keep going.
