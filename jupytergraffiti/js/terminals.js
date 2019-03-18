@@ -172,7 +172,7 @@ define ([
         renderArea.html('Loading...');
 
         const terminalHeight = lineHeight * config.rows; // pixels
-        const terminalContainerId = 'terminal-container-' + cellId;
+        const terminalContainerId = 'graffiti-terminal-container-' + cellId;
 
         renderArea.html('<div class="graffiti-terminal-container" id="' + terminalContainerId + '" class="container" style="width:100%;height:' + terminalHeight + 'px;"></div>' +
                         '<div class="graffiti-terminal-links">' +
@@ -342,6 +342,7 @@ define ([
       const cellId = opts.id;
       const terminal = terminals.terminalsList[cellId];
       terminal.contents = opts.terminalsContents[cellId];
+      let madeUpdateToTerminal = false;
       if (terminal !== undefined) {
         let didScroll = false;
         if (!opts.incremental || opts.firstRecord || terminal.lastPosition === undefined) {
@@ -349,6 +350,7 @@ define ([
           const portion = terminals.getContentToFillTerminal(terminal, terminal.contents, opts.position);
           terminal.term.write(portion);
           terminal.lastPosition = opts.position;
+          madeUpdateToTerminal = true;
         } else {
           //console.log('setTerminalContents, opts:', opts, 'lastPosition', terminal.lastPosition, 'opts.position', opts.position);
           if (terminal.lastPosition !== opts.position) {
@@ -361,13 +363,15 @@ define ([
             terminal.lastPosition = opts.position;
             terminal.term.scrollToBottom();
             didScroll = true;
+            madeUpdateToTerminal = true;
           }
         }
         // Scroll to the correct spot if needed
         if (!didScroll) {
-          terminals.scrollTerminal(opts);
+          madeUpdateToTerminal = madeUpdateToTerminal || terminals.scrollTerminal(opts);
         }
       }
+      return madeUpdateToTerminal;
     },
 
     clearTerminalsContentsPositions: () => {
@@ -396,8 +400,10 @@ define ([
         //console.log('scrollTerminal: opts.scrollLine', opts.scrollLine, 'ydisp', term._core.buffer.ydisp, 'scrollAmount', scrollAmount);
         if (scrollAmount !== 0) {
           term.scrollLines(scrollAmount);
+          return true;
         }
       }
+      return false;
     },
       
     restoreTerminalOutput: (cellId) => {
