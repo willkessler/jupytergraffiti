@@ -3394,7 +3394,7 @@ define([
       refreshGraffitiTooltips: () => {
         const tips = $('.graffiti-highlight');
         //console.trace('refreshGraffitiTooltips: binding mousenter/mouseleave');
-        tips.unbind('mousemove').bind('mousemove', (e) => { graffiti.refreshGraffitiTooltipsCore($(e.target), e.type); } );
+        tips.unbind('mouseenter mouseleave mousemove').bind('mouseenter mouseleave mousemove', (e) => { graffiti.refreshGraffitiTooltipsCore($(e.target), e.type); } );
       },
 
       handleExecuteCellViaGraffiti: () => {
