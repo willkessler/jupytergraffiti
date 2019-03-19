@@ -71,11 +71,13 @@ define([
       state.speakingStatus = false; // true when the graffiti creator is currently speaking (not silent)
       state.currentSkipRecord = 0;
       state.appliedSkipRecord = undefined;
+      state.totalSkipTimeForRecording = 0;
       state.cellStates = {
         contents: {},
         changedCells: {},
         selections: {}
       };
+      state.skippedTimeSoFar = 0;
       state.animationIntervalIds = {};
       state.playbackCellAdditions = {};
       state.highlightsRefreshCellId = undefined;
@@ -353,6 +355,7 @@ define([
 
     setAppliedSkipRecord: () => {
       state.appliedSkipRecord = state.currentSkipRecord;
+      state.skippedTimeSoFar += state.currentSkipRecord.endTime - state.currentSkipRecord.startTime;
     },
     
     clearAppliedSkipRecord: () => {
@@ -377,6 +380,24 @@ define([
       }
     },
 
+    getTotalSkipTimeForRecording: () => {
+      return state.totalSkipTimeForRecording;
+    },
+
+    setTotalSkipTimeForRecording: () => {
+      let record;
+      state.totalSkipTimeForRecording = 0;
+      if (state.history.skip !== undefined) {
+        for (let i = 0; i < state.history.skip.length; ++i) {
+          record = state.history.skip[i];
+          // record.status is legacy, we only want to use status -1 skips from these skip records.
+          if ((record.status === undefined) || ((record.status !== undefined) && record.status === -1)) { 
+            state.totalSkipTimeForRecording += record.endTime - record.startTime;
+          }
+        }
+      }
+    },
+
     // Set the current or next skip record by scanning from 0 to the time given, looking
     // for a skip record that either straddles the time given, or is greater than the time
     // given (next skip record).
@@ -384,9 +405,13 @@ define([
       const t = state.getTimePlayedSoFar();
       let record;
       state.currentSkipRecord = undefined;
+      state.skippedTimeSoFar = 0;
       if (state.history.skip !== undefined) {
         for (let i = 0; i < state.history.skip.length; ++i) {
           record = state.history.skip[i];
+          if (record.endTime < t) { // keep track of total skip time up to the current time played
+            state.skippedTimeSoFar += record.endTime - record.startTime;
+          }
           if (((record.startTime <= t) && (t < record.endTime)) ||
               (record.startTime > t)) {
             state.currentSkipRecord = i;
@@ -439,6 +464,10 @@ define([
         state.storeHistoryRecord('skip');
       }
       console.log('after storeSkipRecord, skip history:', state.history['skip']);
+    },
+
+    getSkippedTimeSoFar: () => {
+      return state.skippedTimeSoFar;
     },
 
     getShiftKeyIsDown: () => {

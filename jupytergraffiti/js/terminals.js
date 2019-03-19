@@ -172,7 +172,7 @@ define ([
         renderArea.html('Loading...');
 
         const terminalHeight = lineHeight * config.rows; // pixels
-        const terminalContainerId = 'terminal-container-' + cellId;
+        const terminalContainerId = 'graffiti-terminal-container-' + cellId;
 
         renderArea.html('<div class="graffiti-terminal-container" id="' + terminalContainerId + '" class="container" style="width:100%;height:' + terminalHeight + 'px;"></div>' +
                         '<div class="graffiti-terminal-links">' +
@@ -221,20 +221,22 @@ define ([
       }
     },
 
-    createTerminalInCell: (cell, terminalId) => {
+    createTerminalInCell: (cell, terminalId, desiredRows) => {
       const cellId = utils.getMetadataCellId(cell.metadata);
       if (terminalId === undefined) {
         terminalId = cellId;
       }
       if (cellId !== undefined) {
         const notebookDirectory = utils.getNotebookDirectory();
+        const rows = (desiredRows === undefined ? 6 : desiredRows); // default is 6 rows but can be changed by metadata
         const graffitiConfig = {
           type : 'terminal',
           startingDirectory: notebookDirectory,
           terminalId: terminalId, // defaults to the graffiti cell id, but can be changed if author wants to display the same terminal twice in one notebook.
-          rows: 6, // default is 6 but can be changed in metadata
+          rows: rows, 
         };
         utils.assignCellGraffitiConfig(cell, graffitiConfig);
+        utils.selectCellByCellId(cellId);
         cell.set_text('<i>Loading terminal (' + cellId + '), please wait...</i>');
         cell.render();
         return terminals.createTerminalCell(cellId, graffitiConfig);
@@ -270,8 +272,9 @@ define ([
           };
           jupyterUtils.ajax(deleteAPIEndpoint, settings);
         }
+        const currentRows = terminals.terminalsList[cellId].term.rows;
         delete(terminals.terminalsList[cellId]);
-        terminals.createTerminalInCell(cell, utils.generateUniqueId() );
+        terminals.createTerminalInCell(cell, utils.generateUniqueId(), currentRows );
         utils.saveNotebook();
       }
     },
@@ -339,24 +342,36 @@ define ([
       const cellId = opts.id;
       const terminal = terminals.terminalsList[cellId];
       terminal.contents = opts.terminalsContents[cellId];
-      //console.log('setTerminalContents', opts);
+      let madeUpdateToTerminal = false;
       if (terminal !== undefined) {
+        let didScroll = false;
         if (!opts.incremental || opts.firstRecord || terminal.lastPosition === undefined) {
           terminal.term.reset();
           const portion = terminals.getContentToFillTerminal(terminal, terminal.contents, opts.position);
           terminal.term.write(portion);
           terminal.lastPosition = opts.position;
+          madeUpdateToTerminal = true;
         } else {
+          //console.log('setTerminalContents, opts:', opts, 'lastPosition', terminal.lastPosition, 'opts.position', opts.position);
           if (terminal.lastPosition !== opts.position) {
             const newPortion = terminal.contents.substr(terminal.lastPosition, opts.position - terminal.lastPosition);
-            //console.log('writing newPortion', newPortion);
-            terminal.term.write(newPortion);
+            // Replace CR followed by a character NOT a line feed by the non-linefeed char alone. 
+            // Sometimes we've gotten this weird situation with terminal recordings and this causes recorded
+            // text to write over itself on the same line.
+            const newPortionCleaned = newPortion.replace(/([\x0d])([^\x0a])/g, "$2"); 
+            terminal.term.write(newPortionCleaned);
             terminal.lastPosition = opts.position;
+            terminal.term.scrollToBottom();
+            didScroll = true;
+            madeUpdateToTerminal = true;
           }
         }
         // Scroll to the correct spot if needed
-        terminals.scrollTerminal(opts);
+        if (!didScroll) {
+          madeUpdateToTerminal = madeUpdateToTerminal || terminals.scrollTerminal(opts);
+        }
       }
+      return madeUpdateToTerminal;
     },
 
     clearTerminalsContentsPositions: () => {
@@ -382,10 +397,13 @@ define ([
         // Basically the same functionality as in scrollToLine, see here:
         // https://github.com/xtermjs/xterm.js/blob/c908da351b11d718f8dcda7424baee4bd8211681/src/Terminal.ts#L1302
         const scrollAmount = opts.scrollLine - term._core.buffer.ydisp;
+        //console.log('scrollTerminal: opts.scrollLine', opts.scrollLine, 'ydisp', term._core.buffer.ydisp, 'scrollAmount', scrollAmount);
         if (scrollAmount !== 0) {
           term.scrollLines(scrollAmount);
+          return true;
         }
       }
+      return false;
     },
       
     restoreTerminalOutput: (cellId) => {
