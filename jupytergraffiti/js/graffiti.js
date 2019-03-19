@@ -3205,7 +3205,6 @@ define([
 
           const recording = state.getManifestSingleRecording(cellId, recordingKey);
           if (recording === undefined)  {
-            debugger;
             return;
           }
 
@@ -5834,7 +5833,7 @@ define([
           const historyData = state.getFromMovieCache('history', playableMovie);
           const audioData   = state.getFromMovieCache('audio',   playableMovie);
           if ((historyData !== undefined) && (audioData !== undefined)) {
-            console.log('historyData:', historyData.terminalsContents['id_za35048']);
+            //console.log('historyData:', historyData.terminalsContents['id_za35048']);
             state.setHistory(historyData);
             audio.setRecordedAudio(audioData);
             graffiti.startLoadedMovie(recording, playableMovie);
