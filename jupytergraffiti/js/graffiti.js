@@ -727,7 +727,7 @@ define([
                                           fn: (e) => {
                                             const activity = state.getActivity();
                                             if ((activity === 'playing') || (activity === 'playbackPaused') || (activity === 'scrubbing')) {
-                                              graffiti.cancelPlayback({cancelAnimation:true});
+                                              graffiti.cancelPlayback();
                                             }
                                           }
                                         },
@@ -1486,72 +1486,11 @@ define([
             }
             visibleControlPanels = ['graffiti-playback-controls'];
             graffiti.showControlPanels(visibleControlPanels);
-/*
-            graffiti.setNotifier('<div>' + localizer.getString('PAUSE_TO_INTERACT') + '</div>' +
-                                 '<div>' + localizer.getString('CANCEL_MOVIE_PLAYBACK_1') + '</div>',
-                                 [
-                                   {
-                                     ids: ['graffiti-pause-link'],
-                                     event: 'click',
-                                     fn: (e) => {
-                                       graffiti.togglePlayback();
-                                     }
-                                   },
-                                   {
-                                     ids: ['graffiti-cancel-playback-link'],
-                                     event: 'click',
-                                     fn: (e) => {
-                                       graffiti.cancelPlayback({cancelAnimation:true});
-                                     }
-                                   }
-                                 ]);
-*/
             break;
           case 'playbackPaused':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-pause-btn').hide().parent().find('#graffiti-play-btn').show();
             visibleControlPanels = ['graffiti-playback-controls'];
             graffiti.showControlPanels(visibleControlPanels);
-            if (state.getSetupForReset()) {
-              graffiti.setNotifier('<div>' + localizer.getString('PLAY_MOVIE_AGAIN') + '</div>' +
-                                   '<div>' + localizer.getString('CANCEL_MOVIE_PLAYBACK_2') + '</div>',
-                                   [
-                                     {
-                                       ids: ['graffiti-restart-play-link'],
-                                       event: 'click',
-                                       fn: (e) => {
-                                         graffiti.togglePlayback();
-                                       }
-                                     },
-                                     {
-                                       ids: ['graffiti-cancel-playback-postreset-link'],
-                                       event: 'click',
-                                       fn: (e) => {
-                                         graffiti.cancelPlayback({cancelAnimation:true});
-                                       }
-                                     }
-                                   ]);
-/*
-            } else {
-              graffiti.setNotifier('<div>' + localizer.getString('CONTINUE_MOVIE_PLAYBACK') + '</div>' +
-                                   '<div>' + localizer.getString('CANCEL_MOVIE_PLAYBACK_3') + '</div>',
-                                   [
-                                     {
-                                       ids: ['graffiti-continue-play-link'],
-                                       event: 'click',
-                                       fn: (e) => {
-                                         graffiti.togglePlayback();
-                                       }
-                                     },
-                                     {
-                                       ids: ['graffiti-cancel-playback-prereset-link'],
-                                       event: 'click',
-                                       fn: (e) => {
-                                         graffiti.cancelPlayback({cancelAnimation:true});
-                                       }
-                                     }
-                                   ]);
-*/
-            }
             break;
           case 'graffiting':
             graffiti.showControlPanels(['graffiti-finish-edit-controls']);
@@ -1569,8 +1508,7 @@ define([
             break;
           case 'recordingPending':
             graffiti.showControlPanels([]);
-            graffiti.setNotifier('<div>' + localizer.getString('CLICK_BEGIN_MOVIE_RECORDING') + '</div>' +
-                                 '<div>' + localizer.getString('CANCEL_RECORDING_1') + '</div>',
+            graffiti.setNotifier('<div>' + localizer.getString('CLICK_BEGIN_MOVIE_RECORDING') + '</div>',
                                  [
                                    {
                                      ids: ['graffiti-cancel-recording-pending-link'],
@@ -1579,13 +1517,6 @@ define([
                                        graffiti.finishGraffiti(false);
                                      }
                                    },
-                                   {
-                                     ids: ['graffiti-cancel-recording-pending-link'],
-                                     event: 'click',
-                                     fn: (e) => {
-                                       graffiti.cancelPendingRecording();
-                                     }
-                                   }
                                  ]);
             break;
           case 'recording':
@@ -2388,7 +2319,8 @@ define([
           scalarX = cellRects.innerCellRect.width / denomWidth;
           scalarY = cellRects.innerCellRect.height / denomHeight;
           positionsRaw = { x: record.x, y: record.y };
-          if (!record.inMarkdownCell) {
+          
+          if (!record.inMarkdownCell || record.isOverTerminal) {
             // in code cells, or if pen went down in prompt area, just use positions verbatim
             positions = { start: { x: positionsRaw.x, y: positionsRaw.y } };
           } else {
@@ -3271,9 +3203,13 @@ define([
           } else {
             outerInputElement = $(hoverCellElement).find('.CodeMirror-lines');
           }
+
           const recording = state.getManifestSingleRecording(cellId, recordingKey);
-          const activeTakeId = recording.activeTakeId;
-          //console.log('refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
+          if (recording === undefined)  {
+            return;
+          }
+
+          //console.console.log();('refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
           if (recording.hasMovie) {
             //console.log('Graffiti: refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
             state.setPlayableMovie('tip', cellId, recordingKey);
@@ -3536,7 +3472,7 @@ define([
             case 27: // escape key CANCELS playback
               stopProp = true;
               if ((activity === 'playing') || (activity === 'playbackPaused') || (activity === 'scrubbing')) {
-                graffiti.cancelPlayback({cancelAnimation:true});
+                graffiti.cancelPlayback();
               }
               break;
             case 16: // shift key
@@ -3563,12 +3499,17 @@ define([
       },
 
       handleKeyup: (e) => {
-        // console.log('keyUp e.which:', e.which);
+        //console.log('keyUp e.which:', e.which);
         const keyCode = e.which;
-        if ((keyCode === graffiti.skipKeyCode) && (graffiti.skipKeyDownTimer !== undefined)) {
-          graffiti.clearSkipKeyDownTimer();
-          graffiti.toggleRecordingSkip();
-          return true;
+        if (keyCode === 16) {
+          state.setShiftKeyIsDown(false);
+          state.updateDrawingState([ { change: 'stickerOnGrid', data: false } ]);
+        } else {
+          if ((keyCode === graffiti.skipKeyCode) && (graffiti.skipKeyDownTimer !== undefined)) {
+            graffiti.clearSkipKeyDownTimer();
+            graffiti.toggleRecordingSkip();
+            return true;
+          }
         }
         return false;
       },
@@ -3599,12 +3540,19 @@ define([
           return true;
         });
 
+        // Temporarily defeating mousewheel pausing of playback because of all the issues showing up
+        // when graffitized notebooks are in an iframe. Since the iframe doesn't know its extents accurately
+        // visavis the viewport, the user sometimes needs to manually scroll around to keep up with a video
+        // that's playing in an iframe. Mousewheel-pause was defeating this workaround so it's turned off.
+        // 3/18/19
+/*
         graffiti.sitePanel.on('mousewheel', (e) => {
           if (state.getActivity() === 'playing') {
             console.log('Graffiti: pausing playback because of mousewheel scroll.');
             graffiti.pausePlayback();
           }
         });
+*/
 
         $('body').keydown((e) => {
           return graffiti.handleKeydown(e);
@@ -3727,8 +3675,7 @@ define([
           }
         });
 
-        graffiti.handleSliderDragDebounced = _.debounce(graffiti.handleSliderDrag, 20, true);
-        
+        graffiti.handleSliderDragDebounced = _.debounce(graffiti.handleSliderDrag, 20, false);
         console.log('Graffiti: Background setup complete.');
       },
 
@@ -3999,8 +3946,18 @@ define([
       },
 
       removeGraffitiCore: (recordingCellId, recordingKey) => {
+        const recordingCell = utils.findCellByCellId(recordingCellId);
+        let locationCell;
+        if (recordingCell !== undefined) {
+          if (recordingCell.cell_type === 'code') {
+            locationCell = recordingCell; // note the *code* cell where this graffiti is currently present
+          }
+        }
         const locationCellId = utils.findCellIdByLocationMap(recordingCellId, recordingKey); // find the actual cell where the graffiti is now living.
-        const locationCell = utils.findCellByCellId(locationCellId);
+        if (locationCellId !== undefined) {
+          locationCell = utils.findCellByCellId(locationCellId); // find the *markdown* cell where this recording is currently present
+        }
+        const currentActivity = state.getActivity();
         if (locationCell.cell_type === 'markdown') {
           // If this Graffiti was in a markdown cell we need to remove the span tags from the markdown source
           const contents = locationCell.get_text();
@@ -4011,8 +3968,12 @@ define([
             const innerContents = foundContents[0][1];
             const sourceContents = '<span class="graffiti-highlight graffiti-' + recordingCellId + '-' + recordingKey + '"><i></i>' + innerContents + '</span>';
             const cleanedContents = contents.replace(sourceContents, innerContents);
-            //console.log('cleanedContents of markdown:', cleanedContents);
-            locationCell.set_text(cleanedContents);
+            // For some unknown reason we have to select a cell before calling set_text() on it, for that fn to work.
+            utils.selectCellByCellId(locationCellId);
+            setTimeout(() => {
+              locationCell.set_text(cleanedContents);
+              locationCell.render(); // re-render the cell because set_text will unrender it.
+            }, 0);
           }
         }
 
@@ -4532,34 +4493,18 @@ define([
         graffiti.changeActivity('idle');
       },
 
-      cancelPendingRecording: () => {
-        const currentActivity = state.getActivity();
-        console.log('Graffiti: canceling recording, current activity:', currentActivity);
-        if (currentActivity === 'recordingPending') {
-          graffiti.changeActivity('idle');
-        }        
-      },
-
       cancelRecording: () => {
         const currentActivity = state.getActivity();
         console.log('Graffiti: canceling recording, current activity:', currentActivity);
         if (currentActivity === 'recording') {
           const recordingCellInfo = state.getRecordingCellInfo();
-          let mustStoreManifest = false;
           if (recordingCellInfo.newRecording) {
-            state.removeManifestEntry(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
-            mustStoreManifest = true;
-          }
-          if (graffiti.previousActiveTakeId !== undefined) {
-            storage.updateSingleManifestRecordingField(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey, 
+            graffiti.removeGraffiti(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey);
+          } else if (graffiti.previousActiveTakeId !== undefined) {
+            storage.updateSingleManifestRecordingField(recordingCellInfo.recordingCellId, recordingCellInfo.recordingKey,
                                                        'activeTakeId', graffiti.previousActiveTakeId);
-            mustStoreManifest = false; // updateSingleManifestRecordingField does manifest store for us.
-          }
-          if (mustStoreManifest) {
-            storage.storeManifest();
           }
           graffiti.stopRecordingCore(false);
-          // utils.saveNotebook( () => { console.log('Graffiti: cancelled recording.') });;
         }
       },
 
@@ -4869,6 +4814,8 @@ define([
 
       updatePointer: (record) => {
         if (record.hoverCell !== undefined) {
+          const hoverCellId = record.cellId;
+          record.isOverTerminal = terminalLib.isTerminalCell(hoverCellId);
           const offsetPositionScaled = graffiti.processPositionsForCellTypeScaling(record, 'cursor');
           const cellRects = utils.getCellRects(record.hoverCell);        
           const offsetPosition = { x: cellRects.cellRect.left + offsetPositionScaled.start.x - graffiti.halfBullseye,
@@ -4883,8 +4830,7 @@ define([
             graffiti.undimGraffitiCursor();
             const offsetPositionPx = { left: offsetPosition.x + 'px', top: offsetPosition.y + 'px'};
             graffiti.graffitiCursorShell.css(offsetPositionPx);
-            const hoverCellId = record.cellId;
-            if (terminalLib.isTerminalCell(hoverCellId)) {
+            if (record.isOverTerminal) {
               graffiti.activateTerminalGraffitiCursor();
             } else {
               graffiti.activateNormalGraffitiCursor();
@@ -4956,9 +4902,12 @@ define([
         }
       },
 
-      updateCellSelections: (cell,cm, selections) => {
+      updateCellSelections: (cell,cm, selections, currentScrollTop) => {
+        //console.log('updateCellSelections', selections);
         cm.setSelections(selections);
+        graffiti.setSitePanelScrollTop(currentScrollTop); // preserve scrollTop because changing selections messes with it (safety check)
         utils.refreshCodeMirrorSelection(cell);
+        graffiti.setSitePanelScrollTop(currentScrollTop); // preserve scrollTop because changing selections messes with it (safety check)
       },
 
       updateSelectedCellSelections: (currentScrollTop) => {
@@ -4969,7 +4918,7 @@ define([
 
       updateSelections: (index,currentScrollTop) => { 
         const record = state.getHistoryItem('selections', index);
-        let cellId, cell, selectionRecord, selections, code_mirror, currentSelections, active;
+        let cellId, cell, selectionRecord, selections, code_mirror, currentSelections, active, lineCheck;
 
         // If there were text selections in rendered markdown or rendered output during this frame, restore them first if we need to.
         if (record.textSelection !== undefined) {
@@ -5013,11 +4962,20 @@ define([
               code_mirror = cell.code_mirror;
               currentSelections = utils.cleanSelectionRecords(code_mirror.listSelections());
               //console.log('cellId, selections, currentSelections, subType:', cellId, selections, currentSelections, record.subType);
+              const numLines = code_mirror.lineCount();
+              // Make sure the recorded selection point does not exceed the size of the current cm's text, 
+              // before checking for whether we need to set the selection.
+              selections[0].anchor.line = Math.min(numLines - 1, selections[0].anchor.line);
+              lineCheck = code_mirror.getLine(selections[0].anchor.line);
+              selections[0].anchor.ch = Math.min(lineCheck.length, selections[0].anchor.ch);
+              selections[0].head.line = Math.min(numLines - 1, selections[0].head.line);
+              lineCheck = code_mirror.getLine(selections[0].head.line);
+              selections[0].head.ch = Math.min(lineCheck.length, selections[0].head.ch);
 
               if (!(_.isEqual(selections,currentSelections))) {
                 graffiti.dimGraffitiCursor();
 
-                graffiti.updateCellSelections(cell,code_mirror, selections);
+                graffiti.updateCellSelections(cell,code_mirror, selections, currentScrollTop);
 
                 //console.log('nudge check, cellId', cellId, 'code_mirror.state.focused',code_mirror.state.focused);
                 setTimeout(() => {
@@ -5150,11 +5108,13 @@ define([
         let focusedTerminal = undefined;
         if (termRecords !== undefined) {
           const terminalsContents = state.getHistoryTerminalsContents();
+          let madeTerminalChange;
           for (let i = 0; i < termRecords.length; ++i) {
             terminalLib.setTerminalContents($.extend(true, termRecords[i], { 
               incremental: (state.getActivity() === 'playing'), 
               terminalsContents: terminalsContents,
             }));
+
             if (termRecords[i].isFocused) {
               focusedTerminal = termRecords[i].id;
             }
@@ -5219,8 +5179,18 @@ define([
         let totalTimeDisplay = localizer.getString('IS_SKIPPING');
         const activity = state.getActivity();
         if (!state.isSkipping()) {
+          let timeSkippedSoFar = state.getSkippedTimeSoFar();
+          if (isNaN(timeSkippedSoFar)) {
+            timeSkippedSoFar = graffiti.lastTimeSkippedSoFar;
+          }
+          graffiti.lastTimeSkippedSoFar = timeSkippedSoFar;
+          //const playTimeDisplay = utils.formatTime(playedSoFar  - timeSkippedSoFar, { includeMillis: false });
           const playTimeDisplay = utils.formatTime(playedSoFar, { includeMillis: false });
-          const recordingTimeDisplay = utils.formatTime(playedSoFar, { includeMillis: true });
+          const recordingTimeDisplay = utils.formatTime(playedSoFar, { includeMillis: true }) ;
+          const totalSkipTimeForRecording = state.getTotalSkipTimeForRecording();
+          //console.log('totalSkipTimeForRecording', totalSkipTimeForRecording);
+          // work in progress
+          //const durationDisplay = utils.formatTime(state.getHistoryDuration() - totalSkipTimeForRecording, { includeMillis: false });
           const durationDisplay = utils.formatTime(state.getHistoryDuration(), { includeMillis: false });
           if (activity === 'recording') {
             totalTimeDisplay = recordingTimeDisplay;
@@ -5261,7 +5231,7 @@ define([
         graffiti.pausePlayback();
         const timeElapsed = state.getTimePlayedSoFar();
         //console.log('jumpPlayback timeElapsed',timeElapsed);
-        let t, frameIndexes;
+        let t;
         if (state.scanningIsOn()) {
           t = state.findSpeakingStartNearestTime(timeElapsed,direction, jumpAmount);
         } else {
@@ -5269,7 +5239,7 @@ define([
         }
         // console.log('Graffiti: t:', t);
         state.resetPlayTimes(t);
-        frameIndexes = state.getHistoryRecordsAtTime(t);
+        const frameIndexes = state.getHistoryRecordsAtTime(t);
         state.clearSetupForReset();
         state.resetProcessedArrays();
         graffiti.wipeAllStickerDomCanvases();
@@ -5277,7 +5247,8 @@ define([
         graffiti.updateSlider(t);
         graffiti.updateTimeDisplay(t);
         graffiti.redrawAllDrawings(t);
-        if (previousPlayState === 'playing') {
+        const isLastSkipRecord = state.isLastSkipRecord();
+        if ((previousPlayState === 'playing') && (!isLastSkipRecord)) {
           graffiti.startPlayback();
         }
         graffiti.updateAllGraffitiDisplays();
@@ -5292,6 +5263,7 @@ define([
         const t = Math.min(state.getHistoryDuration() * timeLocation, state.getHistoryDuration() - 1);
         // Now we need to set the time we are going to start with if we play from here.
         state.resetPlayTimes(t);
+        state.updateCurrentSkipRecord();
         state.clearSetupForReset();
         state.resetProcessedArrays();
         graffiti.undimGraffitiCursor();
@@ -5324,9 +5296,10 @@ define([
           }
           const skipInfo = state.getSkipInfo();
           state.setAppliedSkipRecord();
-          const duration = (currentSkipRecord.endTime - currentSkipRecord.startTime + 1);
+          const isLastSkipRecord = state.isLastSkipRecord();
+          const duration = currentSkipRecord.endTime - currentSkipRecord.startTime + 1;
           const durationMillis = duration / 1000;
-          if (state.isLastSkipRecord()) {
+          if (isLastSkipRecord) {
             console.log('Graffiti: doing last skip as absolute');
             skipInfo.type = state.skipTypes['absolute']; // last skip is overridden to always be absolute.
           }
@@ -5336,6 +5309,7 @@ define([
               state.setCurrentPlaySpeed('rapid');
               break;
             case state.skipTypes['absolute']:
+              state.setCurrentPlaySpeed('regular'); // during absolute skips set play rate to regular so we don't skip too much
               graffiti.jumpPlayback(1, durationMillis);
               state.updateCurrentSkipRecord();
               didSkip = true;
@@ -5351,7 +5325,8 @@ define([
         } else {
           state.clearAppliedSkipRecord();
           // Now stop any acceleration from a skip, and return to whatever speed the user was viewing with before the skip started.
-          state.setCurrentPlaySpeed(state.getUserChoicePlaySpeed());
+          const userChoicePlaySpeed = state.getUserChoicePlaySpeed();
+          state.setCurrentPlaySpeed(userChoicePlaySpeed);
         }
         return didSkip;
       },
@@ -5418,7 +5393,7 @@ define([
         console.log('Graffiti: Got these stats:', state.getUsageStats());
       },
 
-      cancelPlaybackFinish: (cancelAnimation) => {
+      cancelPlaybackFinish: () => {
         graffiti.resetStickerCanvases();
         graffiti.cancelRapidPlay();
         graffiti.graffitiCursorShell.hide();
@@ -5428,15 +5403,9 @@ define([
         graffiti.updateControlPanels();
         graffiti.highlightIntersectingGraffitiRange();
         graffiti.clearJupyterMenuHint();
-
-        // We are no longer supporting smooth scroll back to starting point when a graffiti finishes.
-        // This is causing too many problems if ppl interact quickly with the notebook after hitting esc.
-        //if (cancelAnimation) {
-        //  graffiti.sitePanel.animate({ scrollTop: graffiti.prePlaybackScrolltop }, 750);
-        //}
       },
 
-      cancelPlayback: (opts) => {
+      cancelPlayback: () => {
         console.log('Graffiti: cancelPlayback called');
         const activity = state.getActivity();
         if ((activity !== 'playing') && (activity !== 'playbackPaused') && (activity !== 'scrubbing')) {
@@ -5447,7 +5416,7 @@ define([
         graffiti.cancelPlaybackNoVisualUpdates();
         state.clearAnimationIntervals();
         state.clearNarratorInfo();
-        graffiti.cancelPlaybackFinish(opts.cancelAnimation);
+        graffiti.cancelPlaybackFinish();
 
       },
 
@@ -5550,7 +5519,7 @@ define([
           if (activity === 'playing') {
             state.clearAnimationIntervals();
             if (state.getHidePlayerAfterPlayback() && state.getSetupForReset()) {
-              graffiti.cancelPlayback({ cancelAnimation: true});
+              graffiti.cancelPlayback();
             } else {
               graffiti.pausePlayback();
               //console.log('total play time:', utils.getNow() - playStartedAt);
@@ -5632,7 +5601,7 @@ define([
         const recording = state.getManifestSingleRecording(playableMovie.recordingCellId, playableMovie.recordingKey);
         if (recording.terminalCommand === undefined) {
           // Cancel any ongoing playback before starting playback, unless this graffiti has a terminal command.
-          graffiti.cancelPlayback({cancelAnimation:false});
+          graffiti.cancelPlayback();
           graffiti.changeActivity('playbackPending');
         }
         if (state.getDontRestoreCellContentsAfterPlayback()) {
@@ -5813,6 +5782,7 @@ define([
         state.setNarratorInfo('name', recording.narratorName);
         state.setNarratorInfo('picture', recording.narratorPicture);
         state.setSkipInfo(recording.skipInfo);
+        state.setTotalSkipTimeForRecording();
         if ((playableMovie.cell !== undefined) && (playableMovie.cellType === 'markdown')) {
           playableMovie.cell.render(); // always render a markdown cell first before playing a movie on a graffiti inside it
         }
@@ -5864,6 +5834,7 @@ define([
           const historyData = state.getFromMovieCache('history', playableMovie);
           const audioData   = state.getFromMovieCache('audio',   playableMovie);
           if ((historyData !== undefined) && (audioData !== undefined)) {
+            //console.log('historyData:', historyData.terminalsContents['id_za35048']);
             state.setHistory(historyData);
             audio.setRecordedAudio(audioData);
             graffiti.startLoadedMovie(recording, playableMovie);
@@ -5897,6 +5868,7 @@ define([
         if (recording.terminalCommand !== undefined) {
           const terminalCommand = recording.terminalCommand;
           terminalLib.runTerminalCommand(terminalCommand.terminalId, terminalCommand.command, true);
+
           if (activity !== 'recording') {
             graffiti.cleanupAfterLoadAndPlayDidNotPlay(); // clean up *unless* we are recording; then we should just let things keep going.
           }
@@ -5992,7 +5964,7 @@ define([
 
       changeAccessLevel: (level) => {
         if (level === 'create') {
-          graffiti.cancelPlayback({cancelAnimation:true});
+          graffiti.cancelPlayback();
           graffiti.activateAudio(); // we need to activate audio to create the audio object, even if microphone access was previously granted.
           storage.ensureNotebookGetsGraffitiId();
           storage.ensureNotebookGetsFirstAuthorId();
@@ -6148,7 +6120,7 @@ define([
       state: state, // remove me
       playRecordingById: (recordingFullId) => { graffiti.playRecordingByIdString(recordingFullId) },
       playRecordingByIdWithPrompt: (recordingFullId, promptMarkdown) => { graffiti.playRecordingByIdWithPrompt(recordingFullId, promptMarkdown) },
-      cancelPlayback: () => { graffiti.cancelPlayback({cancelAnimation:false}) },
+      cancelPlayback: () => { graffiti.cancelPlayback() },
       removeUnusedTakes: (recordingFullId) => { graffiti.removeUnusedTakesWithConfirmation(recordingFullId) },
       removeAllUnusedTakes: () => { graffiti.removeAllUnusedTakesWithConfirmation() },
       removeAllGraffiti:  graffiti.removeAllGraffitisWithConfirmation,
