@@ -6048,9 +6048,11 @@ define([
       updateSetupButton: () => {
         const notebook = Jupyter.notebook;
         const sprayCanIcon = stickerLib.makeSprayCanIcon();
+        const workspace = state.getWorkspace();
+        const buttonStyleHtml = workspace && workspace.coco ? '' : 'style="display:none;"';
         let buttonLabel, setupForSetup = false;
         //sprayCanIcon = '<img src="jupytergraffiti/css/spray_can_icon.png">';
-        let buttonContents = '<div id="graffiti-setup-button" style="display:none;" class="btn-group"><button class="btn btn-default" title="' + localizer.getString('ENABLE_GRAFFITI') + '">';
+        let buttonContents = '<div id="graffiti-setup-button"'+ buttonStyleHtml +'class="btn-group"><button class="btn btn-default" title="' + localizer.getString('ENABLE_GRAFFITI') + '">';
 
         if (!notebook.metadata.hasOwnProperty('graffiti')) {
           // This notebook has never been graffiti-ized, or it just got un-graffiti-ized

@@ -69,6 +69,12 @@ define([
     token: null,
     usageReportSent: false,
     getUser: () => {
+      if (location.hostname === 'localhost') {
+        return Promise.resolve({
+          userId: 'dev',
+          coco: true
+        })
+      }
       return getToken().then(token => {
         udacityUser.token = token;
         return getUdacityUser(token);
