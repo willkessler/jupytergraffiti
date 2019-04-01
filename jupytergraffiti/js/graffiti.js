@@ -5050,11 +5050,15 @@ define([
               cellPosition = cellsPresentThisFrame[checkCellId];
               if (i > 0) {
                 previousCellPosition = utils.findCellIndexByCellId(cellsPresentIds[i - 1]);
-                previousPlusOne = previousCellPosition + 1;
-                if (previousPlusOne > cellPosition) {
-                  cellPosition = previousPlusOne;
+                if (previousCellPosition !== undefined) {
+                  previousPlusOne = previousCellPosition + 1;
+                  if (previousPlusOne > cellPosition) {
+                    cellPosition = previousPlusOne;
+                  }
                 }
               }              
+              const cells = Jupyter.notebook.get_cells();
+              cellPosition = Math.min(cellPosition, cells.length - 1);
               newCell = Jupyter.notebook.insert_cell_above('code', cellPosition);
               utils.setMetadataCellId(newCell.metadata, checkCellId);
               state.storePlaybackCellAddition(checkCellId, cellPosition);
