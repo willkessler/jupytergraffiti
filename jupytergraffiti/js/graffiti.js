@@ -3925,7 +3925,7 @@ define([
             // need to reselect graffiti text that was selected in case it somehow got unselected
             //recordingCell.code_mirror.setSelections(recordingCellInfo.selections);
             graffiti.sitePanel.animate({ scrollTop: recordingCellInfo.scrollTop}, 500);
-            if (doSave && recordingCellInfo.recordingRecord.cellType === 'markdown') {
+            if (recordingCellInfo.recordingRecord.cellType === 'markdown') {
               recordingCell.render();
             }
             graffiti.changeActivity('idle');
@@ -5015,7 +5015,9 @@ define([
       // but aren't present at this timeframe.
       applyCellListToNotebook: (record) => {
         const cellsPresentThisFrame = record.cellsPresentThisFrame;
-        const cellsPresentIds = Object.keys(cellsPresentThisFrame);
+        const fullCellsPresentIds = Object.keys(cellsPresentThisFrame);
+        // During playback, only add back cells that were actually interacted with, unless replayAll directive was set to be on.
+        const cellsPresentIds = fullCellsPresentIds.filter( cellId => state.graffitiShouldUpdateCellContents(cellId));
         const numCellsPresent = cellsPresentIds.length;
         let mustRefreshCellMaps = false;
         let deletableCellId;
@@ -5235,7 +5237,7 @@ define([
         if (state.scanningIsOn()) {
           t = state.findSpeakingStartNearestTime(timeElapsed,direction, jumpAmount);
         } else {
-          t = Math.max(0, Math.min(timeElapsed + (jumpAmount * 1000 * direction * state.getPlayRateScalar()), state.getHistoryDuration() - 1 ));
+          t = Math.max(0, Math.min(timeElapsed + (jumpAmount * 1000 * direction * state.getPlayRateScalar()), state.getHistoryDuration() - 2 ));
         }
         // console.log('Graffiti: t:', t);
         state.resetPlayTimes(t);
@@ -5247,8 +5249,7 @@ define([
         graffiti.updateSlider(t);
         graffiti.updateTimeDisplay(t);
         graffiti.redrawAllDrawings(t);
-        const isLastSkipRecord = state.isLastSkipRecord();
-        if ((previousPlayState === 'playing') && (!isLastSkipRecord)) {
+        if (previousPlayState === 'playing') {
           graffiti.startPlayback();
         }
         graffiti.updateAllGraffitiDisplays();
@@ -5287,7 +5288,9 @@ define([
       // If we are inside a skip record, apply its speed or absolute skip
       applyCurrentSkipRecord: (t) => {
         const currentSkipRecord = state.timeInSkipRecordRange(t);
+        const userChoicePlaySpeed = state.getUserChoicePlaySpeed();
         let didSkip = false;
+        let changedSpeed = false;
         const currentActivity = state.getActivity();
         if (currentSkipRecord !== undefined) {
           if (currentSkipRecord.status !== undefined) {
@@ -5297,21 +5300,27 @@ define([
           const skipInfo = state.getSkipInfo();
           state.setAppliedSkipRecord();
           const isLastSkipRecord = state.isLastSkipRecord();
-          const duration = currentSkipRecord.endTime - currentSkipRecord.startTime + 1;
-          const durationMillis = duration / 1000;
+          let duration;
           if (isLastSkipRecord) {
             console.log('Graffiti: doing last skip as absolute');
             skipInfo.type = state.skipTypes['absolute']; // last skip is overridden to always be absolute.
+            // This is -1,  because we want to resume playing for last millisecond of skip so we come to a regular stop after the last skip.
+            duration = state.getHistoryDuration() - state.getTimePlayedSoFar() - 1; 
+          } else {
+            duration = currentSkipRecord.endTime - currentSkipRecord.startTime + 1;
           }
+          const durationMillis = duration / 1000;
           switch (skipInfo.type) {
             case state.skipTypes['rapid']:
               state.setPlayRate('rapid', skipInfo.factor);
               state.setCurrentPlaySpeed('rapid');
+              changedSpeed = true;
               break;
             case state.skipTypes['absolute']:
               state.setCurrentPlaySpeed('regular'); // during absolute skips set play rate to regular so we don't skip too much
               graffiti.jumpPlayback(1, durationMillis);
               state.updateCurrentSkipRecord();
+              state.setCurrentPlaySpeed(userChoicePlaySpeed);
               didSkip = true;
               break;
             case state.skipTypes['compressed']:
@@ -5325,8 +5334,11 @@ define([
         } else {
           state.clearAppliedSkipRecord();
           // Now stop any acceleration from a skip, and return to whatever speed the user was viewing with before the skip started.
-          const userChoicePlaySpeed = state.getUserChoicePlaySpeed();
           state.setCurrentPlaySpeed(userChoicePlaySpeed);
+        }
+        if (didSkip || changedSpeed) {
+          graffiti.updateControlPanels();
+          audio.updateAudioPlaybackRate();
         }
         return didSkip;
       },
