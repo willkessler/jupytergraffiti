@@ -7,25 +7,31 @@ define([], () => {
   require([
     './graffiti.js',
     './utils.js',
-    './storage.js',
-    './udacityUser.js'
-    ], (Graffiti,utils, storage, udacityUser) => {
+    './state.js',
+    './workspace.js'
+    ], (Graffiti, utils, state, workspace) => {
     console.log('Graffiti loaded:', Graffiti);
     window.Graffiti = Graffiti;
-    udacityUser.setUser();
-    Graffiti.init();
 
     Jupyter.notebook.events.on('kernel_reconnecting.Kernel', (e) => { 
       console.log('Graffiti: kernel reconnecting');
     });
 
-    Jupyter.notebook.events.on('kernel_ready.Kernel', (e) => {
-      console.log('Graffiti: kernel ready, possible kernel restart.', e);
-      if (!udacityUser.token) {
-        udacityUser.setUser();
-      } 
-      require(['./loader.js']);
-      utils.saveNotebook();
-    });
+    const initExtension = () => { 
+      state.init();
+      workspace.setWorkspace()
+      .then(() => Graffiti.init());
+    }
+
+    if (Jupyter.notebook.kernel) {
+      initExtension();
+    } else {
+      Jupyter.notebook.events.on('kernel_ready.Kernel', (e) => {
+        console.log('Graffiti: kernel ready, possible kernel restart.', e);
+        initExtension();
+        require(['./loader.js']);
+        utils.saveNotebook();
+      });
+    }
   });
 });
