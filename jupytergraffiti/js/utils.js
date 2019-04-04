@@ -851,13 +851,14 @@ define([
 
     createApiSymlink: () => {
       // Create a symlink to get 'import jupytergraffiti' working
-      const createSymlinkCmd = 'ln -sf /opt/jupytergraffiti jupytergraffiti';
+      const graffitiPath = '/opt/workspace-jupyter-graffiti/jupytergraffiti';
+      const createSymlinkCmd = `ln -sf ${graffitiPath} jupytergraffiti`;
 
       // Create a python file and execute the file 
       let importApiScript = '';
       // Adding /opt/jupytergraffiti to system path allows us to import it as a python module
       importApiScript += 'import sys\\n';
-      importApiScript += 'api_path="/opt/jupytergraffiti"\\n';
+      importApiScript += 'api_path="'+graffitiPath+'"\\n';
       importApiScript += 'if api_path not in sys.path:\\n';
       importApiScript += '  sys.path.insert(0,api_path)\\n';
       const executePythonScript = `!${createSymlinkCmd} && echo '${importApiScript}' > /tmp/graffiti-symlink.py && python /tmp/graffiti-symlink.py`;
