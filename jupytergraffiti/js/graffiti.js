@@ -3212,7 +3212,7 @@ define([
           //console.console.log();('refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
           if (recording.hasMovie) {
             //console.log('Graffiti: refreshGraffitiTooltips: recording=', recording, cellId, recordingKey);
-            state.setPlayableMovie('tip', cellId, recordingKey);
+            state.setPlayableMovie('tip', cellId, recordingKey, hoverCellId);
           }                
           state.setHidePlayerAfterPlayback(false); // default for any recording is not to hide player
           const tooltipCommands = graffiti.extractTooltipCommands(recording.markdown);
@@ -5114,11 +5114,14 @@ define([
         let focusedTerminal = undefined;
         if (termRecords !== undefined) {
           const terminalsContents = state.getHistoryTerminalsContents();
-          let madeTerminalChange;
+          const currentMovie = state.getCurrentlyPlayingMovie();
+          const nearestCellPosition = currentMovie.cellIndex;
           for (let i = 0; i < termRecords.length; ++i) {
             terminalLib.setTerminalContents($.extend(true, termRecords[i], { 
               incremental: (state.getActivity() === 'playing'), 
               terminalsContents: terminalsContents,
+              nearestCellPosition: nearestCellPosition,
+              useNearestCellPosition: true, // try to dump output into nearest terminal you find
             }));
 
             if (termRecords[i].isFocused) {
@@ -5795,6 +5798,7 @@ define([
       startLoadedMovie: (recording, playableMovie) => {
         console.log('Graffiti: Movie loaded for cellId, recordingKey:', playableMovie.recordingCellId, playableMovie.recordingKey);
 
+        state.setCurrentlyPlayingMovie(playableMovie);
         state.setNarratorInfo('name', recording.narratorName);
         state.setNarratorInfo('picture', recording.narratorPicture);
         state.setSkipInfo(recording.skipInfo);

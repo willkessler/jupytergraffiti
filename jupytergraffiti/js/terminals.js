@@ -67,7 +67,7 @@ define ([
         // });
         
         //term.on('scroll', (data) => {
-          //console.log('term scroll:', data);
+        //console.log('term scroll:', data);
         //});
 
         // term.on('selection', (data) => {
@@ -339,9 +339,35 @@ define ([
     },
 
     setTerminalContents: (opts) => {
-      const cellId = opts.id;
-      const terminal = terminals.terminalsList[cellId];
-      terminal.contents = opts.terminalsContents[cellId];
+      let cellId = opts.id;
+      const newContents = opts.terminalsContents[cellId];
+      let terminal = terminals.terminalsList[cellId];
+      if (terminal === undefined) {
+        console.log('Graffiti: cannot find terminal', cellId, 
+                    'for sending output, trying to find next terminal from:', opts.nearestCellPosition);
+        if (opts.nearestCellPosition === undefined || !opts.useNearestCellPosition) {
+          return;
+        }
+        // Try to find a terminal after the nearest cell position. If you find one, dump output into that terminal. This happens because
+        const cells = Jupyter.notebook.get_cells();
+        let i, nearestCell, checkCellId;
+        cellId = undefined;
+        for (i = opts.nearestCellPosition + 1; i < cells.length; ++i) {
+          nearestCell = cells[i];
+          checkCellId = utils.getMetadataCellId(nearestCell.metadata);
+          if (terminals.terminalsList.hasOwnProperty(checkCellId)) {
+            cellId = checkCellId;
+            console.log('Graffiti: We found a subsequent terminal and will write output to cell:', cellId);
+            break;
+          }
+        }
+        if (cellId === undefined) {
+          return; // we couldn't find a terminal after the position passed in so we're going to give up and not try to write to any terminal.
+        } else {
+          terminal = terminals.terminalsList[cellId];
+        }
+      }
+      terminal.contents = newContents;
       let madeUpdateToTerminal = false;
       if (terminal !== undefined) {
         let didScroll = false;
