@@ -54,11 +54,11 @@ define([
       state.maxDrawingOpacity = 0.5;
       state.drawingOpacity = state.maxDrawingOpacity;
       state.totalDrawingFadeDuration = state.drawingFadePreFadeDelay + state.drawingFadeDuration;
-      state.lastDrawingInfo = { drawinging: false };
       state.lastEditActivityTime = undefined;
       state.controlPanelDragging = false;
       state.controlPanelDragOffset = { x: 0, y: 0 };
       state.playableMovies = {};
+      state.currentlyPlayingMovie = undefined;
       state.selectionSerialized = undefined;
       state.hidePlayerAfterPlayback = false;
       state.dontRestoreCellContentsAfterPlayback = false; // this is something the author can decide with a tooltip command.
@@ -1205,12 +1205,23 @@ define([
       return state.playableMovies[kind];
     },
 
-    setPlayableMovie: (kind, cellId, recordingKey) => {
+    setPlayableMovie: (kind, cellId, recordingKey, hoverCellId) => {
+      let cellIndex = undefined;
+      if (hoverCellId !== undefined) {
+        cellIndex = utils.findCellIndexByCellId(hoverCellId);
+      }
       const cell = utils.findCellByCellId(cellId);
       const cellType = (cell === undefined ? undefined : cell.cell_type);
       const recording = state.getManifestSingleRecording(cellId, recordingKey);
       const activeTakeId = recording.activeTakeId;
-      state.playableMovies[kind] = { recordingCellId: cellId, recordingKey: recordingKey, activeTakeId: activeTakeId, cell: cell, cellType: cellType };
+      state.playableMovies[kind] = { 
+        recordingCellId: cellId, 
+        recordingKey: recordingKey, 
+        activeTakeId: activeTakeId, 
+        cell: cell, 
+        cellIndex: cellIndex, 
+        cellType: cellType 
+      };
       state.setStickerImageCandidateUrl(recording.stickerImageUrl);
 
       //console.trace('setPlayableMovie, kind:', kind, 'cellId:', cellId, 'recordingKey:',recordingKey, 'playableMovies:', state.playableMovies);
@@ -1228,6 +1239,14 @@ define([
 
     setMovieRecordingStarted: (status) => {
       state.movieRecordingStarted = status;
+    },
+
+    getCurrentlyPlayingMovie: () => {
+      return state.currentlyPlayingMovie;
+    },
+
+    setCurrentlyPlayingMovie: (movie) => {
+      state.currentlyPlayingMovie = movie;
     },
 
     getHidePlayerAfterPlayback: () => {
