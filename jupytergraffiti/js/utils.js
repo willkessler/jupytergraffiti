@@ -858,7 +858,7 @@ define([
       let importApiScript = '';
       // Adding /opt/jupytergraffiti to system path allows us to import it as a python module
       importApiScript += 'import sys\\n';
-      importApiScript += 'api_path="'+graffitiPath+'"\\n';
+      importApiScript += 'api_path="'+ graffitiPath +'"\\n';
       importApiScript += 'if api_path not in sys.path:\\n';
       importApiScript += '  sys.path.insert(0,api_path)\\n';
       const executePythonScript = `!${createSymlinkCmd} && echo '${importApiScript}' > /tmp/graffiti-symlink.py && python /tmp/graffiti-symlink.py`;
