@@ -4,7 +4,6 @@
 window.Graffiti = null; 
 
 define([], () => {
-  console.log('Graffiti loaded:', Graffiti);
   return {
     load_ipython_extension: () => {
       require(['js/initExtension.js']);

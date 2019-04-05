@@ -849,8 +849,20 @@ define([
       }
     },
 
+    isUdacityEnvironment: () => {
+      const host = location.hostname;
+      if (host.endsWith('udacity.com') || 
+          host.endsWith('udacity-student-workspaces.com')) {
+        return true;
+      }
+      return false;
+    },
+
     createApiSymlink: () => {
-      // Create a symlink to get 'import jupytergraffiti' working
+      if (!utils.isUdacityEnvironment()) {
+        return;
+      }
+      // Create a symlink to get 'import jupytergraffiti' working in Udacity environment
       const graffitiPath = '/opt/workspace-jupyter-graffiti/jupytergraffiti';
       const createSymlinkCmd = `ln -sf ${graffitiPath} jupytergraffiti`;
 

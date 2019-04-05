@@ -9,6 +9,7 @@ define([
   'js/state.js',
   'js/workspace.js'
 ], (Jupyter, Graffiti, utils, state, workspace) => {
+  console.log('Graffiti loaded:', Graffiti);
 
   const initGraffiti = () => { 
     state.init();
@@ -27,7 +28,7 @@ define([
         console.log('Graffiti: kernel ready, possible kernel restart.', e);
         console.log('Graffiti: Reloading loader.js');
         initGraffiti();
-        require(['./loader.js']);
+        require(['js/loader.js']);
         utils.saveNotebook();
       });
     }
