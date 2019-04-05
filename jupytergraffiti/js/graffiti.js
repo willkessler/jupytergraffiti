@@ -10,11 +10,11 @@ define([
   './sticker.js',
   './localizer.js',
   './selectionSerializer.js',
-  './udacityUser.js',
+  './workspace.js',
   './terminals.js',
   './batchRunner.js',
   'components/marked/lib/marked'
-], function(dialog, events, textCell, LZString, state, utils, audio, storage, stickerLib, localizer, selectionSerializer, udacityUser, terminalLib, batchRunner, marked) {
+], function(dialog, events, textCell, LZString, state, utils, audio, storage, stickerLib, localizer, selectionSerializer, workspace, terminalLib, batchRunner, marked) {
   const Graffiti = (function() {
     const graffiti = {
 
@@ -28,7 +28,6 @@ define([
 
         const location = document.location;
 
-        state.init();
         const currentAccessLevel = state.getAccessLevel();
 
         graffiti.LZString = LZString;
@@ -3609,8 +3608,8 @@ define([
           if ((activity === 'playing') || (activity === 'playbackPaused') || (activity == 'scrubbing')) {
             graffiti.cancelPlaybackNoVisualUpdates();
           }
-          if (udacityUser.trackUsageStats !== undefined) {
-            udacityUser.trackUsageStats();
+          if (workspace.trackUsageStats !== undefined) {
+            workspace.trackUsageStats();
           }
         });
 
@@ -3618,8 +3617,8 @@ define([
         // https://stackoverflow.com/a/20322988/4953199
         window.onunload = (e) => {
           console.log('Graffiti: on unload');
-          if (udacityUser.trackUsageStats !== undefined) {
-            udacityUser.trackUsageStats();
+          if (workspace.trackUsageStats !== undefined) {
+            workspace.trackUsageStats();
           }
         };
 
@@ -6068,9 +6067,12 @@ define([
       updateSetupButton: () => {
         const notebook = Jupyter.notebook;
         const sprayCanIcon = stickerLib.makeSprayCanIcon();
+        const workspace = state.getWorkspace();
+        const buttonStyleHtml = workspace && workspace.coco 
+              ? 'display:inline-block;' : '"display:none;"';
         let buttonLabel, setupForSetup = false;
         //sprayCanIcon = '<img src="jupytergraffiti/css/spray_can_icon.png">';
-        let buttonContents = '<div id="graffiti-setup-button" style="display:none;" class="btn-group"><button class="btn btn-default" title="' + localizer.getString('ENABLE_GRAFFITI') + '">';
+        let buttonContents = '<div id="graffiti-setup-button" style='+ buttonStyleHtml +' class="btn-group"><button class="btn btn-default" title="' + localizer.getString('ENABLE_GRAFFITI') + '">';
 
         if (!notebook.metadata.hasOwnProperty('graffiti')) {
           // This notebook has never been graffiti-ized, or it just got un-graffiti-ized

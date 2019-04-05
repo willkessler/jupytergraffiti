@@ -40,7 +40,7 @@ define([
     });
   }
 
-  function getUdacityUser(token) {
+  function getWorkspace(token) {
     return new Promise((resolve, reject) => {
       var xhr = new XMLHttpRequest();
       xhr.open("POST", `${NEBULA_URL}/api/v1/remote/me`);
@@ -65,31 +65,31 @@ define([
     });
   }
         
-  const udacityUser = {
+  const workspace = {
     token: null,
     usageReportSent: false,
-    getUser: () => {
+    getWorkspace: () => {
+      if (location.hostname === 'localhost') {
+        return Promise.resolve({
+          userId: 'dev',
+          coco: true
+        })
+      }
       return getToken().then(token => {
-        udacityUser.token = token;
-        return getUdacityUser(token);
+        workspace.token = token;
+        return getWorkspace(token);
       });
     },
-    setUser: () => {
-      // Can't get star token if kernel is not set.
-      if (!Jupyter.notebook.kernel) {
-        return;
-      }
-
-      udacityUser.getUser()
-      .then(user => {
-        state.setUserId(user.userId);
-        state.setWorkspace(user);
-        user.coco && $('#graffiti-setup-button').css('display', 'inline-block');
+    setWorkspace: () => {
+      return workspace.getWorkspace()
+      .then(data => {
+        state.setUserId(data.userId);
+        state.setWorkspace(data);
       })
       .catch(err => console.error(err));
     },
     trackUsageStats: () => {
-      if (!udacityUser.usageReportSent) {
+      if (!workspace.usageReportSent) {
         let stats = state.getUsageStats();
         stats.workspace = state.getWorkspace();
         let xhr = new XMLHttpRequest();
@@ -99,10 +99,10 @@ define([
         // Required to allow cookie to be set crossDomain
         xhr.withCredentials = true;
         xhr.send(JSON.stringify(stats));
-        udacityUser.usageReportSent = true;
+        workspace.usageReportSent = true;
       }
     }
   }
 
-  return udacityUser;
+  return workspace;
 });

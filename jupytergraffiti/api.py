@@ -10,7 +10,7 @@ def run_js(jscmd, force):
     
 # You don't need to call the initialize function, it is called by __init__.py
 def initialize():
-    run_js("require(['jupytergraffiti/graffiti_extension/main.js']);", True)
+    run_js("require(['jupytergraffiti/js/loader.js']);", True)
 
 # Play an existing movie recording back. Pass in the recording API key.
 def play_recording(recording_id):

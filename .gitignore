@@ -69,3 +69,5 @@ __pycache__
 .local
 .ipython
 .ipynb_checkpoints
+graffiti-dist
+build
