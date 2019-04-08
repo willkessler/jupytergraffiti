@@ -426,7 +426,7 @@ define ([
       }
       return false;
     },
-      
+
     restoreTerminalOutput: (cellId) => {
       const terminal = terminals.terminalsList[cellId];
       if (terminal !== undefined) {
