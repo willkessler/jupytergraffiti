@@ -1,0 +1,6 @@
+#!/bin/bash
+
+cd jupytergraffiti
+jupyter nbextension install graffiti_extension --symlink --user
+jupyter nbextension enable graffiti_extension/main --user
+cd ..
