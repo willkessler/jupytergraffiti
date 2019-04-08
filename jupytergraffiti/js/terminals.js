@@ -104,11 +104,6 @@ define ([
         // Send the terminal size to the server.
         ws.send(JSON.stringify(["set_size", term.rows, term.cols,
                                 window.innerHeight, window.innerWidth]));
-        // Also call term.fit() again after 1second, because sometimes xterm hasn't made the width wide enough yet and we fit to one column wide.
-        // In theory, v3.11 of xterm has addressed this bug, but this is in here as a safety mechanism in case that's actually not true.
-        setTimeout(() => {
-          term.fit();
-        }, 1000); 
 
         ws.onmessage = function(event) {
           const json_msg = JSON.parse(event.data);
@@ -431,7 +426,7 @@ define ([
       }
       return false;
     },
-      
+
     restoreTerminalOutput: (cellId) => {
       const terminal = terminals.terminalsList[cellId];
       if (terminal !== undefined) {
@@ -483,12 +478,16 @@ define ([
 
     refitAllTerminals: () => {
       let terminal;
+      let term;
       for (let cellId of Object.keys(terminals.terminalsList)) {
         terminal = terminals.terminalsList[cellId];
         //console.log('Running fit on term', terminal.term.rows, terminal.term.cols);
-        terminal.term.fit();
-        terminal.socket.send(JSON.stringify(["set_size", terminal.term.rows, terminal.term.cols,
-                                             window.innerHeight, window.innerWidth]));
+        term = terminal.term;
+        if (term && term.element && term.element.parentElement) { // safety check for race conditions
+          terminal.term.fit();
+          terminal.socket.send(JSON.stringify(["set_size", terminal.term.rows, terminal.term.cols,
+                                               window.innerHeight, window.innerWidth]));
+        }
       }
     },
 
