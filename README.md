@@ -34,7 +34,7 @@ All of this activity can be played back by hovering over the _Graffiti_ and clic
 
 You can see a live demonstration of a Notebook with _Graffitis_ by clicking the Binder badge below:
 
-[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/pre_goto_master?filepath=samples%2FGraffiti%20Tutorial%20and%20User%20Manual.ipynb.ipynb)
+[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/pre_goto_master?filepath=samples/Graffiti%20Tutorial%20and%20User%20Manual.ipynb)
 
 Please wait about 30 seconds for the demonstration to spin up at <a href="mybinder.org">mybinder.org</a>. (Props to the folks at MyBinder for this awesome service).
 
