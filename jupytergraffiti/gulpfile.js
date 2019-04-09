@@ -18,10 +18,10 @@ gulp.task("prebuild", () => {
 gulp.task("move-styles", () => {
   return gulp.src(['graffiti-dist/graffiti.js', './css/*', './fonts/*'])
              .pipe(replace('../fonts', function() {
-               return '/nbextensions/graffiti-dist';
+               return 'graffiti-dist';
              }))
              .pipe(replace(/jupytergraffiti\/css/gm, function() {
-               return '/nbextensions/graffiti-dist';
+               return 'graffiti-dist';
              }))
              .pipe(gulp.dest('graffiti-dist/'));
 })
