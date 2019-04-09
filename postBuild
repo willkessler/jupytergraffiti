@@ -7,7 +7,7 @@ exec 2>&1
 pushd jupytergraffiti
 jupyter nbextension install graffiti_extension --user
 jupyter nbextension enable graffiti_extension/main --user
-cd /home/joyvan/.local/share/jupyter/nbextensions/graffiti_extension
-ln -s /home/joyvan/jupytergraffiti/js
+#cd /home/joyvan/.local/share/jupyter/nbextensions/graffiti_extension
+#ln -s /home/joyvan/jupytergraffiti/js
 popd
 
