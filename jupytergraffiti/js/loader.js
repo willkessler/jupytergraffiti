@@ -24,10 +24,7 @@ define([], () => {
       require(['jupytergraffiti/js/loader.js']);
       utils.saveNotebook();
     });
-
   });
-} else {
-  console.log('Graffiti already instantiated, not reinitializing');
 }
 
 

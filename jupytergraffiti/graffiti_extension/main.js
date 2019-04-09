@@ -5,10 +5,14 @@ window.Graffiti = null;
 
 define([
   'base/js/namespace',
-  '/nbextensions/graffiti_extension/js/graffiti.js',
-  '/nbextensions/graffiti_extension/js/utils.js',
-  '/nbextensions/graffiti_extension/js/storage.js',
-  '/nbextensions/graffiti_extension/js/udacityUser.js'
+  'js/graffiti.js',
+  'js/utils.js',
+  'js/storage.js',
+  'js/udacityUser.js'
+//  '/nbextensions/graffiti_extension/js/graffiti.js',
+//  '/nbextensions/graffiti_extension/js/utils.js',
+//  '/nbextensions/graffiti_extension/js/storage.js',
+//  '/nbextensions/graffiti_extension/js/udacityUser.js'
 ], (Jupyter, Graffiti, utils, storage, udacityUser) => {
   console.log('Graffiti loaded:', Graffiti);
   function load_ipython_extension() {
