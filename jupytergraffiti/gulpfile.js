@@ -1,19 +1,33 @@
-var gulp = require('gulp');
-var concat = require('gulp-concat');
-var stripDebug = require('gulp-strip-debug');
-var uglify = require('gulp-uglify-es').default;
-var amdOptimize = require('amd-optimize');
+const gulp = require('gulp');
+const replace = require('gulp-replace');
+const babel = require("gulp-babel");
+const merge = require('merge-stream');
 
-gulp.task('extension', function() {
-  return gulp.src(['./js/LZString.js',
-                   './js/utils.js',
-                   './js/storage.js',
-                   './js/audio.js',
-                   './js/state.js',
-                   './js/annotations.js'])
-//             .pipe(amdOptimize('annotations'))
-             .pipe(concat('final.js'))
-             .pipe(stripDebug())
-//             .pipe(uglify())
-             .pipe(gulp.dest('./graffiti_extension/dist/'));
+gulp.task("prebuild", () => {
+  const main = gulp.src('graffiti_extension/main.js') 
+                   .pipe(babel())
+                   .pipe(gulp.dest('build'));
+  
+  const js = gulp.src('js/**/*.js') 
+                 .pipe(babel())
+                 .pipe(gulp.dest('build/js'));
+  
+  return merge(main, js)
 });
+
+gulp.task("move-styles", () => {
+  return gulp.src(['graffiti-dist/graffiti.js', './css/*', './fonts/*'])
+             .pipe(replace('../fonts', function() {
+               return '/nbextensions/graffiti-dist';
+             }))
+             .pipe(replace(/jupytergraffiti\/css/gm, function() {
+               return '/nbextensions/graffiti-dist';
+             }))
+             .pipe(gulp.dest('graffiti-dist/'));
+})
+
+gulp.task("watch", () => {
+  gulp.watch(dirs.src, ["build"]);
+})
+
+gulp.task("default", ["watch"]);
