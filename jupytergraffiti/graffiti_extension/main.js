@@ -9,10 +9,6 @@ define([
   'js/utils.js',
   'js/storage.js',
   'js/udacityUser.js'
-//  '/nbextensions/graffiti_extension/js/graffiti.js',
-//  '/nbextensions/graffiti_extension/js/utils.js',
-//  '/nbextensions/graffiti_extension/js/storage.js',
-//  '/nbextensions/graffiti_extension/js/udacityUser.js'
 ], (Jupyter, Graffiti, utils, storage, udacityUser) => {
   console.log('Graffiti loaded:', Graffiti);
   function load_ipython_extension() {
@@ -27,7 +23,7 @@ define([
         if (!udacityUser.token) {
           udacityUser.setUser();
         } 
-        require(['/nbextensions/graffiti_extension/main.js']);
+        require(['js/loader.js']);
         utils.saveNotebook();
       });
     }

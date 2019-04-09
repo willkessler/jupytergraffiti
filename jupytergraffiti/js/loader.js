@@ -19,12 +19,14 @@ define([], () => {
       console.log('Graffiti: kernel reconnecting');
     });
 
-    Jupyter.notebook.events.on('kernel_ready.Kernel', (e) => { 
+    Jupyter.notebook.events.on('kernel_ready.Kernel', (e) => {
       console.log('Graffiti: kernel ready, possible kernel restart.', e);
-      require(['jupytergraffiti/js/loader.js']);
+      if (!udacityUser.token) {
+        udacityUser.setUser();
+      } 
+      require(['./loader.js']);
       utils.saveNotebook();
     });
+
   });
-}
-
-
+});
