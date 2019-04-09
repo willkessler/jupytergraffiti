@@ -6,8 +6,6 @@ exec 2>&1
 
 pushd jupytergraffiti
 npm install && npm run build && \
-    jupyter nbextension disable graffiti-dist/graffiti && \
-    jupyter nbextension uninstall graffiti-dist && \
     jupyter nbextension install graffiti-dist && \
     jupyter nbextension enable graffiti-dist/graffiti
 popd
