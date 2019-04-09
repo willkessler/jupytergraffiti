@@ -24,10 +24,13 @@ define([
     if (Jupyter.notebook.kernel) {
       initGraffiti();
     } else {
-      Jupyter.notebook.events.one('kernel_ready.Kernel', (e) => {
+      Jupyter.notebook.events.on('kernel_ready.Kernel', (e) => {
         console.log('Graffiti: kernel ready, possible kernel restart.', e);
         console.log('Graffiti: Reloading loader.js');
-        initGraffiti();
+        // Prevent double initialization
+        if (!state.getActivity()) {
+          initGraffiti();
+        }
         require(['js/loader.js']);
         utils.saveNotebook();
       });
