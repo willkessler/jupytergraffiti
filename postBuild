@@ -1,5 +1,8 @@
 #!/bin/bash
 
+exec >> postBuildOut.txt
+exec 2>&1
+
 cd jupytergraffiti
 jupyter nbextension install graffiti_extension --user
 jupyter nbextension enable graffiti_extension/main --user
