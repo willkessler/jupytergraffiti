@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euxo pipefail
 
 exec >> postBuildOut.txt
 exec 2>&1
