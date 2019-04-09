@@ -5,9 +5,10 @@ exec >> postBuildOut.txt
 exec 2>&1
 
 pushd jupytergraffiti
-jupyter nbextension install graffiti_extension --user
-jupyter nbextension enable graffiti_extension/main --user
-#cd /home/joyvan/.local/share/jupyter/nbextensions/graffiti_extension
-#ln -s /home/joyvan/jupytergraffiti/js
+npm install && npm run build && \
+    jupyter nbextension disable graffiti-dist/graffiti && \
+    jupyter nbextension uninstall graffiti-dist && \
+    jupyter nbextension install graffiti-dist && \
+    jupyter nbextension enable graffiti-dist/graffiti
 popd
 
