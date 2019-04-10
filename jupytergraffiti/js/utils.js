@@ -797,17 +797,17 @@ define([
       for (let i in cssPaths) {
         path = cssPaths[i];
         reworkedPath = path;
-        if (path[0] != '/') {
+        if (path[0] !== '/') {
           // if path is not absolute, construct full path based on either the location of "tree" or "notebooks" in document.location.
           // This will make sure the paths work in hosted environments such as binder.org
           const loc = document.location;
           const urlPathName = loc.pathname;
           if (urlPathName.indexOf('/tree') > -1) {
             const parts = urlPathName.split(/\/tree/,2);
-            reworkedPath = loc.origin + '/' + (parts[0].length > 0 ? parts[0] + '/' + path : path);
+            reworkedPath = loc.origin + (parts[0].length > 0 ? parts[0] + '/' + path : path);
           } else if (urlPathName.indexOf('/notebooks/') > -1) {
             const parts = urlPathName.split(/\/notebooks\//,2);
-            reworkedPath = loc.origin + '/' + (parts[0].length > 0 ? parts[0] + '/' + path : path);
+            reworkedPath = loc.origin + (parts[0].length > 0 ? parts[0] + '/' + path : path);
           }            
         }
         previousCssTag = $('#recorder-css-tag-' + i);
