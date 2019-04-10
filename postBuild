@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euxo pipefail
 
-exec >> postBuildOut.txt
+exec >> postBuild_output.txt
 exec 2>&1
 
 pushd jupytergraffiti
@@ -9,4 +9,5 @@ npm install && npm run build && \
     jupyter nbextension install graffiti-dist --user && \
     jupyter nbextension enable graffiti-dist/graffiti
 popd
+
 

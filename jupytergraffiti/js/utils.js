@@ -793,9 +793,24 @@ define([
     },
 
     loadCss: (cssPaths) => {
+      let path, reworkedPath, previousCssTag;
       for (let i in cssPaths) {
-        let path = cssPaths[i];
-        let previousCssTag = $('#recorder-css-tag-' + i);
+        path = cssPaths[i];
+        reworkedPath = path;
+        if (path[0] != '/') {
+          // if path is not absolute, construct full path based on either the location of "tree" or "notebooks" in document.location.
+          // This will make sure the paths work in hosted environments such as binder.org
+          const loc = document.location;
+          const urlPathName = loc.pathname;
+          if (urlPathName.indexOf('/tree') > -1) {
+            const parts = urlPathName.split(/\/tree/,2);
+            reworkedPath = loc.origin + '/' + parts[0] + path;
+          } else if (urlPathName.indexOf('/notebooks/') > -1) {
+            const parts = urlPathName.split(/\/notebooks\//,2);
+            reworkedPath = loc.origin + '/' + parts[0] + path;
+          }            
+        }
+        previousCssTag = $('#recorder-css-tag-' + i);
         if (previousCssTag.length === 0) {
           // https://stackoverflow.com/questions/18510347/dynamically-load-stylesheets
           const styles = document.createElement('link');
@@ -803,7 +818,7 @@ define([
           styles.id = 'recorder-css-tag-' + i;
           styles.type = 'text/css';
           styles.media = 'screen';
-          styles.href = path;
+          styles.href = reworkedPath;
           document.getElementsByTagName('head')[0].appendChild(styles);
         }
       }
