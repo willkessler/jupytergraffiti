@@ -287,14 +287,15 @@ define([
       const viewBoxRaw = '0 0 ' + dimensions.width + ' ' + dimensions.height;
       const viewBox = sticker.makeBufferedViewBox({buffer:buffer, bufferAllSides: true, viewBox: viewBoxRaw });
       let shapeHash, shapeObj, parmBlocks = [];
-      for (let ringCtr = 1; ringCtr < 6; ringCtr += 2) {
+      const ringRadii = [1,   5,   9,  13,  17];
+      for (let ringCtr = 0; ringCtr < ringRadii.length; ++ringCtr) {
         shapeHash = { cx: dimensions.width / 2,
                       cy: dimensions.height / 2,
-                      rx: Math.max(0, dimensions.width / 2 - opts.buffer) / ringCtr,
-                      ry: Math.max(0,dimensions.height / 2 - opts.buffer) / ringCtr,
+                      rx: ringRadii[ringCtr],
+                      ry: ringRadii[ringCtr],
                       stroke: opts.color,
                       "stroke-width": opts.strokeWidth,
-                      "fill-opacity":opts.fillOpacity,
+                      "fill-opacity": opts.fillOpacity,
                       fill: opts.color
         };
         shapeObj = sticker.makeSvgElement('ellipse', shapeHash);
