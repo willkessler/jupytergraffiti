@@ -69,7 +69,7 @@ define([
     token: null,
     usageReportSent: false,
     getWorkspace: () => {
-      if (location.hostname === 'localhost') {
+      if (!workspace.isUdacityEnv()) {
         return Promise.resolve({
           userId: 'dev',
           coco: true
@@ -80,6 +80,13 @@ define([
         return getWorkspace(token);
       });
     },
+    isUdacityEnv: () => {
+      const hostname = location.hostname;
+      return (
+        hostname.endsWith('udacity.com' ) ||
+        hostname.endsWith('udacity-student-workspaces.com')
+      );
+    },
     setWorkspace: () => {
       return workspace.getWorkspace()
       .then(data => {
@@ -89,7 +96,7 @@ define([
       .catch(err => console.error(err));
     },
     trackUsageStats: () => {
-      if (!workspace.usageReportSent) {
+      if (!workspace.usageReportSent && workspace.isUdacityEnv()) {
         let stats = state.getUsageStats();
         stats.workspace = state.getWorkspace();
         let xhr = new XMLHttpRequest();
