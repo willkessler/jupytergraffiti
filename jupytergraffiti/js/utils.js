@@ -804,10 +804,10 @@ define([
           const urlPathName = loc.pathname;
           if (urlPathName.indexOf('/tree') > -1) {
             const parts = urlPathName.split(/\/tree/,2);
-            reworkedPath = loc.origin + (parts[0].length > 0 ? parts[0] + '/' + path : path);
+            reworkedPath = loc.origin + (parts[0].length > 0 ? parts[0] + '/' + path : '/' + path);
           } else if (urlPathName.indexOf('/notebooks/') > -1) {
             const parts = urlPathName.split(/\/notebooks\//,2);
-            reworkedPath = loc.origin + (parts[0].length > 0 ? parts[0] + '/' + path : path);
+            reworkedPath = loc.origin + (parts[0].length > 0 ? parts[0] + '/' + path : '/' + path);
           }            
         }
         previousCssTag = $('#recorder-css-tag-' + i);
