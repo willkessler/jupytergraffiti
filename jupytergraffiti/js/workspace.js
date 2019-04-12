@@ -1,5 +1,5 @@
 define([
-  './state.js'
+  'jupytergraffiti/js/state.js'
 ], function(state) {  
   const BELLATRIX_URL = 'https://bellatrix.udacity.com';
   const NEBULA_URL = 'https://nebula.udacity.com';
@@ -64,7 +64,7 @@ define([
       xhr.send();
     });
   }
-  
+        
   const workspace = {
     token: null,
     usageReportSent: false,
@@ -89,11 +89,11 @@ define([
     },
     setWorkspace: () => {
       return workspace.getWorkspace()
-                      .then(data => {
-                        state.setUserId(data.userId);
-                        state.setWorkspace(data);
-                      })
-                      .catch(err => console.error(err));
+      .then(data => {
+        state.setUserId(data.userId);
+        state.setWorkspace(data);
+      })
+      .catch(err => console.error(err));
     },
     trackUsageStats: () => {
       if (!workspace.usageReportSent && workspace.isUdacityEnv()) {

@@ -8,10 +8,10 @@
 
 define ([
   'base/js/utils',
-  './utils.js',
-  './localizer.js',
-  './xterm/xterm.js',
-  './xterm/addons/fit/fit.js',
+  'jupytergraffiti/js/utils.js',
+  'jupytergraffiti/js/localizer.js',
+  'jupytergraffiti/js/xterm/xterm.js',
+  'jupytergraffiti/js/xterm/addons/fit/fit.js',
 ], (jupyterUtils, utils, localizer, terminalLib, fit) => {
   const terminals = {
 
