@@ -367,6 +367,25 @@ define([
         graffiti.bindControlPanelCallbacks(graffiti.controlPanelIds[elemId], callbacks);
       },
 
+      setupPlaybackCursor: () => {
+        const cursorSize = 30;
+        const iconConfiguration = {
+          dimensions: {
+            x: 0, y: 0, width: cursorSize, height: cursorSize 
+          },
+          color:'black',
+          strokeWidth:2,
+          fillOpacity:0,
+        };
+
+        const bullsEye = stickerLib.makeBullsEye(iconConfiguration);
+        const graffitiCursor = $('<div id="graffiti-cursor" name="cursor" class="graffiti-cursor">' +
+                                 '  <div id="graffiti-cursor-normal-cells">' + bullsEye + '</div>' +
+                                 '  <div id="graffiti-cursor-terminal-cells"></div>' +
+                                 '</div>');
+        graffitiCursor.appendTo(header);
+      },
+
       setupControlPanels: () => {
         let previousPlayState;
         if ($('#graffiti-outer-control-panel').length == 0) {
@@ -378,13 +397,7 @@ define([
                                       '</div>');
           //const header = $('#header');
           outerControlPanel.appendTo($('body'));
-          const graffitiCursor = $('<div id="graffiti-cursor" name="cursor" class="graffiti-cursor">' +
-                                   '  <div id="graffiti-cursor-normal-cells">' +
-                                   '     <img src="jupytergraffiti/css/transparent_bullseye2.png">' +
-                                   '  </div>' +
-                                   '  <div id="graffiti-cursor-terminal-cells"></div>' +
-                                   '</div>');
-          graffitiCursor.appendTo(header);
+          graffiti.setupPlaybackCursor();
         }
 
         graffiti.graffitiCursorShell = $('#graffiti-cursor');
@@ -1814,7 +1827,7 @@ define([
       },
 
       undimGraffitiCursor: () => {
-        graffiti.graffitiCursorShell.show().css({opacity:1.0});
+        graffiti.graffitiCursorShell.show().css({opacity:0.65});
       },
 
       activateTerminalGraffitiCursor: () => {
