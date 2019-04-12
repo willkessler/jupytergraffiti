@@ -10,7 +10,7 @@ npm install && npm run build && \
     jupyter nbextension enable graffiti-dist/graffiti
 popd
 
-# pip install nbzip
-# jupyter serverextension enable --py nbzip --sys-prefix
-# jupyter nbextension install --py nbzip
-# jupyter nbextension enable --py nbzip
+pip install nbzip
+jupyter serverextension enable --py nbzip --sys-prefix
+jupyter nbextension install --py nbzip --user
+jupyter nbextension enable --py nbzip
