@@ -6,11 +6,19 @@ const merge = require('merge-stream');
 gulp.task("prebuild", () => {
   const main = gulp.src('graffiti_extension/main.js') 
     .pipe(babel())
-    .pipe(gulp.dest('build'));
+    .pipe(replace(/jupytergraffiti\/js/gm, function() {
+      return 'js';
+    }))
+    .pipe(gulp.dest('build'))
+
     
   const js = gulp.src('js/**/*.js') 
     .pipe(babel())
-    .pipe(gulp.dest('build/js'));
+    .pipe(replace(/jupytergraffiti\/js/gm, function() {
+      return 'js';
+    }))
+    .pipe(gulp.dest('build/js'))
+
     
   return merge(main, js)
 });

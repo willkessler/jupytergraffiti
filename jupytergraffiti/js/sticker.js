@@ -1,5 +1,5 @@
 define([
-  './utils.js'
+  'jupytergraffiti/js/utils.js'
 ], (utils) => {
   // Thanks to https://stackoverflow.com/questions/3642035/jquerys-append-not-working-with-svg-element
   const sticker = {
