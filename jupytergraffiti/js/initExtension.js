@@ -1,13 +1,13 @@
 /*
-    Used by main.js and loader.js 
-*/
+   Used by main.js and loader.js 
+ */
 
 define([
   'base/js/namespace',
-  'js/graffiti.js',
-  'js/utils.js',
-  'js/state.js',
-  'js/workspace.js'
+  'jupytergraffiti/js/graffiti.js',
+  'jupytergraffiti/js/utils.js',
+  'jupytergraffiti/js/state.js',
+  'jupytergraffiti/js/workspace.js'
 ], (Jupyter, Graffiti, utils, state, workspace) => {
   console.log('Graffiti loaded:', Graffiti);
 

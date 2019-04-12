@@ -8,5 +8,5 @@ define([], () => {
     console.log('Graffiti already instantiated, not reinitializing');
     return;
   }
-  require(['./initExtension.js']);
+  require(['jupytergraffiti/js/initExtension.js']);
 });

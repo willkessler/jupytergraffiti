@@ -1,6 +1,6 @@
 // Adapted from: https://stackoverflow.com/a/40850909/2767287
 define([
-  './state.js',
+  'jupytergraffiti/js/state.js',
 ], function (state) {
   const batchRunner = {
 

@@ -1,5 +1,5 @@
 define([
-  './state.js'
+  'jupytergraffiti/js/state.js'
 ], function(state) {  
   const BELLATRIX_URL = 'https://bellatrix.udacity.com';
   const NEBULA_URL = 'https://nebula.udacity.com';

@@ -1,6 +1,6 @@
 define([
-  './utils.js',
-  './terminals.js',
+  'jupytergraffiti/js/utils.js',
+  'jupytergraffiti/js/terminals.js',
 ], function (utils, terminalLib) {
   const state = {
     init: () => {

@@ -1,9 +1,9 @@
 define([
-  './state.js',
-  './audio.js',
-  './utils.js',
-  './batchRunner.js',
-  './LZString.js'
+  'jupytergraffiti/js/state.js',
+  'jupytergraffiti/js/audio.js',
+  'jupytergraffiti/js/utils.js',
+  'jupytergraffiti/js/batchRunner.js',
+  'jupytergraffiti/js/LZString.js'
 ], function (state, audio, utils, batchRunner, LZString) {
 
   //
