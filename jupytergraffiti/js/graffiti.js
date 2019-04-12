@@ -10,11 +10,11 @@ define([
   './sticker.js',
   './localizer.js',
   './selectionSerializer.js',
-  './udacityUser.js',
+  './workspace.js',
   './terminals.js',
   './batchRunner.js',
   'components/marked/lib/marked'
-], function(dialog, events, textCell, LZString, state, utils, audio, storage, stickerLib, localizer, selectionSerializer, udacityUser, terminalLib, batchRunner, marked) {
+], function(dialog, events, textCell, LZString, state, utils, audio, storage, stickerLib, localizer, selectionSerializer, workspace, terminalLib, batchRunner, marked) {
   const Graffiti = (function() {
     const graffiti = {
 
@@ -28,7 +28,6 @@ define([
 
         const location = document.location;
 
-        state.init();
         const currentAccessLevel = state.getAccessLevel();
 
         graffiti.LZString = LZString;
@@ -98,6 +97,7 @@ define([
           graffiti.updateSetupButton();
           if (Jupyter.notebook.metadata.hasOwnProperty('graffiti')) { // do not try to load the manifest if this notebook has not yet been graffiti-ized.
             storage.loadManifest(currentAccessLevel).then(() => {
+              utils.createApiSymlink();
               graffiti.initInteractivity();
             }).catch((ex) => {
               console.log('Graffiti: Not setting up Graffiti because this notebook has never had any authoring done yet (no recordingId).');
@@ -1827,7 +1827,7 @@ define([
       },
 
       undimGraffitiCursor: () => {
-        graffiti.graffitiCursorShell.show().css({opacity:1.0});
+        graffiti.graffitiCursorShell.show().css({opacity:0.65});
       },
 
       activateTerminalGraffitiCursor: () => {
@@ -3621,8 +3621,8 @@ define([
           if ((activity === 'playing') || (activity === 'playbackPaused') || (activity == 'scrubbing')) {
             graffiti.cancelPlaybackNoVisualUpdates();
           }
-          if (udacityUser.trackUsageStats !== undefined) {
-            udacityUser.trackUsageStats();
+          if (workspace.trackUsageStats !== undefined) {
+            workspace.trackUsageStats();
           }
         });
 
@@ -3630,8 +3630,8 @@ define([
         // https://stackoverflow.com/a/20322988/4953199
         window.onunload = (e) => {
           console.log('Graffiti: on unload');
-          if (udacityUser.trackUsageStats !== undefined) {
-            udacityUser.trackUsageStats();
+          if (workspace.trackUsageStats !== undefined) {
+            workspace.trackUsageStats();
           }
         };
 
@@ -6080,9 +6080,12 @@ define([
       updateSetupButton: () => {
         const notebook = Jupyter.notebook;
         const sprayCanIcon = stickerLib.makeSprayCanIcon();
+        const workspace = state.getWorkspace();
+        const buttonStyleHtml = workspace && workspace.coco 
+              ? 'display:inline-block;' : '"display:none;"';
         let buttonLabel, setupForSetup = false;
         //sprayCanIcon = '<img src="jupytergraffiti/css/spray_can_icon.png">';
-        let buttonContents = '<div id="graffiti-setup-button" class="btn-group"><button class="btn btn-default" title="' + localizer.getString('ENABLE_GRAFFITI') + '">';
+        let buttonContents = '<div id="graffiti-setup-button" style='+ buttonStyleHtml +' class="btn-group"><button class="btn btn-default" title="' + localizer.getString('ENABLE_GRAFFITI') + '">';
 
         if (!notebook.metadata.hasOwnProperty('graffiti')) {
           // This notebook has never been graffiti-ized, or it just got un-graffiti-ized
@@ -6124,6 +6127,7 @@ define([
                 storage.ensureNotebookGetsGraffitiId();
                 storage.ensureNotebookGetsFirstAuthorId();
                 utils.saveNotebook(() => {
+                  utils.createApiSymlink();
                   graffiti.initInteractivity();
                   graffiti.toggleAccessLevel('view');
                   graffiti.activateAudio(); // request microphone access in case switching to 'create' mode later

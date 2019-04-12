@@ -1,32 +1,12 @@
+/*
+  Used in api.py when importing graffiti as python module.
+  Notice that unlike main.js this doesn't return  "load_ipython_extension" call
+*/
+
 define([], () => {
-  if (window.Graffiti !== undefined) { 
+  if (window.Graffiti !== undefined) {
     console.log('Graffiti already instantiated, not reinitializing');
     return;
   }
-
-  require([
-    './graffiti.js',
-    './utils.js',
-    './storage.js',
-    './udacityUser.js'
-    ], (Graffiti,utils, storage, udacityUser) => {
-    console.log('Graffiti loaded:', Graffiti);
-    window.Graffiti = Graffiti;
-    udacityUser.setUser();
-    Graffiti.init();
-
-    Jupyter.notebook.events.on('kernel_reconnecting.Kernel', (e) => { 
-      console.log('Graffiti: kernel reconnecting');
-    });
-
-    Jupyter.notebook.events.on('kernel_ready.Kernel', (e) => {
-      console.log('Graffiti: kernel ready, possible kernel restart.', e);
-      if (!udacityUser.token) {
-        udacityUser.setUser();
-      } 
-      require(['./loader.js']);
-      utils.saveNotebook();
-    });
-
-  });
+  require(['./initExtension.js']);
 });

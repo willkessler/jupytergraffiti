@@ -511,7 +511,8 @@ define([
               startPos++;
               checkChar = contents[startPos];
             }
-            if (skipped && (contents[startPos] === ' ')) { // skip past the space after hashtags
+            if (skipped && (contents[startPos] === ' ')) {
+              // skip past the space after hashtags
               ++startPos;
             }
             // expand the range to include surrounding backticks
@@ -863,6 +864,40 @@ define([
         document.getSelection().addRange(selected);   // Restore the original selection
       }
     },
+
+    isUdacityEnvironment: () => {
+      const host = location.hostname;
+      if (host.endsWith('udacity.com') || 
+          host.endsWith('udacity-student-workspaces.com')) {
+        return true;
+      }
+      return false;
+    },
+
+    createApiSymlink: () => {
+      if (!utils.isUdacityEnvironment()) {
+        return;
+      }
+      // Create a symlink to get 'import jupytergraffiti' working in Udacity environment
+      const graffitiPath = '/opt/workspace-jupyter-graffiti/jupytergraffiti';
+      const createSymlinkCmd = `ln -sf ${graffitiPath} jupytergraffiti`;
+
+      // Create a python file and execute the file 
+      let importApiScript = '';
+      // Adding /opt/jupytergraffiti to system path allows us to import it as a python module
+      importApiScript += 'import sys\\n';
+      importApiScript += 'api_path="'+ graffitiPath +'"\\n';
+      importApiScript += 'if api_path not in sys.path:\\n';
+      importApiScript += '  sys.path.insert(0,api_path)\\n';
+      const executePythonScript = `!${createSymlinkCmd} && echo '${importApiScript}' > /tmp/graffiti-symlink.py && python /tmp/graffiti-symlink.py`;
+      const scriptOptions = {
+        silent: false,
+        store_history: false,
+        stop_on_error : true
+      }
+      
+      Jupyter.notebook.kernel.execute(executePythonScript, undefined, scriptOptions);
+    }
 
   }
 
