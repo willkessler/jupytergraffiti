@@ -798,19 +798,24 @@ define([
       for (let i in cssPaths) {
         path = cssPaths[i];
         reworkedPath = path;
-        if (path[0] !== '/') {
-          // if path is not absolute, construct full path based on either the location of "tree" or "notebooks" in document.location.
-          // This will make sure the paths work in hosted environments such as binder.org
-          const loc = document.location;
-          const urlPathName = loc.pathname;
-          if (urlPathName.indexOf('/tree') > -1) {
-            const parts = urlPathName.split(/\/tree/,2);
-            reworkedPath = loc.origin + (parts[0].length > 0 ? parts[0] + '/tree/' + path : '/tree/' + path);
-          } else if (urlPathName.indexOf('/notebooks/') > -1) {
-            const parts = urlPathName.split(/\/notebooks\//,2);
-            reworkedPath = loc.origin + (parts[0].length > 0 ? parts[0] + '/notebooks/' + path : '/notebooks/' + path);
-          }            
+        // Rework CSS paths on hosts like binder.org, where there is some additional virtual path between document.origin
+        // and the path to the notebook. If a relative path, keep "tree" or "notebook" in the path; otherwise start
+        // any absolute path from *after* document.location.origin + virtual path.
+        const loc = document.location;
+        const urlPathName = loc.pathname;
+        const hasTree = (urlPathName.indexOf('/tree') > -1);
+        const hasNotebooks = (urlPathName.indexOf('/notebooks/') > -1);
+        const leadingSlash = (path == '/');
+        let treeNotebook = '', parts;
+        if (hasTree) {
+          treeNotebook = (leadingSlash ? '' : 'tree/');
+          parts = urlPathName.split(/\/tree/,2);
+        } else if (hasNotebooks) {
+          treeNotebook = (leadingSlash ? '' : 'notebooks/');
+          parts = urlPathName.split(/\/notebooks\//,2);
         }
+        reworkedPath = loc.origin + (parts[0].length > 0 ? parts[0] + '/' + treeNotebook + path : '/' + treeNotebook + path);
+
         previousCssTag = $('#recorder-css-tag-' + i);
         if (previousCssTag.length === 0) {
           // https://stackoverflow.com/questions/18510347/dynamically-load-stylesheets
