@@ -805,7 +805,7 @@ define([
         const urlPathName = loc.pathname;
         const hasTree = (urlPathName.indexOf('/tree') > -1);
         const hasNotebooks = (urlPathName.indexOf('/notebooks/') > -1);
-        const leadingSlash = (path == '/');
+        const leadingSlash = (path[0] === '/');
         let treeNotebook = '', parts;
         if (hasTree) {
           treeNotebook = (leadingSlash ? '' : 'tree/');
