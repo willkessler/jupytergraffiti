@@ -808,13 +808,13 @@ define([
         const leadingSlash = (path[0] === '/');
         let treeNotebook = '', parts;
         if (hasTree) {
-          treeNotebook = (leadingSlash ? '' : 'tree/');
+          treeNotebook = (leadingSlash ? '' : '/tree/');
           parts = urlPathName.split(/\/tree/,2);
         } else if (hasNotebooks) {
-          treeNotebook = (leadingSlash ? '' : 'notebooks/');
+          treeNotebook = (leadingSlash ? '' : '/notebooks/');
           parts = urlPathName.split(/\/notebooks\//,2);
         }
-        reworkedPath = loc.origin + (parts[0].length > 0 ? parts[0] + '/' + treeNotebook + path : '/' + treeNotebook + path);
+        reworkedPath = loc.origin + (parts[0].length > 0 ? parts[0] + treeNotebook + path : treeNotebook + path);
 
         previousCssTag = $('#recorder-css-tag-' + i);
         if (previousCssTag.length === 0) {
