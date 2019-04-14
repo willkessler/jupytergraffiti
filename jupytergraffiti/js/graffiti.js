@@ -2305,7 +2305,7 @@ define([
       },        
 
       processPositionsForCellTypeScaling: (record, type) => {
-        let positions, scalarX, scalarY, positionsRaw, cell, cellId, cellRects, denomWidth, denomHeight;
+        let positions, scalarX = 1, scalarY = 1, positionsRaw, cell, cellId, cellRects, denomWidth, denomHeight;
         // console.log('scalarX', scalarX, 'scalarY', scalarY);
         if (type === 'cursor') {
           // Scale the cursor position. The cell the cursor is hovering over is in the cellId field, unless the
@@ -2322,8 +2322,11 @@ define([
           }
           cell = utils.findCellByCellId(cellId);
           cellRects = utils.getCellRects(cell);
-          scalarX = cellRects.innerCellRect.width / denomWidth;
-          scalarY = cellRects.innerCellRect.height / denomHeight;
+          if (state.getScaleCursorWithWindow()) {
+            // only scale the cursor if the directive is set to scale with window.
+            scalarX = cellRects.innerCellRect.width / denomWidth;
+            scalarY = cellRects.innerCellRect.height / denomHeight;
+          }
           positionsRaw = { x: record.x, y: record.y };
           
           if (!record.inMarkdownCell || record.isOverTerminal) {
@@ -2350,8 +2353,11 @@ define([
                            end:   { x: record.positions.end.x, y: record.positions.end.y } };
           cell = utils.findCellByCellId(record.cellId);
           cellRects = utils.getCellRects(cell);
-          scalarX = cellRects.innerCellRect.width / record.innerCellRect.width ;
-          scalarY = cellRects.innerCellRect.height / record.innerCellRect.height;
+          if (state.getScaleCursorWithWindow()) {
+            // only scale the drawing if the directive is set to scale with window.
+            scalarX = cellRects.innerCellRect.width / record.innerCellRect.width ;
+            scalarY = cellRects.innerCellRect.height / record.innerCellRect.height;
+          }
           // If this drawing/sticker started in a markdown cell, we will attempt to scale both x and y coords in the inner_cell rect area but 
           // NOT the prompt area.
           if (record.pen.downInMarkdown) {
@@ -2896,6 +2902,7 @@ define([
               factor: 0,
             },
             saveToFile: undefined, // may be array of save_to_file directives
+            scaleCursorToWindow: false, // if set to true, we will try to scale all drawings 
             silenceWarnings: false,
             swappingLabels: false,
           };
@@ -3027,6 +3034,9 @@ define([
                     // When this is set we will replay all cells in the entire notebook regardless of whether you interacted with them in the 
                     // recording. Default: false
                     partsRecord.replayAllCells = true;
+                    break;
+                  case 'scale_cursor_with_window':
+                    partsRecord.scaleCursorWithWindow = true;
                     break;
                   case 'silence_warnings':
                     // if this is set, then the warning modal shown if a movie cannot be played (maybe because files are missing) is not displayed.
@@ -3887,6 +3897,7 @@ define([
             recording.insertDataFromFile = tooltipCommands.insertDataFromFile;
             recording.silenceWarnings = tooltipCommands.silenceWarnings;
             recording.replayAllCells = tooltipCommands.replayAllCells;
+            recording.scaleCursorWithWindow = tooltipCommands.scaleCursorWithWindow;
             recording.swappingLabels = tooltipCommands.swappingLabels;
             recording.labelSwaps = tooltipCommands.labelSwaps;
 
@@ -5818,6 +5829,10 @@ define([
         state.setNarratorInfo('name', recording.narratorName);
         state.setNarratorInfo('picture', recording.narratorPicture);
         state.setSkipInfo(recording.skipInfo);
+        state.clearScaleCursorWithWindow();
+        if (recording.scaleCursorWithWindow) {
+          state.setScaleCursorWithWindow();
+        }
         state.setTotalSkipTimeForRecording();
         if ((playableMovie.cell !== undefined) && (playableMovie.cellType === 'markdown')) {
           playableMovie.cell.render(); // always render a markdown cell first before playing a movie on a graffiti inside it
