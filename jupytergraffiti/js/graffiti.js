@@ -6103,7 +6103,6 @@ define([
         const buttonStyleHtml = workspace && workspace.coco 
               ? 'display:inline-block;' : '"display:none;"';
         let buttonLabel, setupForSetup = false;
-        //sprayCanIcon = '<img src="jupytergraffiti/css/spray_can_icon.png">';
         let buttonContents = '<div id="graffiti-setup-button" style='+ buttonStyleHtml +' class="btn-group"><button class="btn btn-default" title="' + localizer.getString('ENABLE_GRAFFITI') + '">';
 
         if (!notebook.metadata.hasOwnProperty('graffiti')) {
