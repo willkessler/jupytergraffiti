@@ -1831,19 +1831,13 @@ define([
       },
 
       activateTerminalGraffitiCursor: () => {
-        if (graffiti.graffitiNormalCursor.is(':visible')) {
-          //console.log('activate terminal cursor');
-          graffiti.graffitiTerminalCursor.show();
-          graffiti.graffitiNormalCursor.hide();
-        }
+        graffiti.graffitiTerminalCursor.show();
+        graffiti.graffitiNormalCursor.hide();
       },
 
       activateNormalGraffitiCursor: () => {
-        if (graffiti.graffitiTerminalCursor.is(':visible')) {
-          //console.log('activate normal cursor');
-          graffiti.graffitiNormalCursor.show();
-          graffiti.graffitiTerminalCursor.hide();
-        }
+        graffiti.graffitiNormalCursor.show();
+        graffiti.graffitiTerminalCursor.hide();
       },      
 
       drawingScreenHandler: (e) => {
@@ -4827,12 +4821,22 @@ define([
       updatePointer: (record) => {
         if (record.hoverCell !== undefined) {
           const hoverCellId = record.cellId;
-          record.isOverTerminal = terminalLib.isTerminalCell(hoverCellId);
+          record.isOverTerminal = false;
           const offsetPositionScaled = graffiti.processPositionsForCellTypeScaling(record, 'cursor');
           const cellRects = utils.getCellRects(record.hoverCell);        
           const offsetPosition = { x: cellRects.cellRect.left + offsetPositionScaled.start.x - graffiti.halfBullseye,
                                    y: cellRects.cellRect.top + offsetPositionScaled.start.y - graffiti.halfBullseye
           };
+          const isOverTerminalCell = terminalLib.isTerminalCell(hoverCellId);
+          if (isOverTerminalCell) {
+            const hoverCellElement = record.hoverCell.element[0];
+            const terminalContainer = $(hoverCellElement).find('.graffiti-terminal-container');
+            const termWidth = terminalContainer.width();
+            const termHeight = terminalContainer.height();
+            const termOffset = terminalContainer.offset();
+            record.isOverTerminal = ((termOffset.left <= offsetPosition.x) && (offsetPosition.x <= termOffset.left + termWidth) &&
+                                     (termOffset.top  <= offsetPosition.y) && (offsetPosition.y <= termOffset.top + termHeight));
+          }
           graffiti.applyScrollNudge(offsetPosition, record, true);
 
           const lastPosition = state.getLastRecordedCursorPosition();
