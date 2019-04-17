@@ -544,7 +544,8 @@ define([
         fullPath += '/' + nbDir;
       }
       fullPath += '/' + filePath;
-      return fetch(fullPath, { credentials: 'include' }).then((response) => {
+      const reworkedFullPath = utils.reworkFetchPathForVirtualHosts(fullPath);
+      return fetch(reworkedFullPath, { credentials: 'include' }).then((response) => {
         if (!response.ok) {
           throw Error(response.statusText);
         }

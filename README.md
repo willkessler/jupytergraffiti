@@ -37,7 +37,9 @@ You can see a live demonstration of a Notebook with _Graffitis_ by clicking the 
 
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2FGraffiti%20Basic%20Demo.ipynb)
 
-Please wait about 30 seconds for the demonstration to spin up at <a href="mybinder.org">mybinder.org</a>. (Props to the folks at MyBinder for this awesome service).
+Please wait about 30 seconds for the demonstration to spin up at <a
+href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2FGraffiti%20Basic%20Demo.ipynb">mybinder.org</a>. (Thanks
+to the folks at MyBinder for this awesome service).
 
 ## Advantages of _Graffiti_ Over Traditional Screencasts
 
