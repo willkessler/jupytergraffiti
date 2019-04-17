@@ -2,7 +2,7 @@
 
 Create interactive screencasts inside Jupyter Notebook that anybody can play back.
 
-![intro_movie](./images/intro_movie.gif)
+![intro_movie](./images/tutorial/graffitiMoviePlay1.gif)
 
 Ever wanted to offer someone a hands-on demo in Jupyter Notebook? Now
 you can! Just add __Graffiti__, and any text inside a code cell can be
@@ -35,7 +35,7 @@ All of this activity can be played back by hovering over the _Graffiti_ and clic
 
 You can see a live demonstration of a Notebook with _Graffitis_ by clicking the Binder badge below:
 
-[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2FIntroductionToGraffiti.ipynb)
+[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2FGraffiti%20Basic%20Demo.ipynb)
 
 Please wait about 30 seconds for the demonstration to spin up at <a href="mybinder.org">mybinder.org</a>. (Props to the folks at MyBinder for this awesome service).
 
@@ -84,9 +84,7 @@ import jupytergraffiti
 
 If everything works, you will see a button labelled "Activate Graffiti" in your menu bar.
 
-![graffiti_loaded](./images/graffiti_loaded.png)
-
-If you don't see this message appearing, use `Kernel... Restart and Clear Output` first, then try running ```import jupytergraffiti``` again.
+If you don't see this button appearing, use `Kernel... Restart and Clear Output` first, then try running ```import jupytergraffiti``` again.
 
 ![kernel_restart](./images/kernel_restart.png)
 
