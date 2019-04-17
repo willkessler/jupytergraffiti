@@ -4,17 +4,30 @@
   "description": "Jupyter Graffiti extension",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "node_modules/gulp/bin/gulp.js prebuild && node node_modules/.bin/r.js -o build.js && node_modules/gulp/bin/gulp.js moveStyles"
   },
   "author": "Will Kessler",
   "license": "MIT",
   "devDependencies": {
-    "amd-optimize": "^0.6.1",
-    "gulp": "^3.9.1",
+    "@babel/core": "^7.4.3",
+    "@babel/preset-env": "^7.4.3",
+    "@babel/register": "^7.4.0",
+    "babel-core": "^6.26.3",
+    "babel-plugin-transform-es2015-modules-amd": "^6.24.1",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-register": "^6.26.0",
+    "gulp": "^4.0.0",
+    "gulp-babel": "^8.0.0",
     "gulp-concat": "^2.6.1",
+    "gulp-rename": "^1.4.0",
+    "gulp-string-replace": "^1.1.2",
     "gulp-strip-debug": "^3.0.0",
-    "gulp-uglify": "^3.0.1",
-    "gulp-uglify-es": "^1.0.4",
-    "lodash": "^4.17.5"
+    "lodash": "^4.17.5",
+    "merge-stream": "^1.0.1",
+    "requirejs": "^2.3.6"
+  },
+  "dependencies": {
+    "gulp-replace": "^1.0.0",
+    "gulp-uglify": "^3.0.2"
   }
 }

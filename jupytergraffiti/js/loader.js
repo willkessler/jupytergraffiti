@@ -1,17 +1,12 @@
-define([
-  './graffiti.js',
-  './utils.js'
-], (Graffiti,utils) => {
-  console.log('Graffiti loaded:', Graffiti);
-  window.Graffiti = Graffiti;
-  Graffiti.init();
-  utils.saveNotebook();
+/*
+  Used in api.py when importing graffiti as python module.
+  Notice that unlike main.js this doesn't return  "load_ipython_extension" call
+*/
 
-  Jupyter.notebook.events.on('kernel_ready.Kernel', (e) => { 
-    console.log('Graffiti: kernel ready, possible kernel restart, so rerunning require', e); 
-    require(['jupytergraffiti/js/loader.js']);
-    utils.saveNotebook();
-  });
-
+define([], () => {
+  if (window.Graffiti !== undefined) {
+    console.log('Graffiti already instantiated, not reinitializing');
+    return;
+  }
+  require(['jupytergraffiti/js/initExtension.js']);
 });
-
