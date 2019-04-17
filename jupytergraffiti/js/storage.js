@@ -1,9 +1,9 @@
 define([
-  './state.js',
-  './audio.js',
-  './utils.js',
-  './batchRunner.js',
-  './LZString.js'
+  'jupytergraffiti/js/state.js',
+  'jupytergraffiti/js/audio.js',
+  'jupytergraffiti/js/utils.js',
+  'jupytergraffiti/js/batchRunner.js',
+  'jupytergraffiti/js/LZString.js'
 ], function (state, audio, utils, batchRunner, LZString) {
 
   //
@@ -544,7 +544,8 @@ define([
         fullPath += '/' + nbDir;
       }
       fullPath += '/' + filePath;
-      return fetch(fullPath, { credentials: 'include' }).then((response) => {
+      const reworkedFullPath = utils.reworkFetchPathForVirtualHosts(fullPath);
+      return fetch(reworkedFullPath, { credentials: 'include' }).then((response) => {
         if (!response.ok) {
           throw Error(response.statusText);
         }

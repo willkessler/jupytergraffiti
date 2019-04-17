@@ -63,8 +63,8 @@
 #graffiti-cursor-terminal-cells {
   width: 25px;
   height: 25px;
-  background:orange;
-  opacity:0.75;
+  background:rgb(253,119,62);
+  opacity:1;
   border-radius:50%;
 }
 

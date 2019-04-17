@@ -1,6 +1,6 @@
 define([
-  './state.js',
-  './hark.js',
+  'jupytergraffiti/js/state.js',
+  'jupytergraffiti/js/hark.js',
 ], function (state,hark) {
 
   const audio = {

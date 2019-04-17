@@ -8,10 +8,10 @@
 
 define ([
   'base/js/utils',
-  './utils.js',
-  './localizer.js',
-  './xterm/xterm.js',
-  './xterm/addons/fit/fit.js',
+  'jupytergraffiti/js/utils.js',
+  'jupytergraffiti/js/localizer.js',
+  'jupytergraffiti/js/xterm/xterm.js',
+  'jupytergraffiti/js/xterm/addons/fit/fit.js',
 ], (jupyterUtils, utils, localizer, terminalLib, fit) => {
   const terminals = {
 
@@ -174,7 +174,17 @@ define ([
                         ' <div class="graffiti-terminal-go-notebook-dir">' + localizer.getString('JUMP_TO_NOTEBOOK_DIR') + '</div>' +
                         ' <div class="graffiti-terminal-reset">' + localizer.getString('RESET_TERMINAL') + '</div>' +
                         '</div>').show();
-        const wsUrl = location.protocol.replace('http', 'ws') + '//' + location.host + '/terminals/websocket/' + config.terminalId;
+
+        const urlPathName = location.pathname;
+        let host = location.host;
+        let path = '/terminals/websocket/';
+        if (urlPathName.indexOf('/notebooks/') > 0) {
+          // In cases where Jupyter is hosted on a path-based VM, like on binder.org, we need to extract that path part 
+          // and put it in front of the regular terminals endpoint.
+          const parts = urlPathName.split(/\/notebooks\//,2);
+          path = (parts[0].length > 0 ? parts[0] + path : path);
+        }
+        const wsUrl = location.protocol.replace('http', 'ws') + '//' + location.host + path + config.terminalId;
         const elem = $('#' + terminalContainerId);
         const sizeObj = {cols:40, rows:10};
         renderArea.find('.graffiti-terminal-reset').click((e) => {

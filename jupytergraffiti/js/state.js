@@ -1,6 +1,6 @@
 define([
-  './utils.js',
-  './terminals.js',
+  'jupytergraffiti/js/utils.js',
+  'jupytergraffiti/js/terminals.js',
 ], function (utils, terminalLib) {
   const state = {
     init: () => {
@@ -85,6 +85,7 @@ define([
       state.narratorInfo = {};
       state.shiftKeyIsDown = false;
       state.shiftKeyWentDown = false;
+      state.scaleCursorWithWindow = false;
       state.terminalState = undefined;
       state.cellIdToGraffitiMap = {}; // maps which graffitis are present in which cells. Used for autosave cells.
 
@@ -488,6 +489,18 @@ define([
 
     clearShiftKeyWentDown: () => {
       state.shiftKeyWentDown = false;
+    },
+
+    getScaleCursorWithWindow: () => {
+      return state.scaleCursorWithWindow;
+    },
+
+    clearScaleCursorWithWindow: () => {
+      state.scaleCursorWithWindow = false;
+    },
+
+    setScaleCursorWithWindow: () => {
+      state.scaleCursorWithWindow = true;
     },
 
     getGraffitiEditCellId: () => {

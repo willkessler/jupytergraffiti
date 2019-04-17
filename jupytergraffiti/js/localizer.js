@@ -1,5 +1,5 @@
 define([
-  './state.js',
+  'jupytergraffiti/js/state.js',
 ], function (state) {
   const localizer = {  
     defaultLanguage: 'EN',

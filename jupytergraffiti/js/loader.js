@@ -4,9 +4,9 @@
 */
 
 define([], () => {
-  if (window.Graffiti !== undefined) { 
+  if (window.Graffiti !== undefined) {
     console.log('Graffiti already instantiated, not reinitializing');
     return;
   }
-  require(['./initExtension.js']);
+  require(['jupytergraffiti/js/initExtension.js']);
 });

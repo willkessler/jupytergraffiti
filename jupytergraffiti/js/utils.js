@@ -511,7 +511,8 @@ define([
               startPos++;
               checkChar = contents[startPos];
             }
-            if (skipped && (contents[startPos] === ' ')) { // skip past the space after hashtags
+            if (skipped && (contents[startPos] === ' ')) {
+              // skip past the space after hashtags
               ++startPos;
             }
             // expand the range to include surrounding backticks
@@ -792,10 +793,34 @@ define([
       return(currentTimeFormatted);
     },
 
+    reworkFetchPathForVirtualHosts: (path) => {
+      // Rework fetch paths on hosts like binder.org, where there is some additional virtual path between document.origin
+      // and the path to the notebook. If a relative path, keep "tree" or "notebook" in the path; otherwise start
+      // any absolute path from *after* document.location.origin + virtual path.
+      const loc = document.location;
+      const urlPathName = loc.pathname;
+      const hasTree = (urlPathName.indexOf('/tree') > -1);
+      const hasNotebooks = (urlPathName.indexOf('/notebooks/') > -1);
+      const leadingSlash = (path[0] === '/');
+      let treeNotebook = '', parts;
+      if (hasTree) {
+        treeNotebook = (leadingSlash ? '' : '/tree/');
+        parts = urlPathName.split(/\/tree/,2);
+      } else if (hasNotebooks) {
+        treeNotebook = (leadingSlash ? '' : '/notebooks/');
+        parts = urlPathName.split(/\/notebooks\//,2);
+      }
+      const reworkedPath = loc.origin + (parts[0].length > 0 ? parts[0] + treeNotebook + path : treeNotebook + path);
+      return reworkedPath;
+    },
+
     loadCss: (cssPaths) => {
+      let path, reworkedPath, previousCssTag;
       for (let i in cssPaths) {
-        let path = cssPaths[i];
-        let previousCssTag = $('#recorder-css-tag-' + i);
+        path = cssPaths[i];
+        reworkedPath = utils.reworkFetchPathForVirtualHosts(path);
+
+        previousCssTag = $('#recorder-css-tag-' + i);
         if (previousCssTag.length === 0) {
           // https://stackoverflow.com/questions/18510347/dynamically-load-stylesheets
           const styles = document.createElement('link');
@@ -803,7 +828,7 @@ define([
           styles.id = 'recorder-css-tag-' + i;
           styles.type = 'text/css';
           styles.media = 'screen';
-          styles.href = path;
+          styles.href = reworkedPath;
           document.getElementsByTagName('head')[0].appendChild(styles);
         }
       }
