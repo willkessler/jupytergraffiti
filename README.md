@@ -41,6 +41,8 @@ Please wait about 30 seconds for the demonstration to spin up at <a
 href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2FGraffiti%20Basic%20Demo.ipynb">mybinder.org</a>. (Thanks
 to the folks at MyBinder for this awesome service).
 
+You can visit the <a href="user_manual/UserManual.ipynb">User Manual<a> for more detailed instructions on how to use Graffiti.
+
 ## Advantages of _Graffiti_ Over Traditional Screencasts
 
 * You can save any number of _Graffitis_ in a Notebook.
