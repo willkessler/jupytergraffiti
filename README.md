@@ -33,7 +33,7 @@ All of this activity can be played back by hovering over the _Graffiti_ and clic
 
 ## Demo
 
-You can see a live demonstration of a Notebook with _Graffitis_ by clicking the Binder badge below:
+You can see a *live* demonstration of a Notebook with _Graffitis_ by clicking the Binder badge below:
 
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2FGraffiti%20Basic%20Demo.ipynb)
 
@@ -42,6 +42,13 @@ href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=sam
 to the folks at MyBinder for this awesome service).
 
 You can visit the <a href="user_manual/UserManual.ipynb">User Manual<a> for more detailed instructions on how to use Graffiti.
+
+You can also just visit these videos on Google to learn by watching:
+
+* <a href="https://drive.google.com/file/d/1eEga9NJ4ak8RZh28co4CZRck-4TrdjsE/view">How to make Graffiti movies.</a>
+* <a href="https://drive.google.com/file/d/1VP5U8xOYsS9rRM4-nc7IjKiLkubBu5Q3/view">How to make a Graffiti tooltip in code</a>
+* <a href="https://drive.google.com/file/d/1y3bXMF5nvUYP9E67SATotRw8m_TRjg4O/view">Accessing and using the Graffiti API</a>
+* <a href="https://drive.google.com/file/d/1i6QuWlHfLNu62d0l1CIteiP-1yNqaHuY/view">Using Graffiti extras like in-line terminals and auto-saving code cells.</a>
 
 ## Advantages of _Graffiti_ Over Traditional Screencasts
 
