@@ -5,15 +5,15 @@ Create interactive screencasts inside Jupyter Notebook that anybody can play bac
 ![intro_movie](./images/tutorial/graffitiMoviePlay1.gif)
 
 Ever wanted to offer someone a hands-on demo in Jupyter Notebook? Now
-you can! Just add __Graffiti__, and any text inside a code cell can be
-annotated with a hoverable tip (a *Graffiti* ) where you can explain
-the code in whatever detail you want (with markdown)!
+you can! Just add __Graffiti__, and any text inside a code or markdown
+cell can be annotated with a hoverable tip (a *Graffiti*) where you
+can explain the code in whatever detail you want (using markdown)!
 
 Even better, you can attach a screen recording to a _Graffiti_ of any
-actions you take in your notebook, including:
+actions you take in your Notebook, including:
 
 * Recorded audio (e.g. voice narration), captured with your laptop's microphone while making your recording
-* Mouse movement and scrolling in the notebook
+* Mouse movement and scrolling in the Notebook
 * Selecting and editing inside code cells
 * The output of any code cell executions
 * Inlined terminals (shells) whose activities you can also record.
@@ -23,17 +23,9 @@ All of this activity can be played back by hovering over the _Graffiti_ and clic
 
 ![intro_to_play_movie](./images/intro_to_play_movie.png)
 
-## Table of Contents
-
-* [Demo](#demo)
-* [Advantages of Graffiti Over Traditional Screencasts](#advantages-of-graffiti-over-traditional-screencasts)
-* [Installation](#installation)
-* [Using Jupyter Graffiti](#using-jupyter-graffiti)
-* [Using the Jupyter Graffiti Python API](#using-the-jupyter-graffiti-python-api)
-
 ## Demo
 
-You can see a live demonstration of a Notebook with _Graffitis_ by clicking the Binder badge below:
+You can see a *live* demonstration of a Notebook with _Graffitis_ by clicking the Binder badge below:
 
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2FGraffiti%20Basic%20Demo.ipynb)
 
@@ -43,6 +35,15 @@ to the folks at MyBinder for this awesome service).
 
 You can visit the <a href="user_manual/UserManual.ipynb">User Manual<a> for more detailed instructions on how to use Graffiti.
 
+You can also just visit these videos on Google to learn by watching:
+
+* <a target="_blank" href="https://drive.google.com/file/d/1eEga9NJ4ak8RZh28co4CZRck-4TrdjsE/view">How to make Graffiti movies.</a>
+* <a target="_blank" href="https://drive.google.com/file/d/1VP5U8xOYsS9rRM4-nc7IjKiLkubBu5Q3/view">How to make a Graffiti tooltip in code</a>
+* <a target="_blank" href="https://drive.google.com/file/d/1y3bXMF5nvUYP9E67SATotRw8m_TRjg4O/view">Accessing and using the Graffiti API</a>
+* <a target="_blank" href="https://drive.google.com/file/d/1i6QuWlHfLNu62d0l1CIteiP-1yNqaHuY/view">Using Graffiti extras like in-line terminals and auto-saving code cells.</a>
+* <a target="_blank" href="https://drive.google.com/file/d/1N2gyzCN14b1vTwZBxNjsgNhZklku-qq4/view">Adding a recording to a Show/Hide solution button.</a>
+* <a target="_blank" href="https://drive.google.com/file/d/1ROb1dCp-w4Js0P77-YcqRWHf0Y0hh0c8/view">How Graffiti in-line shells are recorded into movies.</a>
+
 ## Advantages of _Graffiti_ Over Traditional Screencasts
 
 * You can save any number of _Graffitis_ in a Notebook.
@@ -51,32 +52,52 @@ You can visit the <a href="user_manual/UserManual.ipynb">User Manual<a> for more
 backward, and interact with the Notebook during playback at any
 point. No need to watch a whole recorded screencast first, and then
 switch context to a Notebook; students can explore right along with
-you in the same environment you recorded in. When you pause a
-recording, you're still in a live notebook, so you can play around.
+you in the same environment you recorded in. When you pause playback,
+you're still in a live Notebook, so you can play around.
 * _Jupyter Graffiti_ is easy to set up: either use the Python library
   or build the Docker image with the included Jupyter extension.  (At
   Udacity, Jupyter Notebook Workspaces use the extension. See below
-  how to install it).
+  how to install it). Or, you can skip installation entirely (see below).
 * All data, including audio, is stored in compressed plain text in a
-  directory separate from your notebook files, for easy portability and
+  directory separate from your Notebook files, for easy portability and
   storage in any version control system.
 * Unlike streamed video, you don't need a video server or hosted
   YouTube videos, and you can watch the videos even without an
   internet connection or over narrow bandwidth, because the files are
   very small.
 
-## Installation
+## Using Graffiti with ZERO installation
+
+You can skip installation entirely if you want, be using the Binder
+demo link above. Just upload whatever Notebook you want to add
+Graffiti to to the demo Jupyter Notebook server, activate Graffiti
+(see below), make some recordings, and then download the
+`jupytergraffiti_data` folder along with your Graffiti-ized Notebook
+from the binder Notebook server. To make this easier, we've installed
+`nbzip` into the Binder demo server. Just go to the server's tree,
+visit the `jupytergraffiti_data` folder and click the folder download
+link. For more details on how this works you can refer to <a
+href="https://github.com/data-8/nbzip">`nbzip`'s</a> documentation. 
+
+You can then commit the `jupytergraffiti_data` folder and your
+Notebook to your own github repo and set up a link to it on Binder to
+share your Graffiti without requiring that the recipient have Graffiti
+installed.
+
+## Graffiti Software Installation
+
+Uploading and downloading to/from Binder isn't optimal of course; it's probably better to get Graffiti going on your own computers.
 
 There are three ways to use _Jupyter Graffiti_: by using a Python library, by using a Docker image, or by installing a plugin into your Jupyter Notebook server.
 
 ### Installation Option #1: Use the Python Library (Simplest Option)
 
 *Note*: Before using this method, you may need to Trust your
-notebook. This is because _Jupyter Graffiti_ is built in Javascript,
-and by default, if the notebook you're adding _Graffitis_ to was not
+Notebook. This is because _Jupyter Graffiti_ is mostly written in Javascript,
+and by default, if the Notebook you're adding _Graffitis_ to was not
 created by you, Jupyter Notebook will not "Trust" it and will not run
 externally loaded javascript code, for security reasons.  To Trust a
-notebook, click `File...Trust Notebook`*before* running the import
+Notebook, click `File...Trust Notebook`*before* running the import
 command below.
 
 1. `git clone` this repo in the same directory where you keep the Notebook(s) you want to add _Graffiti_ to.
@@ -92,14 +113,14 @@ If you don't see this button appearing, use `Kernel... Restart and Clear Output`
 
 ![kernel_restart](./images/kernel_restart.png)
 
-Once you see this message, you can "Activate Graffiti" on a notebook to begin creating Graffiti. The file UserManual.ipynb has many details on how to create Graffiti.
+Once you see this message, you can "Activate Graffiti" on a Notebook to begin creating Graffiti. The file UserManual.ipynb has many details on how to create Graffiti.
 
 **Special Note** : if you are adding *Graffitis* to Notebooks that do not reside in the same folder where you cloned this repo, then you must :
 
-1. Create a `recording_data` directory in the folder where you cloned this repo (`mkdir recording_data`).
-1. Create symbolic links from the directory where you notebook resides
+1. Create a `jupytergraffiti_data` directory in the folder where you cloned this repo (`mkdir jupytergraffiti_data`).
+1. Create symbolic links from the directory where you Notebook resides
    to both the `jupytergraffiti` folder in this repo, and to the
-   `recording_data` folder alongside where you cloned this repo.
+   `jupytergraffiti_data` folder alongside where you cloned this repo.
 
 ### Installation Option #2: Run Jupyter Notebook with a Docker Image Containing Graffiti (Slightly More Complex Option)
 
@@ -193,7 +214,7 @@ When you `import jupytergraffiti` you get immediate access to
 functions you can use to control _Jupyter Graffiti_ from Python. Some
 of these are utility functions, and others can be used to control
 recordings playback.  To use them, simply run the Python functions in your
-notebook's cells.
+Notebook's cells.
 
 #### Playing Back Graffiti Recordings
 
@@ -209,7 +230,7 @@ recording prompting them to go on to the next exercise.
 * Jupyter Graffiti can record most activities in Notebooks, but it does not record interactions with Jupyter's UX, e.g. you will not see the Jupyter menus get pulled down even if you pulled down a Jupyter menu during a recording.
 * If you rearrange cells after making a recording, scrolling will try to align the cursor and the page as best it can with the cells you were mousing over and scrolling to, even if they are in a different order than when you made the original recording. However, due to complexities involving cell sizing, this process may not always be perfect.
 * Copying cells does not copy their Graffiti.
-* Make a Copy ... of the current Notebook will not create a copy of the recordings; in fact, it will use the same recording ID and therefore supplant recordings on the original notebook. You can use an API call to fix this issue, however.
+* Make a Copy ... of the current Notebook will not create a copy of the recordings; in fact, it will use the same recording ID and therefore supplant recordings on the original Notebook. You can use an API call to fix this issue, however.
 * Given this is the first version of this software, there may well be bugs. Feel free to report issues on Github and/or propose PR's.
 
 ## Future Plans
@@ -218,7 +239,7 @@ recording prompting them to go on to the next exercise.
   automatically transcribe your spoken audio into subtitles that
   scroll along with the movie.
 
-* Make a Copy ... of a notebook should copy the recordings to a new notebook recording ID.
+* Make a Copy ... of a Notebook should copy the recordings to a new Notebook recording ID.
 
 ### CREDITS
 
