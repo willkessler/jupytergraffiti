@@ -11,8 +11,10 @@ WORKDIR /opt/jupytergraffiti
 RUN cd /opt/jupytergraffiti && npm install && npm run build && \
        jupyter nbextension install graffiti-dist && jupyter nbextension enable graffiti-dist/graffiti
 
-#RUN jupyter nbextension install graffiti_extension --symlink --user
-#RUN jupyter nbextension enable graffiti_extension/main --user
+RUN pip install nbzip
+RUN jupyter serverextension enable --py nbzip --sys-prefix
+RUN jupyter nbextension install --py nbzip
+RUN jupyter nbextension enable --py nbzip
 
 # Switch back to where we'll mount $PWD when we start up this container
 USER jovyan
