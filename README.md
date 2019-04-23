@@ -37,12 +37,12 @@ You can visit the <a href="user_manual/UserManual.ipynb">User Manual<a> for more
 
 You can also just visit these videos on Google to learn by watching:
 
-* <a target="_blank" href="https://drive.google.com/file/d/1eEga9NJ4ak8RZh28co4CZRck-4TrdjsE/view">How to make Graffiti movies.</a>
-* <a target="_blank" href="https://drive.google.com/file/d/1VP5U8xOYsS9rRM4-nc7IjKiLkubBu5Q3/view">How to make a Graffiti tooltip in code</a>
-* <a target="_blank" href="https://drive.google.com/file/d/1y3bXMF5nvUYP9E67SATotRw8m_TRjg4O/view">Accessing and using the Graffiti API</a>
-* <a target="_blank" href="https://drive.google.com/file/d/1i6QuWlHfLNu62d0l1CIteiP-1yNqaHuY/view">Using Graffiti extras like in-line terminals and auto-saving code cells.</a>
-* <a target="_blank" href="https://drive.google.com/file/d/1N2gyzCN14b1vTwZBxNjsgNhZklku-qq4/view">Adding a recording to a Show/Hide solution button.</a>
-* <a target="_blank" href="https://drive.google.com/file/d/1ROb1dCp-w4Js0P77-YcqRWHf0Y0hh0c8/view">How Graffiti in-line shells are recorded into movies.</a>
+* <a target="_blank" href="https://www.youtube.com/watch?v=8gDmr5MiIVA">How to make Graffiti movies.</a>
+* <a target="_blank" href="https://www.youtube.com/watch?v=Mwh5rCRXar4">How to make a Graffiti tooltip in code</a>
+* <a target="_blank" href="https://www.youtube.com/watch?v=PUD-Juu0ZQE&t=9s">Using Graffiti extras like in-line terminals and auto-saving code cells.</a>
+* <a target="_blank" href="https://www.youtube.com/watch?v=hjU0gmis078">Adding a recording to a Show/Hide solution button.</a>
+* <a target="_blank" href="https://www.youtube.com/watch?v=3Zu2Wu44N_I&t=1s">How Graffiti in-line shells are recorded into movies.</a>
+* <a target="_blank" href="https://www.youtube.com/watch?v=vBNHcqJCW-Q">Accessing and using the Graffiti API</a>
 
 ## Advantages of _Graffiti_ Over Traditional Screencasts
 
@@ -68,7 +68,7 @@ you're still in a live Notebook, so you can play around.
 
 ## Using Graffiti with ZERO installation
 
-You can skip installation entirely if you want, be using the Binder
+You can skip installation entirely if you want, by using the Binder
 demo link above. Just upload whatever Notebook you want to add
 Graffiti to to the demo Jupyter Notebook server, activate Graffiti
 (see below), make some recordings, and then download the
