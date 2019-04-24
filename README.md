@@ -13,7 +13,6 @@ and try things out directly in the Notebook.
 
 Here are some YouTube videos demonstrating Graffiti in action:
 
-* <a target="_blank" href="https://www.youtube.com/watch?v=8gDmr5MiIVA">Watch a Graffiti on the Pythagorean Theorem and python.</a>
 * <a target="_blank" href="https://www.youtube.com/watch?v=8gDmr5MiIVA">How to make Graffiti movies.</a>
 * <a target="_blank" href="https://www.youtube.com/watch?v=Mwh5rCRXar4">How to make a Graffiti tooltip in code</a>
 * <a target="_blank" href="https://www.youtube.com/watch?v=PUD-Juu0ZQE&t=9s">Using Graffiti extras like in-line terminals and auto-saving code cells.</a>
