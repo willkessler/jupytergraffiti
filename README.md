@@ -11,7 +11,11 @@ of whatever action you want to show off, narrated by you! Since the
 "recording" plays back in the Notebook, the viewer can pause any time
 and try things out directly in the Notebook.
 
-Here are some YouTube videos demonstrating Graffiti in action:
+Here are some YouTube videos demonstrating Graffiti in action or click this badge to go to a live demo of Graffiti:
+
+[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2FGraffiti%20Basic%20Demo.ipynb)
+
+Videos:
 
 * <a target="_blank" href="https://www.youtube.com/watch?v=8gDmr5MiIVA">How to make Graffiti movies.</a>
 * <a target="_blank" href="https://www.youtube.com/watch?v=Mwh5rCRXar4">How to make a Graffiti tooltip in code</a>
