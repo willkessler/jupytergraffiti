@@ -24,8 +24,8 @@ def play_recording_with_prompt(recording_id, prompt_markdown):
 # After you choose "make a copy" in Jupyter notebook, the notebook id will still point all graffitis at the original notebooks' graffitis.
 # You must call this function after "Make a copy". This will assign a new graffiti id to the notebook, and copy the previous graffitis to a directory with
 # the new graffiti id in the directory name.
-def transfer_graffitis():
-    run_js("window.Graffiti.transferGraffitis()", False)
+def transfer_graffiti():
+    run_js("window.Graffiti.transferGraffiti()", False)
 
 # Stop playback of any movie recording currently playing.
 def stop_playback():
@@ -44,7 +44,7 @@ def remove_movie(recording_id):
     run_js("window.Graffiti.removeMovie('" + recording_id + "')", False)
 
 # Remove all Graffiti from the current notebook. You will be prompted by a confirmation dialog.
-def remove_all_graffitis():
+def remove_all_graffiti():
     run_js("window.Graffiti.removeAllGraffiti()", False)
 
 # Remove all Graffiti from the current notebook and remove all our tags too.
@@ -59,5 +59,5 @@ def set_access_level(level):
     run_js("window.Graffiti.setAccessLevel('" + level + "')", False)
 
 # Package up a zip of the jupytergraffiti_data with the current notebook, for easy portability
-def package_graffitis():
-    run_js("window.Graffiti.packageGraffitis()", False)
+def package_graffiti():
+    run_js("window.Graffiti.packageGraffiti()", False)

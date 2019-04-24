@@ -4,22 +4,31 @@ Create interactive screencasts inside Jupyter Notebook that anybody can play bac
 
 ![intro_movie](./images/tutorial/graffitiMoviePlay1.gif)
 
-Ever wanted to offer someone a hands-on demo in Jupyter Notebook? Now
-you can! Just add __Graffiti__, and any text inside a code or markdown
-cell can be annotated with a hoverable tip (a *Graffiti*) where you
-can explain the code in whatever detail you want (using markdown)!
+Ever wanted to offer someone a hands-on "live" demo in Jupyter
+Notebook? Now you can! Just add __Graffiti__, and any text can be
+enhanced by a hoverable tip (a *Graffiti*) and an accompanying movie
+of whatever action you want to show off, narrated by you! Since the
+"recording" plays back in the Notebook, the viewer can pause any time
+and try things out directly in the Notebook.
 
-Even better, you can attach a screen recording to a _Graffiti_ of any
-actions you take in your Notebook, including:
+Here are some YouTube videos demonstrating Graffiti in action:
+
+* <a target="_blank" href="https://www.youtube.com/watch?v=8gDmr5MiIVA">Watch a Graffiti on the Pythagorean Theorem and python.</a>
+* <a target="_blank" href="https://www.youtube.com/watch?v=8gDmr5MiIVA">How to make Graffiti movies.</a>
+* <a target="_blank" href="https://www.youtube.com/watch?v=Mwh5rCRXar4">How to make a Graffiti tooltip in code</a>
+* <a target="_blank" href="https://www.youtube.com/watch?v=PUD-Juu0ZQE&t=9s">Using Graffiti extras like in-line terminals and auto-saving code cells.</a>
+* <a target="_blank" href="https://www.youtube.com/watch?v=hjU0gmis078">Adding a recording to a Show/Hide solution button.</a>
+* <a target="_blank" href="https://www.youtube.com/watch?v=3Zu2Wu44N_I&t=1s">How Graffiti in-line shells are recorded into movies.</a>
+* <a target="_blank" href="https://www.youtube.com/watch?v=vBNHcqJCW-Q">Accessing and using the Graffiti API</a>
+
+## What exactly can you record inside Graffiti?
 
 * Recorded audio (e.g. voice narration), captured with your laptop's microphone while making your recording
 * Mouse movement and scrolling in the Notebook
 * Selecting and editing inside code cells
 * The output of any code cell executions
-* Inlined terminals (shells) whose activities you can also record.
-* You can also draw and highlight over sections you think are important, or create handwritten notes.
-
-All of this activity can be played back by hovering over the _Graffiti_ and clicking the _Play Movie_ button.
+* You can add inlined terminals (shells), and you can record whatever you type in them.
+* You can also draw and highlight over sections you think are important, add symbols, or create typewritten notes.
 
 ![intro_to_play_movie](./images/intro_to_play_movie.png)
 
@@ -29,20 +38,9 @@ You can see a *live* demonstration of a Notebook with _Graffitis_ by clicking th
 
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2FGraffiti%20Basic%20Demo.ipynb)
 
-Please wait about 30 seconds for the demonstration to spin up at <a
-href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2FGraffiti%20Basic%20Demo.ipynb">mybinder.org</a>. (Thanks
-to the folks at MyBinder for this awesome service).
+Please wait about 30 seconds for the demonstration to spin up at <a href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2FGraffiti%20Basic%20Demo.ipynb">mybinder.org</a>. (Thanks to the folks at MyBinder for this awesome service).
 
 You can visit the <a href="user_manual/UserManual.ipynb">User Manual<a> for more detailed instructions on how to use Graffiti.
-
-You can also just visit these videos on Google to learn by watching:
-
-* <a target="_blank" href="https://www.youtube.com/watch?v=8gDmr5MiIVA">How to make Graffiti movies.</a>
-* <a target="_blank" href="https://www.youtube.com/watch?v=Mwh5rCRXar4">How to make a Graffiti tooltip in code</a>
-* <a target="_blank" href="https://www.youtube.com/watch?v=PUD-Juu0ZQE&t=9s">Using Graffiti extras like in-line terminals and auto-saving code cells.</a>
-* <a target="_blank" href="https://www.youtube.com/watch?v=hjU0gmis078">Adding a recording to a Show/Hide solution button.</a>
-* <a target="_blank" href="https://www.youtube.com/watch?v=3Zu2Wu44N_I&t=1s">How Graffiti in-line shells are recorded into movies.</a>
-* <a target="_blank" href="https://www.youtube.com/watch?v=vBNHcqJCW-Q">Accessing and using the Graffiti API</a>
 
 ## Advantages of _Graffiti_ Over Traditional Screencasts
 
@@ -70,7 +68,7 @@ you're still in a live Notebook, so you can play around.
 
 You can skip installation entirely if you want, by using the Binder
 demo link above. Just upload whatever Notebook you want to add
-Graffiti to to the demo Jupyter Notebook server, activate Graffiti
+Graffiti to the demo Jupyter Notebook server, activate Graffiti
 (see below), make some recordings, and then download the
 `jupytergraffiti_data` folder along with your Graffiti-ized Notebook
 from the binder Notebook server. To make this easier, we've installed
@@ -243,5 +241,16 @@ recording prompting them to go on to the next exercise.
 
 ### CREDITS
 
-Author/Maintainer: Will Kessler github:willkessler
-Advisors: Andy Brown (design), Tugce Akin (engineering), Nathan Tate (engineering).
+Author/Maintainer: 
+
+Will Kessler 
+
+github: <a href="https://github.com/willkessler">willkessler</a>
+twitter: @atlas3650
+
+
+Advisors: 
+
+* Andy Brown (feature design)
+* Tugce Akin (engineering)
+* Nathan Tate (engineering).
