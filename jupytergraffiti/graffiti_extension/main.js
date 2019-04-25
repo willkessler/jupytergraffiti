@@ -6,7 +6,7 @@ window.Graffiti = null;
 define([], () => {
   return {
     load_ipython_extension: () => {
-      require(['js/initExtension.js']);
+      require(['jupytergraffiti/js/initExtension.js']);
     }
   };
 });
