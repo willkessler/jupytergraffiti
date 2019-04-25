@@ -87,6 +87,7 @@ define([
       state.shiftKeyWentDown = false;
       state.scaleCursorWithWindow = false;
       state.terminalState = undefined;
+      state.applyingRawCalculatedScrollTop = true; // turned off when applying skips, but usually on during scrubbing
       state.cellIdToGraffitiMap = {}; // maps which graffitis are present in which cells. Used for autosave cells.
 
       // Usage statistic gathering for the current session (since last load of the notebook)
@@ -501,6 +502,18 @@ define([
 
     setScaleCursorWithWindow: () => {
       state.scaleCursorWithWindow = true;
+    },
+
+    getApplyingRawCalculatedScrollTop: () => {
+      return state.applyingRawCalculatedScrollTop;
+    },
+
+    activateApplyingRawCalculatedScrollTop: () => {
+      state.applyingRawCalculatedScrollTop = true;
+    },
+
+    deactivateApplyingRawCalculatedScrollTop: () => {
+      state.applyingRawCalculatedScrollTop = false;
     },
 
     getGraffitiEditCellId: () => {

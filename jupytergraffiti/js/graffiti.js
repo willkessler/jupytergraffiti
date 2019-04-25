@@ -3178,7 +3178,7 @@ define([
       },
 
       hideTip: (tip) => {
-        graffiti.notebookContainer.find('.graffiti-tip .headline').remove();
+        graffiti.notebookContainer.find('.graffiti-tip .headline').remove(); // we remove the headline forcibly because it could contain a video that we want to stop playing
         graffiti.notebookContainer.find('.graffiti-tip').hide();
         // I think this is messing up clickable images.
         //state.clearPlayableMovie('tip');
@@ -3316,16 +3316,18 @@ define([
                   // Don't replace the tip if the contents are identical to what we had on the last interval.
                   const currentTipInfo = state.getDisplayedTipInfo();
                   let doUpdate = true;
-                  if (!graffiti.forcedGraffitiTooltipRefresh) {
-                    if (currentTipInfo !== undefined) {
-                      if ((currentTipInfo.cellId === cellId) && (currentTipInfo.recordingKey === recordingKey)) {
-                        doUpdate = false;
+                  if (headlineMarkdown.length === 0) { // always do an update if this tooltip contains a headline, because it may have been removed by hideTip().
+                    if (!graffiti.forcedGraffitiTooltipRefresh) {
+                      if (currentTipInfo !== undefined) {
+                        if ((currentTipInfo.cellId === cellId) && (currentTipInfo.recordingKey === recordingKey)) {
+                          doUpdate = false;
+                        }
                       }
                     }
                   }
                   graffiti.forcedGraffitiTooltipRefresh = false;
                   if (doUpdate) {
-                    //console.log('replacing tooltip contents ');
+                    //console.log('replacing tooltip contents,' ,tooltipContents);
                     existingTip.find('#graffiti-movie-play-btn').unbind('click');
                     existingTip.html(tooltipContents);
                     state.setDisplayedTipInfo(cellId,recordingKey);
@@ -4806,7 +4808,7 @@ define([
             $('.graffiti-canvas-type-temporary').css({opacity: record.opacity });
             break;
           case 'wipe':
-            console.log('Graffiti: wiping temporary sticker canvas');
+            //console.log('Graffiti: wiping temporary sticker canvas');
             graffiti.wipeTemporaryStickerDomCanvases();
             graffiti.clearCanvases('temporary');            
             break;
@@ -5253,6 +5255,9 @@ define([
       // When jumping around, or if we reached the end of playback and the next playback will reset to beginning, then we may need to attempt to recalculate 
       // and apply the raw scrollTop (excluding any nudging, so it's approximate).
       applyRawCalculatedScrollTop: (viewIndex) => {
+        if (!state.getApplyingRawCalculatedScrollTop()) {
+          return;
+        }
         let record, i, calculatedScrollTop = graffiti.prePlaybackScrolltop;
         for (i = 0; i < viewIndex; ++i) {
           record = state.getHistoryItem('view', i);
@@ -5287,7 +5292,6 @@ define([
           graffiti.startPlayback();
         }
         graffiti.updateAllGraffitiDisplays();
-        graffiti.applyRawCalculatedScrollTop(frameIndexes.view.index);
       },
 
       handleSliderDrag: () => {
@@ -5307,7 +5311,6 @@ define([
         graffiti.updateDisplay(frameIndexes); // can replay scroll diffs, and in playback use cumulative scroll diff
         graffiti.updateTimeDisplay(t);
         graffiti.redrawAllDrawings(t);
-        graffiti.applyRawCalculatedScrollTop(frameIndexes.view.index);
       },
 
       handleTerminalsEvents: (event) => {
@@ -5335,6 +5338,7 @@ define([
           state.setAppliedSkipRecord();
           const isLastSkipRecord = state.isLastSkipRecord();
           let duration;
+          state.deactivateApplyingRawCalculatedScrollTop();
           if (isLastSkipRecord) {
             console.log('Graffiti: doing last skip as absolute');
             skipInfo.type = state.skipTypes['absolute']; // last skip is overridden to always be absolute.
@@ -5365,6 +5369,7 @@ define([
               didSkip = true;
               break;
           }
+          state.activateApplyingRawCalculatedScrollTop();
         } else {
           state.clearAppliedSkipRecord();
           // Now stop any acceleration from a skip, and return to whatever speed the user was viewing with before the skip started.

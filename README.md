@@ -141,8 +141,7 @@ and serving Notebooks over port 8888.
 The advantage of using the Docker container is that *Jupyter Graffiti*
 is always loaded automatically, so you don't have to execute `import
 jupytergraffiti` in the Notebook just to play back *Graffitis* (but
-you *will* need to run it to access the _Graffiti_ API and switch to
-*Create* mode).
+you *will* need to run it to access the _Graffiti_ API).
 
 using the Docker container also ensures you're running a recent
 version of Jupyter Notebook.
