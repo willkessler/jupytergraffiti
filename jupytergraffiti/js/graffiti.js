@@ -127,8 +127,41 @@ define([
 
       changeDataDirBegin: () => {
         console.log('Changing data dir');
-        utils.saveNotebook();
-
+        const rawConfirmationMarkdown = '<button id="graffiti-confirm-datapath">Confirm</button>';
+        const confirmationCell = Jupyter.notebook.insert_cell_at_index('markdown',0);
+        Jupyter.notebook.select(0);
+        confirmationCell.set_text(rawConfirmationMarkdown);
+        const pathCell = Jupyter.notebook.insert_cell_at_index('code',0);
+        pathCell.set_text('jupytergraffiti_data/');
+        const instructionsCell = Jupyter.notebook.insert_cell_at_index('markdown',0);
+        instructionsCell.select();
+        const instructions =
+          "### Confirm Data Path\n" +
+          "You can tell Graffiti to store its data in another folder/path. " +
+          "In the cell below, put the _relative_ path to the folder where you want to store Graffiti data, including the folder name and a trailing slash. " +
+          "For example, suppose you want Graffiti to store its data one folder up in a directory called `graffitibits`. Then you should enter `../graffitibits/` here. " +
+          '(The default value is `jupytergraffiti_data/`, a folder in the same directory as this Notebook.)' +
+          "\n\n" +
+          "_Please Note:_ \n\n" +
+          "* If you are unsure what to do, don't change the path and just hit the _Confirm_ button.\n" +
+          "* If the data folder does not exist, Graffiti will create it when you create your first Graffiti for the notebook.\n" +
+          "* Any Graffiti recorded previously in a different path will become unavailable. \n" +
+          "* This cell, the path cell and Confirm button cell below will be removed from the Notebook after you click _Confirm_.";
+        Jupyter.notebook.select(0);
+        instructionsCell.set_text(instructions);
+        setTimeout(() => {
+          instructionsCell.render();
+          confirmationCell.render();
+          pathCell.focus_cell();
+          graffiti.confirmDataPathButton = $('#graffiti-confirm-datapath');
+          graffiti.confirmDataPathButton.bind('click', () => {
+            graffiti.confirmDataPathButton.unbind('click');
+            Jupyter.notebook.delete_cell(0);
+            Jupyter.notebook.delete_cell(0);
+            Jupyter.notebook.delete_cell(0);
+            utils.saveNotebook();
+          });
+        }, 10);
       },
 
       bindControlPanelCallbacks: (parent, callbacks) => {
