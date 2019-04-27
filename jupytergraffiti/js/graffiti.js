@@ -132,7 +132,11 @@ define([
         Jupyter.notebook.select(0);
         confirmationCell.set_text(rawConfirmationMarkdown);
         const pathCell = Jupyter.notebook.insert_cell_at_index('code',0);
-        pathCell.set_text('jupytergraffiti_data/');
+        let oldDataDir = utils.getNotebookGraffitiConfigEntry('dataDir');
+        if (oldDataDir === undefined) {
+          oldDataDir = 'jupytergraffiti_data/';
+        }
+        pathCell.set_text(oldDataDir);
         const instructionsCell = Jupyter.notebook.insert_cell_at_index('markdown',0);
         instructionsCell.select();
         const instructions =
@@ -155,11 +159,38 @@ define([
           pathCell.focus_cell();
           graffiti.confirmDataPathButton = $('#graffiti-confirm-datapath');
           graffiti.confirmDataPathButton.bind('click', () => {
+            let newPathAccepted = false;
+            let newDataDir = $.trim(pathCell.get_text());
+            if (newDataDir.length > 0) {
+              if (newDataDir[newDataDir.length - 1] !== '/') {
+                newDataDir = newDataDir + '/';
+              }
+              if (newDataDir !== oldDataDir) {
+                utils.setNotebookGraffitiConfigEntry('dataDir', newDataDir);
+                newPathAccepted = true;
+              }
+            }
             graffiti.confirmDataPathButton.unbind('click');
             Jupyter.notebook.delete_cell(0);
             Jupyter.notebook.delete_cell(0);
             Jupyter.notebook.delete_cell(0);
-            utils.saveNotebook();
+            utils.saveNotebook(() => {
+              if (newPathAccepted) {
+                const changeModal = dialog.modal({
+                  title: 'Your new path for Graffiti has been accepted',
+                  body: "Your Graffiti path has been changed. Now you must reload your notebook. \n\nYou can change this setting any time with " +
+                        'the Data Directory button on the Graffiti Editor panel.',
+                  sanitize: false,
+                  buttons: {
+                    'OK' : {
+                      click: (e) => { 
+                        console.log('Graffiti: Path change acknowledged.'); 
+                      }
+                    }
+                  }
+                });
+              }
+            });
           });
         }, 10);
       },
