@@ -125,6 +125,12 @@ define([
         recorderApiKeyCell.code_mirror.focus();
       },
 
+      changeDataDirBegin: () => {
+        console.log('Changing data dir');
+        utils.saveNotebook();
+
+      },
+
       bindControlPanelCallbacks: (parent, callbacks) => {
         if (callbacks !== undefined) {
           let cb, id, elem;
@@ -644,7 +650,7 @@ define([
                                       '  </button>' +
                                       '  <div id="graffiti-skip-buttons">' +
                                       '    <button class="btn btn-default btn-rewind" id="graffiti-rewind-btn" title="' + localizer.getString('SKIP_BACK') + ' ' +
-                                       (state.scanningIsOn() ? localizer.getString('TO_PREVIOUS_SENTENCE') : graffiti.rewindAmt + ' ' + localizer.getString('SECONDS')) + '">' +
+                                        (state.scanningIsOn() ? localizer.getString('TO_PREVIOUS_SENTENCE') : graffiti.rewindAmt + ' ' + localizer.getString('SECONDS')) + '">' +
                                       '      <i class="fa fa-backward"></i>' +
                                       '    </button>' +
                                       '    <button class="btn btn-default btn-forward" id="graffiti-forward-btn" title="' + localizer.getString('SKIP_FORWARD') + ' ' + 
@@ -1094,6 +1100,10 @@ define([
                                       '<span id="graffiti-locked-off">' + stickerLib.makeLock(lockConfigOff) + '</span>' +
                                       '    </div>' +
 
+                                      '    <div class="graffiti-stickers-button" id="graffiti-change-data-dir-button" title="' + 
+                                      localizer.getString('CHANGE_DATADIR_TAG') + '">' + stickerLib.makeHomeFolderIcon(defaultIconConfiguration) +
+                                      '    </div>' +
+
                                       '  </div>' +
                                       '</div>',
                                       [
@@ -1137,7 +1147,7 @@ define([
                                           ids: ['graffiti-create-showhide-button'],
                                           event: 'click', 
                                           fn: (e) => { 
-                                            console.log('Creating show/hide btn')
+                                            console.log('Creating show/hide btn');
                                             graffiti.createGraffitiButtonAboveSelectedCell({
                                               tooltipCommands: { 
                                                 insertDataFromFile: {
@@ -1155,6 +1165,13 @@ define([
                                               ],
                                             });
                                             utils.saveNotebook();
+                                          }
+                                        },
+                                        {
+                                          ids: ['graffiti-change-data-dir-button'],
+                                          event: 'click', 
+                                          fn: (e) => { 
+                                            graffiti.changeDataDirBegin();
                                           }
                                         }
                                       ]
