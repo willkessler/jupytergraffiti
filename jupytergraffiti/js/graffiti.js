@@ -139,18 +139,7 @@ define([
         pathCell.set_text(oldDataDir);
         const instructionsCell = Jupyter.notebook.insert_cell_at_index('markdown',0);
         instructionsCell.select();
-        const instructions =
-          "### Confirm Data Path\n" +
-          "You can tell Graffiti to store its data in another folder/path. " +
-          "In the cell below, put the _relative_ path to the folder where you want to store Graffiti data, including the folder name and a trailing slash. " +
-          "For example, suppose you want Graffiti to store its data one folder up in a directory called `graffitibits`. Then you should enter `../graffitibits/` here. " +
-          '(The default value is `jupytergraffiti_data/`, a folder in the same directory as this Notebook.)' +
-          "\n\n" +
-          "_Please Note:_ \n\n" +
-          "* If you are unsure what to do, don't change the path and just hit the _Confirm_ button.\n" +
-          "* If the data folder does not exist, Graffiti will create it when you create your first Graffiti for the notebook.\n" +
-          "* Any Graffiti recorded previously in a different path will become unavailable. \n" +
-          "* This cell, the path cell and Confirm button cell below will be removed from the Notebook after you click _Confirm_.";
+        const instructions = localizer.getString('DATA_PATH_INSTRUCTIONS');
         Jupyter.notebook.select(0);
         instructionsCell.set_text(instructions);
         setTimeout(() => {
@@ -177,9 +166,8 @@ define([
             utils.saveNotebook(() => {
               if (newPathAccepted) {
                 const changeModal = dialog.modal({
-                  title: 'Your new path for Graffiti has been accepted',
-                  body: "Your Graffiti path has been changed. Now you must reload your notebook. \n\nYou can change this setting any time with " +
-                        'the Data Directory button on the Graffiti Editor panel.',
+                  title: localizer.getString('ACCEPTED_DATADIR_HEADER'),
+                  body:  localizer.getString('ACCEPTED_DATADIR_BODY'),
                   sanitize: false,
                   buttons: {
                     'OK' : {

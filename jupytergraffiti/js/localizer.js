@@ -165,6 +165,24 @@ define([
             'UNLOCK_BODY':                       'This will unlock all markdown cells so you can edit them (note: terminal cells are always locked).',
             'LOCK_BODY':                         'This will lock all markdown cells so they can no longer be edited.',
             'LOCK_CONFIRM':                      'markdown cells in notebook?',
+            'DATA_PATH_INSTRUCTIONS':            "### Change Data Path?\n" +
+                                                 "You can tell Graffiti to store its data in another folder/path. " +
+                                                 "In the code cell below, put the _relative_ path to the folder where you want to store Graffiti data, " +
+                                                 "including the folder name and a trailing slash. " +
+                                                 "For example, suppose you want Graffiti to store its data one folder up in a directory called `graffitibits`. " +
+                                                 "Then you should enter `../graffitibits/` here. " +
+                                                 '(The default value is `jupytergraffiti_data/`, a folder in the same directory as this Notebook.)' +
+                                                 "\n\n" +
+                                                 "_Please Note:_ \n\n" +
+                                                 "* If you are unsure what to do, don't change the path and just hit the _Confirm_ button.\n" +
+                                                 "* If the data folder does not exist, Graffiti will create it when you create your first Graffiti for the notebook.\n" +
+                                                 "* Any Graffiti recorded previously in a different path will become unavailable. \n" +
+                                                 "* This cell, the path cell and Confirm button cell below will be automatically removed from the Notebook after you " +
+                                                 "click _Confirm_.",
+            'ACCEPTED_DATADIR_HEADER':           'Your new path for Graffiti has been accepted',
+            'ACCEPTED_DATADIR_BODY':             "Your Graffiti path has been changed. Now you must reload your notebook. \n\nYou can change this setting any time with " +
+                                                 'the Data Directory button on the Graffiti Editor panel.',
+
           }
           break;
         case 'CN':
@@ -299,6 +317,23 @@ define([
             'UNLOCK_BODY':                       'This will unlock all markdown cells so you can edit them (note: terminal cells are always locked).',
             'LOCK_BODY':                         'This will lock all markdown cells so they can no longer be edited.',
             'LOCK_CONFIRM':                      'markdown cells in notebook?',
+            'DATA_PATH_INSTRUCTIONS':            "### Change Data Path?\n" +
+                                                 "You can tell Graffiti to store its data in another folder/path. " +
+                                                 "In the code cell below, put the _relative_ path to the folder where you want to store Graffiti data, " +
+                                                 "including the folder name and a trailing slash. " +
+                                                 "For example, suppose you want Graffiti to store its data one folder up in a directory called `graffitibits`. " +
+                                                 "Then you should enter `../graffitibits/` here. " +
+                                                 '(The default value is `jupytergraffiti_data/`, a folder in the same directory as this Notebook.)' +
+                                                 "\n\n" +
+                                                 "_Please Note:_ \n\n" +
+                                                 "* If you are unsure what to do, don't change the path and just hit the _Confirm_ button.\n" +
+                                                 "* If the data folder does not exist, Graffiti will create it when you create your first Graffiti for the notebook.\n" +
+                                                 "* Any Graffiti recorded previously in a different path will become unavailable. \n" +
+                                                 "* This cell, the path cell and Confirm button cell below will be automatically removed from the Notebook after you " +
+                                                 "click _Confirm_.",
+            'ACCEPTED_DATADIR_HEADER':           'Your new path for Graffiti has been accepted',
+            'ACCEPTED_DATADIR_BODY':             "Your Graffiti path has been changed. Now you must reload your notebook. \n\nYou can change this setting any time with " +
+                                                 'the Data Directory button on the Graffiti Editor panel.',
           };
           break;
       }
