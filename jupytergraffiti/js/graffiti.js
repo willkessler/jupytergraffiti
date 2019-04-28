@@ -125,8 +125,7 @@ define([
         recorderApiKeyCell.code_mirror.focus();
       },
 
-      changeDataDirBegin: () => {
-        console.log('Changing data dir');
+      changeDataDir: () => {
         const rawConfirmationMarkdown = '<button id="graffiti-confirm-datapath">Confirm</button>';
         const confirmationCell = Jupyter.notebook.insert_cell_at_index('markdown',0);
         Jupyter.notebook.select(0);
@@ -702,7 +701,7 @@ define([
                                       '  </button>' +
                                       '  <div id="graffiti-skip-buttons">' +
                                       '    <button class="btn btn-default btn-rewind" id="graffiti-rewind-btn" title="' + localizer.getString('SKIP_BACK') + ' ' +
-                                        (state.scanningIsOn() ? localizer.getString('TO_PREVIOUS_SENTENCE') : graffiti.rewindAmt + ' ' + localizer.getString('SECONDS')) + '">' +
+                                       (state.scanningIsOn() ? localizer.getString('TO_PREVIOUS_SENTENCE') : graffiti.rewindAmt + ' ' + localizer.getString('SECONDS')) + '">' +
                                       '      <i class="fa fa-backward"></i>' +
                                       '    </button>' +
                                       '    <button class="btn btn-default btn-forward" id="graffiti-forward-btn" title="' + localizer.getString('SKIP_FORWARD') + ' ' + 
@@ -1199,7 +1198,6 @@ define([
                                           ids: ['graffiti-create-showhide-button'],
                                           event: 'click', 
                                           fn: (e) => { 
-                                            console.log('Creating show/hide btn');
                                             graffiti.createGraffitiButtonAboveSelectedCell({
                                               tooltipCommands: { 
                                                 insertDataFromFile: {
@@ -1223,7 +1221,7 @@ define([
                                           ids: ['graffiti-change-data-dir-button'],
                                           event: 'click', 
                                           fn: (e) => { 
-                                            graffiti.changeDataDirBegin();
+                                            graffiti.changeDataDir();
                                           }
                                         }
                                       ]
