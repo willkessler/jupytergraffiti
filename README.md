@@ -111,7 +111,7 @@ If everything works, you will see a button labelled "Activate Graffiti" in your 
 
 If you don't see this button appearing, use `Kernel... Restart and Clear Output` first, then try running ```import jupytergraffiti``` again.
 
-![kernel_restart](./images/kernel_restart.png)
+![kernel_restart](./images/tutorial/kernel_restart.png)
 
 Once you see this message, you can "Activate Graffiti" on a Notebook to begin creating Graffiti. The file UserManual.ipynb has many details on how to create Graffiti.
 
