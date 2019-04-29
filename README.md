@@ -39,7 +39,7 @@ to the folks at MyBinder for this awesome service).
 
 You can visit the <a href="user_manual/UserManual.ipynb">User Manual<a> for more detailed instructions on how to use Graffiti.
 
-You can also just visit these videos on Google to learn by watching:
+You can also just watch these videos the traditional way (on YouTube) to learn about Graffiti by watching:
 
 * <a target="_blank" href="https://drive.google.com/file/d/1eEga9NJ4ak8RZh28co4CZRck-4TrdjsE/view">How to make Graffiti movies.</a>
 * <a target="_blank" href="https://drive.google.com/file/d/1VP5U8xOYsS9rRM4-nc7IjKiLkubBu5Q3/view">How to make a Graffiti tooltip in code</a>
