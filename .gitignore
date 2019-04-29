@@ -70,3 +70,6 @@ __pycache__
 .ipython
 .ipynb_checkpoints
 build
+jupytergraffiti/graffiti-dist/
+user_manual/jupytergraffiti
+
