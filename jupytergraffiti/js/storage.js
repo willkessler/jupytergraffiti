@@ -182,6 +182,7 @@ define([
         dataDir = dataDir + '/';
       }
       const basePath = dataDir + 'notebooks/' + notebook.metadata.graffiti.id + '/authors/' + state.getAuthorId() + '/';
+      //console.log('dataDir:', dataDir, 'basePath:', basePath);
       return basePath;
     },
 
