@@ -18,6 +18,7 @@ actions you take in your Notebook, including:
 * The output of any code cell executions
 * Inlined terminals (shells) whose activities you can also record.
 * You can also draw and highlight over sections you think are important, or create handwritten notes.
+* Support for the <a href="https://github.com/QuantStack/xeus-cling">C++ kernel</a> and the <a href="https://github.com/IRkernel/IRkernel">R kernel</a> is included in addition to the Python kernel.
 
 All of this activity can be played back by hovering over the _Graffiti_ and clicking the _Play Movie_ button.
 
@@ -25,7 +26,7 @@ All of this activity can be played back by hovering over the _Graffiti_ and clic
 
 ## Demo
 
-You can see *live* demonstrations of Notebooks with working _Graffitis_ by just clicking the links below:
+You can see *live* demonstrations of Notebooks with working Graffiti by just clicking the links below:
 
 * [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fgeneral%2FGraffiti%20Basic%20Demo.ipynb) <a href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fgeneral%2FGraffiti%20Basic%20Demo.ipynb">General Demo</a>
 * [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fudacity%2Fc%2B%2B_nanodegree%2FFor%20Loops.ipynb) <a href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fudacity%2Fc%2B%2B_nanodegree%2FFor%20Loops.ipynb">Udacity C++ Nanodegree Example: "For Loops"</a>
@@ -33,20 +34,18 @@ You can see *live* demonstrations of Notebooks with working _Graffitis_ by just 
 * [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fudacity%2Fdata_structures_nanodegree%2FImplement%20a%20stack%20using%20an%20array.ipynb) <a href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fudacity%2Fdata_structures_nanodegree%2FImplement%20a%20stack%20using%20an%20array.ipynb">Udacity Data Structures and Algorithms Nanodegree Example: "Implementing a Stack using an Array"</a>
 
 
-Please wait about 30 seconds for the demonstration to spin up at <a
-href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2FGraffiti%20Basic%20Demo.ipynb">mybinder.org</a>. (Thanks
-to the folks at MyBinder for this awesome service).
+Please wait about 30 seconds for the demonstration to spin up at mybinder.org. (Thanks to the folks at MyBinder for this awesome service).
 
 You can visit the <a href="user_manual/UserManual.ipynb">User Manual<a> for more detailed instructions on how to use Graffiti.
 
-You can also just watch these videos the traditional way (on YouTube) to learn about Graffiti by watching:
+Alterntively, you can watch these more traditional YouTube videos to learn about Graffiti:
 
-* <a target="_blank" href="https://drive.google.com/file/d/1eEga9NJ4ak8RZh28co4CZRck-4TrdjsE/view">How to make Graffiti movies.</a>
+* <a target="_blank" href="https://drive.google.com/file/d/1eEga9NJ4ak8RZh28co4CZRck-4TrdjsE/view">How to make Graffiti movies</a>
 * <a target="_blank" href="https://drive.google.com/file/d/1VP5U8xOYsS9rRM4-nc7IjKiLkubBu5Q3/view">How to make a Graffiti tooltip in code</a>
 * <a target="_blank" href="https://drive.google.com/file/d/1y3bXMF5nvUYP9E67SATotRw8m_TRjg4O/view">Accessing and using the Graffiti API</a>
-* <a target="_blank" href="https://drive.google.com/file/d/1i6QuWlHfLNu62d0l1CIteiP-1yNqaHuY/view">Using Graffiti extras like in-line terminals and auto-saving code cells.</a>
-* <a target="_blank" href="https://drive.google.com/file/d/1N2gyzCN14b1vTwZBxNjsgNhZklku-qq4/view">Adding a recording to a Show/Hide solution button.</a>
-* <a target="_blank" href="https://drive.google.com/file/d/1ROb1dCp-w4Js0P77-YcqRWHf0Y0hh0c8/view">How Graffiti in-line shells are recorded into movies.</a>
+* <a target="_blank" href="https://drive.google.com/file/d/1i6QuWlHfLNu62d0l1CIteiP-1yNqaHuY/view">Using Graffiti extras like in-line terminals and auto-saving code cells</a>
+* <a target="_blank" href="https://drive.google.com/file/d/1N2gyzCN14b1vTwZBxNjsgNhZklku-qq4/view">Adding a recording to a Show/Hide solution button</a>
+* <a target="_blank" href="https://drive.google.com/file/d/1ROb1dCp-w4Js0P77-YcqRWHf0Y0hh0c8/view">How Graffiti in-line shells are recorded into movies</a>
 
 ## Advantages of _Graffiti_ Over Traditional Screencasts
 
@@ -64,7 +63,7 @@ you're still in a live Notebook, so you can play around.
   how to install it). Or, you can skip installation entirely (see below).
 * All data, including audio, is stored in compressed plain text in a
   directory separate from your Notebook files, for easy portability and
-  storage in any version control system.
+  storage in any version control system e.g. git/github.
 * Unlike streamed video, you don't need a video server or hosted
   YouTube videos, and you can watch the videos even without an
   internet connection or over narrow bandwidth, because the files are
@@ -101,7 +100,7 @@ Notebook. This is because _Jupyter Graffiti_ is mostly written in Javascript,
 and by default, if the Notebook you're adding _Graffitis_ to was not
 created by you, Jupyter Notebook will not "Trust" it and will not run
 externally loaded javascript code, for security reasons.  To Trust a
-Notebook, click `File...Trust Notebook`*before* running the import
+Notebook, click `File...Trust Notebook`*before*  running the import
 command below.
 
 1. `git clone` this repo in the same directory where you keep the Notebook(s) you want to add _Graffiti_ to.
@@ -117,7 +116,10 @@ If you don't see this button appearing, use `Kernel... Restart and Clear Output`
 
 ![kernel_restart](./images/tutorial/kernel_restart.png)
 
-Once you see this message, you can "Activate Graffiti" on a Notebook to begin creating Graffiti. The file UserManual.ipynb has many details on how to create Graffiti.
+Once you see this message, you can "Activate Graffiti" on a Notebook
+to begin creating Graffiti. The <a
+href="user_manual/UserManual.ipynb">User Manual<a> has many details on
+how to create Graffiti.
 
 **Special Note** : if you are adding *Graffitis* to Notebooks that do not reside in the same folder where you cloned this repo, then you must :
 
@@ -217,7 +219,7 @@ When you `import jupytergraffiti` you get immediate access to
 functions you can use to control _Jupyter Graffiti_ from Python. Some
 of these are utility functions, and others can be used to control
 recordings playback.  To use them, simply run the Python functions in your
-Notebook's cells.
+Notebook's cells (note: the API only works with the Python kernels at this time).
 
 #### Playing Back Graffiti Recordings
 
