@@ -1,0 +1,16 @@
+#!/bin/bash
+set -euxo pipefail
+
+exec >> postBuild_output.txt
+exec 2>&1
+
+pushd jupytergraffiti
+npm install && npm run build && \
+    jupyter nbextension install graffiti-dist --user && \
+    jupyter nbextension enable graffiti-dist/graffiti
+popd
+
+pip install nbzip
+jupyter serverextension enable --py nbzip --sys-prefix
+jupyter nbextension install --py nbzip --user
+jupyter nbextension enable --py nbzip
