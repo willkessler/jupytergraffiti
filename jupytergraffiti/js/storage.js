@@ -175,7 +175,14 @@ define([
         storage.ensureNotebookGetsGraffitiId();
       }
       // hardwired to only load author recordings for now
-      const basePath = 'jupytergraffiti_data/notebooks/' + notebook.metadata.graffiti.id + '/authors/' + state.getAuthorId() + '/';
+      let dataDir = utils.getNotebookGraffitiConfigEntry('dataDir');
+      if (dataDir === undefined) {
+        dataDir = 'jupytergraffiti_data/';
+      } else if (dataDir[dataDir.length - 1] !== '/') {
+        dataDir = dataDir + '/';
+      }
+      const basePath = dataDir + 'notebooks/' + notebook.metadata.graffiti.id + '/authors/' + state.getAuthorId() + '/';
+      //console.log('dataDir:', dataDir, 'basePath:', basePath);
       return basePath;
     },
 
