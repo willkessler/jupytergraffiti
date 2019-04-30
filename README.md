@@ -13,7 +13,7 @@ and try things out directly in the Notebook.
 
 Here are some YouTube videos demonstrating Graffiti in action or click this badge to go to a live demo of Graffiti:
 
-[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%%2Fgeneral%2FGraffiti%20Basic%20Demo.ipynb)
+[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fgeneral%2FGraffiti%20Basic%20Demo.ipynb)
 
 Videos:
 
