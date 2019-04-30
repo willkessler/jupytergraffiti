@@ -795,22 +795,18 @@ define([
 
     reworkFetchPathForVirtualHosts: (path) => {
       // Rework fetch paths on hosts like binder.org, where there is some additional virtual path between document.origin
-      // and the path to the notebook. If a relative path, keep "tree" or "notebook" in the path; otherwise start
+      // and the path to the notebook. If a relative path, keep "notebook" in the path; otherwise start
       // any absolute path from *after* document.location.origin + virtual path.
       const loc = document.location;
       const urlPathName = loc.pathname;
-      const hasTree = (urlPathName.indexOf('/tree') > -1);
       const hasNotebooks = (urlPathName.indexOf('/notebooks/') > -1);
       const leadingSlash = (path[0] === '/');
-      let treeNotebook = '', parts;
-      if (hasTree) {
-        treeNotebook = (leadingSlash ? '' : '/tree/');
-        parts = urlPathName.split(/\/tree/,2);
-      } else if (hasNotebooks) {
-        treeNotebook = (leadingSlash ? '' : '/notebooks/');
+      let pathMiddle = '', parts;
+      if (hasNotebooks) {
+        pathMiddle = (leadingSlash ? '' : '/notebooks/');
         parts = urlPathName.split(/\/notebooks\//,2);
       }
-      const reworkedPath = loc.origin + (parts[0].length > 0 ? parts[0] + treeNotebook + path : treeNotebook + path);
+      const reworkedPath = loc.origin + (parts[0].length > 0 ? parts[0] + pathMiddle + path : pathMiddle + path);
       return reworkedPath;
     },
 
