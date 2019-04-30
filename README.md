@@ -17,6 +17,7 @@ Here are some YouTube videos demonstrating Graffiti in action or click this badg
 
 Videos:
 
+* <a target="_blank" href="https://youtu.be/3hGD0PiPuhI">Gentle Introduction To Graffiti</a> (Start here)
 * <a target="_blank" href="https://www.youtube.com/watch?v=8gDmr5MiIVA">How to make Graffiti movies.</a>
 * <a target="_blank" href="https://www.youtube.com/watch?v=Mwh5rCRXar4">How to make a Graffiti tooltip in code</a>
 * <a target="_blank" href="https://www.youtube.com/watch?v=PUD-Juu0ZQE&t=9s">Using Graffiti extras like in-line terminals and auto-saving code cells.</a>
