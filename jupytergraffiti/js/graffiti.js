@@ -6131,8 +6131,8 @@ define([
         graffiti.showControlPanels(['graffiti-notifier','graffiti-creators-chooser']);
       },
 
-      transferGraffitis: () => {
-        storage.transferGraffitis().then(() => {
+      transferGraffiti: () => {
+        storage.transferGraffiti().then(() => {
           dialog.modal({
             title: 'Transfer Complete',
             body: 'Your Notebook\'s Graffitis have been copied over from the original notebook. ' +
@@ -6149,8 +6149,8 @@ define([
         });
       },
 
-      packageGraffitis: () => {
-        storage.packageGraffitis().then((fileName) => {
+      packageGraffiti: () => {
+        storage.packageGraffiti().then((fileName) => {
           dialog.modal({
             title: 'Packaging Complete',
             body: 'Your Notebook\'s Graffitis, and your notebook, have been copied into a archive file.<br><br>' +
@@ -6251,8 +6251,8 @@ define([
       removeAllGraffiti:  graffiti.removeAllGraffitisWithConfirmation,
       disableGraffiti: graffiti.disableGraffitiWithConfirmation,
       setAccessLevel: (level) => { graffiti.toggleAccessLevel(level) },
-      transferGraffitis: () => { graffiti.transferGraffitis() },
-      packageGraffitis: () => { graffiti.packageGraffitis() },
+      transferGraffiti: () => { graffiti.transferGraffiti() },
+      packageGraffiti: () => { graffiti.packageGraffiti() },
       getUsageStats: () => { return state.getUsageStats() },
       selectionSerializer: selectionSerializer,
       controlTerminal: (opts) => { graffiti.controlTerminal(opts) },

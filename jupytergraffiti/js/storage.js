@@ -462,7 +462,7 @@ define([
       storage.cleanUpExecutorCell();
     },
 
-    transferGraffitis: () => {
+    transferGraffiti: () => {
       const notebook = Jupyter.notebook;
       let originalGraffitiId;
       if (notebook.metadata.hasOwnProperty('graffiti')) {
@@ -483,7 +483,7 @@ define([
       return Promise.resolve(); // not really doing this right but...
     },
 
-    packageGraffitis: () => {
+    packageGraffiti: () => {
       //utils.saveNotebook();
       const notebook = Jupyter.notebook;
       const notebookName = notebook.get_notebook_name();
