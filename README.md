@@ -12,7 +12,7 @@ and it's narrated by you!  Since the movie plays back in _and on_ the
 Notebook, the viewer can pause any time and try things out exactly as
 you had them when you were recording, and then resume any time.
 
-## Try Graffiti Immediately Via These Live Demos
+## Try Graffiti with these _Live_ Demos:
 
 * [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fgeneral%2FGraffiti%20Basic%20Demo.ipynb) <a href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fgeneral%2FGraffiti%20Basic%20Demo.ipynb">General Demo</a>
 * [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fudacity%2Fc%2B%2B_nanodegree%2FFor%20Loops.ipynb) <a href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fudacity%2Fc%2B%2B_nanodegree%2FFor%20Loops.ipynb">Udacity C++ Nanodegree Example: "For Loops"</a>
@@ -21,7 +21,7 @@ you had them when you were recording, and then resume any time.
 
 _Please wait about 30 seconds for the demonstration to spin up at mybinder.org. (Thanks to the folks at MyBinder for this awesome service)._
 
-## Watch YouTube Video Demos
+## Watch Regular Recorded Video Demos:
 
 * <a target="_blank" href="https://youtu.be/3hGD0PiPuhI">Gentle Introduction To Graffiti</a> (Start here)
 * <a target="_blank" href="https://www.youtube.com/watch?v=8gDmr5MiIVA">How to make Graffiti movies.</a>
@@ -41,9 +41,7 @@ _Please wait about 30 seconds for the demonstration to spin up at mybinder.org. 
 * You can also draw and highlight over sections you think are important, or create handwritten notes.
 * Support for the <a href="https://github.com/QuantStack/xeus-cling">C++ kernel</a> and the <a href="https://github.com/IRkernel/IRkernel">R kernel</a> is included in addition to the Python kernel.
 
-## Learn How to Use Graffiti
-
-Watch these YouTube videos to learn how to use Graffiti:
+## Learn How to Use Graffiti:
 
 * <a target="_blank" href="https://drive.google.com/file/d/1eEga9NJ4ak8RZh28co4CZRck-4TrdjsE/view">How to make Graffiti movies</a>
 * <a target="_blank" href="https://drive.google.com/file/d/1VP5U8xOYsS9rRM4-nc7IjKiLkubBu5Q3/view">How to make a Graffiti tooltip in code</a>
