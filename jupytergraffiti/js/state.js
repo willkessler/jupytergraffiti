@@ -790,7 +790,7 @@ define([
       usageStats.statsGatheredAt = utils.getNow();
       delete(usageStats['uniqueTips']);
 
-      console.log('Graffiti: getUsageStats() is returning:', usageStats);
+      //console.log('Graffiti: getUsageStats() is returning:', usageStats);
       return usageStats;
     },
 
