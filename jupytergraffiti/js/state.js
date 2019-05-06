@@ -865,8 +865,6 @@ define([
           break;
         case 'userSkips':
           // We count user skips separately.
-          // Right now, we only record that we show something via this graffiti, not that we hide something.
-          // we also increment the total number of times any show/hide button is clicked
           state.usageStats.totalUserSkips++;
           if (!state.usageStats.userSkips.hasOwnProperty(state.currentStatsKey)) {
             state.usageStats.userSkips[state.currentStatsKey] = 0;
