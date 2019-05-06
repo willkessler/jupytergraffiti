@@ -888,7 +888,7 @@ define([
             }
           }
       }
-      //console.log('updateUsageStats:', state.usageStats);
+      //console.log('updateUsageStats:', JSON.stringify(state.usageStats.played));
     },
     
     //

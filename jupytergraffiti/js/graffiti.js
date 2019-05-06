@@ -3509,7 +3509,7 @@ define([
         const activity = state.getActivity();
         let stopProp = false;
 
-        //console.log('handleKeydown keyCode:', keyCode, String.fromCharCode(keyCode));
+        //console.log('handleKeydown keyCode:', e, keyCode, String.fromCharCode(keyCode));
         if (activity === 'recording') {
           if (keyCode === graffiti.skipKeyCode) {
             graffiti.skipKeyDownTimer = setTimeout(() => { 
@@ -3547,7 +3547,10 @@ define([
              ((65 <= keyCode) && (keyCode <= 90)) ||    // 0-9
              ((37 <= keyCode) && (keyCode <= 40)) ||    // arrow keys                
              (keyCode === 32))                          // space bar
-            && activity === 'playing') {
+            && (activity === 'playing') &&
+            (!e.metaKey) && // allow things like cmd-R, hit while playing, to be considered in the switch below. 
+            (!e.ctrlKey) &&
+            (!e.altKey) ) {
           // Pressing keys : A-Z, 0-9, arrows, and spacebar stop any playback in progress.
           stopProp = true;
           graffiti.togglePlayback();
