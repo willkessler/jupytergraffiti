@@ -3980,7 +3980,7 @@ define([
               }
             });
             
-            console.log('Graffiti: finishGraffiti: we got these stats:', state.getUsageStats(), recording);
+            // console.log('Graffiti: finishGraffiti: we got these stats:', state.getUsageStats(), recording);
 
           } else { // Not saving (recording cancelled by user), so make sure we remove this record from the manifest before saving.
             if (recordingCellInfo.newRecording) {
@@ -5508,7 +5508,7 @@ define([
         utils.saveNotebook();
         graffiti.setSitePanelScrollTop(currentScrollTop); // restore scrollTop because restoring cell contents messes with it
 
-        console.log('Graffiti: Got these stats:', state.getUsageStats());
+        // console.log('Graffiti: Got these stats:', state.getUsageStats());
       },
 
       cancelPlaybackFinish: () => {
@@ -5876,6 +5876,15 @@ define([
               const hoverCellElement = hoverCell.element[0];
               const swappedButtonDOM = $(hoverCellElement).find('.' + tagClass);
               graffiti.refreshGraffitiTooltipsCore(swappedButtonDOM, 'mouseenter'); // simulate a mouseenter event so that the new button gets bound
+              if (insertedData) { // we only record the "show" actions, not the "hide" actions
+                state.updateUsageStats({
+                  type: 'insertDataFromFile',
+                  data: {
+                    cellId:        recordingCellId,
+                    recordingKey:  recordingKey,
+                  }
+                });
+              }
             }
           }
         }
