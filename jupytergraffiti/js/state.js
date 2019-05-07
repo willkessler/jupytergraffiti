@@ -826,7 +826,8 @@ define([
               totalTime: 0, 
               totalTimeThisPlay: 0,
               maxViewingTime: 0,
-              totalPlays: 0
+              totalPlays: 0,
+              recordingDuration: state.history.duration
             };
           }
           state.currentStatsKey = statsKey;
@@ -878,7 +879,6 @@ define([
               case 'resetCurrentPlayTime':
                 delete(usageRecord['currentPlayTime']);
                 usageRecord.totalTimeThisPlay = 0;
-                usageRecord.recordingDuration = state.history.duration;
                 break;
               case 'updateCurrentPlayTime':
                 usageRecord.currentPlayTime = Math.round(state.getTimePlayedSoFar());
