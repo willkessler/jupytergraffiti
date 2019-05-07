@@ -827,6 +827,8 @@ define([
               totalTimeThisPlay: 0,
               maxViewingTime: 0,
               totalPlays: 0,
+              totalPlaysRightAfterLoad: 0, // total of all plays that happened "from scratch", ie you just loaded the graffiti, not a play event triggered
+                                           // by pressing play after you paused the graffiti
               recordingDuration: state.history.duration
             };
           }
@@ -879,6 +881,7 @@ define([
               case 'resetCurrentPlayTime':
                 delete(usageRecord['currentPlayTime']);
                 usageRecord.totalTimeThisPlay = 0;
+                usageRecord.totalPlaysRightAfterLoad++;
                 break;
               case 'updateCurrentPlayTime':
                 usageRecord.currentPlayTime = Math.round(state.getTimePlayedSoFar());
