@@ -821,6 +821,9 @@ define([
                                               graffiti.startPlayback();
                                             }
                                             graffiti.updateAllGraffitiDisplays();
+                                            state.updateUsageStats({
+                                              type:'userSkips'
+                                            });
                                           }
                                         },
                                         {
@@ -3509,7 +3512,7 @@ define([
         const activity = state.getActivity();
         let stopProp = false;
 
-        //console.log('handleKeydown keyCode:', keyCode, String.fromCharCode(keyCode));
+        //console.log('handleKeydown keyCode:', e, keyCode, String.fromCharCode(keyCode));
         if (activity === 'recording') {
           if (keyCode === graffiti.skipKeyCode) {
             graffiti.skipKeyDownTimer = setTimeout(() => { 
@@ -3547,7 +3550,10 @@ define([
              ((65 <= keyCode) && (keyCode <= 90)) ||    // 0-9
              ((37 <= keyCode) && (keyCode <= 40)) ||    // arrow keys                
              (keyCode === 32))                          // space bar
-            && activity === 'playing') {
+            && (activity === 'playing') &&
+            (!e.metaKey) && // allow things like cmd-R, hit while playing, to be considered in the switch below. 
+            (!e.ctrlKey) &&
+            (!e.altKey) ) {
           // Pressing keys : A-Z, 0-9, arrows, and spacebar stop any playback in progress.
           stopProp = true;
           graffiti.togglePlayback();
@@ -3980,7 +3986,7 @@ define([
               }
             });
             
-            console.log('Graffiti: finishGraffiti: we got these stats:', state.getUsageStats(), recording);
+            // console.log('Graffiti: finishGraffiti: we got these stats:', state.getUsageStats(), recording);
 
           } else { // Not saving (recording cancelled by user), so make sure we remove this record from the manifest before saving.
             if (recordingCellInfo.newRecording) {
@@ -5508,7 +5514,7 @@ define([
         utils.saveNotebook();
         graffiti.setSitePanelScrollTop(currentScrollTop); // restore scrollTop because restoring cell contents messes with it
 
-        console.log('Graffiti: Got these stats:', state.getUsageStats());
+        // console.log('Graffiti: Got these stats:', state.getUsageStats());
       },
 
       cancelPlaybackFinish: () => {
@@ -5876,6 +5882,15 @@ define([
               const hoverCellElement = hoverCell.element[0];
               const swappedButtonDOM = $(hoverCellElement).find('.' + tagClass);
               graffiti.refreshGraffitiTooltipsCore(swappedButtonDOM, 'mouseenter'); // simulate a mouseenter event so that the new button gets bound
+              if (insertedData) { // we only record the "show" actions, not the "hide" actions
+                state.updateUsageStats({
+                  type: 'insertDataFromFile',
+                  data: {
+                    cellId:        recordingCellId,
+                    recordingKey:  recordingKey,
+                  }
+                });
+              }
             }
           }
         }
