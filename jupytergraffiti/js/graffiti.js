@@ -821,6 +821,9 @@ define([
                                               graffiti.startPlayback();
                                             }
                                             graffiti.updateAllGraffitiDisplays();
+                                            state.updateUsageStats({
+                                              type:'userSkips'
+                                            });
                                           }
                                         },
                                         {

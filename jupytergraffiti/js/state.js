@@ -97,6 +97,7 @@ define([
         played: {},    // how much time and how many plays were done
         terminalCommands: {}, // what terminal commands were executed by graffiti
         insertDataFromFile: {}, // how many times we've done insert data from file (e.g. how many times "Show solution" type buttons were pressed) per graffiti
+        userSkips: {}, // which graffiti have been skipped around on by the user (scrubbed)
         totalTipsShown: 0,  // how many times we've shown tips
         totalUniqueTipsShown: 0,
         totalUniquePlays: 0,
@@ -104,6 +105,7 @@ define([
         totalPlayTimeAllGraffiti: 0,
         totalTerminalCommandsRun: 0,
         totalInsertDataFromFile: 0,
+        totalUserSkips: 0,
         uniqueTips: {},
       };        
       state.statsKey = undefined;
@@ -823,7 +825,9 @@ define([
             playStats[statsKey] = {
               totalTime: 0, 
               totalTimeThisPlay: 0,
-              totalPlays: 0
+              maxViewingTime: 0,
+              totalPlays: 0,
+              recordingDuration: state.history.duration
             };
           }
           state.currentStatsKey = statsKey;
@@ -860,6 +864,14 @@ define([
           terminalCommandsStats[statsKey].numRunsThisSession++;
           terminalCommandsStats[statsKey].commands.push(opts.command);
           break;
+        case 'userSkips':
+          // We count user skips separately.
+          state.usageStats.totalUserSkips++;
+          if (!state.usageStats.userSkips.hasOwnProperty(state.currentStatsKey)) {
+            state.usageStats.userSkips[state.currentStatsKey] = 0;
+          }
+          state.usageStats.userSkips[state.currentStatsKey]++;
+          break;
         case 'play':
           const usageRecord = playStats[state.currentStatsKey];
           for (let action of data.actions) {
@@ -867,7 +879,6 @@ define([
               case 'resetCurrentPlayTime':
                 delete(usageRecord['currentPlayTime']);
                 usageRecord.totalTimeThisPlay = 0;
-                usageRecord.recordingDuration = state.history.duration;
                 break;
               case 'updateCurrentPlayTime':
                 usageRecord.currentPlayTime = Math.round(state.getTimePlayedSoFar());
@@ -876,6 +887,7 @@ define([
                 if (state.currentStatsKey !== undefined) {
                   usageRecord.totalTime += usageRecord.currentPlayTime;
                   usageRecord.totalTimeThisPlay += usageRecord.currentPlayTime;
+                  usageRecord.maxViewingTime = Math.max(usageRecord.maxViewingTime, usageRecord.totalTimeThisPlay);
                   state.usageStats.totalPlayTimeAllGraffiti += usageRecord.currentPlayTime;
                   delete(usageRecord['currentPlayTime']);
                 }
@@ -888,7 +900,7 @@ define([
             }
           }
       }
-      //console.log('updateUsageStats:', JSON.stringify(state.usageStats.played));
+      // console.log('updateUsageStats:', state.usageStats);
     },
     
     //
