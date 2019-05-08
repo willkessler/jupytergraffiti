@@ -5814,6 +5814,8 @@ define([
             // so that we have the cell ready to record from.
             utils.setMetadataCellId(newCell.metadata, existingCellId);
             utils.refreshCellMaps();
+            const newCellIndex = viewInfo.cellIndex + 1;
+            Jupyter.notebook.select(newCellIndex);
             newCell.set_text(contents);
             newCell.render();
             return Promise.resolve(true);
