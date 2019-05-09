@@ -477,7 +477,7 @@ define([
         graffiti.setupOneControlPanel('graffiti-control-panel-title', 
                                       '<div>' + stickerLib.makeSmallUdacityIcon({width:20,height:20}) + '</div><div id="graffiti-logo-text">' + logoText + '</div>');
 
-        const dragHandle = $('#graffiti-inner-control-panel'); // As of 5/8/19, the entire panel (except its controls) is now draggable.
+        const dragHandle = $('#graffiti-drag-handle,#graffiti-control-panel-title');
         dragHandle.on('mousedown', (e) => {
           graffiti.startPanelDragging(e); 
         });

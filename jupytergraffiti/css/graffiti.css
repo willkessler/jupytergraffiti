@@ -187,7 +187,6 @@
 
 #graffiti-inner-control-panel {
   display:flex;
-  cursor:pointer;
 }
 
 #graffiti-control-panel-title {
@@ -200,6 +199,7 @@
   margin-top:0px;
   margin-bottom:0px;
   font-size:.8em;
+  cursor:pointer;
 }
 
 #graffiti-control-panel-title div {
@@ -349,6 +349,7 @@
   margin-left:0px;
   margin-right:4px;
   width:10px;
+  cursor:pointer;
 }
 
 #graffiti-recorder-range {
