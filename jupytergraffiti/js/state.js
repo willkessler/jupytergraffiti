@@ -83,6 +83,7 @@ define([
       state.highlightsRefreshCellId = undefined;
       state.graffitiEditCellId = undefined;
       state.narratorInfo = {};
+      state.narratorInfoIsRendered = false;
       state.shiftKeyIsDown = false;
       state.shiftKeyWentDown = false;
       state.scaleCursorWithWindow = false;
@@ -540,6 +541,14 @@ define([
       state.narratorInfo[which] = val;
     },
 
+    getNarratorInfoIsRendered: () => {
+      return state.narratorInfoIsRendered;
+    },
+
+    setNarratorInfoIsRendered: (val) => {
+      state.narratorInfoIsRendered = val;
+    },
+
     scanForSpeakingStatus: () => {
       targetTime = state.getTimePlayedSoFar();
       const lastSpeakingIndex = state.getIndexUpToTime('speaking', targetTime);
@@ -822,9 +831,11 @@ define([
           activeTakeId = data.activeTakeId;
           statsKey = utils.composeGraffitiId(cellId, recordingKey, activeTakeId);
           if (!playStats.hasOwnProperty(statsKey)) {
+            const epochTime = utils.getNow();
             playStats[statsKey] = {
               totalTime: 0, 
               totalTimeThisPlay: 0,
+              epochTime: epochTime,
               maxViewingTime: 0,
               totalPlays: 0,
               totalPlaysRightAfterLoad: 0, // total of all plays that happened "from scratch", ie you just loaded the graffiti, not a play event triggered
@@ -889,7 +900,7 @@ define([
               case 'updateTotalPlayTime':
                 if (state.currentStatsKey !== undefined) {
                   usageRecord.totalTime += usageRecord.currentPlayTime;
-                  usageRecord.totalTimeThisPlay += usageRecord.currentPlayTime;
+                  usageRecord.totalTimeThisPlay = Math.max(usageRecord.recordingDuration, usageRecord.currentPlayTime + usageRecord.totalTimeThisPlay);
                   usageRecord.maxViewingTime = Math.max(usageRecord.maxViewingTime, usageRecord.totalTimeThisPlay);
                   state.usageStats.totalPlayTimeAllGraffiti += usageRecord.currentPlayTime;
                   delete(usageRecord['currentPlayTime']);
