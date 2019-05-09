@@ -3675,10 +3675,8 @@ define([
           return true; // let this event bubble
         };
 
-        // If we were playing a recording when they hit reload, we need to cancel it, restore, and save before we continue. 
-        // Needs more testing!!
-        window.addEventListener('beforeunload unload', function (e) {
-          console.log('Graffiti: ', e.type, 'handler.');
+        const navigateAwayHandler =  (e) => {
+          console.log('Graffiti: navigate away handler, e:', e.type);
           const activity = state.getActivity();
           if ((activity === 'playing') || (activity === 'playbackPaused') || (activity == 'scrubbing')) {
             graffiti.cancelPlaybackNoVisualUpdates();
@@ -3686,7 +3684,17 @@ define([
           if (workspace.trackUsageStats !== undefined) {
             workspace.trackUsageStats();
           }
+        };
+
+        // If we were playing a recording when they hit reload, we need to cancel it, restore, and save before we continue. 
+        // Needs more testing!!
+        window.addEventListener('beforeunload', function (e) {
+          navigateAwayHandler(e);
         });
+
+        window.onunload = (e) => {
+          navigateAwayHandler(e);
+        };
 
         // https://stackoverflow.com/questions/19469881/remove-all-event-listeners-of-specific-type
         window.addEventListener('dblclick', (e) => { 
