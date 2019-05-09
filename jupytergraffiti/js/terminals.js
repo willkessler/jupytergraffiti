@@ -324,7 +324,7 @@ define ([
             if (cell.metadata.graffitiConfig.type === 'terminal') {
               let config = $.extend({}, cell.metadata.graffitiConfig);
               if ((utils.getNotebookGraffitiConfigEntry('singleTerminal') !== undefined) &&
-                  (utils.getNotebookGraffitiConfigEntry('singleTerminal') == "true")) {
+                  (utils.getNotebookGraffitiConfigEntry('singleTerminal') == "true")) { // note that the metadata entry has to be "true", not just true. (double quotes req'd)
                 config.terminalId = utils.getNotebookGraffitiConfigEntry('id');
                 terminals.singleCDCommand = true;
               }
