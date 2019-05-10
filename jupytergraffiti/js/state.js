@@ -890,7 +890,7 @@ define([
                 if (state.currentStatsKey !== undefined) {
                   usageRecord.totalTime += usageRecord.currentPlayTime;
                   usageRecord.totalTimeThisPlay += usageRecord.currentPlayTime;
-                  usageRecord.maxViewingTime = Math.max(usageRecord.maxViewingTime, usageRecord.totalTimeThisPlay);
+                  usageRecord.maxViewingTime = Math.min(usageRecord.recordingDuration, Math.max(usageRecord.maxViewingTime, usageRecord.totalTimeThisPlay));
                   state.usageStats.totalPlayTimeAllGraffiti += usageRecord.currentPlayTime;
                   delete(usageRecord['currentPlayTime']);
                 }
