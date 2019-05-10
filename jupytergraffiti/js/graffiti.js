@@ -224,6 +224,10 @@ define([
         }
       },
 
+      cleanUpButtonBorders: () => {
+        $('.graffiti-highlight:has(button)').css({border:"none"}); // remove the borders on graffiti buttons
+      },
+
       startPanelDragging: (e) => {
         console.log('Graffiti: dragging control panel');
         const controlPanelPosition = graffiti.outerControlPanel.position();
@@ -1230,48 +1234,6 @@ define([
                                       ]
         );
         graffiti.refreshMarkdownLock();
-
-        // Will return to this code soon. It simulates multiple creators (e.g. students) and switching between their different sets of Graffiti.
-        /*
-           const creatorsTitle = 'Graffitis by:'.split('').join('&nbsp;');
-           graffiti.setupOneControlPanel('graffiti-creators-chooser',
-           '<div id="graffiti-creators-chooser">' +
-           ' <div id="graffiti-creators-chooser-title">' + creatorsTitle + '</div>' +
-           ' <div class="graffiti-creator">' +
-           '    <div><img src="images/headshots/h1.jpeg"></div>' +
-           '    <div>Stacy M.</div>' +
-           ' </div>' +
-           ' <div class="graffiti-creator">' +
-           '    <div><img src="images/headshots/h2.jpeg"></div>' +
-           '    <div>Bobby P.</div>' +
-           ' </div>' +
-           ' <div class="graffiti-creator">' +
-           '    <div><img src="images/headshots/h3.jpeg"></div>' +
-           '    <div>Akarnam J.</div>' +
-           ' </div>' +
-           ' <div class="graffiti-creator">' +
-           '    <div><img src="images/headshots/h4.jpeg"></div>' +
-           '    <div>James R.</div>' +
-           ' </div>' +
-           ' <div class="graffiti-creator">' +
-           '    <div><img src="images/headshots/h5.jpeg"></div>' +
-           '    <div>Amanda M.</div>' +
-           ' </div>' +
-           ' <div class="graffiti-creator">' +
-           '    <div><img src="images/headshots/h6.jpeg"></div>' +
-           '    <div>Aimee E.</div>' +
-           ' </div>' +
-           ' <div class="graffiti-creator">' +
-           '    <div><img src="images/headshots/h7.jpeg"></div>' +
-           '    <div>Lena Y.</div>' +
-           ' </div>' +
-           ' <div id="graffiti-creators-chooser-show-all">' +
-           '  <input type="checkbox" id="chooser-show-all" /><label for="chooser-show-all">&nbsp;Show All Graffitis</label>' +
-           ' </div>' +
-           '</div>'
-           );
-         */
-
       },
 
       setupMarkdownLocks: () => {
@@ -1703,6 +1665,7 @@ define([
           graffiti.setupBackgroundEvents();
           graffiti.refreshAllGraffitiHighlights();
           graffiti.refreshGraffitiTooltipsDebounced();
+          graffiti.cleanUpButtonBorders();
         }, 500); // this timeout avoids too-early rendering of hidden recorder controls
 
         graffiti.setupControlPanels();
@@ -3233,6 +3196,7 @@ define([
           graffiti.refreshGraffitiHighlights(params);
           graffiti.refreshGraffitiSideMarkers(cell);
         }
+        graffiti.cleanUpButtonBorders();
       },
 
       updateRefreshableCell: () => {

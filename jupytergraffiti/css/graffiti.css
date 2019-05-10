@@ -116,7 +116,6 @@
 }
 
 .graffiti-highlight {
-/*  border-bottom:2px dotted rgb(67,127,127);*/
   border-bottom:2px dashed rgb(47,147,107);
   cursor:pointer;
 }
