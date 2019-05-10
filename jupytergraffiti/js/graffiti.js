@@ -481,7 +481,7 @@ define([
         graffiti.setupOneControlPanel('graffiti-control-panel-title', 
                                       '<div>' + stickerLib.makeSmallUdacityIcon({width:20,height:20}) + '</div><div id="graffiti-logo-text">' + logoText + '</div>');
 
-        const dragHandle = $('#graffiti-control-panels-shell');
+        const dragHandle = $('#graffiti-inner-control-panel');
         dragHandle.on('mousedown', (e) => {
           const target = $(e.target);
           if (target.attr('id') !== 'graffiti-recorder-range') {

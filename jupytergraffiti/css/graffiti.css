@@ -186,9 +186,11 @@
 
 #graffiti-inner-control-panel {
   display:flex;
+  cursor:pointer;
 }
 
 #graffiti-control-panel-title {
+  cursor:pointer;
   display:flex;
   align-items:center;
   font-color:#666;
@@ -326,10 +328,6 @@
   font-size:0.9em;
 }
 
-#graffiti-control-panels-shell {
-  cursor:pointer;
-}
-
 #graffiti-control-panel-cancel {
   color:#f00;
   font-weight:bold;
@@ -348,6 +346,7 @@
 }
 
 #graffiti-drag-handle {
+  cursor:pointer;
   margin-left:0px;
   margin-right:4px;
   width:10px;
