@@ -1448,6 +1448,24 @@ define([
             break;
         }
 
+        if ( ((activity === 'playing') || (activity === 'playbackPending') || (activity === 'playbackPaused')) &&
+             (!state.getNarratorInfoIsRendered()) ) {
+          const narratorName = state.getNarratorInfo('name');
+          const narratorPicture = state.getNarratorInfo('picture');
+          if ((narratorName !== undefined) || (narratorPicture !== undefined)) {
+            graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-narrator-info').show();
+            if (narratorPicture !== undefined) {
+              graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-narrator-pic').html('<img src="' + narratorPicture + '" />');
+            }
+            if (narratorName !== undefined) {
+              graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-narrator-name').html(narratorName);
+            }
+            state.setNarratorInfoIsRendered(true);
+          } else {
+            graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-narrator-info').hide();
+          }
+        }
+
         let visibleControlPanels;
         switch (activity) {
           case 'idle':
@@ -1554,18 +1572,6 @@ define([
             break;
           case 'playing':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-play-btn').hide().parent().find('#graffiti-pause-btn').show();
-            graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-narrator-info').hide();
-            const narratorName = state.getNarratorInfo('name');
-            const narratorPicture = state.getNarratorInfo('picture');
-            if ((narratorName !== undefined) || (narratorPicture !== undefined)) {
-              graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-narrator-info').show();
-              if (narratorPicture !== undefined) {
-                graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-narrator-pic').html('<img src="' + narratorPicture + '" />');
-              }
-              if (narratorName !== undefined) {
-                graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-narrator-name').html(narratorName);
-              }              
-            }
             visibleControlPanels = ['graffiti-playback-controls'];
             graffiti.showControlPanels(visibleControlPanels);
             break;
@@ -1720,29 +1726,6 @@ define([
 
         storage.preloadAllMovies();
 
-/*
-        let body = '<div>Enter the Graffiti Hub Key to import Graffiti into this notebook.</div>';
-        body += '<div style="font-weight:bold;margin-top:15px;">Key: <input type="text" value="R5a7Hb"/ width="60"></div>';
-        body += '<div style="font-style:italic; color:green;">(Author: N. Vishalyam)</div>';
-        dialog.modal({
-          title: 'Import Graffiti from GraffitiHub?',
-          body: body,
-          sanitize:false,
-          buttons: {
-            'Import': {
-              click: (e) => {
-                console.log('Graffiti: You clicked Import');
-              }
-            },
-            'Cancel': {
-              click: (e) => {
-                console.log('Graffiti: You clicked Cancel');
-              }
-            }
-          }
-        });
-*/
-        
       },
 
       setGraffitiPenColor: (colorVal) => {
@@ -3692,10 +3675,8 @@ define([
           return true; // let this event bubble
         };
 
-        // If we were playing a recording when they hit reload, we need to cancel it, restore, and save before we continue. 
-        // Needs more testing!!
-        window.addEventListener('beforeunload', function (e) {
-          console.log('Graffiti: before unload handler.');
+        const navigateAwayHandler =  (e) => {
+          console.log('Graffiti: navigate away handler, e:', e.type);
           const activity = state.getActivity();
           if ((activity === 'playing') || (activity === 'playbackPaused') || (activity == 'scrubbing')) {
             graffiti.cancelPlaybackNoVisualUpdates();
@@ -3703,15 +3684,16 @@ define([
           if (workspace.trackUsageStats !== undefined) {
             workspace.trackUsageStats();
           }
+        };
+
+        // If we were playing a recording when they hit reload, we need to cancel it, restore, and save before we continue. 
+        // Needs more testing!!
+        window.addEventListener('beforeunload', function (e) {
+          navigateAwayHandler(e);
         });
 
-        // To make async calls work on non-chrome browsers
-        // https://stackoverflow.com/a/20322988/4953199
         window.onunload = (e) => {
-          console.log('Graffiti: on unload');
-          if (workspace.trackUsageStats !== undefined) {
-            workspace.trackUsageStats();
-          }
+          navigateAwayHandler(e);
         };
 
         // https://stackoverflow.com/questions/19469881/remove-all-event-listeners-of-specific-type
@@ -3891,7 +3873,6 @@ define([
             // Set up some reasonable options for Graffiti in markdown. Author can, of course, opt to change these any time.
             editableText = localizer.getString('BELOW_TYPE_MARKDOWN') +
                            "%%play_on_click\n" +
-                           "%%hide_player_after_playback_complete\n" +
                            "%%hide_play_button\n";
           } else {
             editableText = localizer.getString('BELOW_TYPE_MARKDOWN') +
@@ -5919,6 +5900,7 @@ define([
         state.setNarratorInfo('picture', recording.narratorPicture);
         state.setSkipInfo(recording.skipInfo);
         state.clearScaleCursorWithWindow();
+        state.setNarratorInfoIsRendered(false);
         if (recording.scaleCursorWithWindow) {
           state.setScaleCursorWithWindow();
         }
