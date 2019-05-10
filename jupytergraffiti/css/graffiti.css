@@ -198,7 +198,6 @@
   margin-top:0px;
   margin-bottom:0px;
   font-size:.8em;
-  cursor:pointer;
 }
 
 #graffiti-control-panel-title div {
@@ -327,6 +326,10 @@
   font-size:0.9em;
 }
 
+#graffiti-control-panels-shell {
+  cursor:pointer;
+}
+
 #graffiti-control-panel-cancel {
   color:#f00;
   font-weight:bold;
@@ -348,7 +351,6 @@
   margin-left:0px;
   margin-right:4px;
   width:10px;
-  cursor:pointer;
 }
 
 #graffiti-recorder-range {

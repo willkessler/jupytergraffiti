@@ -481,9 +481,13 @@ define([
         graffiti.setupOneControlPanel('graffiti-control-panel-title', 
                                       '<div>' + stickerLib.makeSmallUdacityIcon({width:20,height:20}) + '</div><div id="graffiti-logo-text">' + logoText + '</div>');
 
-        const dragHandle = $('#graffiti-drag-handle,#graffiti-control-panel-title');
+        //const dragHandle = $('#graffiti-drag-handle,#graffiti-control-panel-title');
+        const dragHandle = $('#graffiti-control-panels-shell');
         dragHandle.on('mousedown', (e) => {
-          graffiti.startPanelDragging(e); 
+          const target = $(e.target);
+          if (target.attr('id') !== 'graffiti-recorder-range') {
+            graffiti.startPanelDragging(e); 
+          }
         });
 
         graffiti.windowResizeHandler = (opts) => {
@@ -1650,6 +1654,7 @@ define([
       },
 
       initInteractivity: () => {
+        graffiti.cleanUpButtonBorders();
         graffiti.notebookContainer.click((e) => {
           // console.log('Graffiti: clicked container');
           if (state.getActivity() === 'recordingPending') {
@@ -1665,7 +1670,6 @@ define([
           graffiti.setupBackgroundEvents();
           graffiti.refreshAllGraffitiHighlights();
           graffiti.refreshGraffitiTooltipsDebounced();
-          graffiti.cleanUpButtonBorders();
         }, 500); // this timeout avoids too-early rendering of hidden recorder controls
 
         graffiti.setupControlPanels();
