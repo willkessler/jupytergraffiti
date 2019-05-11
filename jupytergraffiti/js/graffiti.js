@@ -224,8 +224,12 @@ define([
         }
       },
 
+      cleanUpButtonBorders: () => {
+        $('.graffiti-highlight:has(button)').css({border:"none"}); // remove the borders on graffiti buttons
+      },
+
       startPanelDragging: (e) => {
-        console.log('Graffiti: dragging control panel');
+        //console.log('Graffiti: dragging control panel');
         const controlPanelPosition = graffiti.outerControlPanel.position();
         const pointerPosition = state.getPointerPosition();
         state.setControlPanelDragging(true);
@@ -477,9 +481,12 @@ define([
         graffiti.setupOneControlPanel('graffiti-control-panel-title', 
                                       '<div>' + stickerLib.makeSmallUdacityIcon({width:20,height:20}) + '</div><div id="graffiti-logo-text">' + logoText + '</div>');
 
-        const dragHandle = $('#graffiti-drag-handle,#graffiti-control-panel-title');
+        const dragHandle = $('#graffiti-inner-control-panel');
         dragHandle.on('mousedown', (e) => {
-          graffiti.startPanelDragging(e); 
+          const target = $(e.target);
+          if (target.attr('id') !== 'graffiti-recorder-range') {
+            graffiti.startPanelDragging(e); 
+          }
         });
 
         graffiti.windowResizeHandler = (opts) => {
@@ -1230,48 +1237,6 @@ define([
                                       ]
         );
         graffiti.refreshMarkdownLock();
-
-        // Will return to this code soon. It simulates multiple creators (e.g. students) and switching between their different sets of Graffiti.
-        /*
-           const creatorsTitle = 'Graffitis by:'.split('').join('&nbsp;');
-           graffiti.setupOneControlPanel('graffiti-creators-chooser',
-           '<div id="graffiti-creators-chooser">' +
-           ' <div id="graffiti-creators-chooser-title">' + creatorsTitle + '</div>' +
-           ' <div class="graffiti-creator">' +
-           '    <div><img src="images/headshots/h1.jpeg"></div>' +
-           '    <div>Stacy M.</div>' +
-           ' </div>' +
-           ' <div class="graffiti-creator">' +
-           '    <div><img src="images/headshots/h2.jpeg"></div>' +
-           '    <div>Bobby P.</div>' +
-           ' </div>' +
-           ' <div class="graffiti-creator">' +
-           '    <div><img src="images/headshots/h3.jpeg"></div>' +
-           '    <div>Akarnam J.</div>' +
-           ' </div>' +
-           ' <div class="graffiti-creator">' +
-           '    <div><img src="images/headshots/h4.jpeg"></div>' +
-           '    <div>James R.</div>' +
-           ' </div>' +
-           ' <div class="graffiti-creator">' +
-           '    <div><img src="images/headshots/h5.jpeg"></div>' +
-           '    <div>Amanda M.</div>' +
-           ' </div>' +
-           ' <div class="graffiti-creator">' +
-           '    <div><img src="images/headshots/h6.jpeg"></div>' +
-           '    <div>Aimee E.</div>' +
-           ' </div>' +
-           ' <div class="graffiti-creator">' +
-           '    <div><img src="images/headshots/h7.jpeg"></div>' +
-           '    <div>Lena Y.</div>' +
-           ' </div>' +
-           ' <div id="graffiti-creators-chooser-show-all">' +
-           '  <input type="checkbox" id="chooser-show-all" /><label for="chooser-show-all">&nbsp;Show All Graffitis</label>' +
-           ' </div>' +
-           '</div>'
-           );
-         */
-
       },
 
       setupMarkdownLocks: () => {
@@ -1694,6 +1659,7 @@ define([
       },
 
       initInteractivity: () => {
+        graffiti.cleanUpButtonBorders();
         graffiti.notebookContainer.click((e) => {
           // console.log('Graffiti: clicked container');
           if (state.getActivity() === 'recordingPending') {
@@ -3216,6 +3182,7 @@ define([
           graffiti.refreshGraffitiHighlights(params);
           graffiti.refreshGraffitiSideMarkers(cell);
         }
+        graffiti.cleanUpButtonBorders();
       },
 
       updateRefreshableCell: () => {
