@@ -162,7 +162,7 @@ define([
             Jupyter.notebook.delete_cell(0);
             Jupyter.notebook.delete_cell(0);
             Jupyter.notebook.delete_cell(0);
-            utils.saveNotebookDebounced(() => {
+            utils.queueSaveNotebookCallback(() => {
               if (newPathAccepted) {
                 const changeModal = dialog.modal({
                   title: localizer.getString('ACCEPTED_DATADIR_HEADER'),
@@ -178,6 +178,7 @@ define([
                 });
               }
             });
+            utils.saveNotebookDebounced();
           });
         }, 10);
       },
@@ -3960,7 +3961,7 @@ define([
         }
 
         return new Promise((resolve) => {
-          utils.saveNotebookDebounced(() => {
+          utils.queueSaveNotebookCallback(() => {
 
             // need to reselect graffiti text that was selected in case it somehow got unselected
             //recordingCell.code_mirror.setSelections(recordingCellInfo.selections);
@@ -3983,6 +3984,7 @@ define([
             resolve();
           });
         });
+        utils.saveNotebookDebounced();
       },
 
       removeGraffitiCore: (recordingCellId, recordingKey) => {
@@ -4018,9 +4020,10 @@ define([
         }
 
         storage.deleteMovie(recordingCellId, recordingKey);
-        utils.saveNotebookDebounced(() => {
+        utils.queueSaveNotebookCallback(() => {
           graffiti.updateControlPanels();
         });
+        utils.saveNotebookDebounced();
       },
 
 
@@ -4059,8 +4062,7 @@ define([
           }
         }
 
-        utils.saveNotebookDebounced(() => {
-
+        utils.queueSaveNotebookCallback(() => {
           if (destructions === 0) {
             destructions = 'all';
           }
@@ -4087,6 +4089,7 @@ define([
             }
           });
         });
+        utils.saveNotebookDebounced();
 
       },
 
@@ -4157,13 +4160,12 @@ define([
         graffiti.refreshGraffitiTooltips();
         graffiti.updateControlPanels();
 
-        utils.saveNotebookDebounced(() => {
+        utils.queueSaveNotebookCallback(() => {
           if (deletedTakes === 0) {
             deletedTakes = 'all';
           } else {
             storage.storeManifest();
             storage.cleanUpExecutorCell();
-            utils.saveNotebookDebounced();
           }
 
           const title = 'Unused takes removed.';
@@ -4181,6 +4183,7 @@ define([
             }
           });
         });
+        utils.saveNotebookDebounced();
       },
 
       removeAllUnusedTakesWithConfirmation: () => {
@@ -5429,9 +5432,10 @@ define([
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTooltips();
         state.clearAnimationIntervals();
-        utils.saveNotebookDebounced(() => {
+        utils.queueSaveNotebookCallback(() => {
           console.log('Graffiti: Stopped playback.');
         });
+        utils.saveNotebookDebounced();
       },
 
       cancelPlaybackNoVisualUpdates: () => {
@@ -6058,10 +6062,11 @@ define([
           storage.ensureNotebookGetsGraffitiId();
           storage.ensureNotebookGetsFirstAuthorId();
           utils.assignCellIds();
-          utils.saveNotebookDebounced(() => {
+          utils.queueSaveNotebookCallback(() => {
             graffiti.refreshAllGraffitiHighlights();
             graffiti.refreshGraffitiTooltipsDebounced();
           });
+          utils.saveNotebookDebounced();
         } else {
           graffiti.outerControlPanel.fadeOut(graffiti.panelFadeTime);          
         }
@@ -6182,7 +6187,7 @@ define([
                 console.log('Graffiti: You clicked ok');
                 storage.ensureNotebookGetsGraffitiId();
                 storage.ensureNotebookGetsFirstAuthorId();
-                utils.saveNotebookDebounced(() => {
+                utils.queueSaveNotebookCallback(() => {
                   utils.createApiSymlink();
                   graffiti.initInteractivity();
                   graffiti.toggleAccessLevel('view');
@@ -6191,6 +6196,7 @@ define([
                     graffiti.toggleAccessLevel();
                   });
                 });
+                utils.saveNotebookDebounced();
               }
             },
             'Cancel': {

@@ -4,6 +4,7 @@ define([
 
   const utils = {
     cellMaps: {},
+    saveNotebookCallbacks: [],
     saveDebounceTiming: 1000, // Must be slower than 500ms, which is the speed at which jupyter traps save calls stepping on each other. See: 
                               // https://github.com/jupyter/notebook/blob/859ae0ac60456c0e38b44f06852b8a24f8a1cfb0/notebook/static/notebook/js/notebook.js#L2766
     cplusplusKernel11: 'xeus-cling-cpp11',
@@ -391,13 +392,26 @@ define([
       return activeLine;
     },
 
-    saveNotebook: (cb) => {
-      Jupyter.notebook.save_notebook().then( () => { 
-        if (cb !== undefined) {
-          cb();
-        }
-        console.log('Graffiti: Notebook saved.');
-      });
+    queueSaveNotebookCallback: (cb) => {
+      utils.saveNotebookCallbacks.push(cb);
+    },
+
+    processSaveNotebookCallbacks:async () => {
+      let cb;
+      while (utils.saveNotebookCallbacks.length > 0) {
+        cb = utils.saveNotebookCallbacks.shift();
+        await cb();
+      }
+      console.log('Graffiti: Notebook saved successfully.');
+    },
+
+    saveNotebook:async () => {
+      try {
+        await Jupyter.notebook.save_notebook();
+        await utils.processSaveNotebookCallbacks();
+      } catch(ex) {
+        console.error('Graffiti: saveNotebook caught exception:', ex);
+      }
     },
 
     // You can delete this, it's no longer needed now that we call cell.focus_cell() when we change selections

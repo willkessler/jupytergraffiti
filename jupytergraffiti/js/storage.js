@@ -227,9 +227,10 @@ define([
       state.setMovieRecordingStarted(false);
       console.log('Graffiti: completeMovieStorage is saving manifest for recording:', recording, ', current kernel', Jupyter.notebook.kernel.name);
       storage.storeManifest();
-      utils.saveNotebookDebounced(() => {
+      utils.queueSaveNotebookCallback(() => {
         storage.executeMovieCompleteCallback();
       });
+      utils.saveNotebookDebounced();
     },
 
     writeOutMovieData: (movieInfo, jsonHistory, encodedAudio) => {
@@ -471,7 +472,7 @@ define([
       }
       storage.ensureNotebookGetsGraffitiId();
       storage.ensureNotebookGetsFirstAuthorId();
-      utils.saveNotebookDebounced(() => {
+      utils.queueSaveNotebookCallback(() => {
         const newGraffitiId = notebook.metadata.graffiti.id;
         const notebookPath = "jupytergraffiti_data/notebooks/";
         const sourceTree = notebookPath + originalGraffitiId;
@@ -479,6 +480,7 @@ define([
         storage.runShellCommand('cp -pr ' + sourceTree + ' ' + destTree);
         storage.cleanUpExecutorCell();
       });
+      utils.saveNotebookDebounced();
 
       return Promise.resolve(); // not really doing this right but...
     },
