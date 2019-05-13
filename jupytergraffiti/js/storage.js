@@ -121,7 +121,7 @@ define([
         }
         storage.executorCell = undefined;
         state.restorePreviousActivity();
-        utils.saveNotebook();
+        utils.saveNotebookDebounced();
       }        
     },
 
@@ -227,7 +227,7 @@ define([
       state.setMovieRecordingStarted(false);
       console.log('Graffiti: completeMovieStorage is saving manifest for recording:', recording, ', current kernel', Jupyter.notebook.kernel.name);
       storage.storeManifest();
-      utils.saveNotebook(() => {
+      utils.saveNotebookDebounced(() => {
         storage.executeMovieCompleteCallback();
       });
     },
@@ -471,7 +471,7 @@ define([
       }
       storage.ensureNotebookGetsGraffitiId();
       storage.ensureNotebookGetsFirstAuthorId();
-      utils.saveNotebook(() => {
+      utils.saveNotebookDebounced(() => {
         const newGraffitiId = notebook.metadata.graffiti.id;
         const notebookPath = "jupytergraffiti_data/notebooks/";
         const sourceTree = notebookPath + originalGraffitiId;
@@ -484,7 +484,7 @@ define([
     },
 
     packageGraffiti: () => {
-      //utils.saveNotebook();
+      //utils.saveNotebookDebounced();
       const notebook = Jupyter.notebook;
       const notebookName = notebook.get_notebook_name();
       const archiveName = 'graffiti_archive_' + utils.generateUniqueId().replace('id_','') + '.tgz';
@@ -503,7 +503,7 @@ define([
         }
       }
       delete(Jupyter.notebook.metadata.graffiti);
-      utils.saveNotebook();
+      utils.saveNotebookDebounced();
     },
 
     // Delete all a notebook's stored graffitis and its data directory (but not the global jupytergraffiti_data directory)
@@ -540,7 +540,7 @@ define([
       if (deletedTakes > 0) {
         storage.storeManifest();
         storage.cleanUpExecutorCell();
-        utils.saveNotebook();
+        utils.saveNotebookDebounced();
       }
     },
 
