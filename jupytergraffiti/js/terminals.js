@@ -17,6 +17,7 @@ define ([
 
     focusedTerminal: undefined,
     singleCDCommand: false,
+    fitRetryTime: 2000,
     CDCommandCount : 0,
     terminalsList: {},
 
@@ -280,7 +281,7 @@ define ([
         const currentRows = terminals.terminalsList[cellId].term.rows;
         delete(terminals.terminalsList[cellId]);
         terminals.createTerminalInCell(cell, utils.generateUniqueId(), currentRows );
-        utils.saveNotebook();
+        utils.saveNotebookDebounced();
       }
     },
 
@@ -494,9 +495,24 @@ define ([
         //console.log('Running fit on term', terminal.term.rows, terminal.term.cols);
         term = terminal.term;
         if (term && term.element && term.element.parentElement) { // safety check for race conditions
-          terminal.term.fit();
-          terminal.socket.send(JSON.stringify(["set_size", terminal.term.rows, terminal.term.cols,
-                                               window.innerHeight, window.innerWidth]));
+          // Even with the safety check, sometimes terminals are still not ready to call fit() or their sockets
+          // are not ready, so this code is more defensive now and will attempt again after 2seconds in case of error.
+          try {
+            terminal.term.fit();
+            terminal.socket.send(JSON.stringify(["set_size", terminal.term.rows, terminal.term.cols,
+                                                 window.innerHeight, window.innerWidth]));
+          } catch (ex) {
+            console.log('Graffiti: unable to call fit(), trying again in 2 seconds:', ex);
+            setTimeout(() => {
+              try {
+                terminal.term.fit();
+                terminal.socket.send(JSON.stringify(["set_size", terminal.term.rows, terminal.term.cols,
+                                                     window.innerHeight, window.innerWidth]));
+              } catch (ex) {
+                console.log('Graffiti: unable to call fit() the second time, giving up.', ex);
+              }
+            }, terminals.fitRetryTime);
+          }
         }
       }
     },

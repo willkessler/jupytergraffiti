@@ -162,7 +162,7 @@ define([
             Jupyter.notebook.delete_cell(0);
             Jupyter.notebook.delete_cell(0);
             Jupyter.notebook.delete_cell(0);
-            utils.saveNotebook(() => {
+            utils.saveNotebookDebounced(() => {
               if (newPathAccepted) {
                 const changeModal = dialog.modal({
                   title: localizer.getString('ACCEPTED_DATADIR_HEADER'),
@@ -1174,7 +1174,7 @@ define([
                                           fn: (e) => { 
                                             console.log('Graffiti: Inserting graffiti button cell')
                                             const suite = graffiti.createGraffitiButtonAboveSelectedCell();
-                                            utils.saveNotebook();
+                                            utils.saveNotebookDebounced();
                                           }
                                         },
                                         {
@@ -1183,7 +1183,7 @@ define([
                                           fn: (e) => { 
                                             console.log('Graffiti: inserting graffiti terminal cell')
                                             const suite = terminalLib.createTerminalCellAboveSelectedCell();
-                                            utils.saveNotebook();
+                                            utils.saveNotebookDebounced();
                                           }
                                         },
                                         {
@@ -1192,7 +1192,7 @@ define([
                                           fn: (e) => { 
                                             console.log('Graffiti: inserting graffiti terminal suite')
                                             const suite = graffiti.createTerminalSuiteAboveSelectedCell();
-                                            utils.saveNotebook();
+                                            utils.saveNotebookDebounced();
                                           }
                                         },
                                         {
@@ -1201,7 +1201,7 @@ define([
                                           fn: (e) => { 
                                             console.log('Toggle markdown lock')
                                             graffiti.toggleMarkdownLock();
-                                            utils.saveNotebook();
+                                            utils.saveNotebookDebounced();
                                           }
                                         },
                                         {
@@ -1224,7 +1224,7 @@ define([
                                                 '%%silence_warnings',
                                               ],
                                             });
-                                            utils.saveNotebook();
+                                            utils.saveNotebookDebounced();
                                           }
                                         },
                                         {
@@ -1291,7 +1291,7 @@ define([
                 const markdownLocked = utils.getNotebookGraffitiConfigEntry('markdownLocked');
                 const isLocked = (((markdownLocked !== undefined) && (markdownLocked === true)) ? true : false);
                 utils.setNotebookGraffitiConfigEntry('markdownLocked', !isLocked);
-                utils.saveNotebook();
+                utils.saveNotebookDebounced();
                 graffiti.refreshMarkdownLock(!isLocked);
               }
             },
@@ -3960,7 +3960,7 @@ define([
         }
 
         return new Promise((resolve) => {
-          utils.saveNotebook(() => {
+          utils.saveNotebookDebounced(() => {
 
             // need to reselect graffiti text that was selected in case it somehow got unselected
             //recordingCell.code_mirror.setSelections(recordingCellInfo.selections);
@@ -4018,7 +4018,7 @@ define([
         }
 
         storage.deleteMovie(recordingCellId, recordingKey);
-        utils.saveNotebook(() => {
+        utils.saveNotebookDebounced(() => {
           graffiti.updateControlPanels();
         });
       },
@@ -4059,7 +4059,7 @@ define([
           }
         }
 
-        utils.saveNotebook(() => {
+        utils.saveNotebookDebounced(() => {
 
           if (destructions === 0) {
             destructions = 'all';
@@ -4157,13 +4157,13 @@ define([
         graffiti.refreshGraffitiTooltips();
         graffiti.updateControlPanels();
 
-        utils.saveNotebook(() => {
+        utils.saveNotebookDebounced(() => {
           if (deletedTakes === 0) {
             deletedTakes = 'all';
           } else {
             storage.storeManifest();
             storage.cleanUpExecutorCell();
-            utils.saveNotebook();
+            utils.saveNotebookDebounced();
           }
 
           const title = 'Unused takes removed.';
@@ -5429,7 +5429,7 @@ define([
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTooltips();
         state.clearAnimationIntervals();
-        utils.saveNotebook(() => {
+        utils.saveNotebookDebounced(() => {
           console.log('Graffiti: Stopped playback.');
         });
       },
@@ -5459,7 +5459,7 @@ define([
         }
         state.setDontRestoreCellContentsAfterPlayback(false); // make sure by default we restore contents.
         terminalLib.saveOrRestoreTerminalOutputs('restore');  // restore any terminals affected by playback
-        utils.saveNotebook();
+        utils.saveNotebookDebounced();
         graffiti.setSitePanelScrollTop(currentScrollTop); // restore scrollTop because restoring cell contents messes with it
 
         // console.log('Graffiti: Got these stats:', state.getUsageStats());
@@ -5504,7 +5504,7 @@ define([
         console.log('Graffiti: Starting playback, current activity:', activity);
         if ((activity === 'idle') || (activity === 'notifying') || (activity === 'playbackPending')) {
           // If just starting to play back, store all cells current contents so we can restore them when you cancel playback.
-          // utils.saveNotebook();
+          // utils.saveNotebookDebounced();
           state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.setCurrentPlaySpeed('regular');
           state.storeUserChoicePlaySpeed('regular');
@@ -6058,7 +6058,7 @@ define([
           storage.ensureNotebookGetsGraffitiId();
           storage.ensureNotebookGetsFirstAuthorId();
           utils.assignCellIds();
-          utils.saveNotebook(() => {
+          utils.saveNotebookDebounced(() => {
             graffiti.refreshAllGraffitiHighlights();
             graffiti.refreshGraffitiTooltipsDebounced();
           });
@@ -6182,7 +6182,7 @@ define([
                 console.log('Graffiti: You clicked ok');
                 storage.ensureNotebookGetsGraffitiId();
                 storage.ensureNotebookGetsFirstAuthorId();
-                utils.saveNotebook(() => {
+                utils.saveNotebookDebounced(() => {
                   utils.createApiSymlink();
                   graffiti.initInteractivity();
                   graffiti.toggleAccessLevel('view');
