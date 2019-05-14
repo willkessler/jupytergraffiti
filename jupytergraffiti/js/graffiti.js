@@ -3960,31 +3960,31 @@ define([
           recordingCell.set_text(newContents);
         }
 
-        return new Promise((resolve) => {
-          utils.queueSaveNotebookCallback(() => {
-
-            // need to reselect graffiti text that was selected in case it somehow got unselected
-            //recordingCell.code_mirror.setSelections(recordingCellInfo.selections);
-            graffiti.sitePanel.animate({ scrollTop: recordingCellInfo.scrollTop}, 500);
-            if (recordingCellInfo.recordingRecord.cellType === 'markdown') {
-              recordingCell.render();
-            }
-            graffiti.changeActivity('idle');
-            recordingCell.code_mirror.focus();
-            if (doSave) {
-              graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: false});
-              graffiti.forcedGraffitiTooltipRefresh = true;
-            } else {
-              graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
-            }
-            graffiti.refreshGraffitiTooltipsDebounced();
-            graffiti.refreshAllGraffitiSideMarkers();
-            utils.refreshCellMaps();
-            state.refreshCellIdToGraffitiMap();
-            resolve();
-          });
+        utils.queueSaveNotebookCallback(() => {
+          // need to reselect graffiti text that was selected in case it somehow got unselected
+          //recordingCell.code_mirror.setSelections(recordingCellInfo.selections);
+          graffiti.sitePanel.animate({ scrollTop: recordingCellInfo.scrollTop}, 500);
+          if (recordingCellInfo.recordingRecord.cellType === 'markdown') {
+            recordingCell.render();
+          }
+          graffiti.changeActivity('idle');
+          recordingCell.code_mirror.focus();
+          if (doSave) {
+            graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: false});
+            graffiti.forcedGraffitiTooltipRefresh = true;
+          } else {
+            graffiti.refreshGraffitiHighlights({cell: recordingCell, clear: true});
+          }
+          graffiti.refreshGraffitiTooltipsDebounced();
+          graffiti.refreshAllGraffitiSideMarkers();
+          utils.refreshCellMaps();
+          state.refreshCellIdToGraffitiMap();
         });
-        utils.saveNotebookDebounced();
+
+        return new Promise((resolve) => {
+          utils.saveNotebookDebounced();
+          resolve();
+        });
       },
 
       removeGraffitiCore: (recordingCellId, recordingKey) => {
