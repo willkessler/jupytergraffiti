@@ -77,7 +77,11 @@ define([
     // Special thanks to: https://developers.google.com/web/updates/2017/06/play-request-was-interrupted 
     // for handling of weird "play was interrupted" chrome exception.
     playAudio: (elapsedTime) => {
-      audio.setAudioPosition(elapsedTime);
+      try {
+        audio.setAudioPosition(elapsedTime);
+      } catch (ex) {
+        console.warn('Graffiti: unable to set audio position with elapsedTime:', elapsedTime, 'ex:', ex);
+      }
       audio.updateAudioPlaybackRate();
       let playPromise = audio.audioObj.play();
       if (playPromise !== undefined) {
