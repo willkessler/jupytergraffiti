@@ -32,7 +32,7 @@ define([
           initGraffiti();
         }
         require(['js/loader.js']);
-        utils.saveNotebook();
+        utils.saveNotebookDebounced();
       });
     }
   }

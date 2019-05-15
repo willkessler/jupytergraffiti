@@ -17,6 +17,8 @@ define ([
 
     focusedTerminal: undefined,
     singleCDCommand: false,
+    fitRetryTime: 1000,
+    maxRefitAttempts: 10,
     CDCommandCount : 0,
     terminalsList: {},
 
@@ -280,7 +282,7 @@ define ([
         const currentRows = terminals.terminalsList[cellId].term.rows;
         delete(terminals.terminalsList[cellId]);
         terminals.createTerminalInCell(cell, utils.generateUniqueId(), currentRows );
-        utils.saveNotebook();
+        utils.saveNotebookDebounced();
       }
     },
 
@@ -486,18 +488,39 @@ define ([
       return contents;
     },
 
+    refitOneTerminal: (terminal, cellId) => {
+      const refitTerminal = (tryNumber) => {
+        console.log('Graffiti: Attempting to fit terminal:', cellId, ', attempt number', tryNumber);
+        terminal.term.fit();
+        terminal.socket.send(JSON.stringify(["set_size", terminal.term.rows, terminal.term.cols,
+                                             window.innerHeight, window.innerWidth]));
+        console.log('Graffiti: fit terminal succeeded for:', cellId);
+      };
+      console.log('Graffiti: Running fit on term', terminal.term.rows, terminal.term.cols);
+      let refitAttempts = 0;
+      const refitInterval = setInterval(() => {
+        try {
+          ++refitAttempts;
+          refitTerminal(refitAttempts);
+          clearInterval(refitInterval);
+        } catch (ex) {
+          if (refitAttempts > terminals.maxRefitAttempts) {
+            console.log('Graffiti: unable to call fit() after', refitAttempts, 'tries, giving up.');
+            clearInterval(refitInterval);
+          } else {
+            console.log('Graffiti: unable to call fit(), trying again in', terminals.fitRetryTime, 'seconds.');
+          }
+        }
+      }, terminals.fitRetryTime);
+    },        
+
     refitAllTerminals: () => {
       let terminal;
       let term;
       for (let cellId of Object.keys(terminals.terminalsList)) {
         terminal = terminals.terminalsList[cellId];
-        //console.log('Running fit on term', terminal.term.rows, terminal.term.cols);
         term = terminal.term;
-        if (term && term.element && term.element.parentElement) { // safety check for race conditions
-          terminal.term.fit();
-          terminal.socket.send(JSON.stringify(["set_size", terminal.term.rows, terminal.term.cols,
-                                               window.innerHeight, window.innerWidth]));
-        }
+        terminals.refitOneTerminal(terminal, cellId);
       }
     },
 

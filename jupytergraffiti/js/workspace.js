@@ -96,18 +96,16 @@ define([
       .catch(err => console.error(err));
     },
     trackUsageStats: () => {
-      if (!workspace.usageReportSent && workspace.isUdacityEnv()) {
-        let stats = state.getUsageStats();
-        stats.workspace = state.getWorkspace();
-        let xhr = new XMLHttpRequest();
-        // Async is set to false to make this request work on unload event
-        xhr.open("POST", `${BELLATRIX_URL}/api/v1/graffiti/stats`, false);
-        xhr.setRequestHeader("Content-Type", "application/json");
-        // Required to allow cookie to be set crossDomain
-        xhr.withCredentials = true;
-        xhr.send(JSON.stringify(stats));
-        workspace.usageReportSent = true;
+      if (workspace.usageReportSent ||
+          !workspace.isUdacityEnv() ||
+          // This may happen if sendBeacon is not supported (in IE for example)
+          !navigator.sendBeacon) {
+            return;
       }
+      let stats = state.getUsageStats();
+      stats.workspace = state.getWorkspace();
+      navigator.sendBeacon(`${BELLATRIX_URL}/api/v1/graffiti/stats`, JSON.stringify(stats));
+      workspace.usageReportSent = true;
     }
   }
 

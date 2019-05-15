@@ -4,6 +4,9 @@ define([
 
   const utils = {
     cellMaps: {},
+    saveNotebookCallbacks: [],
+    saveDebounceTiming: 510, // Must be slower than 500ms, which is the speed at which jupyter traps save calls stepping on each other. See: 
+                             // https://github.com/jupyter/notebook/blob/859ae0ac60456c0e38b44f06852b8a24f8a1cfb0/notebook/static/notebook/js/notebook.js#L2766
     cplusplusKernel11: 'xeus-cling-cpp11',
     cplusplusKernel14: 'xeus-cling-cpp14',
     cplusplusKernel17: 'xeus-cling-cpp17',
@@ -389,12 +392,24 @@ define([
       return activeLine;
     },
 
-    saveNotebook: (cb) => {
-      Jupyter.notebook.save_notebook().then( () => { 
-        if (cb !== undefined) {
-          cb();
-        }
-        console.log('Graffiti: Notebook saved.') 
+    queueSaveNotebookCallback: (cb) => {
+      utils.saveNotebookCallbacks.push(cb);
+    },
+
+    processSaveNotebookCallbacks: () => {
+      let cb;
+      while (utils.saveNotebookCallbacks.length > 0) {
+        cb = utils.saveNotebookCallbacks.shift();
+        cb();
+      }
+      console.log('Graffiti: Notebook saved successfully.');
+    },
+
+    saveNotebook: () => {
+      Jupyter.notebook.save_notebook().then(() => {
+        utils.processSaveNotebookCallbacks();
+      }).catch((ex) => {
+        console.error('Graffiti: saveNotebook caught exception:', ex);
       });
     },
 
@@ -905,6 +920,8 @@ define([
     }
 
   }
+
+  utils.saveNotebookDebounced = _.debounce(utils.saveNotebook, utils.saveDebounceTiming, false);
 
   return(utils);
 });

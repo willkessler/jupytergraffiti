@@ -900,8 +900,12 @@ define([
               case 'updateTotalPlayTime':
                 if (state.currentStatsKey !== undefined) {
                   usageRecord.totalTime += usageRecord.currentPlayTime;
-                  usageRecord.totalTimeThisPlay = Math.max(usageRecord.recordingDuration, usageRecord.currentPlayTime + usageRecord.totalTimeThisPlay);
-                  usageRecord.maxViewingTime = Math.max(usageRecord.maxViewingTime, usageRecord.totalTimeThisPlay);
+                  // totalTimeThisPlay represents the amount of time played back since the user started this video playing. This is not the same as
+                  // totalTime, which represents the amount of time played back for this video since the notebook was loaded. In other words, if the
+                  // user played this video twice all the way through, totalTime would contain 2x the recordingDuration, but totalTimeThisPlay would 
+                  // only contain 1x the recordingDuration.
+                  usageRecord.totalTimeThisPlay = Math.min(usageRecord.recordingDuration, usageRecord.currentPlayTime + usageRecord.totalTimeThisPlay);
+                  usageRecord.maxViewingTime = Math.min(usageRecord.recordingDuration, Math.max(usageRecord.maxViewingTime, usageRecord.totalTimeThisPlay));
                   state.usageStats.totalPlayTimeAllGraffiti += usageRecord.currentPlayTime;
                   delete(usageRecord['currentPlayTime']);
                 }
