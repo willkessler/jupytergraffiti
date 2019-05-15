@@ -3960,7 +3960,8 @@ define([
           recordingCell.set_text(newContents);
         }
 
-        utils.queueSaveNotebookCallback(() => {
+        utils.saveNotebookDebounced();
+        return new Promise((resolve) => {
           // need to reselect graffiti text that was selected in case it somehow got unselected
           //recordingCell.code_mirror.setSelections(recordingCellInfo.selections);
           graffiti.sitePanel.animate({ scrollTop: recordingCellInfo.scrollTop}, 500);
@@ -3979,10 +3980,6 @@ define([
           graffiti.refreshAllGraffitiSideMarkers();
           utils.refreshCellMaps();
           state.refreshCellIdToGraffitiMap();
-        });
-
-        return new Promise((resolve) => {
-          utils.saveNotebookDebounced();
           resolve();
         });
       },
@@ -5507,8 +5504,6 @@ define([
 
         console.log('Graffiti: Starting playback, current activity:', activity);
         if ((activity === 'idle') || (activity === 'notifying') || (activity === 'playbackPending')) {
-          // If just starting to play back, store all cells current contents so we can restore them when you cancel playback.
-          // utils.saveNotebookDebounced();
           state.setScrollTop(graffiti.sitePanel.scrollTop());
           state.setCurrentPlaySpeed('regular');
           state.storeUserChoicePlaySpeed('regular');
