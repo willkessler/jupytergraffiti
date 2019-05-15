@@ -116,7 +116,6 @@
 }
 
 .graffiti-highlight {
-/*  border-bottom:2px dotted rgb(67,127,127);*/
   border-bottom:2px dashed rgb(47,147,107);
   cursor:pointer;
 }
@@ -187,9 +186,15 @@
 
 #graffiti-inner-control-panel {
   display:flex;
+  cursor:grab;
+}
+
+#graffiti-inner-control-panel:active {
+  cursor:grabbing;
 }
 
 #graffiti-control-panel-title {
+  cursor:grab;
   display:flex;
   align-items:center;
   font-color:#666;
@@ -199,7 +204,10 @@
   margin-top:0px;
   margin-bottom:0px;
   font-size:.8em;
-  cursor:pointer;
+}
+
+#graffiti-control-panel-title:active {
+  cursor:grabbing;
 }
 
 #graffiti-control-panel-title div {
@@ -346,10 +354,14 @@
 }
 
 #graffiti-drag-handle {
+  cursor:grab;
   margin-left:0px;
   margin-right:4px;
   width:10px;
-  cursor:pointer;
+}
+
+#graffiti-drag-handle:active {
+  cursor:grabbing;
 }
 
 #graffiti-recorder-range {
@@ -518,7 +530,6 @@
   padding: 2px 2px 0px 2px;
   font-family:monospace;
   font-size:1.0em;
-  cursor:pointer;  
   position:absolute;
 }
 
