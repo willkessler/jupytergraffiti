@@ -17,7 +17,8 @@ define ([
 
     focusedTerminal: undefined,
     singleCDCommand: false,
-    fitRetryTime: 2000,
+    fitRetryTime: 1000,
+    maxRefitAttempts: 10,
     CDCommandCount : 0,
     terminalsList: {},
 
@@ -487,33 +488,39 @@ define ([
       return contents;
     },
 
+    refitOneTerminal: (terminal, cellId) => {
+      const refitTerminal = (tryNumber) => {
+        console.log('Graffiti: Attempting to fit terminal:', cellId, ', attempt number', tryNumber);
+        terminal.term.fit();
+        terminal.socket.send(JSON.stringify(["set_size", terminal.term.rows, terminal.term.cols,
+                                             window.innerHeight, window.innerWidth]));
+        console.log('Graffiti: fit terminal succeeded for:', cellId);
+      };
+      console.log('Graffiti: Running fit on term', terminal.term.rows, terminal.term.cols);
+      let refitAttempts = 0;
+      const refitInterval = setInterval(() => {
+        try {
+          ++refitAttempts;
+          refitTerminal(refitAttempts);
+          clearInterval(refitInterval);
+        } catch (ex) {
+          if (refitAttempts > terminals.maxRefitAttempts) {
+            console.log('Graffiti: unable to call fit() after', refitAttempts, 'tries, giving up.');
+            clearInterval(refitInterval);
+          } else {
+            console.log('Graffiti: unable to call fit(), trying again in', terminals.fitRetryTime, 'seconds.');
+          }
+        }
+      }, terminals.fitRetryTime);
+    },        
+
     refitAllTerminals: () => {
       let terminal;
       let term;
       for (let cellId of Object.keys(terminals.terminalsList)) {
         terminal = terminals.terminalsList[cellId];
-        //console.log('Running fit on term', terminal.term.rows, terminal.term.cols);
         term = terminal.term;
-        if (term && term.element && term.element.parentElement) { // safety check for race conditions
-          // Even with the safety check, sometimes terminals are still not ready to call fit() or their sockets
-          // are not ready, so this code is more defensive now and will attempt again after 2seconds in case of error.
-          try {
-            terminal.term.fit();
-            terminal.socket.send(JSON.stringify(["set_size", terminal.term.rows, terminal.term.cols,
-                                                 window.innerHeight, window.innerWidth]));
-          } catch (ex) {
-            console.log('Graffiti: unable to call fit(), trying again in 2 seconds:', ex);
-            setTimeout(() => {
-              try {
-                terminal.term.fit();
-                terminal.socket.send(JSON.stringify(["set_size", terminal.term.rows, terminal.term.cols,
-                                                     window.innerHeight, window.innerWidth]));
-              } catch (ex) {
-                console.log('Graffiti: unable to call fit() the second time, giving up.', ex);
-              }
-            }, terminals.fitRetryTime);
-          }
-        }
+        terminals.refitOneTerminal(terminal, cellId);
       }
     },
 
