@@ -840,7 +840,9 @@ define([
               totalPlays: 0,
               totalPlaysRightAfterLoad: 0, // total of all plays that happened "from scratch", ie you just loaded the graffiti, not a play event triggered
                                            // by pressing play after you paused the graffiti
-              recordingDuration: state.history.duration
+              recordingDuration: state.history.duration,
+              userHitEscape: false, // becomes true if user uses escape key to terminate playback. If totalPlayTime is zero and this is true, it is probably because 
+                                    // the graffiti took too long to load and the user got impatient and terminated playback early.
             };
           }
           state.currentStatsKey = statsKey;
@@ -913,6 +915,9 @@ define([
                 usageRecord.totalPlays++;
                 state.usageStats.totalPlaysAllGraffiti++;
                 state.usageStats.totalUniquePlays = Object.keys(playStats).length;
+                break;
+              case 'userHitEscape':
+                usageRecord.userHitEscape = true;
                 break;
             }
           }

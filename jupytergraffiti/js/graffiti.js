@@ -3523,6 +3523,12 @@ define([
               stopProp = true;
               if ((activity === 'playing') || (activity === 'playbackPaused') || (activity === 'playbackPending') || (activity === 'scrubbing')) {
                 graffiti.cancelPlayback();
+                state.updateUsageStats({
+                  type:'play',
+                  data: {
+                    actions: ['userHitEscape']
+                  }
+                });
               }
               break;
             case 16: // shift key
