@@ -115,7 +115,7 @@ define([
             'RECORDING_HINT_4' :                 '<div class="graffiti-keyboard-sim" style="color:red;"><div>Skipping</div><div>(option/alt to resume)</div></div>',
             'IS_SKIPPING' :                      '--:--',
             'ACTIVITIES_BEING_RECORDED':         'Your activities are being recorded. Hold the option key down to end recording.',
-            'LOADING':                           'Loading...',
+            'LOADING':                           'Loading... (ESC to cancel)',
             'LOADING_PLEASE_WAIT':               'Loading Graffiti movie, please wait...',
             'RECORDED_ON':                       'Recorded',
             'PRESS_ESC_TO_END_MOVIE_PLAYBACK' :  'Press ESC to end movie playback',
@@ -267,7 +267,7 @@ define([
             'ACTIVITIES_BEING_RECORDED':         '录屏进行中' +
                                                  '按键 ⌘-M 或者点击<span class="graffiti-notifier-link" id="graffiti-end-recording-link">结束录屏</span> ' +
                                                  '以终止录制',
-            'LOADING':                           '加载中',
+            'LOADING':                           '加载中 (ESC to cancel)',
             'LOADING_PLEASE_WAIT':               '正在加载 Graffiti 视频，请稍等...',
             'RECORDED_ON':                       '已录制',
             'PRESS_ESC_TO_END_MOVIE_PLAYBACK' :  '按键 ESC 结束视频回放',

@@ -430,13 +430,15 @@ define([
       },
 
       setupPlaybackCursor: () => {
-        const cursorSize = 30;
+        const cursorSize = 36;
         const iconConfiguration = {
           dimensions: {
             x: 0, y: 0, width: cursorSize, height: cursorSize 
           },
           color:'black',
+          innerRingsColor: '#eee',
           strokeWidth:2,
+          strokeOpacity: 1,
           fillOpacity:0,
         };
 
@@ -561,6 +563,7 @@ define([
         const solidFatIconConfiguration = $.extend({}, true, solidIconConfiguration, { strokeWidth:iconFatStrokeWidth });
         const largeIconConfiguration = $.extend({}, true, defaultIconConfiguration, { buffer: 1, dimensions:largeIconDimensions });
         const roundRectConfiguration = $.extend({}, true, largeIconConfiguration, { rx: 6, ry: 6 });
+        const bullsEyeConfiguration  = $.extend({}, true, largeIconConfiguration, { innnerRingsColor: '#000' });
 
 
         graffiti.setupOneControlPanel('graffiti-record-controls', 
@@ -968,7 +971,7 @@ define([
         const horizontalBrackets = stickerLib.makeHorizontalBrackets(defaultIconConfiguration);
         const verticalBrackets = stickerLib.makeVerticalBrackets(defaultIconConfiguration);
         const ellipse = stickerLib.makeEllipse(largeIconConfiguration);
-        const bullsEye = stickerLib.makeBullsEye(largeIconConfiguration);
+        const bullsEye = stickerLib.makeBullsEye(bullsEyeConfiguration);
         const pi = stickerLib.makePi(solidIconConfiguration);
         const alpha = stickerLib.makeAlpha(solidIconConfiguration);
         const beta = stickerLib.makeBeta(solidIconConfiguration);
@@ -1007,8 +1010,7 @@ define([
                                       '      <div class="graffiti-stickers-button" id="graffiti-sticker-rectangle" title="Rectangle">' + rectangle + '</div>' +
                                       '      <div class="graffiti-stickers-button" id="graffiti-sticker-roundRectangle" title="Rounded corners rectangle">' +
                                       roundRectangle + '</div>' +
-                                      //'      <div class="graffiti-stickers-button" id="graffiti-sticker-ellipse" title="Ellipse">' + ellipse + '</div>' +
-                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-ellipse" title="Ellipse">' + bullsEye + '</div>' +
+                                      '      <div class="graffiti-stickers-button" id="graffiti-sticker-ellipse" title="Ellipse">' + ellipse + '</div>' +
                                       '      <div class="graffiti-stickers-button" id="graffiti-sticker-rightTriangle" title="Right triangle">' + rightTriangle + '</div>' +
                                       '      <div class="graffiti-stickers-button" id="graffiti-sticker-isocelesTriangle" title="Isoceles triangle">' + 
                                       isocelesTriangle + '</div>' +
@@ -1847,9 +1849,12 @@ define([
       },
 
       undimGraffitiCursor: () => {
-        graffiti.graffitiCursorShell.show().css({opacity:0.65});
+        graffiti.graffitiCursorShell.show().css({opacity:0.55});
       },
 
+      // This code is defunct due to a bug in Chrome iframes... sometimes we don't see the orange cursor because the borders of the innerCell are 
+      // calculated wrong by the browser so being sure we're over the terminal output isn't guaranteed. This is fine in FF of course. So now we 
+      // are falling back on white rings inside the graffiti cursor so it shows up fine over black terminals and other black things.
       activateTerminalGraffitiCursor: () => {
         graffiti.graffitiTerminalCursor.show();
         graffiti.graffitiNormalCursor.hide();
@@ -3513,7 +3518,7 @@ define([
           switch (keyCode) {
             case 27: // escape key CANCELS playback
               stopProp = true;
-              if ((activity === 'playing') || (activity === 'playbackPaused') || (activity === 'scrubbing')) {
+              if ((activity === 'playing') || (activity === 'playbackPaused') || (activity === 'playbackPending') || (activity === 'scrubbing')) {
                 graffiti.cancelPlayback();
               }
               break;
@@ -3646,7 +3651,7 @@ define([
         const navigateAwayHandler =  (e) => {
           console.log('Graffiti: navigate away handler, e:', e.type);
           const activity = state.getActivity();
-          if ((activity === 'playing') || (activity === 'playbackPaused') || (activity == 'scrubbing')) {
+          if ((activity === 'playing') || (activity === 'playbackPaused') || (activity === 'playbackPending') || (activity == 'scrubbing')) {
             graffiti.cancelPlaybackNoVisualUpdates();
           }
           if (workspace.trackUsageStats !== undefined) {
@@ -4880,11 +4885,7 @@ define([
             graffiti.undimGraffitiCursor();
             const offsetPositionPx = { left: offsetPosition.x + 'px', top: offsetPosition.y + 'px'};
             graffiti.graffitiCursorShell.css(offsetPositionPx);
-            if (record.isOverTerminal) {
-              graffiti.activateTerminalGraffitiCursor();
-            } else {
-              graffiti.activateNormalGraffitiCursor();
-            }
+            graffiti.activateNormalGraffitiCursor();
           }            
           state.setLastRecordedCursorPosition(offsetPosition);
         }
@@ -5481,7 +5482,7 @@ define([
       cancelPlayback: () => {
         console.log('Graffiti: cancelPlayback called');
         const activity = state.getActivity();
-        if ((activity !== 'playing') && (activity !== 'playbackPaused') && (activity !== 'scrubbing')) {
+        if ((activity !== 'playing') && (activity !== 'playbackPaused') && (activity !== 'playbackPending') && (activity !== 'scrubbing') ) {
           return;
         }
 
@@ -5966,7 +5967,7 @@ define([
             data: {
               cellId:        playableMovie.recordingCellId,
               recordingKey:  playableMovie.recordingKey,
-              command:       recording.terminalCommand,
+              command:       terminalCommand.command,
             }
           });
           return; // we are done if we ran a terminal command, don't bother to load any movies for playback.

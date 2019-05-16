@@ -869,13 +869,12 @@ define([
           state.usageStats.totalTerminalCommandsRun++;
           if (!terminalCommandsStats.hasOwnProperty(statsKey)) {
             terminalCommandsStats[statsKey] = {
-              createDate: data.createDate,
               commands: [],
               numRunsThisSession: 0
             };
           } 
           terminalCommandsStats[statsKey].numRunsThisSession++;
-          terminalCommandsStats[statsKey].commands.push(opts.command);
+          terminalCommandsStats[statsKey].commands.push(data.command);
           break;
         case 'userSkips':
           // We count user skips separately.
@@ -918,7 +917,7 @@ define([
             }
           }
       }
-      // console.log('updateUsageStats:', state.usageStats);
+      console.log('updateUsageStats:', state.usageStats);
     },
     
     //
