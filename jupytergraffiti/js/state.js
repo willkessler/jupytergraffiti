@@ -917,7 +917,7 @@ define([
             }
           }
       }
-      console.log('updateUsageStats:', state.usageStats);
+      //console.log('updateUsageStats:', state.usageStats);
     },
     
     //
