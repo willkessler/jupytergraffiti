@@ -766,6 +766,9 @@ define([
                                               direction = -1;
                                             }
                                             graffiti.jumpPlayback(direction, graffiti.rewindAmt);
+                                            state.updateUsageStats({
+                                              type:'userSkips'
+                                            });
                                           }
                                         },
                                         {
