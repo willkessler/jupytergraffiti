@@ -5504,6 +5504,9 @@ define([
         if (activity === 'playing') {
           console.log('Graffiti: Cannot start playing because already playing.');
           return;
+        } else if ((activity !== 'playbackPending') && (activity !== 'playbackPaused')) {
+          return; // do not try to start playback if playback was cancelled by the ESC key right before it could start (because of a slow network).
+                  // when this happens, activity will have been set back to 'idle'.
         }
 
         console.log('Graffiti: Starting playback, current activity:', activity);

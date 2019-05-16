@@ -71,7 +71,9 @@ define([
       const scalar = state.getPlayRateScalar();
       //const scalar = (rawScalar === 1.0 ? rawScalar : rawScalar * 0.85);
       //console.log('updateAudioPlaybackRate, scalar:', scalar);
-      audio.audioObj.playbackRate = scalar;
+      if (audio.audioObj !== undefined) { // make this defensive because if a user hits ESC before audio is fully loaded then the audioObj will not yet be defined
+        audio.audioObj.playbackRate = scalar;
+      }
     },
 
     // Special thanks to: https://developers.google.com/web/updates/2017/06/play-request-was-interrupted 
