@@ -94,7 +94,7 @@ define([
         // Init language strings
         localizer.init().then(() => { 
           // Set up the button that activates Graffiti on new notebooks and controls visibility of the control panel if the notebook has already been graffiti-ized.
-          graffiti.updateSetupButton();
+          graffiti.initSetupButton();
           if (Jupyter.notebook.metadata.hasOwnProperty('graffiti')) { // do not try to load the manifest if this notebook has not yet been graffiti-ized.
             storage.loadManifest(currentAccessLevel).then(() => {
               utils.createApiSymlink();
@@ -1696,8 +1696,7 @@ define([
         terminalLib.init(graffiti.handleTerminalsEvents);
         graffiti.executeAllSaveToFileDirectives(); // autosave any cells that are set up with saveToFile directives pointed at them
 
-        storage.preloadAllMovies();
-
+        storage.preloadAllMovies(() => { graffiti.updateSetupButton() } );
       },
 
       setGraffitiPenColor: (colorVal) => {
@@ -4069,7 +4068,7 @@ define([
             storage.deleteDataDirectory(Jupyter.notebook.metadata.graffiti.id);
             storage.removeGraffitiIds();
             graffiti.changeAccessLevel('view');
-            graffiti.updateSetupButton();
+            graffiti.initSetupButton();
           }
         }
 
@@ -6147,12 +6146,10 @@ define([
         });
       },
 
-      updateSetupButton: () => {
+      initSetupButton: () => {
         const notebook = Jupyter.notebook;
         const sprayCanIcon = stickerLib.makeSprayCanIcon();
-        const workspace = state.getWorkspace();
-        const buttonStyleHtml = workspace && workspace.coco 
-              ? 'display:inline-block;' : '"display:none;"';
+        let buttonStyleHtml = 'display:none;';
         let buttonLabel, setupForSetup = false;
         let buttonContents = '<div id="graffiti-setup-button" style='+ buttonStyleHtml +' class="btn-group"><button class="btn btn-default" title="' + localizer.getString('ENABLE_GRAFFITI') + '">';
 
@@ -6181,6 +6178,24 @@ define([
           $('#graffiti-setup-button').click(() => {
             graffiti.toggleAccessLevel();
           });
+        }
+      },
+
+      updateSetupButton: () => {
+        let showSetupButton = false;
+        const workspace = state.getWorkspace();
+        const displayControlPanelButton = utils.getNotebookGraffitiConfigEntry('displayControlPanelButton');
+        if (displayControlPanelButton !== undefined) {
+          if (displayControlPanelButton === 'true') {
+            showSetupButton = true;
+          }
+        } else {
+          if (workspace && workspace.coco) {
+            showSetupButton = true;
+          }
+        }
+        if (showSetupButton) {
+          $('#graffiti-setup-button').show();
         }
       },
 

@@ -424,7 +424,7 @@ define([
       });
     },
 
-    preloadAllMovies: () => {
+    preloadAllMovies: (postPreLoadCallback) => {
       let allRecords = [], dataRecord, recordingCellId, recordingKeys, recording;
       const manifest = state.getManifest();
       for (recordingCellId of Object.keys(manifest)) {
@@ -444,13 +444,14 @@ define([
         }
       }
       const callback = (data) => {
-        storage.fetchMovie(data).catch((err) => {
+        return storage.fetchMovie(data).catch((err) => {
           console.log('Graffiti: Could not fetch movie:', data);
         });
       }
-      batchRunner.start(storage.preloadBatchSize, callback, allRecords).then(() => { 
+      return batchRunner.start(storage.preloadBatchSize, callback, allRecords).then(() => { 
         console.log('Graffiti: preloading completed.');
         state.refreshCellIdToGraffitiMap();
+        postPreLoadCallback();
       });
     },
 
