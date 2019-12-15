@@ -1696,7 +1696,9 @@ define([
         terminalLib.init(graffiti.handleTerminalsEvents);
         graffiti.executeAllSaveToFileDirectives(); // autosave any cells that are set up with saveToFile directives pointed at them
 
-        storage.preloadAllMovies(() => { graffiti.updateSetupButton() } );
+        storage.preloadAllMovies(() => { 
+          graffiti.updateSetupButton();
+        } );
       },
 
       setGraffitiPenColor: (colorVal) => {
@@ -5144,7 +5146,7 @@ define([
           if (cell.cell_type === 'code') {
             cellId = utils.getMetadataCellId(cell.metadata);
             if (state.graffitiShouldUpdateCellContents(cellId)) {
-              contents = cell.get_text();
+              const contents = cell.get_text();
               if (contentsRecord.cellsContent.hasOwnProperty(cellId)) {
                 frameContents = state.extractDataFromContentRecord(contentsRecord.cellsContent[cellId].contentsRecord, cellId);
                 if (frameContents !== undefined && frameContents !== contents) {
@@ -5728,14 +5730,14 @@ define([
         if (cellId !== undefined) {
           const cellIdToGraffitiMap = state.getCellIdToGraffitiMap(cellId);
           if (cellIdToGraffitiMap !== undefined) {
-            console.log('Graffiti: executing saveToFile directives for cell id:', cellId);
+            //console.log('Graffiti: executing saveToFile directives for cell id:', cellId);
             const cell = utils.findCellByCellId(cellId);
             const fileContents = cell.get_text();
             let saveToFilePath, i;
             // Loop over all directives and save all files.
             for (i = 0; i < cellIdToGraffitiMap.length; ++i) {
               saveToFilePath = cellIdToGraffitiMap[i];
-              console.log('Graffiti: Writing fileContents to saveToFilePath', saveToFilePath);
+              // console.log('Graffiti: Writing fileContents to saveToFilePath', saveToFilePath);
               storage.writeTextToFile({ path: saveToFilePath,
                                         contents: fileContents,
                                         stripCRs: false });

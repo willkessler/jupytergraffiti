@@ -17,6 +17,8 @@ define([
       return str + "\n";
     },
 
+    // This gets the relative path of the notebook from the server root. However, this is deprecated in favor of terminals.discoverPwd for
+    // finding the full path of the current notebook.
     getNotebookDirectory: () => {
       const fullNotebookPath = Jupyter.notebook.notebook_path;
       let notebookPath, notebookPathParts;
@@ -221,7 +223,7 @@ define([
           cellDOM.attr({ 'graffiti-cell-id' : utils.getMetadataCellId(cell.metadata)});
         }
         if (cell.cell_type === 'markdown') {
-          contents = cell.get_text();
+          const contents = cell.get_text();
           tagsRe = utils.createGraffitiTagRegex();
           let match, idMatch;
           while ((match = tagsRe.exec(contents)) !== null) { 
