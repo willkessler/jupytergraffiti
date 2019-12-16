@@ -1696,9 +1696,7 @@ define([
         terminalLib.init(graffiti.handleTerminalsEvents);
         graffiti.executeAllSaveToFileDirectives(); // autosave any cells that are set up with saveToFile directives pointed at them
 
-        storage.preloadAllMovies(() => { 
-          graffiti.updateSetupButton();
-        } );
+        storage.preloadAllMovies();
       },
 
       setGraffitiPenColor: (colorVal) => {
@@ -6153,7 +6151,8 @@ define([
         const sprayCanIcon = stickerLib.makeSprayCanIcon();
         let buttonStyleHtml = 'display:none;';
         let buttonLabel, setupForSetup = false;
-        let buttonContents = '<div id="graffiti-setup-button" style='+ buttonStyleHtml +' class="btn-group"><button class="btn btn-default" title="' + localizer.getString('ENABLE_GRAFFITI') + '">';
+        let buttonContents = '<div id="graffiti-setup-button" style='+ buttonStyleHtml +' class="btn-group"><button class="btn btn-default" title="' + 
+                             localizer.getString('ENABLE_GRAFFITI') + '">';
 
         if (!notebook.metadata.hasOwnProperty('graffiti')) {
           // This notebook has never been graffiti-ized, or it just got un-graffiti-ized
@@ -6181,9 +6180,7 @@ define([
             graffiti.toggleAccessLevel();
           });
         }
-      },
 
-      updateSetupButton: () => {
         let showSetupButton = false;
         const workspace = state.getWorkspace();
         const displayControlPanelButton = utils.getNotebookGraffitiConfigEntry('displayControlPanelButton');

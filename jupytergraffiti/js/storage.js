@@ -424,7 +424,7 @@ define([
       });
     },
 
-    preloadAllMovies: (postPreLoadCallback) => {
+    preloadAllMovies: () => {
       let allRecords = [], dataRecord, recordingCellId, recordingKeys, recording;
       const manifest = state.getManifest();
       for (recordingCellId of Object.keys(manifest)) {
@@ -451,7 +451,6 @@ define([
       return batchRunner.start(storage.preloadBatchSize, callback, allRecords).then(() => { 
         console.log('Graffiti: preloading completed.');
         state.refreshCellIdToGraffitiMap();
-        postPreLoadCallback();
       });
     },
 
