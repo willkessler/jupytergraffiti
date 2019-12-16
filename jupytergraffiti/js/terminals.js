@@ -153,7 +153,7 @@ define ([
         };
       };
 
-                return termObject;
+      return termObject;
     },
 
     getFocusedTerminal: () => {
