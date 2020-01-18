@@ -1600,7 +1600,7 @@ define([
         }
         cellId = utils.getMetadataCellId(cell.metadata);
         cellsPresentThisFrame[cellId] = utils.findCellIndexByCellId(cellId);
-        contents = cell.get_text();
+        const contents = cell.get_text();
         outputs = undefined;
         // Store the DOM contents of the code cells for rerendering.
         const cellDom = $(cell.element);

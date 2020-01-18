@@ -16,11 +16,32 @@ define ([
   const terminals = {
 
     focusedTerminal: undefined,
+    discoveredPwd: undefined,
     singleCDCommand: false,
     fitRetryTime: 1000,
     maxRefitAttempts: 10,
-    CDCommandCount : 0,
+    CDCommandCount: 0,
     terminalsList: {},
+
+    discoverPwd: () => {
+      Jupyter.notebook.kernel.execute(
+        'pwd',
+        { iopub:
+                {
+                  output: (shellOutput) => { 
+                    if (shellOutput && shellOutput.content && shellOutput.content.data) {
+                      const pathWithTicks = shellOutput.content.data['text/plain']; // for some reason this comes back with single apostrophes around it
+                      terminals.discoveredPwd = pathWithTicks.substr(1,pathWithTicks.length-2);
+                      terminals.renderAllTerminals(); // only render the terminals after we know the pwd of this notebook
+                    }
+                  }
+                }
+        },
+        { 
+          silent: false
+        }
+      );
+    },
 
     _makeTerminal: (element, terminalId, wsUrl, sizeObj) => {
       //console.log('makeTerminal,wsUrl:', wsUrl);
@@ -205,18 +226,21 @@ define ([
 
         elem.bind('click', () => { newTerminal.term.focus(); });
 
-        const notebookDirectory = utils.getNotebookDirectory();
-        //console.log('Graffiti: notebookDirectory:', notebookDirectory);
-        if (notebookDirectory !== undefined) {
+        if (terminals.discoveredPwd !== undefined) {
           // in theory we could check to see if we're already in the directory we are supposed to be in using basename:
           // https://stackoverflow.com/questions/23162299/how-to-get-the-last-part-of-dirname-in-bash
-          const cdCommand = "" + 'if test -d ' + notebookDirectory + '; then cd ' + notebookDirectory + "; fi && clear\n";
+          const cdCommand = "" + 'if test -d ' + terminals.discoveredPwd + '; then cd ' + terminals.discoveredPwd + "; fi" +
+                            "&& clear\n";
           if (!terminals.singleCDCommand || (terminals.singleCDCommand && terminals.CDCommandCount < 1)) {
             newTerminal.send(cdCommand);
             terminals.CDCommandCount++;
           }
+          let resetCdCommand = cdCommand;
           renderArea.find('.graffiti-terminal-go-notebook-dir').click((e) => {
-            newTerminal.send(cdCommand);
+            if (terminals.discoveredPwd !== undefined) {
+              resetCdCommand = "" + 'cd ' + terminals.discoveredPwd + "&& clear\n";
+            }
+            newTerminal.send(resetCdCommand);
           });
         } else {
           renderArea.find('.graffiti-terminal-go-notebook-dir').hide(); // if this link is inactive, just hide it.
@@ -478,6 +502,12 @@ define ([
       return states;
     },
 
+    getTerminalContents: (terminalId) => {
+      const terminal = terminals.terminalsList[terminalId];
+      return terminal.contents;
+    },
+
+
     getTerminalsContents: () => {
       const contents = {};
       let terminal;
@@ -540,10 +570,9 @@ define ([
     },
 
     init: (eventsCallback) => {
+      terminals.discoverPwd();
       terminals.eventsCallback = eventsCallback;
-      terminals.renderAllTerminals();
-    },
-
+    }
 
   }
 
