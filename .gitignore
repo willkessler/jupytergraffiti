@@ -69,7 +69,12 @@ __pycache__
 .local
 .ipython
 .ipynb_checkpoints
-build
+jupytergraffiti/build
+build_for_pip/build
+build_for_pip/conda
+build_for_pip/dist
+build_for_pip/code-prep
+build_for_pip/jupytergraffiti.egg-info
 jupytergraffiti/graffiti-dist/
 user_manual/jupytergraffiti
 samples/general/jupytergraffiti
