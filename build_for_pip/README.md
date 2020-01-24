@@ -14,6 +14,8 @@ Uploading to the pypi test servers:
 python3 -m twine upload --repository-url https://test.pypi.org/legacy/ dist/* --verbose
 ```
 
+(For User name you can use `willkessler`.)
+
 Installing to a host in the cloud, from the test servers:
 ``` shell
 python3 -m pip install --index-url https://test.pypi.org/simple/ jupytergraffiti
@@ -28,8 +30,10 @@ jupyter notebook —port=3001 —ip=127.0.0.1 —allow-root
 Uploading to the pypi production servers:
 
 ``` shell
-python3 -m twine upload --repository-url https://pypi.org/legacy/ dist/* --verbose
+python3 -m twine upload dist/*
 ```
+
+(For User name you can use `willkessler`.)
 
 # General instructions for building for conda distribution
 
