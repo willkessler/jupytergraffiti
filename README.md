@@ -98,13 +98,18 @@ Uploading and downloading to/from Binder isn't optimal of course; it's probably 
 
 There are four ways to install Jupyter Graffiti: using pip or conda, using a Python library, using a Docker image, or installing a plugin into your Jupyter Notebook server.
 
-### Installation Option #1: Use the Python Library (Possibly, Simplest Option)
+### Installation Option #1: Use `pip` or `conda` (Easiest Option)
 
-Use `pip install -c willkessler jupytergraffiti`. This assumes you have `pip`/`pip3` installed and Jupyter Notebook already set up.
+Just do:
 
-If you're using conda, you can do:
+ `pip install -c willkessler jupytergraffiti`
 
-`conda install -c willkessler jupytergraffiti`.
+or
+
+`conda install -c willkessler jupytergraffiti`
+
+This assumes you have `pip` or `pip3`, or `conda` as well as Jupyter Notebook, already installed.
+
 
 ### Installation Option #2: Run Jupyter Notebook with a Docker Image Containing Graffiti (Slightly More Complex Option)
 
