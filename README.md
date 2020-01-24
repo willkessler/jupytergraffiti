@@ -92,46 +92,19 @@ Notebook to your own github repo and set up a link to it on Binder to
 share your Graffiti without requiring that the recipient have Graffiti
 installed.
 
-## Graffiti Software Installation
+## Graffiti Software Installation-- Putting Graffiti onto your own System(s)
 
 Uploading and downloading to/from Binder isn't optimal of course; it's probably better to get Graffiti going on your own computers.
 
-There are three ways to use Jupyter Graffiti: by using a Python library, by using a Docker image, or by installing a plugin into your Jupyter Notebook server.
+There are four ways to install Jupyter Graffiti: using pip or conda, using a Python library, using a Docker image, or installing a plugin into your Jupyter Notebook server.
 
-### Installation Option #1: Use the Python Library (Simplest Option)
+### Installation Option #1: Use the Python Library (Possibly, Simplest Option)
 
-*Note*: Before using this method, you may need to Trust your
-Notebook. This is because Jupyter Graffiti is mostly written in Javascript,
-and by default, if the Notebook you're adding _Graffitis_ to was not
-created by you, Jupyter Notebook will not "Trust" it and will not run
-externally loaded javascript code, for security reasons.  To Trust a
-Notebook, click `File...Trust Notebook`*before*  running the import
-command below.
+Use `pip install -c willkessler jupytergraffiti`. This assumes you have `pip`/`pip3` installed and Jupyter Notebook already set up.
 
-1. `git clone` this repo in the same directory where you keep the Notebook(s) you want to add _Graffiti_ to.
-1. Add and run the following command in a cell in the Notebook you want to start adding _Graffiti_ to:
+If you're using conda, you can do:
 
-```
-import jupytergraffiti
-```
-
-If everything works, you will see a button labelled "Activate Graffiti" in your menu bar.
-
-If you don't see this button appearing, use `Kernel... Restart and Clear Output` first, then try running ```import jupytergraffiti``` again.
-
-![kernel_restart](./images/tutorial/kernel_restart.png)
-
-Once you see this message, you can "Activate Graffiti" on a Notebook
-to begin creating Graffiti. The <a
-href="user_manual/UserManual.ipynb">User Manual<a> has many details on
-how to create Graffiti.
-
-**Special Note** : if you are adding *Graffitis* to Notebooks that do not reside in the same folder where you cloned this repo, then you must :
-
-1. Create a `jupytergraffiti_data` directory in the folder where you cloned this repo (`mkdir jupytergraffiti_data`).
-1. Create symbolic links from the directory where you Notebook resides
-   to both the `jupytergraffiti` folder in this repo, and to the
-   `jupytergraffiti_data` folder alongside where you cloned this repo.
+`conda install -c willkessler jupytergraffiti`.
 
 ### Installation Option #2: Run Jupyter Notebook with a Docker Image Containing Graffiti (Slightly More Complex Option)
 
@@ -188,7 +161,43 @@ have remapped 8888 to the port you specify. In the example above,
 therefore, you would need to access the server at:
 `http://localhost:8889?token=e58a08f167881500e207ff9be05ad57ffe00e3457e54017c`.
 
-### Installation Option #3: Install the Graffiti Extension in Your Own Jupyter Server (Most Complex Option)
+
+### Installation Option #3: Use the Python Library (Slightly More Involved Option, but does not add code to your system)
+
+*Note*: Before using this method, you may need to Trust your
+Notebook. This is because Jupyter Graffiti is mostly written in Javascript,
+and by default, if the Notebook you're adding _Graffitis_ to was not
+created by you, Jupyter Notebook will not "Trust" it and will not run
+externally loaded javascript code, for security reasons.  To Trust a
+Notebook, click `File...Trust Notebook`*before*  running the import
+command below.
+
+1. `git clone` this repo in the same directory where you keep the Notebook(s) you want to add _Graffiti_ to.
+1. Add and run the following command in a cell in the Notebook you want to start adding _Graffiti_ to:
+
+```
+import jupytergraffiti
+```
+
+If everything works, you will see a button labelled "Activate Graffiti" in your menu bar.
+
+If you don't see this button appearing, use `Kernel... Restart and Clear Output` first, then try running ```import jupytergraffiti``` again.
+
+![kernel_restart](./images/tutorial/kernel_restart.png)
+
+Once you see this message, you can "Activate Graffiti" on a Notebook
+to begin creating Graffiti. The <a
+href="user_manual/UserManual.ipynb">User Manual<a> has many details on
+how to create Graffiti.
+
+**Special Note** : if you are adding *Graffitis* to Notebooks that do not reside in the same folder where you cloned this repo, then you must :
+
+1. Create a `jupytergraffiti_data` directory in the folder where you cloned this repo (`mkdir jupytergraffiti_data`).
+1. Create symbolic links from the directory where you Notebook resides
+   to both the `jupytergraffiti` folder in this repo, and to the
+   `jupytergraffiti_data` folder alongside where you cloned this repo.
+
+### Installation Option #4: Install the Graffiti Extension in Your Own Jupyter Server (Most Complex Option)
 
 This will permanently install the extension in your computer's
 installation of the Jupyter Server (although you can always disable
