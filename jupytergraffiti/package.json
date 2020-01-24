@@ -4,7 +4,7 @@
   "description": "Jupyter Graffiti extension",
   "main": "main.js",
   "scripts": {
-    "build": "node_modules/gulp/bin/gulp.js prebuild && node node_modules/.bin/r.js -o build.js && node_modules/gulp/bin/gulp.js moveStyles"
+    "build": "rm -rf graffiti-dist build ../build_for_pip/code-prep && node_modules/gulp/bin/gulp.js prebuild && node node_modules/.bin/r.js -o build.js && node_modules/gulp/bin/gulp.js moveStyles && node node_modules/.bin/r.js -o ../build_for_pip/buildPip.js && node_modules/gulp/bin/gulp.js pipMoveStyles"
   },
   "author": "Will Kessler",
   "license": "MIT",
