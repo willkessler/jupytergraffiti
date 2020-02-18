@@ -33,6 +33,22 @@ define([
     movieCompleteCallback: undefined,
     preloadBatchSize: 4,
 
+    getOSMkdirCommand: (path) => {
+      if (utils.onWindowsOS()) {
+        const winPath = path.replace("/","\\"));
+        return ('if not exist ' + winPath + ' ( md ' + winPath + ')' );
+      }
+      return ('mkdir -p ' + path);
+    },
+
+    getOSRmCommand: (path) => {
+      if (utils.onWindowsOS()) {
+        const winPath = path.replace("/","\\"));
+        return ('rmdir /s/q ' + winPath);
+      }
+      return ('rm -r ' + path);
+    },
+
     createExecutorCell: () => {
       if (storage.executorCell === undefined) {
         storage.executorCell = Jupyter.notebook.insert_cell_at_bottom('code');
@@ -51,7 +67,7 @@ define([
         // This needs to escape double quotes eventually... 
         fullCommand = "system('" + cmd + "', intern=TRUE)";
       } else {
-        fullCommand = '!' + cmd;
+        fullCommand = '!' + cmd; // this should also work on jupyter on Windows systems
       }
       executorCell.set_text(fullCommand);
       executorCell.execute();
@@ -102,13 +118,17 @@ define([
       }
 
       if (opts.stripCRs) {
-        cmd = '/usr/bin/tr -d "\\n" < ' + pathWithCrs + ' > ' + path; // remove all the CR's produced by the %%writefile appends and write to the final filename
+        if (utils.onWindowsOS()) {
+          const winPathWithCrs = pathWithCrs.replace("/","\\"));
+          cmd = 'python -c "s=open(\'' + winPathWithCrs + '\','r').read();open(\'' + winPathWithCrs + '\', 'w').write(s.replace('\n',''))"';
+        } else {
+          cmd = '/usr/bin/tr -d "\\n" < ' + pathWithCrs + ' > ' + path; // remove all the CR's produced by the %%writefile appends and write to the final filename
+        }
       } else {
         cmd = 'mv ' + pathWithCrs + ' ' + path; // just rename the .cr file with the final file name
       }        
       storage.runShellCommand(cmd);
-      cmd = 'rm ' + pathWithCrs;
-      storage.runShellCommand(cmd);
+      storage.runShellCommand(storage.getOSRmCommand(pathWithCrs));
     },
 
     cleanUpExecutorCell: () => {
@@ -241,7 +261,7 @@ define([
         takeId:          movieInfo.activeTakeId
       });
 
-      storage.runShellCommand('mkdir -p ' + graffitiPath);
+      storage.runShellCommand(storage.getOSMkdirCommand(graffitiPath));
       if (encodedAudio !== undefined) {
         storage.writeTextToFile({ path: graffitiPath + 'audio.txt', 
                                   contents: encodedAudio,
@@ -333,7 +353,7 @@ define([
       const manifestFullFilePath = manifestInfo.path + manifestInfo.file;
       console.log('Graffiti: Saving manifest to:', manifestFullFilePath, manifest);
       
-      storage.runShellCommand('mkdir -p ' + manifestInfo.path);
+      storage.runShellCommand(storage.getOSMkdirCommand(manifestInfo.path));
       storage.writeTextToFile({ path: manifestFullFilePath, 
                                 contents: base64CompressedManifest,
                                 stripCRs: true });
@@ -459,7 +479,7 @@ define([
         recordingCellId: recordingCellId, 
         recordingKey: recordingKey 
       });
-      storage.runShellCommand('rm -r ' + graffitiPath);
+      storage.runShellCommand(storage.getOSRmCommand(graffitiPath));
       storage.cleanUpExecutorCell();
     },
 
@@ -511,7 +531,7 @@ define([
     // Delete all a notebook's stored graffitis and its data directory (but not the global jupytergraffiti_data directory)
     deleteDataDirectory: (graffitiId) => {
       const notebookStoragePath = 'jupytergraffiti_data/notebooks/' + graffitiId;
-      storage.runShellCommand('rm -r ' + notebookStoragePath);
+      storage.runShellCommand(storage.getOSRmCommand(notebookStoragePath));
       storage.cleanUpExecutorCell();      
     },
 
@@ -528,7 +548,7 @@ define([
               recordingKey: recordingKey,
               takeId: takeId
             });
-            storage.runShellCommand('rm -r ' + graffitiTakePath);
+            storage.runShellCommand(storage.getOSRmCommand(graffitiTakePath));
             delete(recording.takes[takeId]);
             deletedTakes++;
           }
