@@ -35,7 +35,7 @@ define([
 
     getOSMkdirCommand: (path) => {
       if (utils.onWindowsOS()) {
-        const winPath = path.replace("/","\\"));
+        const winPath = path.replace("/","\\");
         return ('if not exist ' + winPath + ' ( md ' + winPath + ')' );
       }
       return ('mkdir -p ' + path);
@@ -43,7 +43,7 @@ define([
 
     getOSRmCommand: (path) => {
       if (utils.onWindowsOS()) {
-        const winPath = path.replace("/","\\"));
+        const winPath = path.replace("/","\\");
         return ('rmdir /s/q ' + winPath);
       }
       return ('rm -r ' + path);
@@ -119,8 +119,8 @@ define([
 
       if (opts.stripCRs) {
         if (utils.onWindowsOS()) {
-          const winPathWithCrs = pathWithCrs.replace("/","\\"));
-          cmd = 'python -c "s=open(\'' + winPathWithCrs + '\','r').read();open(\'' + winPathWithCrs + '\', 'w').write(s.replace('\n',''))"';
+          const winPathWithCrs = pathWithCrs.replace("/","\\");
+          cmd = 'python -c "s=open(\'' + winPathWithCrs + '\',\'r\').read();open(\'' + winPathWithCrs + '\', \'w\').write(s.replace(\'\n\',\'\'))"';
         } else {
           cmd = '/usr/bin/tr -d "\\n" < ' + pathWithCrs + ' > ' + path; // remove all the CR's produced by the %%writefile appends and write to the final filename
         }

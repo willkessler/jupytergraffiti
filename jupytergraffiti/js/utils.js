@@ -924,8 +924,8 @@ define([
     // Detect if operating system is Windows. This method will only work on notebooks with python kernels!
     onWindowsOS: () => {
       const platform = navigator.platform;
-      if ((indexOf(platform, 'Win') === 0) ||
-          (indexOf(platform, 'win') === 0)) {
+      if ((platform.indexOf('Win') === 0) ||
+          (platform.indexOf('win') === 0)) {
         return true;
       }
       return false;
