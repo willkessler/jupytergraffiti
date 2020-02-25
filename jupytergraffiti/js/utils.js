@@ -919,6 +919,17 @@ define([
       }
       
       Jupyter.notebook.kernel.execute(executePythonScript, undefined, scriptOptions);
+    },
+
+    // Detect if operating system is Windows. This method will only work on notebooks with python kernels!
+    onWindowsOS: () => {
+      const platform = navigator.platform;
+      if ((platform.indexOf('Win') === 0) ||
+          (platform.indexOf('win') === 0)) {
+        console.log('Graffiti: Windows OS detected.');
+        return true;
+      }
+      return false;
     }
 
   }
