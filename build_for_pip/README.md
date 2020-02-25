@@ -74,3 +74,28 @@ To install you should be able to do :
 conda install -c willkessler jupytergraffiti
 ```
 
+### Building for Windows and building for pip on Windows
+
+To debug issues on Windows, you need to have cygwin64 and node installed on the system. Then you need to use `jupytergraffiti/package.json_windows` instead of `jupytergraffiti/package.json`. This version of `package.json` has a different build step using utilities provided by Cygwin:
+
+```
+...
+  "scripts": {
+    "build": "/cygwin64/bin/rm.exe -rf graffiti-dist build ../build_for_pip/code-prep && node node_modules/gulp/bin/gulp.js prebuild && cd node_modules/.bin && r_js.cmd -o ../../build.js && cd ../.. && node ./node_modules/gulp/bin/gulp.js moveStyles && cd node_modules/.bin && r_js.cmd -o ../../../build_for_pip/buildPip.js && cd ../.. && node ./node_modules/gulp/bin/gulp.js pipMoveStyles"
+  },
+...
+```
+
+You can follow the steps above to build for pip. For creating the pip artifact, from this directory do:
+
+```
+python3 setup.py prep_to_build npm_run_build sdist bdist_wheel
+```
+
+but then you can install from this build, without uploading to pypi servers, by simply :
+
+1. unpacking the tarball found in the dist directory
+1. switching to the unpack directory
+1. finally: `pip install .`
+
+
