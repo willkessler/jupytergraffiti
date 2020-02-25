@@ -39,6 +39,7 @@ python3 -m twine upload dist/*
 
 
 NB: this relies on jupytergraffiti being in the main (production) pypi repository.
+First time steps:
 
 ```
 mkdir conda
@@ -48,10 +49,13 @@ conda skeleton pypi jupytergraffiti
 conda install conda-verify
 ```
 
-Modify jupytergraffiti/meta.yaml to include `build   noarch:  python`.
-Modify jupytergraffiti/meta.json to include github handle: willkessler
+Modify `jupytergraffiti/meta.yaml` to include `build   noarch:  python`.
+Modify `jupytergraffiti/meta.json` to include github handle: `willkessler`
 
-Building on macosx:
+
+(Re)building on macosx:
+
+(After you make updates, make sure to bump the version number in `jupytergraffiti/meta.yml`.
 
 ```
 conda build jupytergraffiti
