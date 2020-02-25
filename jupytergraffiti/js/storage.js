@@ -34,19 +34,31 @@ define([
     preloadBatchSize: 4,
 
     getOSMkdirCommand: (path) => {
+      let returnVal;
       if (utils.onWindowsOS()) {
-        const winPath = path.replace("/","\\");
-        return ('if not exist ' + winPath + ' ( md ' + winPath + ')' );
+        const winPath = '"' + path.replace(/\//g,"\\") + '"';
+        returnVal = 'if not exist ' + winPath + ' ( md ' + winPath + ')' ;
+      } else {
+	returnVal = 'mkdir -p ' + '"' + path + '"';
       }
-      return ('mkdir -p ' + path);
+      console.log('Graffiti: getOSMkdirCommand, returnVal:', returnVal);
+      return (returnVal);
     },
 
-    getOSRmCommand: (path) => {
+    getOSRmCommand: (path, isFile) => {
+      let returnVal;
       if (utils.onWindowsOS()) {
-        const winPath = path.replace("/","\\");
-        return ('rmdir /s/q ' + winPath);
+        const winPath = '"' + path.replace(/\//g,"\\") + '"';
+	
+	returnVal = 'rmdir /s/q ' + winPath;
+        if (isFile) {
+	  returnVal = 'del ' + winPath;
+	}
+      } else {
+	returnVal = 'rm -r ' + '"' + path + '"';
       }
-      return ('rm -r ' + path);
+      console.log('Graffiti: getOSRmCommand, returnVal:', returnVal);
+      return(returnVal);
     },
 
     createExecutorCell: () => {
@@ -117,18 +129,26 @@ define([
         executorCell.execute();
       }
 
+      let secondaryCmd;
       if (opts.stripCRs) {
         if (utils.onWindowsOS()) {
-          const winPathWithCrs = pathWithCrs.replace("/","\\");
-          cmd = 'python -c "s=open(\'' + winPathWithCrs + '\',\'r\').read();open(\'' + winPathWithCrs + '\', \'w\').write(s.replace(\'\n\',\'\'))"';
+          const winPath = path.replace(/\//g,"\\");
+          const winPathWithCrs = pathWithCrs.replace(/\//g,"\\");
+	  // NB: python can use forward slashes in the filename but windows copy command needs backslashes
+          cmd = 'python -c "import os;s=open(\'' + pathWithCrs + '\',\'r\').read();open(\'' + pathWithCrs + '\', \'w\').write(s.replace(\'\\n\',\'\'))"';
+          secondaryCmd = 'copy "' + winPathWithCrs + '" "' + winPath + '"';
         } else {
-          cmd = '/usr/bin/tr -d "\\n" < ' + pathWithCrs + ' > ' + path; // remove all the CR's produced by the %%writefile appends and write to the final filename
+          // remove all the CR's produced by the %%writefile appends and write to the final filename
+          cmd = '/usr/bin/tr -d "\\n" < ' + '"' + pathWithCrs + '" > ' + '"' + path + '"';
         }
       } else {
-        cmd = 'mv ' + pathWithCrs + ' ' + path; // just rename the .cr file with the final file name
+        cmd = 'mv "' + pathWithCrs + '" "' + path + '"'; // just rename the .cr file with the final file name
       }        
       storage.runShellCommand(cmd);
-      storage.runShellCommand(storage.getOSRmCommand(pathWithCrs));
+      if (secondaryCmd !== undefined) {
+        storage.runShellCommand(secondaryCmd);
+      }
+	storage.runShellCommand(storage.getOSRmCommand(pathWithCrs, true));
     },
 
     cleanUpExecutorCell: () => {
@@ -479,7 +499,7 @@ define([
         recordingCellId: recordingCellId, 
         recordingKey: recordingKey 
       });
-      storage.runShellCommand(storage.getOSRmCommand(graffitiPath));
+      storage.runShellCommand(storage.getOSRmCommand(graffitiPath,false));
       storage.cleanUpExecutorCell();
     },
 
@@ -531,7 +551,7 @@ define([
     // Delete all a notebook's stored graffitis and its data directory (but not the global jupytergraffiti_data directory)
     deleteDataDirectory: (graffitiId) => {
       const notebookStoragePath = 'jupytergraffiti_data/notebooks/' + graffitiId;
-      storage.runShellCommand(storage.getOSRmCommand(notebookStoragePath));
+      storage.runShellCommand(storage.getOSRmCommand(notebookStoragePath,false));
       storage.cleanUpExecutorCell();      
     },
 
@@ -548,7 +568,7 @@ define([
               recordingKey: recordingKey,
               takeId: takeId
             });
-            storage.runShellCommand(storage.getOSRmCommand(graffitiTakePath));
+            storage.runShellCommand(storage.getOSRmCommand(graffitiTakePath, false));
             delete(recording.takes[takeId]);
             deletedTakes++;
           }

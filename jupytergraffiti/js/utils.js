@@ -926,6 +926,7 @@ define([
       const platform = navigator.platform;
       if ((platform.indexOf('Win') === 0) ||
           (platform.indexOf('win') === 0)) {
+        console.log('Graffiti: Windows OS detected.');
         return true;
       }
       return false;
