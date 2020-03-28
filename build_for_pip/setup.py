@@ -34,7 +34,7 @@ setuptools.setup(
         'npm_run_build': NPMRunBuild
     },
     name="jupytergraffiti",
-    version='1.0.1.11',
+    version='1.0.1.12',
     include_package_data=True,
     data_files=[
         # like `jupyter nbextension install --sys-prefix`
