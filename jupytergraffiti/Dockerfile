@@ -3,7 +3,7 @@ FROM jupyter/datascience-notebook
 USER root
 RUN curl -sL https://deb.nodesource.com/setup_13.x | sudo bash - && apt-get install -y nodejs
 
-RUN pip install -c willkessler jupytergraffiti
+RUN pip install jupytergraffiti
 RUN pip install nbzip
 RUN jupyter serverextension enable --py nbzip --sys-prefix
 RUN jupyter nbextension install --py nbzip

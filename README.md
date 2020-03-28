@@ -102,7 +102,7 @@ There are four ways to install Jupyter Graffiti: using pip or conda, using a Pyt
 
 Just do:
 
- `pip install -c willkessler jupytergraffiti`
+ `pip install jupytergraffiti`
 
 or
 
