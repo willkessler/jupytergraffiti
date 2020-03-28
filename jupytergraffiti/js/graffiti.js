@@ -5117,8 +5117,12 @@ define([
                 }
               }              
               const cells = Jupyter.notebook.get_cells();
-              cellPosition = Math.min(cellPosition, cells.length - 1);
-              newCell = Jupyter.notebook.insert_cell_above('code', cellPosition);
+              if (cellPosition == cells.length) {
+                newCell = Jupyter.notebook.insert_cell_at_bottom('code');
+              } else {
+                cellPosition = Math.min(cellPosition, cells.length - 1);
+                newCell = Jupyter.notebook.insert_cell_above('code', cellPosition);
+              }
               utils.setMetadataCellId(newCell.metadata, checkCellId);
               state.storePlaybackCellAddition(checkCellId, cellPosition);
               mustRefreshCellMaps = true;
