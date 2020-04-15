@@ -5156,7 +5156,6 @@ define([
           if (contentsRecord.cellsContent.hasOwnProperty(cellId)) {
             frameContents = state.extractDataFromContentRecord(contentsRecord.cellsContent[cellId].contentsRecord, cellId);
             if (frameContents !== undefined && frameContents !== contents) {
-              //console.log('Setting text on cellid:', utils.getMetadataCellId(cell.metadata));
               cell.set_text(frameContents);
             }
             frameOutputs = state.extractDataFromContentRecord(contentsRecord.cellsContent[cellId].outputsRecord, cellId);
