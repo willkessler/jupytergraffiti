@@ -5142,23 +5142,25 @@ define([
       updateContents: (index, currentScrollTop) => {
         const contentsRecord = state.getHistoryItem('contents', index);
         const cells = Jupyter.notebook.get_cells();
-        let cellId, contents, outputs, frameContents, frameOutputs, renderedFrameOutput = false;
+        let cellId, contents, outputs, frameContents, frameOutputs, didRestoreFrameOutput, renderedFrameOutput = false;
         graffiti.applyCellListToNotebook(contentsRecord);
         for (let cell of cells) {
-          if (cell.cell_type === 'code') {
-            cellId = utils.getMetadataCellId(cell.metadata);
-            if (state.graffitiShouldUpdateCellContents(cellId)) {
-              const contents = cell.get_text();
-              if (contentsRecord.cellsContent.hasOwnProperty(cellId)) {
-                frameContents = state.extractDataFromContentRecord(contentsRecord.cellsContent[cellId].contentsRecord, cellId);
-                if (frameContents !== undefined && frameContents !== contents) {
-                  //console.log('Setting text on cellid:', utils.getMetadataCellId(cell.metadata));
-                  cell.set_text(frameContents);
-                }
-                frameOutputs = state.extractDataFromContentRecord(contentsRecord.cellsContent[cellId].outputsRecord, cellId);
-                renderedFrameOutput = renderedFrameOutput || state.restoreCellOutputs(cell, frameOutputs);
-              }
+          if (cell.cell_type !== 'code') {
+            continue;
+          }
+          cellId = utils.getMetadataCellId(cell.metadata);
+          if (!state.graffitiShouldUpdateCellContents(cellId)) {
+            continue;
+          }
+          const contents = cell.get_text();
+          if (contentsRecord.cellsContent.hasOwnProperty(cellId)) {
+            frameContents = state.extractDataFromContentRecord(contentsRecord.cellsContent[cellId].contentsRecord, cellId);
+            if (frameContents !== undefined && frameContents !== contents) {
+              cell.set_text(frameContents);
             }
+            frameOutputs = state.extractDataFromContentRecord(contentsRecord.cellsContent[cellId].outputsRecord, cellId);
+            didRestoreFrameOutput = state.restoreCellOutputs(cell, frameOutputs);
+            renderedFrameOutput = renderedFrameOutput || didRestoreFrameOutput;
           }
         }
         if (renderedFrameOutput) {
