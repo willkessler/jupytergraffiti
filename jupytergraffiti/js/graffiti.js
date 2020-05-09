@@ -1544,6 +1544,10 @@ define([
           case 'playing':
             graffiti.controlPanelIds['graffiti-playback-controls'].find('#graffiti-play-btn').hide().parent().find('#graffiti-pause-btn').show();
             visibleControlPanels = ['graffiti-playback-controls'];
+            if (utils.onSafari()) {
+              graffiti.setNotifier('<div>' + localizer.getString('SAFARI_WARNING') + '</div>');
+              visibleControlPanels.push('graffiti-notifier');
+            }
             graffiti.showControlPanels(visibleControlPanels);
             break;
           case 'playbackPaused':

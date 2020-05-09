@@ -182,7 +182,8 @@ define([
             'ACCEPTED_DATADIR_HEADER':           'Your new path for Graffiti has been accepted',
             'ACCEPTED_DATADIR_BODY':             "Your Graffiti path has been changed. Now you must reload your notebook. \n\nYou can change this setting any time with " +
                                                  'the Data Directory button on the Graffiti Editor panel.',
-
+            'SAFARI_WARNING':                    '<span style="color:red;font-weight:bold;">Warning: </span>Graffiti Audio will not work in Safari. (Please use Chrome, Firefox, ' +
+                                                 'or Edge instead.)',
           }
           break;
         case 'CN':
@@ -334,6 +335,8 @@ define([
             'ACCEPTED_DATADIR_HEADER':           'Your new path for Graffiti has been accepted',
             'ACCEPTED_DATADIR_BODY':             "Your Graffiti path has been changed. Now you must reload your notebook. \n\nYou can change this setting any time with " +
                                                  'the Data Directory button on the Graffiti Editor panel.',
+            'SAFARI_WARNING':                    '<span style="color:red;font-weight:bold;">Warning: </span>Graffiti Audio will not work in Safari. (Please use Chrome, Firefox, ' +
+                                                 'or Edge instead.)',
           };
           break;
       }
