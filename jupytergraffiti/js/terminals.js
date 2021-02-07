@@ -43,117 +43,121 @@ define ([
       );
     },
 
-    _makeTerminal: (element, terminalId, wsUrl, sizeObj) => {
+    _makeTerminal: (element, cellId, terminalId, wsUrl, sizeObj) => {
       //console.log('makeTerminal,wsUrl:', wsUrl);
-      const ws = new WebSocket(wsUrl);
-      terminalLib.applyAddon(fit);
-      const term = new terminalLib({ 
-        scrollback: 10000, 
-        theme: { 
-          foreground:'white',
-          background: '#222',
-          // foreground: 'black',
-          // background: '#eee',
-          selection: '#fff',
-          cursor:'#f73', 
-          cursorAccent: '#f22' 
-        }
-      });
-      term.id = terminalId;
-      // contents: contains all chars in and out of the terminal over the socket.
-      let termObject = {
-        socket: ws, 
-        term: term, 
-        contents: '',
-        socketOpen: false,
-        sendQueue: [],
-        send: (data) => {
-          if (termObject.socketOpen) {
-            ws.send(JSON.stringify(['stdin',data]));
-          } else {
-            termObject.sendQueue.push(data);
+      const terminalPrefetchUrl = '/terminals/new/' + terminalId;
+      return fetch(terminalPrefetchUrl, { credentials: 'include' }).then((results) => {
+        const ws = new WebSocket(wsUrl);
+        terminalLib.applyAddon(fit);
+        const term = new terminalLib({ 
+          scrollback: 10000, 
+          theme: { 
+            foreground:'white',
+            background: '#222',
+            // foreground: 'black',
+            // background: '#eee',
+            selection: '#fff',
+            cursor:'#f73', 
+            cursorAccent: '#f22' 
           }
-        }
-      };
-      ws.onopen = function(event) {
-        termObject.socketOpen = true;
-        for (let data of termObject.sendQueue) {
-          // Send any commands queued up before the socket was ready, down the pipe
-          ws.send(JSON.stringify(['stdin',data])); 
-        }
-        term.on('data', function(data) {
-          ws.send(JSON.stringify(['stdin', data]));
         });
-
-        // term.on('keydown', (data) => {
-        //  console.log('keypress data:', data);
-        // });
-        
-        //term.on('scroll', (data) => {
-        //console.log('term scroll:', data);
-        //});
-
-        // term.on('selection', (data) => {
-        //   console.log('term selection:', term.getSelection());
-        // });
-
-        term.on('focus', () => { 
-          //console.log('Graffiti: terminal ' + term.id + ' focused');
-          terminals.focusedTerminal = term.id;
-        });
-
-        term.on('blur', () => { 
-          // console.log('terminal defocused'); 
-          terminals.focusedTerminal = undefined;
-        });
-
-        term.on('refresh', (data) => {
-          const checkYdisp = term._core.buffer.ydisp;
-          if (term.storedYdisp !== undefined) {
-            if (term.storedYdisp != checkYdisp) {
-              terminals.eventsCallback({ 
-                id: term.id,
-                type: 'refresh',
-                scrollLine: checkYdisp
-              });
-              //console.log('Graffiti: terminal refresh delta:', term.storedYdisp, checkYdisp);
+        term.id = cellId;
+        // contents: contains all chars in and out of the terminal over the socket.
+        let termObject = {
+          socket: ws, 
+          term: term, 
+          contents: '',
+          socketOpen: false,
+          sendQueue: [],
+          send: (data) => {
+            if (termObject.socketOpen) {
+              ws.send(JSON.stringify(['stdin',data]));
+            } else {
+              termObject.sendQueue.push(data);
             }
           }
-          term.storedYdisp = term._core.buffer.ydisp;
-        });
-
-        term.open(element);
-        term.fit();
-        // Send the terminal size to the server.
-        ws.send(JSON.stringify(["set_size", term.rows, term.cols,
-                                window.innerHeight, window.innerWidth]));
-
-        ws.onmessage = function(event) {
-          const json_msg = JSON.parse(event.data);
-          switch(json_msg[0]) {
-            case "stdout":
-              const newChars = json_msg[1];
-              term.write(newChars);
-              term.storedYdisp = term._core.buffer.ydisp;
-              //console.log('received newCharslength:', newChars.length, newChars);
-              termObject.contents += newChars;
-              terminals.eventsCallback({ 
-                id: term.id,
-                scrollLine: term.storedYdisp,
-                position: termObject.contents.length,
-                focusedTerminal: terminals.focusedTerminal,
-                firstRecord: false,
-              });
-              // console.log('termId:', terminalId,'received string of length:', json_msg[1].length, 'from server, contents now has:', termObject.contents);
-              break;
-            case "disconnect":
-              term.write("\r\n\r\n[CLOSED]\r\n");
-              break;
-          }
         };
-      };
 
-      return termObject;
+        ws.onopen = function(event) {
+          termObject.socketOpen = true;
+          for (let data of termObject.sendQueue) {
+            // Send any commands queued up before the socket was ready, down the pipe
+            ws.send(JSON.stringify(['stdin',data])); 
+          }
+          term.on('data', function(data) {
+            ws.send(JSON.stringify(['stdin', data]));
+          });
+
+          // term.on('keydown', (data) => {
+          //  console.log('keypress data:', data);
+          // });
+          
+          //term.on('scroll', (data) => {
+          //console.log('term scroll:', data);
+          //});
+
+          // term.on('selection', (data) => {
+          //   console.log('term selection:', term.getSelection());
+          // });
+
+          term.on('focus', () => { 
+            //console.log('Graffiti: terminal ' + term.id + ' focused');
+            terminals.focusedTerminal = term.id;
+          });
+
+          term.on('blur', () => { 
+            // console.log('terminal defocused'); 
+            terminals.focusedTerminal = undefined;
+          });
+
+          term.on('refresh', (data) => {
+            const checkYdisp = term._core.buffer.ydisp;
+            if (term.storedYdisp !== undefined) {
+              if (term.storedYdisp != checkYdisp) {
+                terminals.eventsCallback({ 
+                  id: term.id,
+                  type: 'refresh',
+                  scrollLine: checkYdisp
+                });
+                //console.log('Graffiti: terminal refresh delta:', term.storedYdisp, checkYdisp);
+              }
+            }
+            term.storedYdisp = term._core.buffer.ydisp;
+          });
+
+          term.open(element);
+          term.fit();
+          // Send the terminal size to the server.
+          ws.send(JSON.stringify(["set_size", term.rows, term.cols,
+                                  window.innerHeight, window.innerWidth]));
+
+          ws.onmessage = function(event) {
+            const json_msg = JSON.parse(event.data);
+            switch(json_msg[0]) {
+              case "stdout":
+                const newChars = json_msg[1];
+                term.write(newChars);
+                term.storedYdisp = term._core.buffer.ydisp;
+                //console.log('received newCharslength:', newChars.length, newChars);
+                termObject.contents += newChars;
+                terminals.eventsCallback({ 
+                  id: term.id,
+                  scrollLine: term.storedYdisp,
+                  position: termObject.contents.length,
+                  focusedTerminal: terminals.focusedTerminal,
+                  firstRecord: false,
+                });
+                // console.log('termId:', terminalId,'received string of length:', json_msg[1].length, 'from server, contents now has:', termObject.contents);
+                break;
+              case "disconnect":
+                term.write("\r\n\r\n[CLOSED]\r\n");
+                break;
+            }
+          };
+        };
+
+        return termObject;
+      });
     },
 
     getFocusedTerminal: () => {
@@ -221,36 +225,39 @@ define ([
           //console.log('xterm mousewheel',e.originalEvent.wheelDeltaY); // looks like values about 10 move one line...
         });
 
-        const newTerminal = terminals._makeTerminal(elem[0], cellId, wsUrl, sizeObj);
-        terminals.terminalsList[cellId] = newTerminal;
+        return terminals._makeTerminal(elem[0], cellId, config.terminalId, wsUrl, sizeObj).then(
+          (newTerminal) => { 
+            terminals.terminalsList[cellId] = newTerminal;
 
-        elem.bind('click', () => { newTerminal.term.focus(); });
+            elem.bind('click', () => { newTerminal.term.focus(); });
 
-        if (terminals.discoveredPwd !== undefined) {
-          // in theory we could check to see if we're already in the directory we are supposed to be in using basename:
-          // https://stackoverflow.com/questions/23162299/how-to-get-the-last-part-of-dirname-in-bash
-          const cdCommand = "" + 'if test -d ' + terminals.discoveredPwd + '; then cd ' + terminals.discoveredPwd + "; fi" +
-                            "&& clear\n";
-          if (!terminals.singleCDCommand || (terminals.singleCDCommand && terminals.CDCommandCount < 1)) {
-            newTerminal.send(cdCommand);
-            terminals.CDCommandCount++;
-          }
-          let resetCdCommand = cdCommand;
-          renderArea.find('.graffiti-terminal-go-notebook-dir').click((e) => {
             if (terminals.discoveredPwd !== undefined) {
-              resetCdCommand = "" + 'cd ' + terminals.discoveredPwd + "&& clear\n";
+              // in theory we could check to see if we're already in the directory we are supposed to be in using basename:
+              // https://stackoverflow.com/questions/23162299/how-to-get-the-last-part-of-dirname-in-bash
+              const cdCommand = "" + 'if test -d ' + terminals.discoveredPwd + '; then cd ' + terminals.discoveredPwd + "; fi" +
+                                "&& clear\n";
+              if (!terminals.singleCDCommand || (terminals.singleCDCommand && terminals.CDCommandCount < 1)) {
+                newTerminal.send(cdCommand);
+                terminals.CDCommandCount++;
+              }
+              let resetCdCommand = cdCommand;
+              renderArea.find('.graffiti-terminal-go-notebook-dir').click((e) => {
+                if (terminals.discoveredPwd !== undefined) {
+                  resetCdCommand = "" + 'cd ' + terminals.discoveredPwd + "&& clear\n";
+                }
+                newTerminal.send(resetCdCommand);
+              });
+            } else {
+              renderArea.find('.graffiti-terminal-go-notebook-dir').hide(); // if this link is inactive, just hide it.
             }
-            newTerminal.send(resetCdCommand);
-          });
-        } else {
-          renderArea.find('.graffiti-terminal-go-notebook-dir').hide(); // if this link is inactive, just hide it.
-        }
 
-        return newTerminal;
+            return newTerminal;
+        });
       } else {
         return undefined;
       }
     },
+
 
     createTerminalInCell: (cell, terminalId, desiredRows) => {
       const cellId = utils.getMetadataCellId(cell.metadata);
