@@ -214,7 +214,7 @@ define([
           }
         }
       }
-      console.log('Graffiti: cellIdToGraffitiMap:', state.cellIdToGraffitiMap);
+      //console.log('Graffiti: cellIdToGraffitiMap:', state.cellIdToGraffitiMap);
 
     },
 
