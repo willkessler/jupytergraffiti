@@ -110,6 +110,10 @@ or
 
 This assumes you have `pip` or `pip3`, or `conda` as well as Jupyter Notebook, already installed.
 
+**PLEASE NOTE**: Due to changes in Jupyter, the inline terminals *will
+not work* with any version of Jupyter less than 6.1.6. Please do
+`conda upgrade` and `conda upgrade jupyter` to ensure that you have
+the latest version, which at the of this README is 6.2.0.
 
 ### Installation Option #2: Run Jupyter Notebook with a Docker Image Containing Graffiti (Slightly More Complex Option)
 
