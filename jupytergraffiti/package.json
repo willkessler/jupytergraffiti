@@ -22,12 +22,18 @@
     "gulp-rename": "^1.4.0",
     "gulp-string-replace": "^1.1.2",
     "gulp-strip-debug": "^3.0.0",
+    "ini": ">=1.3.6",
     "lodash": "^4.17.19",
     "merge-stream": "^1.0.1",
-    "requirejs": "^2.3.6"
+    "minimist": ">1.2.3",
+    "requirejs": "^2.3.6",
+    "yargs-parser": ">=5.0.0-security.0"
   },
   "dependencies": {
     "gulp-replace": "^1.0.0",
-    "gulp-uglify": "^3.0.2"
+    "gulp-uglify": "^3.0.2",
+    "ini": ">=1.3.6",
+    "minimist": ">1.2.3",
+    "yargs-parser": ">=5.0.0-security.0"
   }
 }
