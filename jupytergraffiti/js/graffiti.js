@@ -576,8 +576,12 @@ define([
                                       '<i class="fa fa-film graffiti-recorder-button"></i>&nbsp;<span>' + localizer.getString('RECORD') + '</span></button>' +
                                       '  <button class="btn btn-default" id="graffiti-begin-rerecording-btn" title="' + localizer.getString('RERECORD_MOVIE') + '">' +
                                       '<i class="fa fa-film graffiti-recorder-button"></i>&nbsp;<span>' + localizer.getString('RERECORD') + '</span></button>' +
+
+                                      '  <button class="btn btn-default" id="graffiti-sweep-btn" title="' + localizer.getString('CLEANUP_TAKES') + '">' +
+                                      '<i class="fa fa-cut graffiti-sweep-button"></i>&nbsp;<span>' + localizer.getString('CLEANUP_TAKES') + '</span></button>' +
+
                                       '  <button class="btn btn-default" id="graffiti-remove-btn" title="' + localizer.getString('REMOVE_GRAFFITI') + '">' +
-                                      '<i class="fa fa-trash"></i></button>',
+                                      '<i class="fa fa-trash"></i>&nbsp;<span>' + localizer.getString('REMOVE_GRAFFITI') + '</span></button>',
                                       [
                                         {
                                           ids: ['graffiti-create-btn', 'graffiti-edit-btn'],
@@ -591,6 +595,13 @@ define([
                                           event: 'click',
                                           fn: (e) => {
                                             graffiti.beginMovieRecordingProcess();
+                                          }
+                                        },
+                                        {
+                                          ids: ['graffiti-sweep-btn'],
+                                          event: 'click',
+                                          fn: (e) => {
+                                            graffiti.removeExtraTakes();
                                           }
                                         },
                                         {
@@ -712,11 +723,11 @@ define([
                                       '  </button>' +
                                       '  <div id="graffiti-skip-buttons">' +
                                       '    <button class="btn btn-default btn-rewind" id="graffiti-rewind-btn" title="' + localizer.getString('SKIP_BACK') + ' ' +
-                                       (state.scanningIsOn() ? localizer.getString('TO_PREVIOUS_SENTENCE') : graffiti.rewindAmt + ' ' + localizer.getString('SECONDS')) + '">' +
+                                          (state.scanningIsOn() ? localizer.getString('TO_PREVIOUS_SENTENCE') : graffiti.rewindAmt + ' ' + localizer.getString('SECONDS')) + '">' +
                                       '      <i class="fa fa-backward"></i>' +
                                       '    </button>' +
                                       '    <button class="btn btn-default btn-forward" id="graffiti-forward-btn" title="' + localizer.getString('SKIP_FORWARD') + ' ' + 
-                                       (state.scanningIsOn() ? localizer.getString('TO_NEXT_SENTENCE') : graffiti.rewindAmt + ' ' + localizer.getString('SECONDS')) + '">' +
+                                          (state.scanningIsOn() ? localizer.getString('TO_NEXT_SENTENCE') : graffiti.rewindAmt + ' ' + localizer.getString('SECONDS')) + '">' +
                                       '      <i class="fa fa-forward"></i>' +
                                       '    </button>' +
                                       '  </div>' +
@@ -1133,6 +1144,7 @@ define([
         const lockConfigOn =  $.extend({}, true, defaultIconConfiguration, { color: 'red' });
         const lockConfigOff = $.extend({}, true, defaultIconConfiguration, { color: 'green' });
         const hiddenCellConfiguration = $.extend({}, true, defaultIconConfiguration, { color: '#aaa', fillOpacity: 1.0 });
+        const instantHiddenCellConfiguration = $.extend({}, true, defaultIconConfiguration, { color: '#ff8c00', fillOpacity: 1.0 });
 
         // Build the "extras" panel
 
@@ -1161,6 +1173,10 @@ define([
                                       localizer.getString('CREATE_SHOWHIDE_BUTTON') + '">' + stickerLib.makeHidden(hiddenCellConfiguration) +
                                       '    </div>' +
 
+                                      '    <div class="graffiti-stickers-button" id="graffiti-create-instant-showhide-button" title="' + 
+                                      localizer.getString('CREATE_INSTANT_SHOWHIDE_BUTTON') + '">' + stickerLib.makeHidden(instantHiddenCellConfiguration) +
+                                      '    </div>' +
+                                      
                                       '    <div class="graffiti-stickers-button" id="graffiti-toggle-markdown-lock" title="' + 
                                       localizer.getString('ACTIVATE_LOCK_ALT_TAG') + '">' +
                                       '<span id="graffiti-locked-on">' + stickerLib.makeLock(lockConfigOn) + '</span>' +
