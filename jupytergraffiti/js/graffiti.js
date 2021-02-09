@@ -392,26 +392,6 @@ define([
         graffiti.createGraffitiButtonAboveSelectedCell(opts);
       },
 
-      createGraffitiInstantShowHideButtonWithConfirmation: () => {
-        dialog.modal({
-          title: 'Are you sure you want to convert the currently selected cell to a Show/Hide Solution cell?',
-          body: 'Note: the contents of the selected cell will be converted to a ' + fileTypeName + ' file in the current directory, replaced by a Show/Hide button.',
-          sanitize:false,
-          buttons: {
-            'OK': {
-              click: (e) => {
-                console.log('Graffiti: You clicked ok, you want to invoke createGraffitiInstantShowHideButton');
-                graffiti.createGraffitiInstantShowHideButton();
-
-              }
-            },
-            'Cancel': { click: (e) => { console.log('Graffiti: you cancelled:', $(e.target).parent()); } },
-          }
-        });
-
-
-      },
-
       createTerminalSuiteAboveSelectedCell: () => {
         graffiti.setJupyterMenuHint(localizer.getString('INSERT_TERMINAL_SUITE_STATUS'));
         const terminalSuite = {};
