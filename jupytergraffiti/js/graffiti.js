@@ -284,11 +284,10 @@ define([
       },
 
       // Create a button with a graffiti that doesn't do anything, but is ready to attach a recording to. This is merely to help
-      // authors who don't know much html create buttons more easily.
+      // authors who don't know much html create buttons more easily. This func is also used to create Show/Hide buttons and instant Show/Hide buttons.
       createGraffitiButtonAboveSelectedCell: (opts) => {
         const selectedCellIndex = Jupyter.notebook.get_selected_index();
         const selectedCell = Jupyter.notebook.get_selected_cell();
-
         const buttonCell = Jupyter.notebook.insert_cell_above('markdown', selectedCellIndex);
         const buttonCellId = utils.getMetadataCellId(buttonCell.metadata);
         const buttonCellIndex = utils.findCellIndexByCellId(buttonCellId);
@@ -354,6 +353,63 @@ define([
         graffiti.refreshGraffitiTooltips();
 
         return finalCell;
+      },
+
+      createGraffitiInstantShowHideButton: () => {
+        const selectedCellIndex = Jupyter.notebook.get_selected_index();
+        const selectedCell = Jupyter.notebook.get_selected_cell();
+        const isMarkdown = (selectedCell.cell_type == 'markdown');
+        // if the selected cell is not markdown, we will create a .txt file
+        // for inclusion, otherwise, we will create a .md file for inclusion
+        const cellContents = selectedCell.get_text();
+        const cellId = utils.getMetadataCellId(selectedCell.metadata);
+        const showHideFileName = 'graffiti_include_' + cellId + (isMarkdown ? '.md' : '.txt');
+        // Make the cell write its own contents out to a file.
+        const newCell = Jupyter.notebook.insert_cell_at_index('code',0);
+        newCell.set_text('%%writefile ' + showHideFileName + "\n" + $.trim(cellContents));
+        newCell.execute();
+        Jupyter.notebook.delete_cell(0);
+        
+        // reselect this cell so we can create a show/hide cell above it
+        Jupyter.notebook.select(selectedCellIndex);
+
+        const opts = {
+          tooltipCommands: { 
+            insertDataFromFile: {
+              cellType: (isMarkdown ? 'markdown' : 'code'),
+              filePath: './' + showHideFileName
+            },
+            swappingLabels: true,
+            labelSwaps: ['Show Solution','Hide Solution'],
+            silenceWarnings: true
+          },
+          tooltipDirectives: [
+            '%%insert_data_from_file ' + (isMarkdown ? 'markdown' : 'code') + ' ./' + showHideFileName,
+            '%%label_swaps Show Solution|Hide Solution',
+            '%%silence_warnings',
+          ],
+        };
+        graffiti.createGraffitiButtonAboveSelectedCell(opts);
+      },
+
+      createGraffitiInstantShowHideButtonWithConfirmation: () => {
+        dialog.modal({
+          title: 'Are you sure you want to convert the currently selected cell to a Show/Hide Solution cell?',
+          body: 'Note: the contents of the selected cell will be converted to a ' + fileTypeName + ' file in the current directory, replaced by a Show/Hide button.',
+          sanitize:false,
+          buttons: {
+            'OK': {
+              click: (e) => {
+                console.log('Graffiti: You clicked ok, you want to invoke createGraffitiInstantShowHideButton');
+                graffiti.createGraffitiInstantShowHideButton();
+
+              }
+            },
+            'Cancel': { click: (e) => { console.log('Graffiti: you cancelled:', $(e.target).parent()); } },
+          }
+        });
+
+
       },
 
       createTerminalSuiteAboveSelectedCell: () => {
@@ -1250,6 +1306,14 @@ define([
                                           }
                                         },
                                         {
+                                          ids: ['graffiti-create-instant-showhide-button'],
+                                          event: 'click', 
+                                          fn: (e) => { 
+                                            graffiti.createGraffitiInstantShowHideButton();
+                                            utils.saveNotebookDebounced();
+                                          }
+                                        },
+                                        {
                                           ids: ['graffiti-change-data-dir-button'],
                                           event: 'click', 
                                           fn: (e) => { 
@@ -1500,6 +1564,7 @@ define([
               graffiti.controlPanelIds['graffiti-record-controls'].
                        find('#graffiti-begin-recording-btn').hide().
                        parent().find('#graffiti-begin-rerecording-btn').hide().
+                       parent().find('#graffiti-cleanup-btn').hide().
                        parent().find('#graffiti-remove-btn').hide();
               graffiti.controlPanelIds['graffiti-record-controls'].
                        find('#graffiti-create-btn').show().
@@ -1511,6 +1576,7 @@ define([
                          find('#graffiti-create-btn').hide().
                          parent().find('#graffiti-edit-btn').show().
                          parent().find('#graffiti-begin-recording-btn').show().
+                         parent().find('#graffiti-cleanup-btn').show().
                          parent().find('#graffiti-remove-btn').show();
                 //console.log('selectedTokens:', selectedTokens);
                 state.clearPlayableMovie('cursorActivity');
@@ -5812,7 +5878,7 @@ define([
             utils.refreshCellMaps();
             const newCellIndex = viewInfo.cellIndex + 1;
             Jupyter.notebook.select(newCellIndex);
-            newCell.set_text(contents);
+            newCell.set_text($.trim(contents));
             newCell.render();
             return Promise.resolve(true);
           }).catch((ex) => {
