@@ -8,7 +8,9 @@ Then run the commands shown below to upgrade what's stored in pip
 python3 setup.py prep_to_build npm_run_build sdist bdist_wheel
 ```
 
-Uploading to the pypi test servers:
+If you yet don't have `twine` installed, you need to do `pip3 install twine`.
+
+Now, uploading to the pypi test servers:
 
 ``` shell
 python3 -m twine upload --repository-url https://test.pypi.org/legacy/ dist/* --verbose
@@ -63,6 +65,9 @@ export GRAFFITI_VERSION=1.0.1.10
 anaconda upload /Users/will/anaconda/conda-bld/noarch/jupytergraffiti-$GRAFFITI_VERSION-py_0.tar.bz2
 ```
 
+You may need to log in with `willkessler` and the same password you use for `pip` uploads.
+(Optional)
+
 Then you want to convert to other architectures and upload these as well:
 
 ```
@@ -72,7 +77,9 @@ anaconda upload linux64_out/linux-64/jupytergraffiti-<version>-py36_0.tar.bz2
 ... etc for all the architectures you want to support. This last step doesn't seem to be necessary any more (01/23/2020).
 
 
-To install you should be able to do :
+Finally...
+
+To install and test you should be able to do :
 
 ```
 conda install -c willkessler jupytergraffiti
