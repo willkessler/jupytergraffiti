@@ -4260,7 +4260,6 @@ define([
           const recordingCellId = utils.extractRecordingCellId(selectedTokens);
           const recordingKey = selectedTokens.recordingKey;
           const recordingFullId = recordingCellId.replace('id_','') + '_' + recordingKey.replace('id_','');
-          console.log('removeUnusedTakesForSelectedRecording, calling with recordingFullId:', recordingFullId);
           graffiti.removeUnusedTakesWithConfirmation(recordingFullId);
         }
       },
