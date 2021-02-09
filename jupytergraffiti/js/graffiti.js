@@ -577,8 +577,8 @@ define([
                                       '  <button class="btn btn-default" id="graffiti-begin-rerecording-btn" title="' + localizer.getString('RERECORD_MOVIE') + '">' +
                                       '<i class="fa fa-film graffiti-recorder-button"></i>&nbsp;<span>' + localizer.getString('RERECORD') + '</span></button>' +
 
-                                      '  <button class="btn btn-default" id="graffiti-sweep-btn" title="' + localizer.getString('CLEANUP_TAKES') + '">' +
-                                      '<i class="fa fa-cut graffiti-sweep-button"></i>&nbsp;<span>' + localizer.getString('CLEANUP_TAKES') + '</span></button>' +
+                                      '  <button class="btn btn-default" id="graffiti-cleanup-btn" title="' + localizer.getString('CLEANUP_TAKES') + '">' +
+                                      '<i class="fa fa-bath graffiti-cleanup-button"></i>&nbsp;<span>' + localizer.getString('CLEANUP_TAKES') + '</span></button>' +
 
                                       '  <button class="btn btn-default" id="graffiti-remove-btn" title="' + localizer.getString('REMOVE_GRAFFITI') + '">' +
                                       '<i class="fa fa-trash"></i>&nbsp;<span>' + localizer.getString('REMOVE_GRAFFITI') + '</span></button>',
@@ -598,10 +598,10 @@ define([
                                           }
                                         },
                                         {
-                                          ids: ['graffiti-sweep-btn'],
+                                          ids: ['graffiti-cleanup-btn'],
                                           event: 'click',
                                           fn: (e) => {
-                                            graffiti.removeExtraTakes();
+                                            graffiti.removeUnusedTakesForSelectedRecording();
                                           }
                                         },
                                         {
@@ -4166,11 +4166,11 @@ define([
         const recordingCell = utils.findCellByCellId(parts.recordingCellId);
         if (recordingCell !== undefined) {
           storage.removeUnusedTakes(parts.recordingCellId, parts.recordingKey);
-          graffiti.refreshAfterDeletions(recordingCellId);
+          graffiti.refreshAfterDeletions(parts.recordingCellId);
         }
       },
 
-      removeAllUnusedTakes: () => {
+      removeAllUnusedTakes: () => { // remove all unused takes from ALL cells, not just the one we're working in
         const manifest = state.getManifest(); // save manifest before we wipe it out
         let recording, recordingCellId, recordingCell, recordingIds, recordingKeys, deletedTakes = 0;
         for (recordingCellId of Object.keys(manifest)) {
@@ -4224,7 +4224,7 @@ define([
           buttons: {
             'OK': {
               click: (e) => {
-                console.log('Graffiti: You clicked ok, you want to remove unused takes.');
+                console.log('Graffiti: You clicked ok, you want to remove all unused takes.');
                 graffiti.removeAllUnusedTakes();
 
               }
@@ -4242,7 +4242,7 @@ define([
           buttons: {
             'OK': {
               click: (e) => {
-                console.log('Graffiti: You clicked ok, you want to remove unused takes.');
+                console.log('Graffiti: You clicked ok, you want to remove unused takes for recording:', recordingFullId);
                 graffiti.removeUnusedTakes(recordingFullId);
 
               }
@@ -4251,6 +4251,18 @@ define([
           }
         });
 
+      },
+
+      // this is the user-driven (not API) driven method to remove unused takes on a currently selected recording
+      removeUnusedTakesForSelectedRecording: () => {
+        const selectedTokens = graffiti.selectedTokens;
+        if (selectedTokens.isIntersecting) {
+          const recordingCellId = utils.extractRecordingCellId(selectedTokens);
+          const recordingKey = selectedTokens.recordingKey;
+          const recordingFullId = recordingCellId.replace('id_','') + '_' + recordingKey.replace('id_','');
+          console.log('removeUnusedTakesForSelectedRecording, calling with recordingFullId:', recordingFullId);
+          graffiti.removeUnusedTakesWithConfirmation(recordingFullId);
+        }
       },
 
       removeGraffitiWithPrompt: () => {
