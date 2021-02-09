@@ -70,6 +70,7 @@ define([
             'TO_NEXT_SENTENCE':                  'to next sentence',
             'SECONDS':                           'second',
             'SAVE_GRAFFITI':                     'Save Graffiti',
+            'CLEANUP_TAKES':                     'Cleanup Takes',
             'REMOVE_GRAFFITI':                   'Remove Graffiti',
             'BELOW_TYPE_MARKDOWN':               "%% Below, type any markdown to display in the Graffiti tip.\n" +
                                                  "%% Then run this cell to save it.\n",
@@ -160,6 +161,7 @@ define([
             'ACTIVATE_LOCK_ALT_TAG':             'Lock/unlock all markdown cells',
             'CHANGE_DATADIR_TAG':                'Change home directory for Graffiti data',
             'CREATE_SHOWHIDE_BUTTON':            'Create show/hide button',
+            'CREATE_INSTANT_SHOWHIDE_BUTTON':    'Show/hide: this cell',
             'LOCK_VERB':                         'Lock',
             'UNLOCK_VERB':                       'Unlock',
             'UNLOCK_BODY':                       'This will unlock all markdown cells so you can edit them (note: terminal cells are always locked).',
@@ -221,6 +223,7 @@ define([
             'TO_NEXT_SENTENCE':                  '到下一句',
             'SECONDS':                           '秒',
             'SAVE_GRAFFITI':                     '保留 Graffiti ',
+            'CLEANUP_TAKES':                     'Cleanup Takes',
             'REMOVE_GRAFFITI':                   '移除 Graffiti ',
             'BELOW_TYPE_MARKDOWN':               '在以下输入 markdown 文本，将展示在 Graffiti 中。' +
                                                  '然后运行文本以保存。',
@@ -313,6 +316,7 @@ define([
             'ACTIVATE_LOCK_ALT_TAG':             'Lock/unlock all markdown cells',
             'CHANGE_DATADIR_TAG':                'Change home directory for Graffiti data',
             'CREATE_SHOWHIDE_BUTTON':            'Create show/hide button',
+            'CREATE_INSTANT_SHOWHIDE_BUTTON':    'Show/hide: this cell',
             'LOCK_VERB':                         'Lock',
             'UNLOCK_VERB':                       'Unlock',
             'UNLOCK_BODY':                       'This will unlock all markdown cells so you can edit them (note: terminal cells are always locked).',
