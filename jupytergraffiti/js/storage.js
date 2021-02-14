@@ -240,8 +240,27 @@ define([
     },
 
     constructGraffitiTakePath: (pathParts) => {
-      let graffitiPath = storage.constructGraffitiMoviePath(pathParts) + 'takes/' + pathParts.takeId + '/';
+      const graffitiPath = storage.constructGraffitiMoviePath(pathParts) + 'takes/' + pathParts.takeId + '/';
       return graffitiPath;
+    },
+
+    constructGraffitiIncludesPath: (pathParts) => {
+      const graffitiPath = storage.constructGraffitiMoviePath(pathParts) + 'includes/';
+      return graffitiPath;
+    },
+
+    constructGraffitiIncludeFileName: (pathParts) => {
+      const graffitiPath = 'include_' + pathParts.recordingCellId.replace('id_','') + '_' + 
+                           pathParts.recordingKey.replace('id_','') +
+                           (pathParts.isMarkdown ? '.md' : '.txt');
+      return graffitiPath;
+    },
+    
+    constructGraffitiIncludeFileNameWithPath: (pathParts) => {
+      const graffitiPath = storage.constructGraffitiIncludesPath(pathParts);
+      const includeFileNameWithPath = graffitiPath + storage.constructGraffitiIncludeFileName(pathParts);
+
+      return includeFileNameWithPath;
     },
 
     completeMovieStorage: () => {
@@ -271,6 +290,24 @@ define([
         storage.executeMovieCompleteCallback();
       });
       utils.saveNotebookDebounced();
+    },
+
+    writeOutIncludeFile: (recordingCellId, recordingKey, isMarkdown, includeFileContents) => {
+      const pathParts = {
+        recordingCellId: recordingCellId,
+        recordingKey:    recordingKey,
+        isMarkdown: isMarkdown
+      }
+      const graffitiPath = storage.constructGraffitiIncludesPath(pathParts);
+      const includeFileName = storage.constructGraffitiIncludeFileName(pathParts);
+        
+      storage.runShellCommand(storage.getOSMkdirCommand(graffitiPath));
+      storage.writeTextToFile({ path: graffitiPath + includeFileName,
+                                contents: includeFileContents,
+                                stripCRs: false });
+
+      storage.cleanUpExecutorCell(graffitiPath);
+      return Promise.resolve();
     },
 
     writeOutMovieData: (movieInfo, jsonHistory, encodedAudio) => {

@@ -352,7 +352,8 @@ define([
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTooltips();
 
-        return finalCell;
+        const combinedButtonInfo = { cell: finalCell, cellId: buttonCellId,  data: graffitizedData };
+        return combinedButtonInfo;
       },
 
       createGraffitiInstantShowHideButton: () => {
@@ -363,33 +364,31 @@ define([
         // for inclusion, otherwise, we will create a .md file for inclusion
         const cellContents = selectedCell.get_text();
         const cellId = utils.getMetadataCellId(selectedCell.metadata);
-        const showHideFileName = 'graffiti_include_' + cellId + (isMarkdown ? '.md' : '.txt');
-        // Make the cell write its own contents out to a file.
-        const newCell = Jupyter.notebook.insert_cell_at_index('code',0);
-        newCell.set_text('%%writefile ' + showHideFileName + "\n" + $.trim(cellContents));
-        newCell.execute();
-        Jupyter.notebook.delete_cell(0);
         
         // reselect this cell so we can create a show/hide cell above it
         Jupyter.notebook.select(selectedCellIndex);
 
+        const directiveDataFileName = 'implicit'; // the directive will figure out the filename from the recording_id and recording_key.
         const opts = {
           tooltipCommands: { 
             insertDataFromFile: {
               cellType: (isMarkdown ? 'markdown' : 'code'),
-              filePath: './' + showHideFileName
+              filePath: directiveDataFileName
             },
             swappingLabels: true,
             labelSwaps: ['Show Solution','Hide Solution'],
             silenceWarnings: true
           },
           tooltipDirectives: [
-            '%%insert_data_from_file ' + (isMarkdown ? 'markdown' : 'code') + ' ./' + showHideFileName,
+            '%%insert_data_from_file ' + (isMarkdown ? 'markdown' : 'code') + ' ' + directiveDataFileName,
             '%%label_swaps Show Solution|Hide Solution',
             '%%silence_warnings',
           ],
         };
-        graffiti.createGraffitiButtonAboveSelectedCell(opts);
+        const buttonInfo = graffiti.createGraffitiButtonAboveSelectedCell(opts);
+
+        // Make the cell write its own contents out to a file.
+        storage.writeOutIncludeFile(buttonInfo.cellId, buttonInfo.data.recordingKey, isMarkdown, $.trim(cellContents));
       },
 
       createTerminalSuiteAboveSelectedCell: () => {
@@ -2973,7 +2972,8 @@ define([
       // %%caption  What is Naive Bayes?
       //
 
-      extractTooltipCommands: (markdown) => {
+      extractTooltipCommands: (recording) => {
+        const markdown = recording.markdown;
         //const commandParts = markdown.match(/^\s*%%(([^\s]*)(\s*)(.*))$/mig);
         const commandParts = markdown.split(/\n/);
         let partsRecord, part, subParts, cleanedPart;
@@ -3111,10 +3111,19 @@ define([
                     break;
                   case 'insert_data_from_file':
                     // pass a cell type and a file to read content from.
-                    partsRecord.insertDataFromFile = {
-                      cellType: subPart1, // either "code" or "markdown"
-                      filePath: subPart2.replace(/^"/,'').replace(/"$/,''), // relative path to file to insert, remove quotes.
-                    };
+                    // if the filePath given in subPart2 is the string 'implicit' then we calculate the file path from the recording info. 
+                    // this is the case when we have a show/hide solution button where the include file is in the graffiti data path.
+                    if ($.trim(subPart2) == 'implicit') {
+                      partsRecord.insertDataFromFile = {
+                        cellType: subPart1, // either "code" or "markdown"
+                        filePath: storage.constructGraffitiIncludeFileName({recordingCellId: recording.cellId, recordingKey: recording.recordingKey, isMarkdown: recording.cellType})
+                      };
+                    } else {
+                      partsRecord.insertDataFromFile = {
+                        cellType: subPart1, // either "code" or "markdown"
+                        filePath: subPart2.replace(/^"/,'').replace(/"$/,''), // relative path to file to insert, remove quotes.
+                      };
+                    }
                     break;
                   case 'label_swaps':
                     // Using this directive you can change the displayed text in a graffiti eg. in a graffiti button on a click. Separate
@@ -3325,7 +3334,9 @@ define([
             state.setPlayableMovie('tip', cellId, recordingKey, hoverCellId);
           }                
           state.setHidePlayerAfterPlayback(false); // default for any recording is not to hide player
-          const tooltipCommands = graffiti.extractTooltipCommands(recording.markdown);
+          recording.recordingKey = recordingKey;
+          const tooltipCommands = graffiti.extractTooltipCommands(recording);
+          // console.log('refreshGraffitiTooltipsCore, tooltipCommands:', tooltipCommands );
 
           if (recording.playOnClick) {
             //console.log('Graffiti: binding target for click', highlightElem);
@@ -3977,8 +3988,8 @@ define([
             }
             recordings[recordingCellInfo.recordingKey].markdown = editCellContents;
 
-            const tooltipCommands = graffiti.extractTooltipCommands(editCellContents);
             const recording = recordings[recordingCellInfo.recordingKey];
+            const tooltipCommands = graffiti.extractTooltipCommands(recording);
             recording.autoplay = 'never';
             if (tooltipCommands.autoplay === 'always') {
               recording.autoplay = 'always';
@@ -5841,7 +5852,10 @@ define([
       executeInsertDataFromFile: (recordingCellId, recordingKey, recording) => {
         //console.trace('executeInsertDataFromFile');
         const insertDataFromFile = recording.insertDataFromFile;
-        const filePath = insertDataFromFile.filePath;
+        let filePath = insertDataFromFile.filePath;
+        if (filePath === 'implicit') {
+          filePath = storage.constructGraffitiIncludeFileNameWithPath({recordingCellId: recordingCellId, recordingKey: recordingKey, isMarkdown: recording.isMarkdown});
+        }
         // Note that we re-use the recording key here. See note below about why.
         const existingCellId = recordingKey;
         const existingCell = utils.findCellByCellId(existingCellId);
