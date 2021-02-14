@@ -449,12 +449,17 @@ define([
     // Returns a promise.
     //
     fetchMovie: (data) => {
-      const notebookRecordingId = Jupyter.notebook.metadata.graffiti.id;
+      // In the case of insert data from file, there may not be an active take/recording, so in 
+      // that case don't try to load an associated movie.
+      if (data.activeTakeId === undefined) { 
+        return Promise.reject('There is no active take on: ' + data.recordingCellId + '_' + data.recordingKey);
+      }
       const graffitiPath = storage.constructGraffitiTakePath( {
         recordingCellId: data.recordingCellId,
         recordingKey: data.recordingKey,
         takeId: data.activeTakeId,
       });
+      console.log('fetchMovie, data:', data);
       const credentials = { credentials: 'include'};
       storage.successfulLoad = false; /* assume we cannot fetch this recording ok */
       // console.log('Graffiti: storage is loading movie from path:', graffitiPath);
