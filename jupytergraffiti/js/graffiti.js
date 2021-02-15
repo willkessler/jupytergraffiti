@@ -1300,7 +1300,7 @@ define([
             if (markdownLocked === true || terminalLib.isTerminalCell(cellId)) {
               console.log('Graffiti: Not unrendering markdown cell, since Graffiti lock in place or is terminal cell.');
             } else {
-              console.log('Graffiti: applying old unrender call, cellId', cellId);
+              //console.log('Graffiti: applying old unrender call, cellId', cellId);
               graffiti.oldUnrender.apply(cell, arguments);
               window.brokeCell = cell;
             }
@@ -3640,7 +3640,7 @@ define([
       
       setupBackgroundEvents: () => {
         // Handle rubber banding scrolling that occurs on short notebooks so cursor doesn't look wrong (possibly, only chrome?).
-        console.log('Graffiti: setupBackgroundEvents');
+        console.log('Graffiti: setupBackgroundEvents.');
 
         graffiti.sitePanel.on('scroll', (e) => {
           const notebookPanelHeight = graffiti.notebookPanel.height();
@@ -5733,7 +5733,7 @@ define([
         console.log('Graffiti: playMovieViaUserClick starts.');
         const activity = state.getActivity();
         const playableMovie = state.getPlayableMovie('tip');
-        console.log('Graffiti: playableMovie', playableMovie);
+        //console.log('Graffiti: playableMovie', playableMovie);
         if (playableMovie === undefined) {
           console.log('Graffiti: no playable movie known.');
           if (activity !== 'recording') {
@@ -5993,7 +5993,7 @@ define([
           return;
         }
 
-        console.log('Graffiti: playableMovie:', playableMovie);
+        //console.log('Graffiti: playableMovie:', playableMovie);
 
         const activity = state.getActivity();
         const recording = state.getManifestSingleRecording(playableMovie.recordingCellId, playableMovie.recordingKey);

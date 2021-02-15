@@ -1217,7 +1217,7 @@ define([
     },
 
     setActivity: (newState) => {
-      console.log('Graffiti: setting activity to:', newState);
+      console.log('Graffiti: Setting activity to:', newState);
       state.activity = newState;
     },
 
