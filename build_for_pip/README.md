@@ -61,7 +61,7 @@ Modify `jupytergraffiti/meta.json` to include github handle: `willkessler`
 
 ```
 conda build jupytergraffiti
-export GRAFFITI_VERSION=1.0.1.10
+export GRAFFITI_VERSION=1.0.1.17
 anaconda upload ~/anaconda3/conda-bld/noarch/jupytergraffiti-$GRAFFITI_VERSION-py_0.tar.bz2
 ```
 
