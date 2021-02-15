@@ -3325,7 +3325,6 @@ define([
           state.setHidePlayerAfterPlayback(false); // default for any recording is not to hide player
           recording.recordingKey = recordingKey;
           const tooltipCommands = graffiti.extractTooltipCommands(recording);
-          // console.log('refreshGraffitiTooltipsCore, tooltipCommands:', tooltipCommands );
 
           if (recording.playOnClick) {
             //console.log('Graffiti: binding target for click', highlightElem);
@@ -3666,14 +3665,14 @@ define([
         // visavis the viewport, the user sometimes needs to manually scroll around to keep up with a video
         // that's playing in an iframe. Mousewheel-pause was defeating this workaround so it's turned off.
         // 3/18/19
-        /*
+/*
            graffiti.sitePanel.on('mousewheel', (e) => {
            if (state.getActivity() === 'playing') {
            console.log('Graffiti: pausing playback because of mousewheel scroll.');
            graffiti.pausePlayback();
            }
            });
-         */
+*/
 
         $('body').keydown((e) => {
           return graffiti.handleKeydown(e);
