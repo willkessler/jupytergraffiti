@@ -934,7 +934,6 @@ define([
 
     onSafari: () => {
       const vendor = navigator.vendor;
-      console.log('onSafari checking vendor:', vendor);
       if ((vendor) && (vendor === "Apple Computer, Inc.")) {
         console.log('Safari detected.');
         return true;

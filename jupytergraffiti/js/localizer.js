@@ -138,7 +138,7 @@ define([
             'REPLACE_CONFIRM_BODY_3':            'Let this Movie Permanently Set Cell Contents',
             'ACCESS_MICROPHONE_PROMPT':          'Please grant access to your browser\'s microphone.',
             'ACCESS_MICROPHONE_ADVISORY':        'You cannot record Graffiti movies unless you grant access to the microphone. ' +
-                                                 'Please <a href="https://help.aircall.io/hc/en-gb/articles/115001425325-How-to-allow-Google-Chrome-to-access-your-microphone" ' +
+                                                 'Please <a href="https://support.google.com/chrome/answer/2693767?co=GENIE.Platform%3DDesktop&hl=en" ' +
                                                  'target="_">grant access</a> and then reload this page.',
             'ACTIVATE_GRAFFITI_ADVISORY':        'Enable Graffiti on this Notebook, so you can begin using Graffiti for the first time?<br>' +
                                                  'If you click Cancel, we will not change the notebook in any way.' +
@@ -160,8 +160,7 @@ define([
             'CELL_EXECUTE_CHOICE_SET':           'Your choice has been saved.',
             'ACTIVATE_LOCK_ALT_TAG':             'Lock/unlock all markdown cells',
             'CHANGE_DATADIR_TAG':                'Change home directory for Graffiti data',
-            'CREATE_SHOWHIDE_BUTTON':            'Create show/hide button',
-            'CREATE_INSTANT_SHOWHIDE_BUTTON':    'Show/hide: this cell',
+            'CREATE_SHOWHIDE_BUTTON':            'Create show/hide button from this cell',
             'LOCK_VERB':                         'Lock',
             'UNLOCK_VERB':                       'Unlock',
             'UNLOCK_BODY':                       'This will unlock all markdown cells so you can edit them (note: terminal cells are always locked).',
@@ -315,8 +314,7 @@ define([
             'CELL_EXECUTE_CHOICE_SET':           'Your choice has been saved.',
             'ACTIVATE_LOCK_ALT_TAG':             'Lock/unlock all markdown cells',
             'CHANGE_DATADIR_TAG':                'Change home directory for Graffiti data',
-            'CREATE_SHOWHIDE_BUTTON':            'Create show/hide button',
-            'CREATE_INSTANT_SHOWHIDE_BUTTON':    'Show/hide: this cell',
+            'CREATE_SHOWHIDE_BUTTON':            'Create show/hide button from this cell',
             'LOCK_VERB':                         'Lock',
             'UNLOCK_VERB':                       'Unlock',
             'UNLOCK_BODY':                       'This will unlock all markdown cells so you can edit them (note: terminal cells are always locked).',

@@ -61,8 +61,8 @@ Modify `jupytergraffiti/meta.json` to include github handle: `willkessler`
 
 ```
 conda build jupytergraffiti
-export GRAFFITI_VERSION=1.0.1.10
-anaconda upload /Users/will/anaconda/conda-bld/noarch/jupytergraffiti-$GRAFFITI_VERSION-py_0.tar.bz2
+export GRAFFITI_VERSION=1.0.1.18
+anaconda upload ~/anaconda3/conda-bld/noarch/jupytergraffiti-$GRAFFITI_VERSION-py_0.tar.bz2
 ```
 
 You may need to log in with `willkessler` and the same password you use for `pip` uploads.
@@ -83,6 +83,12 @@ To install and test you should be able to do :
 
 ```
 conda install -c willkessler jupytergraffiti
+```
+
+You can test on Udacity streamed linux desktops with:
+
+```
+jupyter notebook —port=3001 —ip=127.0.0.1 —allow-root
 ```
 
 ### Building for Windows and building for pip on Windows

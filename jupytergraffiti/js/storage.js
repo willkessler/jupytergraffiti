@@ -240,8 +240,26 @@ define([
     },
 
     constructGraffitiTakePath: (pathParts) => {
-      let graffitiPath = storage.constructGraffitiMoviePath(pathParts) + 'takes/' + pathParts.takeId + '/';
+      const graffitiPath = storage.constructGraffitiMoviePath(pathParts) + 'takes/' + pathParts.takeId + '/';
       return graffitiPath;
+    },
+
+    constructGraffitiIncludesPath: (pathParts) => {
+      const graffitiPath = storage.constructGraffitiMoviePath(pathParts) + 'includes/';
+      return graffitiPath;
+    },
+
+    constructGraffitiIncludeFileName: (pathParts) => {
+      const graffitiPath = 'include_' + pathParts.recordingCellId.replace('id_','') + '_' + 
+                           pathParts.recordingKey.replace('id_','') +
+                           (pathParts.isMarkdown ? '.md' : '.txt');
+      return graffitiPath;
+    },
+    
+    constructGraffitiIncludeFileNameWithPath: (pathParts) => {
+      const graffitiPath = storage.constructGraffitiIncludesPath(pathParts);
+      const includeFileNameWithPath = graffitiPath + storage.constructGraffitiIncludeFileName(pathParts);
+      return includeFileNameWithPath;
     },
 
     completeMovieStorage: () => {
@@ -271,6 +289,24 @@ define([
         storage.executeMovieCompleteCallback();
       });
       utils.saveNotebookDebounced();
+    },
+
+    writeOutIncludeFile: (recordingCellId, recordingKey, isMarkdown, includeFileContents) => {
+      const pathParts = {
+        recordingCellId: recordingCellId,
+        recordingKey:    recordingKey,
+        isMarkdown: isMarkdown
+      }
+      const graffitiPath = storage.constructGraffitiIncludesPath(pathParts);
+      const includeFileName = storage.constructGraffitiIncludeFileName(pathParts);
+        
+      storage.runShellCommand(storage.getOSMkdirCommand(graffitiPath));
+      storage.writeTextToFile({ path: graffitiPath + includeFileName,
+                                contents: includeFileContents,
+                                stripCRs: false });
+
+      storage.cleanUpExecutorCell(graffitiPath);
+      return Promise.resolve();
     },
 
     writeOutMovieData: (movieInfo, jsonHistory, encodedAudio) => {
@@ -412,7 +448,11 @@ define([
     // Returns a promise.
     //
     fetchMovie: (data) => {
-      const notebookRecordingId = Jupyter.notebook.metadata.graffiti.id;
+      // In the case of insert data from file, there may not be an active take/recording, so in 
+      // that case don't try to load an associated movie.
+      if (data.activeTakeId === undefined) { 
+        return Promise.reject('There is no active take on: ' + data.recordingCellId + '_' + data.recordingKey);
+      }
       const graffitiPath = storage.constructGraffitiTakePath( {
         recordingCellId: data.recordingCellId,
         recordingKey: data.recordingKey,

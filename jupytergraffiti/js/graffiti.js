@@ -352,44 +352,54 @@ define([
         graffiti.refreshAllGraffitiHighlights();
         graffiti.refreshGraffitiTooltips();
 
-        return finalCell;
+        const combinedButtonInfo = { cell: finalCell, cellId: buttonCellId,  data: graffitizedData };
+        return combinedButtonInfo;
       },
 
       createGraffitiInstantShowHideButton: () => {
-        const selectedCellIndex = Jupyter.notebook.get_selected_index();
+        let selectedCellIndex = Jupyter.notebook.get_selected_index();
         const selectedCell = Jupyter.notebook.get_selected_cell();
         const isMarkdown = (selectedCell.cell_type == 'markdown');
-        // if the selected cell is not markdown, we will create a .txt file
+        const cellTypeString = (isMarkdown ? 'markdown' : 'code');
+        // If the selected cell is not markdown, we will create a .txt file
         // for inclusion, otherwise, we will create a .md file for inclusion
         const cellContents = selectedCell.get_text();
         const cellId = utils.getMetadataCellId(selectedCell.metadata);
-        const showHideFileName = 'graffiti_include_' + cellId + (isMarkdown ? '.md' : '.txt');
-        // Make the cell write its own contents out to a file.
-        const newCell = Jupyter.notebook.insert_cell_at_index('code',0);
-        newCell.set_text('%%writefile ' + showHideFileName + "\n" + $.trim(cellContents));
-        newCell.execute();
-        Jupyter.notebook.delete_cell(0);
         
         // reselect this cell so we can create a show/hide cell above it
         Jupyter.notebook.select(selectedCellIndex);
 
+        const directiveDataFileName = 'implicit'; // the directive will figure out the filename from the recording_id and recording_key.
         const opts = {
           tooltipCommands: { 
             insertDataFromFile: {
-              cellType: (isMarkdown ? 'markdown' : 'code'),
-              filePath: './' + showHideFileName
+              cellType: cellTypeString,
+              isMarkdown: isMarkdown,
+              filePath: directiveDataFileName
             },
             swappingLabels: true,
             labelSwaps: ['Show Solution','Hide Solution'],
             silenceWarnings: true
           },
           tooltipDirectives: [
-            '%%insert_data_from_file ' + (isMarkdown ? 'markdown' : 'code') + ' ./' + showHideFileName,
+            '%%comment In the insert_data_from_file directive, below, "implicit" refers to a file that Graffiti generated containing the contents of the cell you provided for this button. If you want to specify a file of your own, change "implicit" to the full path to your file, relative to the current Notebook.',
+            '%%insert_data_from_file ' + cellTypeString + ' ' + directiveDataFileName,
             '%%label_swaps Show Solution|Hide Solution',
             '%%silence_warnings',
           ],
         };
-        graffiti.createGraffitiButtonAboveSelectedCell(opts);
+        const buttonInfo = graffiti.createGraffitiButtonAboveSelectedCell(opts);
+
+        // Make the cell write its own contents out to a file.
+        storage.writeOutIncludeFile(buttonInfo.cellId, buttonInfo.data.recordingKey, isMarkdown, $.trim(cellContents));
+
+        // Now delete the original cell used to create this show/hide button. Slightly risky but if edits are required, the
+        // content creator can just Show the solution, edit its contents, and then use the Graffiti create Show/Hide function
+        // to create a new Show/Hide button from the updated cell contents.
+        
+        selectedCellIndex = utils.findCellIndexByCellId(cellId);
+        Jupyter.notebook.delete_cell(selectedCellIndex);
+        
       },
 
       createTerminalSuiteAboveSelectedCell: () => {
@@ -400,58 +410,60 @@ define([
         const codeCell = Jupyter.notebook.insert_cell_above('code', selectedCellIndex);
         const codeCommentString = utils.getCodeCommentString();
         codeCell.set_text(codeCommentString + "\n" + codeCommentString + ' ' +
-                          "Paste code here. It will execute the graffiti associated with the button when shift-enter is pressed.\n" +
+                          "Paste code here. It will execute the command associated with the button when shift-enter is pressed.\n" +
                           codeCommentString + "\n");
         terminalSuite.codeCellId = utils.getMetadataCellId(codeCell.metadata);
 
-        const terminalCell = terminalLib.createTerminalCellAboveSelectedCell(selectedCellIndex + 1);
-        terminalSuite.terminalCellId = terminalCell.term.id; // initially the term id is the same as the cellId of the cell it lives in.
+        return terminalLib.createTerminalCellAboveSelectedCell(selectedCellIndex + 1).then( (terminalCell) => {
+          terminalSuite.terminalCellId = terminalCell.term.id; // initially the term id is the same as the cellId of the cell it lives in.
 
-        const buttonCell = Jupyter.notebook.insert_cell_below('markdown', selectedCellIndex + 1);
-        const buttonCellId = utils.getMetadataCellId(buttonCell.metadata);
-        const buttonCellIndex = utils.findCellIndexByCellId(buttonCellId);
-        Jupyter.notebook.select(buttonCellIndex); // critical step, otherwise, the cell will not render correctly
-        const cm = buttonCell.code_mirror;
-        cm.execCommand('selectAll');
-        const params = { cell: buttonCell, clear: true };
-        graffiti.refreshGraffitiHighlights(params);
-        graffiti.selectedTokens = utils.findSelectionTokens(buttonCell, graffiti.tokenRanges, state);
+          const buttonCell = Jupyter.notebook.insert_cell_below('markdown', selectedCellIndex + 1);
+          const buttonCellId = utils.getMetadataCellId(buttonCell.metadata);
+          const buttonCellIndex = utils.findCellIndexByCellId(buttonCellId);
+          Jupyter.notebook.select(buttonCellIndex); // critical step, otherwise, the cell will not render correctly
+          const cm = buttonCell.code_mirror;
+          cm.execCommand('selectAll');
+          const params = { cell: buttonCell, clear: true };
+          graffiti.refreshGraffitiHighlights(params);
+          graffiti.selectedTokens = utils.findSelectionTokens(buttonCell, graffiti.tokenRanges, state);
 
-        const tooltipCommands = {
-          autoPlay: 'never',
-          playOnClick: true,
-          hideTooltip: true,
-          narratorName: undefined,
-          narratorPicture: undefined,
-          stickerImageUrl: undefined,
-          saveToFile: [{ cellId: terminalSuite.codeCellId, path: './graffiti_sample.txt' }],
-          terminalCommand: { terminalId: terminalSuite.terminalCellId, command: 'cat ./graffiti_sample.txt' },
-        };
-        const tooltipDirectives = [
-          '%%play_on_click',
-          '%%hide_tooltip',
-          '%%save_to_file' + ' ' + terminalSuite.codeCellId + ' "' + tooltipCommands.saveToFile[0].path + '"',
-          '%%terminal_command' + ' ' + terminalSuite.terminalCellId + ' "' + tooltipCommands.terminalCommand.command + '"'
-        ];
-        const rawButtonMarkdown = '<button>Run Code</button>';
-        const graffitizedData = graffiti.createGraffitizedMarkdown(buttonCell, rawButtonMarkdown, tooltipCommands, tooltipDirectives);
-        buttonCell.set_text(graffitizedData.markdown);
-        buttonCell.render();
-        terminalSuite.buttonCellId = utils.getMetadataCellId(buttonCell.metadata);
+          const tooltipCommands = {
+            autoPlay: 'never',
+            playOnClick: true,
+            hideTooltip: true,
+            narratorName: undefined,
+            narratorPicture: undefined,
+            stickerImageUrl: undefined,
+            saveToFile: [{ cellId: terminalSuite.codeCellId, path: './graffiti_sample.txt' }],
+            terminalCommand: { terminalId: terminalSuite.terminalCellId, command: 'cat ./graffiti_sample.txt' },
+          };
+          const tooltipDirectives = [
+            '%%play_on_click',
+            '%%hide_tooltip',
+            '%%save_to_file' + ' ' + terminalSuite.codeCellId + ' "' + tooltipCommands.saveToFile[0].path + '"',
+            '%%terminal_command' + ' ' + terminalSuite.terminalCellId + ' "' + tooltipCommands.terminalCommand.command + '"'
+          ];
+          const rawButtonMarkdown = '<button>Run Code</button>';
+          const graffitizedData = graffiti.createGraffitizedMarkdown(buttonCell, rawButtonMarkdown, tooltipCommands, tooltipDirectives);
+          buttonCell.set_text(graffitizedData.markdown);
+          buttonCell.render();
+          terminalSuite.buttonCellId = utils.getMetadataCellId(buttonCell.metadata);
 
-        // Wire up the code cell to execute the button graffiti when shift-enter/ctrl-enter is pressed in it.
-        const targetGraffitiId = utils.composeGraffitiId(terminalSuite.buttonCellId, graffitizedData.recordingKey);
-        utils.setCellGraffitiConfigEntry(codeCell, 'executeCellViaGraffiti', targetGraffitiId);
+          // Wire up the code cell to execute the button graffiti when shift-enter/ctrl-enter is pressed in it.
+          const targetGraffitiId = utils.composeGraffitiId(terminalSuite.buttonCellId, graffitizedData.recordingKey);
+          utils.setCellGraffitiConfigEntry(codeCell, 'executeCellViaGraffiti', targetGraffitiId);
 
-        graffiti.refreshAllGraffitiHighlights();
-        graffiti.refreshGraffitiTooltips();
-        
-        graffiti.clearJupyterMenuHint();
-        // Save the contents of the code cell to its file even before any edits have happened, so any terminal commands in the button will find any
-        // file being referred to.
-        state.refreshCellIdToGraffitiMap();
-        graffiti.executeSaveToFileDirectives(terminalSuite.codeCellId);
-        return terminalSuite;      
+          graffiti.refreshAllGraffitiHighlights();
+          graffiti.refreshGraffitiTooltips();
+          
+          graffiti.clearJupyterMenuHint();
+          // Save the contents of the code cell to its file even before any edits have happened, so any terminal commands in the button will find any
+          // file being referred to.
+          state.refreshCellIdToGraffitiMap();
+          graffiti.executeSaveToFileDirectives(terminalSuite.codeCellId);
+
+          return Promise.resolve(terminalSuite);      
+        });
       },
 
       setupOneControlPanel: (elemId,elemHtml, callbacks) => {
@@ -1180,7 +1192,6 @@ define([
         const lockConfigOn =  $.extend({}, true, defaultIconConfiguration, { color: 'red' });
         const lockConfigOff = $.extend({}, true, defaultIconConfiguration, { color: 'green' });
         const hiddenCellConfiguration = $.extend({}, true, defaultIconConfiguration, { color: '#aaa', fillOpacity: 1.0 });
-        const instantHiddenCellConfiguration = $.extend({}, true, defaultIconConfiguration, { color: '#ff8c00', fillOpacity: 1.0 });
 
         // Build the "extras" panel
 
@@ -1209,10 +1220,6 @@ define([
                                       localizer.getString('CREATE_SHOWHIDE_BUTTON') + '">' + stickerLib.makeHidden(hiddenCellConfiguration) +
                                       '    </div>' +
 
-                                      '    <div class="graffiti-stickers-button" id="graffiti-create-instant-showhide-button" title="' + 
-                                      localizer.getString('CREATE_INSTANT_SHOWHIDE_BUTTON') + '">' + stickerLib.makeHidden(instantHiddenCellConfiguration) +
-                                      '    </div>' +
-                                      
                                       '    <div class="graffiti-stickers-button" id="graffiti-toggle-markdown-lock" title="' + 
                                       localizer.getString('ACTIVATE_LOCK_ALT_TAG') + '">' +
                                       '<span id="graffiti-locked-on">' + stickerLib.makeLock(lockConfigOn) + '</span>' +
@@ -1240,8 +1247,9 @@ define([
                                           event: 'click', 
                                           fn: (e) => { 
                                             console.log('Graffiti: inserting graffiti terminal cell')
-                                            const suite = terminalLib.createTerminalCellAboveSelectedCell();
-                                            utils.saveNotebookDebounced();
+                                            terminalLib.createTerminalCellAboveSelectedCell().then(() => {
+                                              utils.saveNotebookDebounced();
+                                            });
                                           }
                                         },
                                         {
@@ -1249,8 +1257,9 @@ define([
                                           event: 'click', 
                                           fn: (e) => { 
                                             console.log('Graffiti: inserting graffiti terminal suite')
-                                            const suite = graffiti.createTerminalSuiteAboveSelectedCell();
-                                            utils.saveNotebookDebounced();
+                                            graffiti.createTerminalSuiteAboveSelectedCell().then( (terminalSuite) => {
+                                              utils.saveNotebookDebounced();
+                                            });
                                           }
                                         },
                                         {
@@ -1264,29 +1273,6 @@ define([
                                         },
                                         {
                                           ids: ['graffiti-create-showhide-button'],
-                                          event: 'click', 
-                                          fn: (e) => { 
-                                            graffiti.createGraffitiButtonAboveSelectedCell({
-                                              tooltipCommands: { 
-                                                insertDataFromFile: {
-                                                  cellType: 'code',
-                                                  filePath: './example.txt',
-                                                },
-                                                swappingLabels: true,
-                                                labelSwaps: ['Show Solution','Hide Solution'],
-                                                silenceWarnings: true
-                                              },
-                                              tooltipDirectives: [
-                                                '%%insert_data_from_file code ./example.txt',
-                                                '%%label_swaps Show Solution|Hide Solution',
-                                                '%%silence_warnings',
-                                              ],
-                                            });
-                                            utils.saveNotebookDebounced();
-                                          }
-                                        },
-                                        {
-                                          ids: ['graffiti-create-instant-showhide-button'],
                                           event: 'click', 
                                           fn: (e) => { 
                                             graffiti.createGraffitiInstantShowHideButton();
@@ -1316,7 +1302,7 @@ define([
             if (markdownLocked === true || terminalLib.isTerminalCell(cellId)) {
               console.log('Graffiti: Not unrendering markdown cell, since Graffiti lock in place or is terminal cell.');
             } else {
-              console.log('Graffiti: applying old unrender call, cellId', cellId);
+              //console.log('Graffiti: applying old unrender call, cellId', cellId);
               graffiti.oldUnrender.apply(cell, arguments);
               window.brokeCell = cell;
             }
@@ -2973,7 +2959,8 @@ define([
       // %%caption  What is Naive Bayes?
       //
 
-      extractTooltipCommands: (markdown) => {
+      extractTooltipCommands: (recording) => {
+        const markdown = recording.markdown;
         //const commandParts = markdown.match(/^\s*%%(([^\s]*)(\s*)(.*))$/mig);
         const commandParts = markdown.split(/\n/);
         let partsRecord, part, subParts, cleanedPart;
@@ -3111,10 +3098,21 @@ define([
                     break;
                   case 'insert_data_from_file':
                     // pass a cell type and a file to read content from.
-                    partsRecord.insertDataFromFile = {
-                      cellType: subPart1, // either "code" or "markdown"
-                      filePath: subPart2.replace(/^"/,'').replace(/"$/,''), // relative path to file to insert, remove quotes.
-                    };
+                    // if the filePath given in subPart2 is the string 'implicit' then we calculate the file path from the recording info. 
+                    // this is the case when we have a show/hide solution button where the include file is in the graffiti data path.
+                    if ($.trim(subPart2) == 'implicit') {
+                      const cellType = subPart1;
+                      partsRecord.insertDataFromFile = {
+                        cellType: cellType, // either "code" or "markdown"
+                        // isMarkdown: (cellType == 'markdown'),
+                        filePath: 'implicit'
+                      };
+                    } else {
+                      partsRecord.insertDataFromFile = {
+                        cellType: subPart1, // either "code" or "markdown"
+                        filePath: subPart2.replace(/^"/,'').replace(/"$/,''), // relative path to file to insert, remove quotes.
+                      };
+                    }
                     break;
                   case 'label_swaps':
                     // Using this directive you can change the displayed text in a graffiti eg. in a graffiti button on a click. Separate
@@ -3143,55 +3141,55 @@ define([
         return partsRecord;
       },
 
-     refreshGraffitiSideMarkers: (cell) => {
-       const element = $(cell.element[0]);
-       const elemOffset = element.offset();
-       element.find('.graffiti-right-side-marker').unbind('mouseenter mouseleave').remove(); // remove all previous markers for this cell
-       let markers = element.find('.graffiti-highlight');
-       const yBuffer = 2;
-       let i, marker, offset, makerIcon, rect, yDiff, className, idMatch, metaData;
-       if (markers.length > 0) {
-         //console.log('markers:', markers);
-         for (i = 0; i < markers.length; ++i) {
-           marker = markers[i];
-           className = marker.className;
-           // extract the recording tag so we can highlight it later
-           idMatch = className.match(/graffiti-(id_.[^\-]+-id_[^\s]+)/);
-           metaData = (idMatch !== null ? idMatch[1] : undefined);
-           offset = $(marker).offset();
-           yDiff = offset.top - elemOffset.top;
-           markerIcon = stickerLib.makeRightSideMarker({color:'rgb(47,147,107)',
-                                                        dimensions: { x: element.width() + 20,
-                                                                      y: yDiff - yBuffer,
-                                                                      width: 18,
-                                                                      height:12,
-                                                        },
-                                                        metaTag: 'graffiti-id|' + metaData,
-                                                        title: localizer.getString('GRAFFITI_PRESENT')
-           });
-           $(markerIcon).appendTo(element);
-         }
-       }
-       let markerIcons = element.find('.graffiti-right-side-marker');
-       if (markerIcons.length > 0) {
-         markerIcons.bind('mouseenter mouseleave', (e) => {
-           let target = $(e.target);
-           if (!target.hasClass('graffiti-right-side-marker')) {
-             target = target.parents('.graffiti-right-side-marker');
-           }
-           const graffitiId = target.attr('graffiti-id');
-           const cellElement = target.parents('.cell');
-           const graffitiElement = cellElement.find('.graffiti-' + graffitiId);
-           if (e.type === 'mouseenter') {
-             //console.log('entered right-side-marker:', graffitiId);
-             graffitiElement.addClass('graffiti-highlight-extra');
-           } else {
-             //console.log('left right-side-marker', graffitiId);
-             graffitiElement.removeClass('graffiti-highlight-extra');
-           }
-         });
-       }
-     },
+      refreshGraffitiSideMarkers: (cell) => {
+        const element = $(cell.element[0]);
+        const elemOffset = element.offset();
+        element.find('.graffiti-right-side-marker').unbind('mouseenter mouseleave').remove(); // remove all previous markers for this cell
+        let markers = element.find('.graffiti-highlight');
+        const yBuffer = 2;
+        let i, marker, offset, makerIcon, rect, yDiff, className, idMatch, metaData;
+        if (markers.length > 0) {
+          //console.log('markers:', markers);
+          for (i = 0; i < markers.length; ++i) {
+            marker = markers[i];
+            className = marker.className;
+            // extract the recording tag so we can highlight it later
+            idMatch = className.match(/graffiti-(id_.[^\-]+-id_[^\s]+)/);
+            metaData = (idMatch !== null ? idMatch[1] : undefined);
+            offset = $(marker).offset();
+            yDiff = offset.top - elemOffset.top;
+            markerIcon = stickerLib.makeRightSideMarker({color:'rgb(47,147,107)',
+                                                         dimensions: { x: element.width() + 20,
+                                                                       y: yDiff - yBuffer,
+                                                                       width: 18,
+                                                                       height:12,
+                                                         },
+                                                         metaTag: 'graffiti-id|' + metaData,
+                                                         title: localizer.getString('GRAFFITI_PRESENT')
+            });
+            $(markerIcon).appendTo(element);
+          }
+        }
+        let markerIcons = element.find('.graffiti-right-side-marker');
+        if (markerIcons.length > 0) {
+          markerIcons.bind('mouseenter mouseleave', (e) => {
+            let target = $(e.target);
+            if (!target.hasClass('graffiti-right-side-marker')) {
+              target = target.parents('.graffiti-right-side-marker');
+            }
+            const graffitiId = target.attr('graffiti-id');
+            const cellElement = target.parents('.cell');
+            const graffitiElement = cellElement.find('.graffiti-' + graffitiId);
+            if (e.type === 'mouseenter') {
+              //console.log('entered right-side-marker:', graffitiId);
+              graffitiElement.addClass('graffiti-highlight-extra');
+            } else {
+              //console.log('left right-side-marker', graffitiId);
+              graffitiElement.removeClass('graffiti-highlight-extra');
+            }
+          });
+        }
+      },
 
       // Refresh the markDoc calls for any particular cell based on recording data
       refreshGraffitiHighlights: (params) => {
@@ -3325,7 +3323,8 @@ define([
             state.setPlayableMovie('tip', cellId, recordingKey, hoverCellId);
           }                
           state.setHidePlayerAfterPlayback(false); // default for any recording is not to hide player
-          const tooltipCommands = graffiti.extractTooltipCommands(recording.markdown);
+          recording.recordingKey = recordingKey;
+          const tooltipCommands = graffiti.extractTooltipCommands(recording);
 
           if (recording.playOnClick) {
             //console.log('Graffiti: binding target for click', highlightElem);
@@ -3555,7 +3554,7 @@ define([
           e.stopPropagation(); 
           return true;
         }
-          
+        
         // If user hit shift-enter or ctrl-enter, in a code cell, and it is marked as "executeCellViaGraffiti" then it will
         // actually run a graffiti movie when you try to execute that cell, rather than the jupyter default (only when in 'idle' activity)
         if (activity === 'idle') {
@@ -3644,7 +3643,7 @@ define([
       
       setupBackgroundEvents: () => {
         // Handle rubber banding scrolling that occurs on short notebooks so cursor doesn't look wrong (possibly, only chrome?).
-        console.log('Graffiti: setupBackgroundEvents');
+        console.log('Graffiti: setupBackgroundEvents.');
 
         graffiti.sitePanel.on('scroll', (e) => {
           const notebookPanelHeight = graffiti.notebookPanel.height();
@@ -3667,12 +3666,12 @@ define([
         // that's playing in an iframe. Mousewheel-pause was defeating this workaround so it's turned off.
         // 3/18/19
 /*
-        graffiti.sitePanel.on('mousewheel', (e) => {
-          if (state.getActivity() === 'playing') {
-            console.log('Graffiti: pausing playback because of mousewheel scroll.');
-            graffiti.pausePlayback();
-          }
-        });
+           graffiti.sitePanel.on('mousewheel', (e) => {
+           if (state.getActivity() === 'playing') {
+           console.log('Graffiti: pausing playback because of mousewheel scroll.');
+           graffiti.pausePlayback();
+           }
+           });
 */
 
         $('body').keydown((e) => {
@@ -3762,38 +3761,38 @@ define([
           graffiti.pausePlayback();
         },
 
-        // Serialize/deserialize range objects
-        // https://github.com/tildeio/range-serializer
-        // https://www.npmjs.com/package/serialize-selection
+              // Serialize/deserialize range objects
+              // https://github.com/tildeio/range-serializer
+              // https://www.npmjs.com/package/serialize-selection
 
-        // Specially handle selection changes in rendered markdown cells and output areas during recordings
-        document.addEventListener("selectionchange", function() {
-          // get the selection and serialize it
-          if (state.getActivity() === 'recording') {
-            state.clearSelectionSerialized();
-            const viewInfo = state.getViewInfo();
-            const cellId = viewInfo.cellId;
-            if (cellId !== undefined) {
-              const hoverCell = utils.findCellByCellId(cellId);
-              let parentNode;
-              if (hoverCell.cell_type === 'markdown') {
-                parentNode = $(hoverCell.element).find('.rendered_html');
-              } else {
-                parentNode = $(hoverCell.element).find('.output_subarea');
-              }
-              if (parentNode.length > 0) {
-                const selectionSerialized = selectionSerializer.get(parentNode[0]);
-                if (!selectionSerialized.empty) {
-                  selectionSerialized.cellType = hoverCell.cell_type;
-                  selectionSerialized.cellId = cellId;
-                  // utils.shrinkAllCMSelections(); // cancel all CM selections as they will prevent replaying selection changes in other dom elements
-                  state.setSelectionSerialized(selectionSerialized);
-                  state.storeHistoryRecord('selections');
+              // Specially handle selection changes in rendered markdown cells and output areas during recordings
+              document.addEventListener("selectionchange", function() {
+                // get the selection and serialize it
+                if (state.getActivity() === 'recording') {
+                  state.clearSelectionSerialized();
+                  const viewInfo = state.getViewInfo();
+                  const cellId = viewInfo.cellId;
+                  if (cellId !== undefined) {
+                    const hoverCell = utils.findCellByCellId(cellId);
+                    let parentNode;
+                    if (hoverCell.cell_type === 'markdown') {
+                      parentNode = $(hoverCell.element).find('.rendered_html');
+                    } else {
+                      parentNode = $(hoverCell.element).find('.output_subarea');
+                    }
+                    if (parentNode.length > 0) {
+                      const selectionSerialized = selectionSerializer.get(parentNode[0]);
+                      if (!selectionSerialized.empty) {
+                        selectionSerialized.cellType = hoverCell.cell_type;
+                        selectionSerialized.cellId = cellId;
+                        // utils.shrinkAllCMSelections(); // cancel all CM selections as they will prevent replaying selection changes in other dom elements
+                        state.setSelectionSerialized(selectionSerialized);
+                        state.storeHistoryRecord('selections');
+                      }
+                    }
+                  }
                 }
-              }
-            }
-          }
-        });
+              });
 
         graffiti.handleSliderDragDebounced = _.debounce(graffiti.handleSliderDrag, 20, false);
         console.log('Graffiti: Background setup complete.');
@@ -3977,8 +3976,8 @@ define([
             }
             recordings[recordingCellInfo.recordingKey].markdown = editCellContents;
 
-            const tooltipCommands = graffiti.extractTooltipCommands(editCellContents);
             const recording = recordings[recordingCellInfo.recordingKey];
+            const tooltipCommands = graffiti.extractTooltipCommands(recording);
             recording.autoplay = 'never';
             if (tooltipCommands.autoplay === 'always') {
               recording.autoplay = 'always';
@@ -5737,7 +5736,7 @@ define([
         console.log('Graffiti: playMovieViaUserClick starts.');
         const activity = state.getActivity();
         const playableMovie = state.getPlayableMovie('tip');
-        console.log('Graffiti: playableMovie', playableMovie);
+        //console.log('Graffiti: playableMovie', playableMovie);
         if (playableMovie === undefined) {
           console.log('Graffiti: no playable movie known.');
           if (activity !== 'recording') {
@@ -5839,9 +5838,11 @@ define([
       },
 
       executeInsertDataFromFile: (recordingCellId, recordingKey, recording) => {
-        //console.trace('executeInsertDataFromFile');
         const insertDataFromFile = recording.insertDataFromFile;
-        const filePath = insertDataFromFile.filePath;
+        let filePath = insertDataFromFile.filePath;
+        if (filePath === 'implicit') {
+          filePath = storage.constructGraffitiIncludeFileNameWithPath({recordingCellId: recording.cellId, recordingKey: recording.recordingKey, isMarkdown: insertDataFromFile.isMarkdown});
+        }
         // Note that we re-use the recording key here. See note below about why.
         const existingCellId = recordingKey;
         const existingCell = utils.findCellByCellId(existingCellId);
@@ -5994,7 +5995,7 @@ define([
           return;
         }
 
-        console.log('Graffiti: playableMovie:', playableMovie);
+        //console.log('Graffiti: playableMovie:', playableMovie);
 
         const activity = state.getActivity();
         const recording = state.getManifestSingleRecording(playableMovie.recordingCellId, playableMovie.recordingKey);
@@ -6042,7 +6043,7 @@ define([
                   }
                 });
               }
-              console.log('Graffiti: could not load movie:', ex);
+              console.log('Graffiti: Could not load movie:', ex);
             });
           }
         };
