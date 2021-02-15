@@ -1,7 +1,7 @@
 FROM jupyter/datascience-notebook
 
 USER root
-RUN curl -sL https://deb.nodesource.com/setup_13.x | sudo bash - && apt-get install -y nodejs
+RUN curl -sL https://deb.nodesource.com/setup_15.x | sudo bash - && apt-get install -y nodejs
 
 RUN pip install jupytergraffiti
 RUN pip install nbzip
