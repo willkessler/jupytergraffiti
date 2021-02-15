@@ -459,7 +459,6 @@ define([
         recordingKey: data.recordingKey,
         takeId: data.activeTakeId,
       });
-      console.log('fetchMovie, data:', data);
       const credentials = { credentials: 'include'};
       storage.successfulLoad = false; /* assume we cannot fetch this recording ok */
       // console.log('Graffiti: storage is loading movie from path:', graffitiPath);
