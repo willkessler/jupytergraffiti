@@ -6021,7 +6021,6 @@ define([
             audio.setRecordedAudio(audioData);
             graffiti.startLoadedMovie(recording, playableMovie);
           } else {
-            console.log('Going to try to fetch playableMovie:', playableMovie);
             storage.fetchMovie(playableMovie).then( (movieData) => {
               state.setHistory(movieData.history);
               audio.setRecordedAudio(movieData.audio);
