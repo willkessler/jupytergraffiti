@@ -62,7 +62,7 @@ Modify `jupytergraffiti/meta.json` to include github handle: `willkessler`
 ```
 conda build jupytergraffiti
 export GRAFFITI_VERSION=1.0.1.10
-anaconda upload /Users/will/anaconda/conda-bld/noarch/jupytergraffiti-$GRAFFITI_VERSION-py_0.tar.bz2
+anaconda upload ~/anaconda3/conda-bld/noarch/jupytergraffiti-$GRAFFITI_VERSION-py_0.tar.bz2
 ```
 
 You may need to log in with `willkessler` and the same password you use for `pip` uploads.
