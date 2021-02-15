@@ -47,12 +47,13 @@ First time steps:
 mkdir conda
 cd conda
 rm -rf jupytergraffiti
+# Note that after twine upload to pip, above, there will be about 30 seconds before the new build is accessible to conda.
 conda skeleton pypi jupytergraffiti
 conda install conda-verify
 ```
 
-Modify `jupytergraffiti/meta.yaml` to include `build   noarch:  python`.
-Modify `jupytergraffiti/meta.json` to include github handle: `willkessler`
+Modify `jupytergraffiti/meta.yaml` to include `build   noarch:  python` and set `recipe-maintainers` on the last line.
+Modify `jupytergraffiti/meta.json` to include github handle: `willkessler`  (appears unnecessary now)
 
 
 (Re)building on macosx:
