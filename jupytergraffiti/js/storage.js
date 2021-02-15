@@ -259,7 +259,6 @@ define([
     constructGraffitiIncludeFileNameWithPath: (pathParts) => {
       const graffitiPath = storage.constructGraffitiIncludesPath(pathParts);
       const includeFileNameWithPath = graffitiPath + storage.constructGraffitiIncludeFileName(pathParts);
-
       return includeFileNameWithPath;
     },
 

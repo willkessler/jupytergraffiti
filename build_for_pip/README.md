@@ -85,6 +85,12 @@ To install and test you should be able to do :
 conda install -c willkessler jupytergraffiti
 ```
 
+You can test on Udacity streamed linux desktops with:
+
+```
+jupyter notebook —port=3001 —ip=127.0.0.1 —allow-root
+```
+
 ### Building for Windows and building for pip on Windows
 
 To debug issues on Windows, you need to have cygwin64 and node installed on the system. Then you need to use `jupytergraffiti/package.json_windows` instead of `jupytergraffiti/package.json`. This version of `package.json` has a different build step using utilities provided by Cygwin:
