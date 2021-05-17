@@ -98,11 +98,12 @@ define([
           writeMagic = '%%file';
           chunkSize = 7000;
           break;
+        case utils.rKernel:
+          break;
         case utils.pythonKernel:
+        default:
           writeMagic = '%%writefile';
           chunkSize = 100000;
-          break;
-        case utils.rKernel:
           break;
       }
       const contentLength = contents.length;
