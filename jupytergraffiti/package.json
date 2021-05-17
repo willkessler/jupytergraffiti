@@ -23,7 +23,7 @@
     "gulp-string-replace": "^1.1.2",
     "gulp-strip-debug": "^3.0.0",
     "ini": ">=1.3.6",
-    "lodash": "^4.17.19",
+    "lodash": "^4.17.21",
     "merge-stream": "^1.0.1",
     "minimist": ">1.2.3",
     "requirejs": "^2.3.6",
