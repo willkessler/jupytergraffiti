@@ -323,7 +323,7 @@ define([
             }
           }
           if (opts.tooltipDirectives !== undefined) {
-            _.uniq($.merge(tooltipDirectives, opts.tooltipDirectives));
+            tooltipDirectives = utils.uniq($.merge(tooltipDirectives, opts.tooltipDirectives));
           }
         }
         const rawButtonMarkdown = '<button>' + buttonLabel + '</button>';
@@ -1381,7 +1381,11 @@ define([
         //console.log('updateTakesPanel, recordingCellId, recordingKey, recording', recordingCellId, recordingKey, recording);
         //console.log('we got these takes:', recording.takes);
         let renderedTakes = '';
-        const sortedRecs = _.sortBy($.map(recording.takes, (val,key) => { return $.extend(true, {}, val, { key: key }) }), 'createDate')
+
+        // Previously, this sorting used lodash's _.sortBy() but lodash was removed from Jupyter so now we sort "manually".
+        const unsortedRecs = $.map(recording.takes, (val,key) => { return $.extend(true, {}, val, { key: key }) });
+        const sortedRecs = unsortedRecs.sort((a,b) => { return (new Date(b)).getTime() - (new Date(a)).getTime() } );
+
         //console.log('sorted recs are:', sortedRecs, 'from takes', recording.takes);
         let recIndex, recIndexZerobased, createDateFormatted, renderedDate, rec, takeClass;
         for (recIndex = sortedRecs.length; recIndex > 0; --recIndex) {
@@ -1728,7 +1732,7 @@ define([
         });
         audio.setAudioStorageCallback(storage.storeMovie);
         graffiti.addCMEvents();
-        graffiti.refreshGraffitiTooltipsDebounced = _.debounce(graffiti.refreshGraffitiTooltips, 100, false);
+        graffiti.refreshGraffitiTooltipsDebounced = utils.debounce(graffiti.refreshGraffitiTooltips, 100, false);
         setTimeout(() => { 
           graffiti.setupBackgroundEvents();
           graffiti.refreshAllGraffitiHighlights();
@@ -1743,7 +1747,7 @@ define([
         graffiti.setupMarkdownLocks();
 
         state.refreshCellIdToGraffitiMap();
-        graffiti.executeSaveToFileDirectivesDebounced = _.debounce(graffiti.executeSaveToFileDirectives, 750, false);
+        graffiti.executeSaveToFileDirectivesDebounced = utils.debounce(graffiti.executeSaveToFileDirectives, 750, false);
 
         terminalLib.init(graffiti.handleTerminalsEvents);
         graffiti.executeAllSaveToFileDirectives(); // autosave any cells that are set up with saveToFile directives pointed at them
@@ -3794,7 +3798,7 @@ define([
                 }
               });
 
-        graffiti.handleSliderDragDebounced = _.debounce(graffiti.handleSliderDrag, 20, false);
+        graffiti.handleSliderDragDebounced = utils.debounce(graffiti.handleSliderDrag, 20, false);
         console.log('Graffiti: Background setup complete.');
       },
 
@@ -5069,7 +5073,7 @@ define([
               referenceNode = $(cell.element).find('.output_subarea')[0];
             }
             const currentSelection = selectionSerializer.get(referenceNode);
-            if (!(_.isEqual(currentSelection.state, record.textSelection.state))) {
+            if (!(utils.isEqual(currentSelection.state, record.textSelection.state))) {
               if (cellType === 'markdown') {
                 // console.log('Graffiti: Focusing on markdown cell');
                 cell.focus_cell();
@@ -5107,7 +5111,7 @@ define([
               lineCheck = code_mirror.getLine(selections[0].head.line);
               selections[0].head.ch = Math.min(lineCheck.length, selections[0].head.ch);
 
-              if (!(_.isEqual(selections,currentSelections))) {
+              if (!(utils.isEqual(selections,currentSelections))) {
                 graffiti.dimGraffitiCursor();
 
                 graffiti.updateCellSelections(cell,code_mirror, selections, currentScrollTop);
@@ -5162,7 +5166,7 @@ define([
           const cellAdditions = state.getCellAdditions(); // all cells added during this recording
           const cellAdditionsIds = Object.values(cellAdditions);
           // Any cells that may have been added during the movie, not present in this timeframe, must be deleted.
-          const deletableCellIds = _.difference(cellAdditionsIds, cellsPresentIds); 
+          const deletableCellIds = utils.difference(cellAdditionsIds, cellsPresentIds); 
           //console.log('deletableCellIds', deletableCellIds, cellAdditions, cellsPresentIds);
           for (deletableCellId of deletableCellIds) {
             // console.log('Graffiti: Trying to delete cellid:', deletableCellId);
