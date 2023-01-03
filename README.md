@@ -12,6 +12,13 @@ Since the movie plays back in and _on_ the Notebook, the viewer can
 pause any time, dive into your code and try things out exactly as you
 had them when you were recording, and then resume play.
 
+## Is this project up to date?
+
+Yes, Graffiti is maintained and kept up to date by its author. Please
+file issues as you see them or submit PRs. It's most recently been
+updated for security and to eliminate lodash dependencies, on January 2, 
+2023.
+
 ## Try Graffiti Out! Try These _Live_ Demos:
 
 * [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fgeneral%2FGraffiti%20Basic%20Demo.ipynb) <a href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fgeneral%2FGraffiti%20Basic%20Demo.ipynb">General Demo</a>
@@ -40,6 +47,13 @@ _Please wait about 30 seconds for the demonstration to spin up at mybinder.org. 
 * Inlined terminals (shells) whose activities you can also record.
 * You can also draw and highlight over sections you think are important, or create handwritten notes.
 * Support for the <a href="https://github.com/QuantStack/xeus-cling">C++ kernel</a> and the <a href="https://github.com/IRkernel/IRkernel">R kernel</a> are included in addition to the Python kernel.
+
+## But, does this extension work in Jupyter Lab?
+
+No, it only works in Jupyter Notebook classic. It would be quite
+complex to port to Lab as it has an entirely different internal API.
+However, if anybody in the community wants to see a port and
+collaborate, please reach out.
 
 ## Learn More On Using Graffiti:
 
@@ -170,6 +184,7 @@ have remapped 8888 to the port you specify. In the example above,
 therefore, you would need to access the server at:
 `http://localhost:8889?token=e58a08f167881500e207ff9be05ad57ffe00e3457e54017c`.
 
+**Note**: Inline terminals do not seem to work within the Docker container setup, probably due to permission levels.
 
 ### Installation Option #3: Use the Python Library (Slightly More Involved Option, but does not add code to your system)
 

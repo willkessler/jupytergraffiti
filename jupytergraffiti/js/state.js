@@ -770,7 +770,7 @@ define([
       if (frameIndex === undefined) {
         return false;
       }
-      if (_.contains(state.history.processed[kind],frameIndex.index)) {
+      if (utils.contains(state.history.processed[kind],frameIndex.index)) {
         return false; // during playback, we've already processed this record so don't reprocess it.
       }
       state.history.processed[kind].push(frameIndex.index);
@@ -1349,7 +1349,7 @@ define([
 
     getCellAdditions: () => {
       if (state.history !== undefined) {
-        const  allAdditions = _.union(Object.keys(state.history.cellAdditions), Object.keys(state.playbackCellAdditions));
+        const  allAdditions = utils.union(Object.keys(state.history.cellAdditions), Object.keys(state.playbackCellAdditions));
         return allAdditions;
       }
       return undefined;
@@ -1563,7 +1563,7 @@ define([
       let record = backRefArray[cellId];
       if (record !== undefined) {
         if ( (backRefKind === 'contents' && data === record.data) ||
-             (backRefKind === 'outputs'  && _.isEqual(data, record.data)) ) {
+             (backRefKind === 'outputs'  && utils.isEqual(data, record.data)) ) {
           backRef = record.index;
           data = undefined;
         }

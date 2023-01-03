@@ -17,6 +17,121 @@ define([
       return str + "\n";
     },
 
+    // *****************************************************************************************************************************************
+    // lodash was eliminated from jupyter notebook support after about v6.4.12 so we can no longer use it in Graffiti.
+    // The functions we used were:
+    // contains(), isEqual(), difference(), union(), sortBy(), uniq(),  and debounce().
+    // The functions below attempt to replace these with plain javascript versions, no library deps. 1/2/23
+    // *****************************************************************************************************************************************
+
+    // Does a collection contain a value? I believe lodash renamed this to be includes().
+    contains: (arr, val) => {
+      return arr.includes(val);
+    },
+
+    // From: https://vanillajstoolkit.com/helpers/isequal/
+    isEqual: (obj1, obj2) => {
+      /*
+       * Check if two objects or arrays are equal
+       * (c) 2021 Chris Ferdinandi, MIT License, https://gomakethings.com
+       * @param  {*}       obj1 The first item
+       * @param  {*}       obj2 The second item
+       * @return {Boolean}       Returns true if they're equal in value
+       *
+       * More accurately check the type of a JavaScript object
+       * @param  {Object} obj The object
+       * @return {String}     The object type
+       */
+      function getType (obj) {
+	return Object.prototype.toString.call(obj).slice(8, -1).toLowerCase();
+      }
+
+      function areArraysEqual () {
+
+	// Check length
+	if (obj1.length !== obj2.length) return false;
+
+	// Check each item in the array
+	for (let i = 0; i < obj1.length; i++) {
+	  if (!utils.isEqual(obj1[i], obj2[i])) return false;
+	}
+
+	// If no errors, return true
+	return true;
+
+      }
+
+      function areObjectsEqual () {
+
+	if (Object.keys(obj1).length !== Object.keys(obj2).length) return false;
+
+	// Check each item in the object
+	for (let key in obj1) {
+	  if (Object.prototype.hasOwnProperty.call(obj1, key)) {
+	    if (!utils.isEqual(obj1[key], obj2[key])) return false;
+	  }
+	}
+
+	// If no errors, return true
+	return true;
+
+      }
+
+      function areFunctionsEqual () {
+	return obj1.toString() === obj2.toString();
+      }
+
+      function arePrimitivesEqual () {
+	return obj1 === obj2;
+      }
+
+      // Get the object type
+      let type = getType(obj1);
+
+      // If the two items are not the same type, return false
+      if (type !== getType(obj2)) return false;
+
+      // Compare based on type
+      if (type === 'array') return areArraysEqual();
+      if (type === 'object') return areObjectsEqual();
+      if (type === 'function') return areFunctionsEqual();
+
+      return arePrimitivesEqual();
+
+    },
+
+    // from: https://youmightnotneed.com/lodash#union
+    union: (arr, ...args) => {
+      return [...new Set(arr.concat(...args))];
+    },
+
+    // from: https://youmightnotneed.com/lodash#difference
+    difference: (arr1, arr2) => {
+      return arr1.filter(x => !arr2.includes(x));
+    },
+
+    // from: https://youmightnotneed.com/lodash#uniq
+    uniq: (arr) => {
+      return ([...new Set(arr)]);
+    },
+
+    // from: https://youmightnotneed.com/lodash#debounce
+    debounce: (func, delay, { leading } = {}) => {
+      let timerId;
+      return (...args) => {
+        if (!timerId && leading) {
+          func(...args);
+        }
+        clearTimeout(timerId);
+
+        timerId = setTimeout(() => func(...args), delay);
+      }
+    },
+    
+    // *****************************************************************************************************************************************
+    // End of lodash equivalents
+    // *****************************************************************************************************************************************
+
     // This gets the relative path of the notebook from the server root. However, this is deprecated in favor of terminals.discoverPwd for
     // finding the full path of the current notebook.
     getNotebookDirectory: () => {
@@ -943,7 +1058,7 @@ define([
 
   }
 
-  utils.saveNotebookDebounced = _.debounce(utils.saveNotebook, utils.saveDebounceTiming, false);
+  utils.saveNotebookDebounced = utils.debounce(utils.saveNotebook, utils.saveDebounceTiming, false);
 
   return(utils);
 });

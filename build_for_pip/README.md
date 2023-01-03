@@ -69,6 +69,16 @@ anaconda upload ~/anaconda3/conda-bld/noarch/jupytergraffiti-$GRAFFITI_VERSION-p
 You may need to log in with `willkessler` and the same password you use for `pip` uploads.
 (Optional)
 
+## Note that you may get an error during `conda build jupytergraffiti` wherein the build process will not finish and it will complain that the SHA does not match.
+If this happens, make sure to update the SHA in meta.yaml with the SHA the build program actually wants.  For instance,
+
+``` 
+SHA256 mismatch: '52dcc24f0e1bfb0937f73e7ab240c72d9cd1d20608b2d696622f49dd1198ea2d' != '5b94b49521f6456670fdb30cd82a4eca9412788a93fa6dd6df72c94d5a8ff2d7'
+
+```
+
+In this case update the SHA to the one ending in `2d` (the first SHA) since that is the latest for the conda repos.
+
 Then you want to convert to other architectures and upload these as well:
 
 ```

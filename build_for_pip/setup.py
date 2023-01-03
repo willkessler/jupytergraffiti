@@ -34,7 +34,7 @@ setuptools.setup(
         'npm_run_build': NPMRunBuild
     },
     name="jupytergraffiti",
-    version='1.0.1.19',
+    version='1.0.1.20',
     include_package_data=True,
     data_files=[
         # like `jupyter nbextension install --sys-prefix`
@@ -49,7 +49,7 @@ setuptools.setup(
         ])
     ],
     author="Will Kessler",
-    author_email="will@udacity.com",
+    author_email="willkessler at gmail",
     description="Create interactive screencasts inside Jupyter Notebook that anybody can play back.",
     long_description=long_description,
     long_description_content_type="text/markdown",
