@@ -48,6 +48,13 @@ _Please wait about 30 seconds for the demonstration to spin up at mybinder.org. 
 * You can also draw and highlight over sections you think are important, or create handwritten notes.
 * Support for the <a href="https://github.com/QuantStack/xeus-cling">C++ kernel</a> and the <a href="https://github.com/IRkernel/IRkernel">R kernel</a> are included in addition to the Python kernel.
 
+## But, does this extension work in Jupyter Lab?
+
+No, it only works in Jupyter Notebook classic. It would be quite
+complex to port to Lab as it has an entirely different internal API.
+However, if anybody in the community wants to see a port and
+collaborate, please reach out.
+
 ## Learn More On Using Graffiti:
 
 * <a target="_blank" href="https://drive.google.com/file/d/1eEga9NJ4ak8RZh28co4CZRck-4TrdjsE/view">How to make Graffiti movies</a>
