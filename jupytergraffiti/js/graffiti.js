@@ -31,7 +31,7 @@ define([
         const currentAccessLevel = state.getAccessLevel();
 
         graffiti.LZString = LZString;
-        graffiti.rewindAmt = 1;  // seconds
+        graffiti.rewindAmt = 1;  // in seconds
         graffiti.rewindSkipEditAmt = 0.05;  // seconds
         graffiti.CMEvents = {};
         graffiti.halfBullseye = 12;

@@ -16,7 +16,7 @@ had them when you were recording, and then resume play.
 
 Yes, Graffiti is maintained and kept up to date by its author. Please
 file issues as you see them or submit PRs. It's most recently been
-updated for security and to eliminate lodash dependencies, January
+updated for security and to eliminate lodash dependencies, on January 2, 
 2023.
 
 ## Try Graffiti Out! Try These _Live_ Demos:
