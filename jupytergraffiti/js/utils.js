@@ -18,17 +18,20 @@ define([
     },
 
     // *****************************************************************************************************************************************
-    // lodash was eliminated from jupyter notebook support after about v6.3.2 so we can no longer use it in Graffiti. The functions we used were:
-    // contains(), isEqual(), difference(), union(), sortBy(), uniq(),  and debounce(). The functions below attempt to replace these with plainjs.
+    // lodash was eliminated from jupyter notebook support after about v6.4.12 so we can no longer use it in Graffiti.
+    // The functions we used were:
+    // contains(), isEqual(), difference(), union(), sortBy(), uniq(),  and debounce().
+    // The functions below attempt to replace these with plain javascript versions, no library deps. 1/2/23
+    // *****************************************************************************************************************************************
 
-    // Does an array contain a value. I believe lodash renamed this to be includes().
+    // Does a collection contain a value? I believe lodash renamed this to be includes().
     contains: (arr, val) => {
       return arr.includes(val);
     },
 
-    // from: https://vanillajstoolkit.com/helpers/isequal/
+    // From: https://vanillajstoolkit.com/helpers/isequal/
     isEqual: (obj1, obj2) => {
-      /*!
+      /*
        * Check if two objects or arrays are equal
        * (c) 2021 Chris Ferdinandi, MIT License, https://gomakethings.com
        * @param  {*}       obj1 The first item
@@ -107,6 +110,7 @@ define([
       return arr1.filter(x => !arr2.includes(x));
     },
 
+    // from: https://youmightnotneed.com/lodash#uniq
     uniq: (arr) => {
       return ([...new Set(arr)]);
     },
@@ -120,10 +124,14 @@ define([
         }
         clearTimeout(timerId);
 
-        timerId = setTimeout(() => func(...args), delay)
+        timerId = setTimeout(() => func(...args), delay);
       }
     },
     
+    // *****************************************************************************************************************************************
+    // End of lodash equivalents
+    // *****************************************************************************************************************************************
+
     // This gets the relative path of the notebook from the server root. However, this is deprecated in favor of terminals.discoverPwd for
     // finding the full path of the current notebook.
     getNotebookDirectory: () => {

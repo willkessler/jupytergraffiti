@@ -12,6 +12,13 @@ Since the movie plays back in and _on_ the Notebook, the viewer can
 pause any time, dive into your code and try things out exactly as you
 had them when you were recording, and then resume play.
 
+## Is this project up to date?
+
+Yes, Graffiti is maintained and kept up to date by its author. Please
+file issues as you see them or submit PRs. It's most recently been
+updated for security and to eliminate lodash dependencies, January
+2023.
+
 ## Try Graffiti Out! Try These _Live_ Demos:
 
 * [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fgeneral%2FGraffiti%20Basic%20Demo.ipynb) <a href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fgeneral%2FGraffiti%20Basic%20Demo.ipynb">General Demo</a>
