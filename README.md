@@ -184,6 +184,7 @@ have remapped 8888 to the port you specify. In the example above,
 therefore, you would need to access the server at:
 `http://localhost:8889?token=e58a08f167881500e207ff9be05ad57ffe00e3457e54017c`.
 
+**Note**: Inline terminals do not seem to work within the Docker container setup, probably due to permission levels.
 
 ### Installation Option #3: Use the Python Library (Slightly More Involved Option, but does not add code to your system)
 
