@@ -44,8 +44,20 @@ define ([
     },
 
     _makeTerminal: (element, cellId, terminalId, wsUrl, sizeObj) => {
-      //console.log('makeTerminal,wsUrl:', wsUrl);
-      const terminalPrefetchUrl = '/api/terminals?' + terminalId;
+      console.log('Grafffiti: in func makeTerminal, wsUrl:', wsUrl);
+      // On mybinder.org, the vm urls are something like this:
+      //   https://hub.ovh2.mybinder.org/user/willkessler-jupytergraffiti-1qelssqm/notebooks/samples/general/Graffiti%20Basic%20Demo.ipynb vs
+      const urlPathName = location.pathname;
+      const host = location.host;
+      let path = '/api/terminals?' + terminalId;
+        if (urlPathName.indexOf('/notebooks/') > 0) {
+          // In cases where Jupyter is hosted on a path-based VM, like on binder.org, we need to extract that path part 
+          // and put it in front of the regular terminals endpoint.
+          const parts = urlPathName.split(/\/notebooks\//,2);
+          path = (parts[0].length > 0 ? parts[0] + path : path);
+        }
+
+      let terminalPrefetchUrl = location.protocol + '//' + host + path;
       const payload = { name: terminalId };
       let xsrfToken = '';
       const xsrfTokenMatch = document.cookie.match(/_xsrf=([^;]+)/);
