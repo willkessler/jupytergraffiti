@@ -45,8 +45,27 @@ define ([
 
     _makeTerminal: (element, cellId, terminalId, wsUrl, sizeObj) => {
       //console.log('makeTerminal,wsUrl:', wsUrl);
-      const terminalPrefetchUrl = '/terminals/new/' + terminalId;
-      return fetch(terminalPrefetchUrl, { credentials: 'include' }).then((results) => {
+      const terminalPrefetchUrl = '/api/terminals?' + terminalId;
+      const payload = { name: terminalId };
+      let xsrfToken = '';
+      const xsrfTokenMatch = document.cookie.match(/_xsrf=([^;]+)/);
+      if (xsrfTokenMatch) {
+        xsrfToken = xsrfTokenMatch[1];
+      } else {
+        console.error('XSRF Token not found in cookies, so we cannot start a terminal securely.');
+      }
+
+      return fetch(terminalPrefetchUrl,
+                   {
+                     credentials: 'include',
+                     method: 'POST',
+                     headers: {
+                       'Content-Type': 'application/json',
+                       'X-Xsrftoken' : xsrfToken,
+                     },
+                     body: JSON.stringify(payload)
+                   }
+                  ).then((results) => {
         const ws = new WebSocket(wsUrl);
         terminalLib.applyAddon(fit);
         const term = new terminalLib({ 
@@ -211,7 +230,8 @@ define ([
           const parts = urlPathName.split(/\/notebooks\//,2);
           path = (parts[0].length > 0 ? parts[0] + path : path);
         }
-        const wsUrl = location.protocol.replace('http', 'ws') + '//' + location.host + path + config.terminalId;
+        const wsUrlWithNbclassic = location.protocol.replace('http', 'ws') + '//' + location.host + path + config.terminalId;
+        const wsUrl = wsUrlWithNbclassic.replace('\/nbclassic',''); // now we need to remove 'nbclassic' from the websocket url in Notebooks v7. 
         const elem = $('#' + terminalContainerId);
         const sizeObj = {cols:40, rows:10};
         renderArea.find('.graffiti-terminal-reset').click((e) => {

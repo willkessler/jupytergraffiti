@@ -19,11 +19,15 @@ define([
     const graffiti = {
 
       init: () => {
-        console.log('Graffiti: Main constructor running.');
+        console.log('Graffiti: Main constructor running (Jupyter notebook v7, "nbclassic" mode).');
         
         utils.loadCss([
           'jupytergraffiti/css/graffiti.css',
           'jupytergraffiti/css/xterm.css'
+        ]);
+
+        utils.loadCdnScript([
+          {scriptUrl: 'https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js', callback : () => { Graffiti.marked = marked }},
         ]);
 
         const location = document.location;
