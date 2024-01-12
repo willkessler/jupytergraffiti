@@ -19,6 +19,13 @@ file issues as you see them or submit PRs. It's most recently been
 updated for security and to eliminate lodash dependencies, on January 2, 
 2023.
 
+** Update 1/11/2024: Graffiti has been upgraded to run in Jupyter
+Notebooks V7, but in "classic" mode. You will have to run your
+notebooks in Classic mode to use Graffiti until it gets completely
+rewritten for JupyterLab. I am not intending to make that update
+unless I hear back from the community that it's desired. **
+
+
 ## Try Graffiti Out! Try These _Live_ Demos:
 
 * [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?urlpath=/tree/samples%2Fgeneral%2FGraffiti%20Basic%20Demo.ipynb) <a href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?urlpath=/tree/samples%2Fgeneral%2FGraffiti%20Basic%20Demo.ipynb">General Demo</a>

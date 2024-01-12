@@ -2,13 +2,22 @@
 
 After changing `setup.py` or any part of the Graffiti codebase, increase the version number in setup.py appropriately, around line 37.
 
-Then run the commands shown below to upgrade what's stored in pip
+Make sure you have installed `penv` if on linux Mint:
 
 ``` shell
-python3 setup.py prep_to_build npm_run_build sdist bdist_wheel
+sudo apt-get install python3.10-venv
 ```
 
-If you yet don't have `twine` installed, you need to do `pip3 install twine`.
+Then run the commands shown below to upgrade what's stored in pip
+
+
+``` shell
+cd build_for_pip
+python3 -m build
+# This was (now deprecated): python3 setup.py prep_to_build npm_run_build sdist bdist_wheel
+```
+
+If you don't yet have `twine` installed, you need to do `pip3 install twine`.
 
 Now, uploading to the pypi test servers:
 
