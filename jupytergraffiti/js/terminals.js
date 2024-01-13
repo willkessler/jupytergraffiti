@@ -64,7 +64,7 @@ define ([
       if (xsrfTokenMatch) {
         xsrfToken = xsrfTokenMatch[1];
       } else {
-        console.error('XSRF Token not found in cookies, so we cannot start a terminal securely.');
+        console.log('Graffiti: XSRF Token not found in cookies, so we cannot start a terminal securely.');
       }
 
       return fetch(terminalPrefetchUrl,
