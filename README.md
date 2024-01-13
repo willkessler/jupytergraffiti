@@ -19,12 +19,19 @@ file issues as you see them or submit PRs. It's most recently been
 updated for security and to eliminate lodash dependencies, on January 2, 
 2023.
 
+** Update 1/11/2024: Graffiti has been upgraded to run in Jupyter
+Notebooks V7, but in "classic" mode. You will have to run your
+notebooks in Classic mode to use Graffiti until it gets completely
+rewritten for JupyterLab. I am not intending to make that update
+unless I hear back from the community that it's desired. **
+
+
 ## Try Graffiti Out! Try These _Live_ Demos:
 
-* [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fgeneral%2FGraffiti%20Basic%20Demo.ipynb) <a href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fgeneral%2FGraffiti%20Basic%20Demo.ipynb">General Demo</a>
-* [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fudacity%2Fc%2B%2B_nanodegree%2FFor%20Loops.ipynb) <a href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fudacity%2Fc%2B%2B_nanodegree%2FFor%20Loops.ipynb">Udacity C++ Nanodegree Example: "For Loops"</a>
-* [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fudacity%2Fc%2B%2B_nanodegree%2FPointers.ipynb) <a href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fudacity%2Fc%2B%2B_nanodegree%2FPointers.ipynb">Udacity C++ Nanodegree Example: "Pointers"</a>
-* [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fudacity%2Fdata_structures_nanodegree%2FImplement%20a%20stack%20using%20an%20array.ipynb) <a href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?filepath=samples%2Fudacity%2Fdata_structures_nanodegree%2FImplement%20a%20stack%20using%20an%20array.ipynb">Udacity Data Structures and Algorithms Nanodegree Example: "Implementing a Stack using an Array"</a>
+* [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?urlpath=/tree/samples%2Fgeneral%2FGraffiti%20Basic%20Demo.ipynb) <a href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?urlpath=/tree/samples%2Fgeneral%2FGraffiti%20Basic%20Demo.ipynb">General Demo</a>
+* [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?urlpath=/tree/samples%2Fudacity%2Fc%2B%2B_nanodegree%2FFor%20Loops.ipynb) <a href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?urlpath=/tree/samples%2Fudacity%2Fc%2B%2B_nanodegree%2FFor%20Loops.ipynb">Udacity C++ Nanodegree Example: "For Loops"</a>
+* [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?urlpath=/tree/samples%2Fudacity%2Fc%2B%2B_nanodegree%2FPointers.ipynb) <a href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?urlpath=/tree/samples%2Fudacity%2Fc%2B%2B_nanodegree%2FPointers.ipynb">Udacity C++ Nanodegree Example: "Pointers"</a>
+* [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?urlpath=/tree/samples%2Fudacity%2Fdata_structures_nanodegree%2FImplement%20a%20stack%20using%20an%20array.ipynb) <a href="https://mybinder.org/v2/gh/willkessler/jupytergraffiti/master?urlpath=/tree/samples%2Fudacity%2Fdata_structures_nanodegree%2FImplement%20a%20stack%20using%20an%20array.ipynb">Udacity Data Structures and Algorithms Nanodegree Example: "Implementing a Stack using an Array"</a>
 
 _Please wait about 30 seconds for the demonstration to spin up at mybinder.org. (Thanks to the folks at MyBinder for this awesome service)._
 

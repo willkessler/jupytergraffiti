@@ -1,6 +1,5 @@
 define([
-  'components/marked/lib/marked'
-], function (marked) {
+], function () {
 
   const utils = {
     cellMaps: {},
@@ -430,7 +429,7 @@ define([
     renderMarkdown: (contents) => {
       // Strip out special commands eg. headline commands and make all hrefs pop new tabs
       const cleanedContents = contents.replace(/^\s*%%(.*)$/mg, '');
-      return marked(cleanedContents).replace(/(href=".*")>/g, "$1 target=\"_blank\">");
+      return Graffiti.marked.parse(cleanedContents).replace(/(href=".*")>/g, "$1 target=\"_blank\">");
     },
 
     collectViewInfo: (clientX, clientY, notebookPanelHeight, scrollDiff) => {
@@ -943,10 +942,13 @@ define([
     },
 
     loadCss: (cssPaths) => {
-      let path, reworkedPath, previousCssTag;
+      let path, reworkedPathPartial, reworkedPath, previousCssTag;
       for (let i in cssPaths) {
         path = cssPaths[i];
-        reworkedPath = utils.reworkFetchPathForVirtualHosts(path);
+        reworkedPathPartial = utils.reworkFetchPathForVirtualHosts(path);
+        // Now that jupyter v7 is out, we have to run graffiti in "nbclassic" mode. but this means that the "nbclassic" in the relative path to the css files must be removed or it
+        // gets the wrong mime type and doesn't know they are CSS files.
+        reworkedPath = reworkedPathPartial.replace('\/nbclassic','');
 
         previousCssTag = $('#recorder-css-tag-' + i);
         if (previousCssTag.length === 0) {
@@ -958,6 +960,29 @@ define([
           styles.media = 'screen';
           styles.href = reworkedPath;
           document.getElementsByTagName('head')[0].appendChild(styles);
+        }
+      }
+    },
+
+    loadCdnScript: (scriptUrls) => {
+      let scriptUrl, callback, previousScriptTag;
+
+      for (let i in scriptUrls) {
+        scriptUrl = scriptUrls[i].scriptUrl;
+        callback = scriptUrls[i].callback;
+
+        previousScriptTag = $('#recorder-script-tag-' + i);
+        if (previousScriptTag.length === 0) { // prevent double insertion
+          const scriptTag = document.createElement('script');
+          scriptTag.src = scriptUrl;
+          scriptTag.crossOrigin = 'anonymous';
+          scriptTag.referrerPolicy='no-referrer';
+          scriptTag.onload = () => {
+            console.log('in onload func');
+            callback();
+          };
+
+          document.getElementsByTagName('head')[0].appendChild(scriptTag);
         }
       }
     },
