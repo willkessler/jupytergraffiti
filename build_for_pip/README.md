@@ -14,6 +14,7 @@ Then run the commands shown below to upgrade what's stored in pip
 ``` shell
 cd build_for_pip
 python3 -m build
+python3 -m build --sdist
 # This was (now deprecated): python3 setup.py prep_to_build npm_run_build sdist bdist_wheel
 ```
 
@@ -25,7 +26,10 @@ Now, uploading to the pypi test servers:
 python3 -m twine upload --repository-url https://test.pypi.org/legacy/ dist/* --verbose
 ```
 
-(For User name you can use `willkessler`.)
+For User name you can use `willkessler`. 
+
+You'll need the API key from the account placed in a `~/.pypirc` file...
+as per these instructions: https://packaging.python.org/en/latest/guides/using-testpypi/#setting-up-testpypi-in-pypirc)
 
 Installing to a host in the cloud, from the test servers:
 ``` shell
