@@ -49,7 +49,7 @@ setuptools.setup(
         ])
     ],
     author="Will Kessler",
-    author_email="willkessler at gmail",
+    author_email="willkessler@gmail.com",
     description="Create interactive screencasts inside Jupyter Notebook that anybody can play back.",
     long_description=long_description,
     long_description_content_type="text/markdown",
